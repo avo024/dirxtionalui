@@ -1,0 +1,21 @@
+import { Navigate, Outlet } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { ClinicSidebar } from "./ClinicSidebar";
+
+export function ClinicLayout() {
+  const { user, isAuthenticated } = useAuth();
+
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (user?.role !== "clinic_user") return <Navigate to="/admin/dashboard" replace />;
+
+  return (
+    <div className="flex min-h-screen w-full">
+      <ClinicSidebar />
+      <main className="flex-1 overflow-auto">
+        <div className="mx-auto max-w-[1400px] px-6 py-8 lg:px-8">
+          <Outlet />
+        </div>
+      </main>
+    </div>
+  );
+}

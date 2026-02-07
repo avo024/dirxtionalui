@@ -47,6 +47,14 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -56,6 +64,32 @@ export default {
           "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
+        },
+        status: {
+          uploaded: {
+            bg: "hsl(var(--status-uploaded-bg))",
+            fg: "hsl(var(--status-uploaded-fg))",
+          },
+          processing: {
+            bg: "hsl(var(--status-processing-bg))",
+            fg: "hsl(var(--status-processing-fg))",
+          },
+          review: {
+            bg: "hsl(var(--status-review-bg))",
+            fg: "hsl(var(--status-review-fg))",
+          },
+          approved: {
+            bg: "hsl(var(--status-approved-bg))",
+            fg: "hsl(var(--status-approved-fg))",
+          },
+          sent: {
+            bg: "hsl(var(--status-sent-bg))",
+            fg: "hsl(var(--status-sent-fg))",
+          },
+          rejected: {
+            bg: "hsl(var(--status-rejected-bg))",
+            fg: "hsl(var(--status-rejected-fg))",
+          },
         },
       },
       borderRadius: {
