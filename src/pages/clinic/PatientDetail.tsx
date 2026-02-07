@@ -1,22 +1,69 @@
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   ArrowLeft, Plus, User, Shield, Phone, Mail, Copy,
-  FileText, Pill, Eye, Download
+  FileText, Pill, Eye, Download, ClipboardList, Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PAStatusBadge } from "@/components/PAStatusBadge";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { mockPatients, mockReferrals } from "@/data/mockData";
+import { mockPatients, mockReferrals, mockPatientDrugs, type PatientDrug } from "@/data/mockData";
 import { formatDateShort, getRelativeTime } from "@/lib/dateUtils";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+
+function getDrugPABadge(drug: PatientDrug) {
+  const today = new Date();
+
+  if (!drug.pa_status || drug.pa_status === "pending") {
+    return { label: "No PA", className: "bg-muted text-muted-foreground" };
+  }
+
+  if (drug.pa_status === "approved" && drug.pa_expiration_date) {
+    const expDate = new Date(drug.pa_expiration_date);
+    if (expDate < today) {
+      return { label: "PA Expired", className: "bg-destructive/10 text-destructive" };
+    }
+    const daysUntil = Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    if (daysUntil <= 30) {
+      return { label: "PA Expiring Soon", className: "bg-warning/10 text-warning" };
+    }
+    return { label: "PA Active", className: "bg-success/10 text-success" };
+  }
+
+  return { label: "No PA", className: "bg-muted text-muted-foreground" };
+}
 
 export default function PatientDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const patient = mockPatients.find((p) => p.id === id);
+
+  // Mock API: GET /patients/{patient_id}/drugs — hooks before early return
+  const [medications, setMedications] = useState<PatientDrug[]>([]);
+  const [medsLoading, setMedsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!id) return;
+    setMedsLoading(true);
+    const timer = setTimeout(() => {
+      const drugs = mockPatientDrugs.filter((d) => d.patient_id === id);
+      setMedications(drugs);
+      setMedsLoading(false);
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [id]);
+
+  const sortedMedications = useMemo(() => {
+    return [...medications].sort((a, b) => {
+      if (a.is_active !== b.is_active) return a.is_active ? -1 : 1;
+      const aDate = a.pa_expiration_date ? new Date(a.pa_expiration_date).getTime() : Infinity;
+      const bDate = b.pa_expiration_date ? new Date(b.pa_expiration_date).getTime() : Infinity;
+      return aDate - bDate;
+    });
+  }, [medications]);
 
   if (!patient) {
     return (
@@ -34,7 +81,6 @@ export default function PatientDetail() {
     (r) => r.patient_name === fullName && r.clinic_name === "Dallas Dermatology Clinic"
   );
 
-  // Collect all documents from all referrals for this patient
   const allDocuments = patientReferrals.flatMap((r) =>
     r.documents.map((d) => ({ ...d, referralId: r.id, referralDrug: r.drug }))
   );
@@ -86,6 +132,7 @@ export default function PatientDetail() {
         <TabsList>
           <TabsTrigger value="history">Referral History</TabsTrigger>
           <TabsTrigger value="info">Patient Information</TabsTrigger>
+          <TabsTrigger value="medications">Medications</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
         </TabsList>
 
@@ -258,11 +305,86 @@ export default function PatientDetail() {
           </div>
         </TabsContent>
 
+        {/* MEDICATIONS TAB */}
+        <TabsContent value="medications" className="mt-4">
+          {medsLoading ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
+              <span className="text-sm text-muted-foreground">Loading medications...</span>
+            </div>
+          ) : sortedMedications.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {sortedMedications.map((drug) => {
+                const badge = getDrugPABadge(drug);
+                return (
+                  <div
+                    key={drug.id}
+                    className={cn(
+                      "rounded-xl border border-border bg-card p-4 card-shadow transition-all duration-200 hover:shadow-md",
+                      !drug.is_active && "opacity-60"
+                    )}
+                  >
+                    {/* Top row: drug name + PA badge */}
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                          <Pill className="h-4 w-4 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-foreground">{drug.drug_name}</p>
+                          {!drug.is_active && (
+                            <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Discontinued</span>
+                          )}
+                        </div>
+                      </div>
+                      <span className={cn("text-[11px] font-medium px-2 py-0.5 rounded-full whitespace-nowrap", badge.className)}>
+                        {badge.label}
+                      </span>
+                    </div>
+
+                    {/* Subtitle: dosage + frequency */}
+                    <p className="text-sm text-muted-foreground mb-3">
+                      {drug.dosage} · {drug.frequency}
+                    </p>
+
+                    {/* Bottom row: dates */}
+                    <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-border pt-3 mb-3">
+                      <span>
+                        PA expires: {drug.pa_expiration_date ? formatDateShort(drug.pa_expiration_date) : "N/A"}
+                      </span>
+                      <span>
+                        Last filled: {drug.last_filled ? formatDateShort(drug.last_filled) : "Never"}
+                      </span>
+                    </div>
+
+                    {/* Action button */}
+                    <Button variant="outline" size="sm" className="w-full text-xs">
+                      <Eye className="h-3.5 w-3.5 mr-1" />
+                      View PA Details
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
+              <ClipboardList className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
+              <p className="text-sm font-medium text-foreground mb-1">No Medications on Record</p>
+              <p className="text-sm text-muted-foreground mb-4">No active prescriptions for this patient yet</p>
+              <Button asChild>
+                <Link to={`/clinic/referrals/new?patientId=${patient.id}`}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create First Referral
+                </Link>
+              </Button>
+            </div>
+          )}
+        </TabsContent>
+
         {/* DOCUMENTS TAB */}
         <TabsContent value="documents" className="mt-4">
           {allDocuments.length > 0 ? (
             <div className="space-y-4">
-              {/* Group by referral */}
               {patientReferrals.map((ref) => {
                 const docs = allDocuments.filter((d) => d.referralId === ref.id);
                 if (docs.length === 0) return null;
