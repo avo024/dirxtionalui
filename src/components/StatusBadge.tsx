@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 import type { ReferralStatus } from "@/data/mockData";
 import { statusLabels } from "@/data/mockData";
+import { Upload, Loader2, Clock, CheckCircle, Send, XCircle, Eye } from "lucide-react";
 
 const statusStyles: Record<ReferralStatus, string> = {
   uploaded: "bg-status-uploaded-bg text-status-uploaded-fg",
@@ -20,21 +21,52 @@ const dotStyles: Record<ReferralStatus, string> = {
   rejected: "bg-status-rejected-fg",
 };
 
+const statusIcons: Record<ReferralStatus, React.ElementType> = {
+  uploaded: Upload,
+  processing: Loader2,
+  ready_for_review: Eye,
+  approved_to_send: CheckCircle,
+  sent_to_pharmacy: Send,
+  rejected: XCircle,
+};
+
 interface StatusBadgeProps {
   status: ReferralStatus;
+  size?: "sm" | "md" | "lg";
+  showIcon?: boolean;
   className?: string;
 }
 
-export function StatusBadge({ status, className }: StatusBadgeProps) {
+export function StatusBadge({ status, size = "sm", showIcon = false, className }: StatusBadgeProps) {
+  const Icon = statusIcons[status];
+  const isProcessing = status === "processing";
+
+  const sizeClasses = {
+    sm: "px-2.5 py-0.5 text-xs gap-1.5",
+    md: "px-3 py-1 text-sm gap-2",
+    lg: "px-4 py-1.5 text-sm gap-2 font-semibold",
+  };
+
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium",
+        "inline-flex items-center rounded-full font-medium",
         statusStyles[status],
+        sizeClasses[size],
         className
       )}
     >
-      <span className={cn("h-1.5 w-1.5 rounded-full", dotStyles[status])} />
+      {showIcon ? (
+        <Icon className={cn("h-3.5 w-3.5", isProcessing && "animate-spin")} />
+      ) : (
+        <span
+          className={cn(
+            "h-1.5 w-1.5 rounded-full shrink-0",
+            dotStyles[status],
+            isProcessing && "animate-pulse"
+          )}
+        />
+      )}
       {statusLabels[status]}
     </span>
   );

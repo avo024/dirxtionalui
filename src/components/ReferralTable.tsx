@@ -1,7 +1,8 @@
 import { useNavigate } from "react-router-dom";
-import { Eye } from "lucide-react";
+import { Eye, Pill, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/StatusBadge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Table,
   TableBody,
@@ -11,6 +12,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Referral } from "@/data/mockData";
+import { getRelativeTime, formatDateTime } from "@/lib/dateUtils";
+import { toast } from "@/hooks/use-toast";
 
 interface ReferralTableProps {
   referrals: Referral[];
@@ -29,53 +32,105 @@ export function ReferralTable({ referrals, userType, showClinic = false }: Refer
     }
   };
 
+  const copyId = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(id);
+    toast({ title: "Copied!", description: `${id} copied to clipboard` });
+  };
+
+  if (referrals.length === 0) {
+    return (
+      <div className="rounded-xl border border-border bg-card p-12 text-center">
+        <div className="mx-auto h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-4">
+          <Eye className="h-5 w-5 text-muted-foreground" />
+        </div>
+        <p className="text-sm font-medium text-foreground mb-1">No referrals found</p>
+        <p className="text-sm text-muted-foreground">Try adjusting your filters or search terms</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="rounded-lg border border-border bg-card overflow-hidden">
+    <div className="rounded-xl border border-border bg-card overflow-hidden card-shadow">
       <Table>
         <TableHeader>
           <TableRow className="bg-secondary/50 hover:bg-secondary/50">
-            {userType === "admin" && <TableHead className="text-xs font-semibold uppercase text-muted-foreground">ID</TableHead>}
-            <TableHead className="text-xs font-semibold uppercase text-muted-foreground">Patient Name</TableHead>
-            {showClinic && <TableHead className="text-xs font-semibold uppercase text-muted-foreground">Clinic</TableHead>}
-            <TableHead className="text-xs font-semibold uppercase text-muted-foreground">Drug</TableHead>
-            <TableHead className="text-xs font-semibold uppercase text-muted-foreground">Status</TableHead>
-            <TableHead className="text-xs font-semibold uppercase text-muted-foreground">Created</TableHead>
-            {userType === "clinic" && <TableHead className="text-xs font-semibold uppercase text-muted-foreground">Updated</TableHead>}
-            <TableHead className="text-xs font-semibold uppercase text-muted-foreground text-right">Actions</TableHead>
+            <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">ID</TableHead>
+            <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Patient Name</TableHead>
+            {showClinic && <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Clinic</TableHead>}
+            <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Drug</TableHead>
+            <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</TableHead>
+            <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Created</TableHead>
+            {userType === "clinic" && <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Updated</TableHead>}
+            <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {referrals.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                No referrals found
+          {referrals.map((ref, i) => (
+            <TableRow
+              key={ref.id}
+              className="cursor-pointer transition-colors hover:bg-primary/[0.03] even:bg-secondary/20"
+              onClick={() => handleView(ref.id)}
+            >
+              <TableCell>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={(e) => copyId(e, ref.id)}
+                      className="font-mono text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded hover:bg-secondary/80 transition-colors"
+                    >
+                      {ref.id.toUpperCase()}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>Click to copy</TooltipContent>
+                </Tooltip>
+              </TableCell>
+              <TableCell>
+                <span className="font-medium text-foreground hover:underline">{ref.patient_name}</span>
+              </TableCell>
+              {showClinic && (
+                <TableCell className="text-sm text-muted-foreground">{ref.clinic_name}</TableCell>
+              )}
+              <TableCell>
+                <div className="flex items-center gap-1.5">
+                  <Pill className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-sm">{ref.drug}</span>
+                </div>
+              </TableCell>
+              <TableCell>
+                <StatusBadge status={ref.status} />
+              </TableCell>
+              <TableCell>
+                <Tooltip>
+                  <TooltipTrigger className="text-sm text-muted-foreground">
+                    {getRelativeTime(ref.created_at)}
+                  </TooltipTrigger>
+                  <TooltipContent>{formatDateTime(ref.created_at)}</TooltipContent>
+                </Tooltip>
+              </TableCell>
+              {userType === "clinic" && (
+                <TableCell>
+                  <Tooltip>
+                    <TooltipTrigger className="text-sm text-muted-foreground">
+                      {getRelativeTime(ref.updated_at)}
+                    </TooltipTrigger>
+                    <TooltipContent>{formatDateTime(ref.updated_at)}</TooltipContent>
+                  </Tooltip>
+                </TableCell>
+              )}
+              <TableCell className="text-right">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs"
+                  onClick={(e) => { e.stopPropagation(); handleView(ref.id); }}
+                >
+                  <Eye className="h-3.5 w-3.5 mr-1" />
+                  {userType === "admin" ? "Review" : "View"}
+                </Button>
               </TableCell>
             </TableRow>
-          ) : (
-            referrals.map((ref, i) => (
-              <TableRow
-                key={ref.id}
-                className="cursor-pointer transition-colors hover:bg-secondary/30"
-                onClick={() => handleView(ref.id)}
-              >
-                {userType === "admin" && (
-                  <TableCell className="font-mono text-xs text-muted-foreground">{ref.id}</TableCell>
-                )}
-                <TableCell className="font-medium">{ref.patient_name}</TableCell>
-                {showClinic && <TableCell className="text-sm text-muted-foreground">{ref.clinic_name}</TableCell>}
-                <TableCell className="text-sm">{ref.drug}</TableCell>
-                <TableCell><StatusBadge status={ref.status} /></TableCell>
-                <TableCell className="text-sm text-muted-foreground">{ref.created_at}</TableCell>
-                {userType === "clinic" && <TableCell className="text-sm text-muted-foreground">{ref.updated_at}</TableCell>}
-                <TableCell className="text-right">
-                  <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleView(ref.id); }}>
-                    <Eye className="h-4 w-4 mr-1" />
-                    {userType === "admin" ? "Review" : "View"}
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))
-          )}
+          ))}
         </TableBody>
       </Table>
     </div>
