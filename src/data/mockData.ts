@@ -106,6 +106,26 @@ export interface PharmacyLocation {
   active: boolean;
 }
 
+export type PAStatus = "active" | "expiring" | "expired" | "none";
+
+export interface Patient {
+  id: string;
+  first_name: string;
+  last_name: string;
+  dob: string;
+  gender: string;
+  phone: string;
+  email: string;
+  last_drug: string;
+  last_dosage: string;
+  last_referral_date: string;
+  pa_status: PAStatus;
+  pa_expiration_date: string;
+  referral_count: number;
+  insurance_type: string;
+  insurance_notes: string;
+}
+
 export const mockReferrals: Referral[] = [
   {
     id: "ref-001",
@@ -646,6 +666,22 @@ export const mockReferrals: Referral[] = [
       { id: "h-51", status: "approved_to_send", timestamp: "2026-02-06T16:00:00Z", note: "Approved by admin", user: "Admin Team" },
     ],
   },
+];
+
+export const mockPatients: Patient[] = [
+  { id: "pat-001", first_name: "John", last_name: "Doe", dob: "1985-01-15", gender: "Male", phone: "(555) 123-4567", email: "john.doe@email.com", last_drug: "Dupixent", last_dosage: "300mg every 2 weeks", last_referral_date: "2026-02-05", pa_status: "active", pa_expiration_date: "2026-08-15", referral_count: 3, insurance_type: "Commercial", insurance_notes: "Blue Cross Blue Shield PPO" },
+  { id: "pat-002", first_name: "Jane", last_name: "Smith", dob: "1992-08-22", gender: "Female", phone: "(555) 234-5678", email: "jane.smith@email.com", last_drug: "Taltz", last_dosage: "80mg every 4 weeks", last_referral_date: "2026-02-03", pa_status: "expiring", pa_expiration_date: "2026-03-01", referral_count: 2, insurance_type: "Commercial", insurance_notes: "Aetna HMO" },
+  { id: "pat-003", first_name: "Robert", last_name: "Johnson", dob: "1965-04-12", gender: "Male", phone: "(555) 456-7890", email: "r.johnson@email.com", last_drug: "Humira", last_dosage: "40mg every 2 weeks", last_referral_date: "2026-01-28", pa_status: "active", pa_expiration_date: "2026-07-28", referral_count: 4, insurance_type: "Commercial", insurance_notes: "Cigna PPO" },
+  { id: "pat-004", first_name: "Emily", last_name: "Davis", dob: "1988-09-14", gender: "Female", phone: "(555) 789-0123", email: "e.davis@email.com", last_drug: "Skyrizi", last_dosage: "150mg every 12 weeks", last_referral_date: "2026-02-06", pa_status: "active", pa_expiration_date: "2026-09-06", referral_count: 1, insurance_type: "Commercial", insurance_notes: "BCBS TX PPO" },
+  { id: "pat-005", first_name: "Thomas", last_name: "Anderson", dob: "1980-03-10", gender: "Male", phone: "(555) 890-1234", email: "t.anderson@email.com", last_drug: "Cosentyx", last_dosage: "300mg every 4 weeks", last_referral_date: "2026-02-07", pa_status: "none", pa_expiration_date: "", referral_count: 1, insurance_type: "Commercial", insurance_notes: "Aetna PPO" },
+  { id: "pat-006", first_name: "Lisa", last_name: "Chen", dob: "1995-07-22", gender: "Female", phone: "(555) 901-2345", email: "l.chen@email.com", last_drug: "Stelara", last_dosage: "45mg every 12 weeks", last_referral_date: "2026-02-06", pa_status: "none", pa_expiration_date: "", referral_count: 1, insurance_type: "Commercial", insurance_notes: "Cigna Open Access Plus" },
+  { id: "pat-007", first_name: "David", last_name: "Kim", dob: "1970-12-05", gender: "Male", phone: "(555) 012-3456", email: "d.kim@email.com", last_drug: "Otezla", last_dosage: "30mg twice daily", last_referral_date: "2026-02-02", pa_status: "active", pa_expiration_date: "2026-06-02", referral_count: 2, insurance_type: "Commercial", insurance_notes: "UnitedHealthcare Choice Plus" },
+  { id: "pat-008", first_name: "Patricia", last_name: "Hernandez", dob: "1983-05-18", gender: "Female", phone: "(555) 123-7890", email: "p.hernandez@email.com", last_drug: "Rinvoq", last_dosage: "15mg once daily", last_referral_date: "2026-01-25", pa_status: "expiring", pa_expiration_date: "2026-02-25", referral_count: 3, insurance_type: "Commercial", insurance_notes: "BCBS TX PPO" },
+  { id: "pat-009", first_name: "Kevin", last_name: "O'Brien", dob: "1967-09-03", gender: "Male", phone: "(555) 234-8901", email: "k.obrien@email.com", last_drug: "Enbrel", last_dosage: "50mg once weekly", last_referral_date: "2026-02-04", pa_status: "expired", pa_expiration_date: "2026-01-15", referral_count: 1, insurance_type: "Medicare", insurance_notes: "Medicare Part D" },
+  { id: "pat-010", first_name: "Amanda", last_name: "Foster", dob: "1991-02-14", gender: "Female", phone: "(555) 345-9012", email: "a.foster@email.com", last_drug: "Tremfya", last_dosage: "100mg every 8 weeks", last_referral_date: "2026-02-07", pa_status: "none", pa_expiration_date: "", referral_count: 1, insurance_type: "Commercial", insurance_notes: "Humana Gold Plus" },
+  { id: "pat-011", first_name: "William", last_name: "Turner", dob: "1975-08-29", gender: "Male", phone: "(555) 456-0123", email: "w.turner@email.com", last_drug: "Dupixent", last_dosage: "300mg every 2 weeks", last_referral_date: "2026-01-20", pa_status: "active", pa_expiration_date: "2026-07-20", referral_count: 5, insurance_type: "Commercial", insurance_notes: "BCBS TX HMO" },
+  { id: "pat-012", first_name: "Rachel", last_name: "Green", dob: "1988-11-20", gender: "Female", phone: "(555) 567-1234", email: "r.green@email.com", last_drug: "Humira", last_dosage: "40mg every 2 weeks", last_referral_date: "2026-02-05", pa_status: "active", pa_expiration_date: "2026-08-05", referral_count: 1, insurance_type: "Commercial", insurance_notes: "Aetna HMO" },
+  { id: "pat-013", first_name: "Daniel", last_name: "Martinez", dob: "1982-04-15", gender: "Male", phone: "(555) 678-2345", email: "d.martinez@email.com", last_drug: "Dupixent", last_dosage: "300mg every 2 weeks", last_referral_date: "2026-02-03", pa_status: "expiring", pa_expiration_date: "2026-03-10", referral_count: 2, insurance_type: "Commercial", insurance_notes: "Cigna PPO" },
 ];
 
 export const mockPharmacies: Pharmacy[] = [

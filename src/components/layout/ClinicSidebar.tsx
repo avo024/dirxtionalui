@@ -1,10 +1,11 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Plus, FileText, Settings, LogOut, Pill } from "lucide-react";
+import { LayoutDashboard, Plus, FileText, Settings, LogOut, Pill, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/clinic/dashboard" },
+  { label: "Patients", icon: Users, path: "/clinic/patients" },
   { label: "Create Referral", icon: Plus, path: "/clinic/referrals/new" },
   { label: "My Referrals", icon: FileText, path: "/clinic/referrals" },
   { label: "Settings", icon: Settings, path: "/clinic/settings" },

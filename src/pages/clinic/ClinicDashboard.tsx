@@ -1,12 +1,12 @@
 import { Link } from "react-router-dom";
 import {
   FileText, Clock, CheckCircle, XCircle, Plus, ArrowUpRight,
-  CalendarDays, FileSearch
+  CalendarDays, FileSearch, Users, AlertTriangle, ArrowRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ReferralTable } from "@/components/ReferralTable";
 import { useAuth } from "@/contexts/AuthContext";
-import { mockReferrals } from "@/data/mockData";
+import { mockReferrals, mockPatients } from "@/data/mockData";
 import { getGreeting, getFormattedDate } from "@/lib/dateUtils";
 
 const clinicReferrals = mockReferrals.filter(
@@ -25,10 +25,22 @@ const rejectedCount = clinicReferrals.filter(
   (r) => r.status === "rejected"
 ).length;
 
+const patientsExpiringPA = mockPatients.filter((p) => p.pa_status === "expiring");
+const rejectedReferrals = clinicReferrals.filter((r) => r.status === "rejected");
+
 export default function ClinicDashboard() {
   const { user } = useAuth();
 
   const stats = [
+    {
+      label: "Total Patients",
+      value: mockPatients.length,
+      icon: Users,
+      colorClass: "text-accent",
+      bgClass: "bg-accent/10",
+      subtitle: "In your records",
+      link: "/clinic/patients",
+    },
     {
       label: "Total Referrals",
       value: clinicReferrals.length,
@@ -85,7 +97,7 @@ export default function ClinicDashboard() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {stats.map((stat) => (
           <div
             key={stat.label}
@@ -112,13 +124,62 @@ export default function ClinicDashboard() {
         ))}
       </div>
 
-      {/* Create New Referral CTA */}
-      <Button asChild size="lg" className="w-full sm:w-auto">
-        <Link to="/clinic/referrals/new">
-          <Plus className="h-4 w-4 mr-2" />
-          Create New Referral
-        </Link>
-      </Button>
+      {/* Alerts */}
+      {(patientsExpiringPA.length > 0 || rejectedReferrals.length > 0) && (
+        <div className="space-y-3">
+          {patientsExpiringPA.length > 0 && (
+            <Link
+              to="/clinic/patients?filter=expiring"
+              className="flex items-center gap-3 p-4 rounded-xl border border-warning/30 bg-warning/5 hover:bg-warning/10 transition-colors group"
+            >
+              <div className="h-8 w-8 rounded-lg bg-warning/10 flex items-center justify-center shrink-0">
+                <AlertTriangle className="h-4 w-4 text-warning" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-foreground">
+                  {patientsExpiringPA.length} patient{patientsExpiringPA.length > 1 ? "s" : ""} with PA expiring in the next 30 days
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {patientsExpiringPA.map((p) => `${p.first_name} ${p.last_name}`).join(", ")}
+                </p>
+              </div>
+              <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+            </Link>
+          )}
+          {rejectedReferrals.length > 0 && (
+            <Link
+              to="/clinic/referrals?filter=rejected"
+              className="flex items-center gap-3 p-4 rounded-xl border border-destructive/30 bg-destructive/5 hover:bg-destructive/10 transition-colors group"
+            >
+              <div className="h-8 w-8 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
+                <XCircle className="h-4 w-4 text-destructive" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-foreground">
+                  {rejectedReferrals.length} referral{rejectedReferrals.length > 1 ? "s" : ""} rejected — needs attention
+                </p>
+              </div>
+              <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+            </Link>
+          )}
+        </div>
+      )}
+
+      {/* Quick Actions */}
+      <div className="flex gap-3">
+        <Button asChild size="lg">
+          <Link to="/clinic/referrals/new">
+            <Plus className="h-4 w-4 mr-2" />
+            Create Referral
+          </Link>
+        </Button>
+        <Button asChild variant="outline" size="lg">
+          <Link to="/clinic/patients">
+            <Users className="h-4 w-4 mr-2" />
+            View Patients
+          </Link>
+        </Button>
+      </div>
 
       {/* Recent referrals */}
       {clinicReferrals.length > 0 ? (
