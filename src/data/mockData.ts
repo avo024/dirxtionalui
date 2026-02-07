@@ -126,6 +126,21 @@ export interface Patient {
   insurance_notes: string;
 }
 
+export type DrugPAStatus = "approved" | "pending" | null;
+
+export interface PatientDrug {
+  id: string;
+  patient_id: string;
+  drug_name: string;
+  dosage: string;
+  frequency: string;
+  is_active: boolean;
+  pa_status: DrugPAStatus;
+  pa_expiration_date: string | null;
+  created_at: string;
+  last_filled: string | null;
+}
+
 export const mockReferrals: Referral[] = [
   {
     id: "ref-001",
@@ -682,6 +697,40 @@ export const mockPatients: Patient[] = [
   { id: "pat-011", first_name: "William", last_name: "Turner", dob: "1975-08-29", gender: "Male", phone: "(555) 456-0123", email: "w.turner@email.com", last_drug: "Dupixent", last_dosage: "300mg every 2 weeks", last_referral_date: "2026-01-20", pa_status: "active", pa_expiration_date: "2026-07-20", referral_count: 5, insurance_type: "Commercial", insurance_notes: "BCBS TX HMO" },
   { id: "pat-012", first_name: "Rachel", last_name: "Green", dob: "1988-11-20", gender: "Female", phone: "(555) 567-1234", email: "r.green@email.com", last_drug: "Humira", last_dosage: "40mg every 2 weeks", last_referral_date: "2026-02-05", pa_status: "active", pa_expiration_date: "2026-08-05", referral_count: 1, insurance_type: "Commercial", insurance_notes: "Aetna HMO" },
   { id: "pat-013", first_name: "Daniel", last_name: "Martinez", dob: "1982-04-15", gender: "Male", phone: "(555) 678-2345", email: "d.martinez@email.com", last_drug: "Dupixent", last_dosage: "300mg every 2 weeks", last_referral_date: "2026-02-03", pa_status: "expiring", pa_expiration_date: "2026-03-10", referral_count: 2, insurance_type: "Commercial", insurance_notes: "Cigna PPO" },
+];
+
+/** Mock: GET /patients/{patient_id}/drugs */
+export const mockPatientDrugs: PatientDrug[] = [
+  // pat-001 John Doe – Dupixent (active, PA active)
+  { id: "drug-001", patient_id: "pat-001", drug_name: "Dupixent", dosage: "300mg", frequency: "Every 2 weeks", is_active: true, pa_status: "approved", pa_expiration_date: "2026-08-15", created_at: "2025-08-10", last_filled: "2026-01-28" },
+  // pat-001 John Doe – Humira (discontinued)
+  { id: "drug-002", patient_id: "pat-001", drug_name: "Humira", dosage: "40mg", frequency: "Every 2 weeks", is_active: false, pa_status: "approved", pa_expiration_date: "2025-06-01", created_at: "2024-06-01", last_filled: "2025-05-15" },
+  // pat-002 Jane Smith – Taltz (active, PA expiring)
+  { id: "drug-003", patient_id: "pat-002", drug_name: "Taltz", dosage: "80mg", frequency: "Every 4 weeks", is_active: true, pa_status: "approved", pa_expiration_date: "2026-03-01", created_at: "2025-03-01", last_filled: "2026-01-30" },
+  // pat-003 Robert Johnson – Humira (active, PA active)
+  { id: "drug-004", patient_id: "pat-003", drug_name: "Humira", dosage: "40mg", frequency: "Every 2 weeks", is_active: true, pa_status: "approved", pa_expiration_date: "2026-07-28", created_at: "2025-01-15", last_filled: "2026-01-25" },
+  // pat-003 Robert Johnson – Enbrel (discontinued)
+  { id: "drug-005", patient_id: "pat-003", drug_name: "Enbrel", dosage: "50mg", frequency: "Once weekly", is_active: false, pa_status: null, pa_expiration_date: null, created_at: "2023-03-10", last_filled: "2024-12-01" },
+  // pat-004 Emily Davis – Skyrizi (active, PA active)
+  { id: "drug-006", patient_id: "pat-004", drug_name: "Skyrizi", dosage: "150mg", frequency: "Every 12 weeks", is_active: true, pa_status: "approved", pa_expiration_date: "2026-09-06", created_at: "2025-09-06", last_filled: "2026-01-15" },
+  // pat-005 Thomas Anderson – Cosentyx (active, no PA)
+  { id: "drug-007", patient_id: "pat-005", drug_name: "Cosentyx", dosage: "300mg", frequency: "Every 4 weeks", is_active: true, pa_status: "pending", pa_expiration_date: null, created_at: "2026-02-07", last_filled: null },
+  // pat-007 David Kim – Otezla (active, PA active)
+  { id: "drug-008", patient_id: "pat-007", drug_name: "Otezla", dosage: "30mg", frequency: "Twice daily", is_active: true, pa_status: "approved", pa_expiration_date: "2026-06-02", created_at: "2025-06-02", last_filled: "2026-01-20" },
+  // pat-008 Patricia Hernandez – Rinvoq (active, PA expiring)
+  { id: "drug-009", patient_id: "pat-008", drug_name: "Rinvoq", dosage: "15mg", frequency: "Once daily", is_active: true, pa_status: "approved", pa_expiration_date: "2026-02-25", created_at: "2025-02-20", last_filled: "2026-01-18" },
+  // pat-008 Patricia Hernandez – Humira (discontinued)
+  { id: "drug-010", patient_id: "pat-008", drug_name: "Humira", dosage: "40mg", frequency: "Every 2 weeks", is_active: false, pa_status: "approved", pa_expiration_date: "2025-01-01", created_at: "2023-01-15", last_filled: "2024-12-10" },
+  // pat-009 Kevin O'Brien – Enbrel (active, PA expired)
+  { id: "drug-011", patient_id: "pat-009", drug_name: "Enbrel", dosage: "50mg", frequency: "Once weekly", is_active: true, pa_status: "approved", pa_expiration_date: "2026-01-15", created_at: "2025-01-10", last_filled: "2026-01-08" },
+  // pat-011 William Turner – Dupixent (active, PA active)
+  { id: "drug-012", patient_id: "pat-011", drug_name: "Dupixent", dosage: "300mg", frequency: "Every 2 weeks", is_active: true, pa_status: "approved", pa_expiration_date: "2026-07-20", created_at: "2025-01-20", last_filled: "2026-01-18" },
+  // pat-011 William Turner – Stelara (discontinued)
+  { id: "drug-013", patient_id: "pat-011", drug_name: "Stelara", dosage: "45mg", frequency: "Every 12 weeks", is_active: false, pa_status: null, pa_expiration_date: null, created_at: "2023-07-01", last_filled: "2024-10-01" },
+  // pat-012 Rachel Green – Humira (active, PA active)
+  { id: "drug-014", patient_id: "pat-012", drug_name: "Humira", dosage: "40mg", frequency: "Every 2 weeks", is_active: true, pa_status: "approved", pa_expiration_date: "2026-08-05", created_at: "2025-08-05", last_filled: "2026-01-22" },
+  // pat-013 Daniel Martinez – Dupixent (active, PA expiring)
+  { id: "drug-015", patient_id: "pat-013", drug_name: "Dupixent", dosage: "300mg", frequency: "Every 2 weeks", is_active: true, pa_status: "approved", pa_expiration_date: "2026-03-10", created_at: "2025-03-10", last_filled: "2026-01-30" },
 ];
 
 export const mockPharmacies: Pharmacy[] = [
