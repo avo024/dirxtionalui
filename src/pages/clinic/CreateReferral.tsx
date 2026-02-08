@@ -55,6 +55,7 @@ export default function CreateReferral() {
 
   // Upload state
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [uploadClinicHandlesPa, setUploadClinicHandlesPa] = useState(false);
 
   // Manual entry state
   const [manualData, setManualData] = useState({
@@ -436,6 +437,24 @@ export default function CreateReferral() {
               <p className="text-sm text-muted-foreground">
                 Our AI will automatically extract patient info, provider details, drug information, and more from your documents.
               </p>
+            </div>
+
+            {/* Prior Authorization (Optional) */}
+            <div className="flex gap-3 p-4 rounded-lg bg-primary/5 border border-primary/10">
+              <Checkbox
+                id="upload-clinic-handles-pa"
+                checked={uploadClinicHandlesPa}
+                onCheckedChange={(v) => setUploadClinicHandlesPa(!!v)}
+                className="mt-0.5 shrink-0"
+              />
+              <div>
+                <label htmlFor="upload-clinic-handles-pa" className="text-sm font-medium text-foreground cursor-pointer">
+                  Our clinic will handle PA in-house
+                </label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  By default, our admin team processes all PA requirements. Check this box only if your clinic prefers to handle PA submissions directly.
+                </p>
+              </div>
             </div>
           </div>
         )}
