@@ -9,11 +9,10 @@ import { cn } from "@/lib/utils";
 
 const filters = [
   { label: "All", value: "all" },
-  { label: "Processing", value: "processing" },
+  { label: "Needs Review", value: "processing" },
   { label: "Approved", value: "approved" },
   { label: "Rejected", value: "rejected" },
   { label: "Sent", value: "sent" },
-  { label: "Blocked", value: "blocked" },
 ];
 
 const clinics = [...new Set(mockReferrals.map((r) => r.clinic_name))];
@@ -22,6 +21,15 @@ export default function AdminReferralsList() {
   const [activeFilter, setActiveFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [clinicFilter, setClinicFilter] = useState("all");
+  const [paSortDirection, setPASortDirection] = useState<"asc" | "desc" | null>(null);
+
+  const handlePASortToggle = () => {
+    setPASortDirection((prev) => {
+      if (prev === null) return "asc";
+      if (prev === "asc") return "desc";
+      return null;
+    });
+  };
 
   const filtered = mockReferrals.filter((r) => {
     const matchesSearch = r.patient_name.toLowerCase().includes(search.toLowerCase()) ||
@@ -87,7 +95,13 @@ export default function AdminReferralsList() {
         </div>
       </div>
 
-      <ReferralTable referrals={filtered} userType="admin" showClinic />
+      <ReferralTable
+        referrals={filtered}
+        userType="admin"
+        showClinic
+        paSortDirection={paSortDirection}
+        onPASortToggle={handlePASortToggle}
+      />
 
       <div className="flex items-center justify-between text-sm text-muted-foreground">
         <span>Showing {filtered.length} of {mockReferrals.length} referrals</span>
