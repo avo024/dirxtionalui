@@ -6,13 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ConfidenceIndicator } from "@/components/ConfidenceIndicator";
 import { DocumentViewer } from "@/components/DocumentViewer";
 import { ConfirmModal } from "@/components/ConfirmModal";
+import { PAManagementCard } from "@/components/PAManagementCard";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { mockReferrals } from "@/data/mockData";
+import { mockReferrals, getReferralPAInfo } from "@/data/mockData";
 import { toast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -36,6 +36,7 @@ export default function AdminReferralReview() {
 
   const { extracted_data: data } = referral;
   const conf = data.confidence;
+  const paInfo = getReferralPAInfo(referral);
 
   const handleApprove = () => {
     toast({ title: "Referral Approved", description: `${referral.patient_name}'s referral has been approved.` });
@@ -139,22 +140,10 @@ export default function AdminReferralReview() {
               </AccordionContent>
             </AccordionItem>
 
-            <AccordionItem value="prior_auth" className="rounded-xl border border-border bg-card card-shadow px-4">
-              <AccordionTrigger className="text-sm font-semibold">Prior Authorization</AccordionTrigger>
-              <AccordionContent>
-                <div className="space-y-3 pb-2">
-                  <div className="flex items-center gap-2">
-                    <Checkbox defaultChecked={data.prior_auth.required} />
-                    <Label className="text-xs font-normal">Prior Authorization Required</Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Checkbox defaultChecked={data.prior_auth.handled_by_us} />
-                    <Label className="text-xs font-normal">Handled By Us</Label>
-                  </div>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
           </Accordion>
+
+          {/* PA Management Card - outside accordion */}
+          <PAManagementCard referral={referral} paInfo={paInfo} />
         </div>
       </div>
 
