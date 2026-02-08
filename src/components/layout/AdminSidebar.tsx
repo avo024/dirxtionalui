@@ -16,7 +16,7 @@ export function AdminSidebar() {
   const location = useLocation();
   const { logout } = useAuth();
 
-  const reviewCount = mockReferrals.filter((r) => r.status === "ready_for_review").length;
+  const processingCount = mockReferrals.filter((r) => r.status === "processing").length;
 
   return (
     <aside className="w-60 shrink-0 border-r border-sidebar-border bg-sidebar flex flex-col h-screen sticky top-0">
@@ -52,9 +52,9 @@ export function AdminSidebar() {
             >
               <item.icon className="h-4 w-4" />
               {item.label}
-              {item.label === "All Referrals" && reviewCount > 0 && (
+              {item.label === "All Referrals" && processingCount > 0 && (
                 <span className="ml-auto h-5 min-w-[20px] rounded-full bg-warning text-warning-foreground flex items-center justify-center text-xs px-1.5">
-                  {reviewCount}
+                  {processingCount}
                 </span>
               )}
             </Link>

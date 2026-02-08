@@ -1,10 +1,9 @@
 export type ReferralStatus =
   | "uploaded"
   | "processing"
-  | "ready_for_review"
-  | "approved_to_send"
-  | "sent_to_pharmacy"
-  | "rejected";
+  | "approved"
+  | "rejected"
+  | "sent_to_pharmacy";
 
 export interface ExtractedPatient {
   first_name: string;
@@ -150,7 +149,7 @@ export const mockReferrals: Referral[] = [
     patient_email: "john.doe@email.com",
     clinic_name: "Dallas Dermatology Clinic",
     drug: "Dupixent",
-    status: "ready_for_review",
+    status: "processing",
     created_at: "2026-02-05",
     updated_at: "2026-02-06",
     pharmacy_name: "Optum - Dallas Hub",
@@ -174,7 +173,6 @@ export const mockReferrals: Referral[] = [
     history: [
       { id: "h-1", status: "uploaded", timestamp: "2026-02-05T09:00:00Z", note: "Documents uploaded by clinic", user: "Dallas Dermatology Clinic" },
       { id: "h-2", status: "processing", timestamp: "2026-02-05T09:05:00Z", note: "AI extraction started", user: "System" },
-      { id: "h-3", status: "ready_for_review", timestamp: "2026-02-05T09:15:00Z", note: "Extraction complete, ready for review", user: "System" },
     ],
   },
   {
@@ -185,7 +183,7 @@ export const mockReferrals: Referral[] = [
     patient_email: "jane.smith@email.com",
     clinic_name: "Dallas Dermatology Clinic",
     drug: "Taltz",
-    status: "approved_to_send",
+    status: "approved",
     created_at: "2026-02-03",
     updated_at: "2026-02-05",
     pharmacy_name: "CarePharma Specialty",
@@ -207,8 +205,7 @@ export const mockReferrals: Referral[] = [
     history: [
       { id: "h-4", status: "uploaded", timestamp: "2026-02-03T14:00:00Z", note: "Documents uploaded", user: "Dallas Dermatology Clinic" },
       { id: "h-5", status: "processing", timestamp: "2026-02-03T14:05:00Z", note: "AI extraction started", user: "System" },
-      { id: "h-6", status: "ready_for_review", timestamp: "2026-02-03T14:20:00Z", note: "Extraction complete", user: "System" },
-      { id: "h-7", status: "approved_to_send", timestamp: "2026-02-05T10:30:00Z", note: "Approved by admin", user: "Admin Team" },
+      { id: "h-6", status: "approved", timestamp: "2026-02-05T10:30:00Z", note: "Approved by admin", user: "Admin Team" },
     ],
   },
   {
@@ -241,8 +238,7 @@ export const mockReferrals: Referral[] = [
     history: [
       { id: "h-8", status: "uploaded", timestamp: "2026-02-01T11:00:00Z", note: "Documents uploaded", user: "Fort Worth Allergy Center" },
       { id: "h-9", status: "processing", timestamp: "2026-02-01T11:05:00Z", note: "AI extraction started", user: "System" },
-      { id: "h-10", status: "ready_for_review", timestamp: "2026-02-01T11:25:00Z", note: "Extraction complete, low confidence on some fields", user: "System" },
-      { id: "h-11", status: "rejected", timestamp: "2026-02-04T16:00:00Z", note: "Missing prior authorization documentation", user: "Admin Team" },
+      { id: "h-10", status: "rejected", timestamp: "2026-02-04T16:00:00Z", note: "Missing prior authorization documentation", user: "Admin Team" },
     ],
   },
   {
@@ -277,9 +273,8 @@ export const mockReferrals: Referral[] = [
     history: [
       { id: "h-12", status: "uploaded", timestamp: "2026-01-28T08:30:00Z", note: "Documents uploaded", user: "Dallas Dermatology Clinic" },
       { id: "h-13", status: "processing", timestamp: "2026-01-28T08:35:00Z", note: "AI extraction started", user: "System" },
-      { id: "h-14", status: "ready_for_review", timestamp: "2026-01-28T08:50:00Z", note: "Extraction complete", user: "System" },
-      { id: "h-15", status: "approved_to_send", timestamp: "2026-01-30T11:00:00Z", note: "Approved by admin", user: "Admin Team" },
-      { id: "h-16", status: "sent_to_pharmacy", timestamp: "2026-02-03T09:00:00Z", note: "Sent to BioScript Solutions", user: "System" },
+      { id: "h-14", status: "approved", timestamp: "2026-01-30T11:00:00Z", note: "Approved by admin", user: "Admin Team" },
+      { id: "h-15", status: "sent_to_pharmacy", timestamp: "2026-02-03T09:00:00Z", note: "Sent to BioScript Solutions", user: "System" },
     ],
   },
   {
@@ -322,7 +317,7 @@ export const mockReferrals: Referral[] = [
     patient_email: "m.brown@email.com",
     clinic_name: "Plano Rheumatology Associates",
     drug: "Dupixent",
-    status: "uploaded",
+    status: "processing",
     created_at: "2026-02-07",
     updated_at: "2026-02-07",
     pharmacy_name: "",
@@ -341,6 +336,7 @@ export const mockReferrals: Referral[] = [
     ],
     history: [
       { id: "h-19", status: "uploaded", timestamp: "2026-02-07T10:00:00Z", note: "Documents uploaded", user: "Plano Rheumatology Associates" },
+      { id: "h-20", status: "processing", timestamp: "2026-02-07T10:05:00Z", note: "AI extraction started", user: "System" },
     ],
   },
   {
@@ -351,7 +347,7 @@ export const mockReferrals: Referral[] = [
     patient_email: "e.davis@email.com",
     clinic_name: "Dallas Dermatology Clinic",
     drug: "Skyrizi",
-    status: "ready_for_review",
+    status: "processing",
     created_at: "2026-02-06",
     updated_at: "2026-02-07",
     pharmacy_name: "Optum - Dallas Hub",
@@ -372,9 +368,8 @@ export const mockReferrals: Referral[] = [
       { id: "doc-23", name: "Chart Notes", type: "chart_notes", uploaded_at: "2026-02-06" },
     ],
     history: [
-      { id: "h-20", status: "uploaded", timestamp: "2026-02-06T15:00:00Z", note: "Documents uploaded", user: "Dallas Dermatology Clinic" },
-      { id: "h-21", status: "processing", timestamp: "2026-02-06T15:05:00Z", note: "AI extraction started", user: "System" },
-      { id: "h-22", status: "ready_for_review", timestamp: "2026-02-07T08:00:00Z", note: "Extraction complete", user: "System" },
+      { id: "h-21", status: "uploaded", timestamp: "2026-02-06T15:00:00Z", note: "Documents uploaded", user: "Dallas Dermatology Clinic" },
+      { id: "h-22", status: "processing", timestamp: "2026-02-06T15:05:00Z", note: "AI extraction started", user: "System" },
     ],
   },
   {
@@ -385,7 +380,7 @@ export const mockReferrals: Referral[] = [
     patient_email: "t.anderson@email.com",
     clinic_name: "Dallas Dermatology Clinic",
     drug: "Cosentyx",
-    status: "uploaded",
+    status: "processing",
     created_at: "2026-02-07",
     updated_at: "2026-02-07",
     pharmacy_name: "",
@@ -404,6 +399,7 @@ export const mockReferrals: Referral[] = [
     ],
     history: [
       { id: "h-23", status: "uploaded", timestamp: "2026-02-07T11:30:00Z", note: "Documents uploaded by clinic", user: "Dallas Dermatology Clinic" },
+      { id: "h-24", status: "processing", timestamp: "2026-02-07T11:35:00Z", note: "AI extraction started", user: "System" },
     ],
   },
   {
@@ -434,8 +430,8 @@ export const mockReferrals: Referral[] = [
       { id: "doc-27", name: "Insurance Front", type: "insurance_front", uploaded_at: "2026-02-06" },
     ],
     history: [
-      { id: "h-24", status: "uploaded", timestamp: "2026-02-06T16:00:00Z", note: "Documents uploaded", user: "Dallas Dermatology Clinic" },
-      { id: "h-25", status: "processing", timestamp: "2026-02-07T08:00:00Z", note: "AI extraction started", user: "System" },
+      { id: "h-25", status: "uploaded", timestamp: "2026-02-06T16:00:00Z", note: "Documents uploaded", user: "Dallas Dermatology Clinic" },
+      { id: "h-26", status: "processing", timestamp: "2026-02-07T08:00:00Z", note: "AI extraction started", user: "System" },
     ],
   },
   {
@@ -446,7 +442,7 @@ export const mockReferrals: Referral[] = [
     patient_email: "d.kim@email.com",
     clinic_name: "Dallas Dermatology Clinic",
     drug: "Otezla",
-    status: "approved_to_send",
+    status: "approved",
     created_at: "2026-02-02",
     updated_at: "2026-02-06",
     pharmacy_name: "CarePharma Specialty",
@@ -467,10 +463,9 @@ export const mockReferrals: Referral[] = [
       { id: "doc-31", name: "Insurance Back", type: "insurance_back", uploaded_at: "2026-02-02" },
     ],
     history: [
-      { id: "h-26", status: "uploaded", timestamp: "2026-02-02T10:00:00Z", note: "Documents uploaded", user: "Dallas Dermatology Clinic" },
-      { id: "h-27", status: "processing", timestamp: "2026-02-02T10:05:00Z", note: "AI extraction started", user: "System" },
-      { id: "h-28", status: "ready_for_review", timestamp: "2026-02-02T10:20:00Z", note: "Extraction complete", user: "System" },
-      { id: "h-29", status: "approved_to_send", timestamp: "2026-02-06T14:00:00Z", note: "Approved by admin", user: "Admin Team" },
+      { id: "h-27", status: "uploaded", timestamp: "2026-02-02T10:00:00Z", note: "Documents uploaded", user: "Dallas Dermatology Clinic" },
+      { id: "h-28", status: "processing", timestamp: "2026-02-02T10:05:00Z", note: "AI extraction started", user: "System" },
+      { id: "h-29", status: "approved", timestamp: "2026-02-06T14:00:00Z", note: "Approved by admin", user: "Admin Team" },
     ],
   },
   {
@@ -505,9 +500,8 @@ export const mockReferrals: Referral[] = [
     history: [
       { id: "h-30", status: "uploaded", timestamp: "2026-01-25T09:00:00Z", note: "Documents uploaded", user: "Dallas Dermatology Clinic" },
       { id: "h-31", status: "processing", timestamp: "2026-01-25T09:05:00Z", note: "AI extraction started", user: "System" },
-      { id: "h-32", status: "ready_for_review", timestamp: "2026-01-25T09:25:00Z", note: "Extraction complete", user: "System" },
-      { id: "h-33", status: "approved_to_send", timestamp: "2026-01-28T11:00:00Z", note: "Approved by admin", user: "Admin Team" },
-      { id: "h-34", status: "sent_to_pharmacy", timestamp: "2026-02-01T09:00:00Z", note: "Sent to Optum - Dallas Hub", user: "System" },
+      { id: "h-32", status: "approved", timestamp: "2026-01-28T11:00:00Z", note: "Approved by admin", user: "Admin Team" },
+      { id: "h-33", status: "sent_to_pharmacy", timestamp: "2026-02-01T09:00:00Z", note: "Sent to Optum - Dallas Hub", user: "System" },
     ],
   },
   {
@@ -538,10 +532,9 @@ export const mockReferrals: Referral[] = [
       { id: "doc-38", name: "Chart Notes", type: "chart_notes", uploaded_at: "2026-02-04" },
     ],
     history: [
-      { id: "h-35", status: "uploaded", timestamp: "2026-02-04T13:00:00Z", note: "Documents uploaded", user: "Dallas Dermatology Clinic" },
-      { id: "h-36", status: "processing", timestamp: "2026-02-04T13:05:00Z", note: "AI extraction started", user: "System" },
-      { id: "h-37", status: "ready_for_review", timestamp: "2026-02-04T13:20:00Z", note: "Extraction complete, low confidence on NPI", user: "System" },
-      { id: "h-38", status: "rejected", timestamp: "2026-02-06T10:00:00Z", note: "Rejected — NPI mismatch", user: "Admin Team" },
+      { id: "h-34", status: "uploaded", timestamp: "2026-02-04T13:00:00Z", note: "Documents uploaded", user: "Dallas Dermatology Clinic" },
+      { id: "h-35", status: "processing", timestamp: "2026-02-04T13:05:00Z", note: "AI extraction started", user: "System" },
+      { id: "h-36", status: "rejected", timestamp: "2026-02-06T10:00:00Z", note: "Rejected — NPI mismatch", user: "Admin Team" },
     ],
   },
   {
@@ -552,7 +545,7 @@ export const mockReferrals: Referral[] = [
     patient_email: "a.foster@email.com",
     clinic_name: "Dallas Dermatology Clinic",
     drug: "Tremfya",
-    status: "uploaded",
+    status: "processing",
     created_at: "2026-02-07",
     updated_at: "2026-02-07",
     pharmacy_name: "",
@@ -571,7 +564,8 @@ export const mockReferrals: Referral[] = [
       { id: "doc-40", name: "Demographics", type: "demographics", uploaded_at: "2026-02-07" },
     ],
     history: [
-      { id: "h-39", status: "uploaded", timestamp: "2026-02-07T14:00:00Z", note: "Documents uploaded", user: "Dallas Dermatology Clinic" },
+      { id: "h-37", status: "uploaded", timestamp: "2026-02-07T14:00:00Z", note: "Documents uploaded", user: "Dallas Dermatology Clinic" },
+      { id: "h-38", status: "processing", timestamp: "2026-02-07T14:05:00Z", note: "AI extraction started", user: "System" },
     ],
   },
   {
@@ -604,11 +598,10 @@ export const mockReferrals: Referral[] = [
       { id: "doc-45", name: "Chart Notes", type: "chart_notes", uploaded_at: "2026-01-20" },
     ],
     history: [
-      { id: "h-40", status: "uploaded", timestamp: "2026-01-20T10:00:00Z", note: "Documents uploaded", user: "Dallas Dermatology Clinic" },
-      { id: "h-41", status: "processing", timestamp: "2026-01-20T10:05:00Z", note: "AI extraction started", user: "System" },
-      { id: "h-42", status: "ready_for_review", timestamp: "2026-01-20T10:20:00Z", note: "Extraction complete", user: "System" },
-      { id: "h-43", status: "approved_to_send", timestamp: "2026-01-24T15:00:00Z", note: "Approved by admin", user: "Admin Team" },
-      { id: "h-44", status: "sent_to_pharmacy", timestamp: "2026-01-30T09:00:00Z", note: "Sent to CarePharma Specialty", user: "System" },
+      { id: "h-39", status: "uploaded", timestamp: "2026-01-20T10:00:00Z", note: "Documents uploaded", user: "Dallas Dermatology Clinic" },
+      { id: "h-40", status: "processing", timestamp: "2026-01-20T10:05:00Z", note: "AI extraction started", user: "System" },
+      { id: "h-41", status: "approved", timestamp: "2026-01-24T15:00:00Z", note: "Approved by admin", user: "Admin Team" },
+      { id: "h-42", status: "sent_to_pharmacy", timestamp: "2026-01-30T09:00:00Z", note: "Sent to CarePharma Specialty", user: "System" },
     ],
   },
   {
@@ -619,7 +612,7 @@ export const mockReferrals: Referral[] = [
     patient_email: "r.green@email.com",
     clinic_name: "Dallas Dermatology Clinic",
     drug: "Humira",
-    status: "ready_for_review",
+    status: "processing",
     created_at: "2026-02-05",
     updated_at: "2026-02-06",
     pharmacy_name: "BioScript Solutions",
@@ -640,9 +633,8 @@ export const mockReferrals: Referral[] = [
       { id: "doc-49", name: "Chart Notes", type: "chart_notes", uploaded_at: "2026-02-05" },
     ],
     history: [
-      { id: "h-45", status: "uploaded", timestamp: "2026-02-05T14:00:00Z", note: "Documents uploaded", user: "Dallas Dermatology Clinic" },
-      { id: "h-46", status: "processing", timestamp: "2026-02-05T14:05:00Z", note: "AI extraction started", user: "System" },
-      { id: "h-47", status: "ready_for_review", timestamp: "2026-02-06T09:00:00Z", note: "Extraction complete", user: "System" },
+      { id: "h-43", status: "uploaded", timestamp: "2026-02-05T14:00:00Z", note: "Documents uploaded", user: "Dallas Dermatology Clinic" },
+      { id: "h-44", status: "processing", timestamp: "2026-02-05T14:05:00Z", note: "AI extraction started", user: "System" },
     ],
   },
   {
@@ -653,7 +645,7 @@ export const mockReferrals: Referral[] = [
     patient_email: "d.martinez@email.com",
     clinic_name: "Dallas Dermatology Clinic",
     drug: "Dupixent",
-    status: "approved_to_send",
+    status: "approved",
     created_at: "2026-02-03",
     updated_at: "2026-02-06",
     pharmacy_name: "Optum - Dallas Hub",
@@ -675,10 +667,9 @@ export const mockReferrals: Referral[] = [
       { id: "doc-54", name: "Chart Notes", type: "chart_notes", uploaded_at: "2026-02-03" },
     ],
     history: [
-      { id: "h-48", status: "uploaded", timestamp: "2026-02-03T09:00:00Z", note: "Documents uploaded", user: "Dallas Dermatology Clinic" },
-      { id: "h-49", status: "processing", timestamp: "2026-02-03T09:05:00Z", note: "AI extraction started", user: "System" },
-      { id: "h-50", status: "ready_for_review", timestamp: "2026-02-03T09:25:00Z", note: "Extraction complete", user: "System" },
-      { id: "h-51", status: "approved_to_send", timestamp: "2026-02-06T16:00:00Z", note: "Approved by admin", user: "Admin Team" },
+      { id: "h-45", status: "uploaded", timestamp: "2026-02-03T09:00:00Z", note: "Documents uploaded", user: "Dallas Dermatology Clinic" },
+      { id: "h-46", status: "processing", timestamp: "2026-02-03T09:05:00Z", note: "AI extraction started", user: "System" },
+      { id: "h-47", status: "approved", timestamp: "2026-02-06T16:00:00Z", note: "Approved by admin", user: "Admin Team" },
     ],
   },
 ];
@@ -701,35 +692,20 @@ export const mockPatients: Patient[] = [
 
 /** Mock: GET /patients/{patient_id}/drugs */
 export const mockPatientDrugs: PatientDrug[] = [
-  // pat-001 John Doe – Dupixent (active, PA active)
   { id: "drug-001", patient_id: "pat-001", drug_name: "Dupixent", dosage: "300mg", frequency: "Every 2 weeks", is_active: true, pa_status: "approved", pa_expiration_date: "2026-08-15", created_at: "2025-08-10", last_filled: "2026-01-28" },
-  // pat-001 John Doe – Humira (discontinued)
   { id: "drug-002", patient_id: "pat-001", drug_name: "Humira", dosage: "40mg", frequency: "Every 2 weeks", is_active: false, pa_status: "approved", pa_expiration_date: "2025-06-01", created_at: "2024-06-01", last_filled: "2025-05-15" },
-  // pat-002 Jane Smith – Taltz (active, PA expiring)
   { id: "drug-003", patient_id: "pat-002", drug_name: "Taltz", dosage: "80mg", frequency: "Every 4 weeks", is_active: true, pa_status: "approved", pa_expiration_date: "2026-03-01", created_at: "2025-03-01", last_filled: "2026-01-30" },
-  // pat-003 Robert Johnson – Humira (active, PA active)
   { id: "drug-004", patient_id: "pat-003", drug_name: "Humira", dosage: "40mg", frequency: "Every 2 weeks", is_active: true, pa_status: "approved", pa_expiration_date: "2026-07-28", created_at: "2025-01-15", last_filled: "2026-01-25" },
-  // pat-003 Robert Johnson – Enbrel (discontinued)
   { id: "drug-005", patient_id: "pat-003", drug_name: "Enbrel", dosage: "50mg", frequency: "Once weekly", is_active: false, pa_status: null, pa_expiration_date: null, created_at: "2023-03-10", last_filled: "2024-12-01" },
-  // pat-004 Emily Davis – Skyrizi (active, PA active)
   { id: "drug-006", patient_id: "pat-004", drug_name: "Skyrizi", dosage: "150mg", frequency: "Every 12 weeks", is_active: true, pa_status: "approved", pa_expiration_date: "2026-09-06", created_at: "2025-09-06", last_filled: "2026-01-15" },
-  // pat-005 Thomas Anderson – Cosentyx (active, no PA)
   { id: "drug-007", patient_id: "pat-005", drug_name: "Cosentyx", dosage: "300mg", frequency: "Every 4 weeks", is_active: true, pa_status: "pending", pa_expiration_date: null, created_at: "2026-02-07", last_filled: null },
-  // pat-007 David Kim – Otezla (active, PA active)
   { id: "drug-008", patient_id: "pat-007", drug_name: "Otezla", dosage: "30mg", frequency: "Twice daily", is_active: true, pa_status: "approved", pa_expiration_date: "2026-06-02", created_at: "2025-06-02", last_filled: "2026-01-20" },
-  // pat-008 Patricia Hernandez – Rinvoq (active, PA expiring)
   { id: "drug-009", patient_id: "pat-008", drug_name: "Rinvoq", dosage: "15mg", frequency: "Once daily", is_active: true, pa_status: "approved", pa_expiration_date: "2026-02-25", created_at: "2025-02-20", last_filled: "2026-01-18" },
-  // pat-008 Patricia Hernandez – Humira (discontinued)
   { id: "drug-010", patient_id: "pat-008", drug_name: "Humira", dosage: "40mg", frequency: "Every 2 weeks", is_active: false, pa_status: "approved", pa_expiration_date: "2025-01-01", created_at: "2023-01-15", last_filled: "2024-12-10" },
-  // pat-009 Kevin O'Brien – Enbrel (active, PA expired)
   { id: "drug-011", patient_id: "pat-009", drug_name: "Enbrel", dosage: "50mg", frequency: "Once weekly", is_active: true, pa_status: "approved", pa_expiration_date: "2026-01-15", created_at: "2025-01-10", last_filled: "2026-01-08" },
-  // pat-011 William Turner – Dupixent (active, PA active)
   { id: "drug-012", patient_id: "pat-011", drug_name: "Dupixent", dosage: "300mg", frequency: "Every 2 weeks", is_active: true, pa_status: "approved", pa_expiration_date: "2026-07-20", created_at: "2025-01-20", last_filled: "2026-01-18" },
-  // pat-011 William Turner – Stelara (discontinued)
   { id: "drug-013", patient_id: "pat-011", drug_name: "Stelara", dosage: "45mg", frequency: "Every 12 weeks", is_active: false, pa_status: null, pa_expiration_date: null, created_at: "2023-07-01", last_filled: "2024-10-01" },
-  // pat-012 Rachel Green – Humira (active, PA active)
   { id: "drug-014", patient_id: "pat-012", drug_name: "Humira", dosage: "40mg", frequency: "Every 2 weeks", is_active: true, pa_status: "approved", pa_expiration_date: "2026-08-05", created_at: "2025-08-05", last_filled: "2026-01-22" },
-  // pat-013 Daniel Martinez – Dupixent (active, PA expiring)
   { id: "drug-015", patient_id: "pat-013", drug_name: "Dupixent", dosage: "300mg", frequency: "Every 2 weeks", is_active: true, pa_status: "approved", pa_expiration_date: "2026-03-10", created_at: "2025-03-10", last_filled: "2026-01-30" },
 ];
 
@@ -796,8 +772,7 @@ export const mockBlockedReferrals = [
 export const statusLabels: Record<ReferralStatus, string> = {
   uploaded: "Uploaded",
   processing: "Processing",
-  ready_for_review: "Ready for Review",
-  approved_to_send: "Approved",
+  approved: "Approved",
   sent_to_pharmacy: "Sent to Pharmacy",
   rejected: "Rejected",
 };

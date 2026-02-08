@@ -3,22 +3,19 @@ import { ReferralTable } from "@/components/ReferralTable";
 import { mockReferrals } from "@/data/mockData";
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 
-const today = "2026-02-07";
-const reviewReferrals = mockReferrals.filter((r) => r.status === "ready_for_review");
+const processingReferrals = mockReferrals.filter((r) => r.status === "processing");
 
 const stats = [
   { label: "Total Referrals", value: mockReferrals.length, icon: FileText, color: "text-primary" },
-  { label: "Needs Review", value: reviewReferrals.length, icon: Clock, color: "text-warning", badge: true },
+  { label: "Processing", value: processingReferrals.length, icon: Clock, color: "text-warning", badge: true },
   { label: "Approved Today", value: 1, icon: CheckCircle, color: "text-success" },
   { label: "Rejected Today", value: 0, icon: XCircle, color: "text-destructive" },
   { label: "Sent Today", value: 0, icon: Send, color: "text-primary" },
 ];
 
 const statusPieData = [
-  { name: "Uploaded", value: mockReferrals.filter((r) => r.status === "uploaded").length, color: "hsl(220, 10%, 60%)" },
   { name: "Processing", value: mockReferrals.filter((r) => r.status === "processing").length, color: "hsl(210, 80%, 55%)" },
-  { name: "Review", value: mockReferrals.filter((r) => r.status === "ready_for_review").length, color: "hsl(38, 92%, 50%)" },
-  { name: "Approved", value: mockReferrals.filter((r) => r.status === "approved_to_send").length, color: "hsl(148, 48%, 48%)" },
+  { name: "Approved", value: mockReferrals.filter((r) => r.status === "approved").length, color: "hsl(148, 48%, 48%)" },
   { name: "Sent", value: mockReferrals.filter((r) => r.status === "sent_to_pharmacy").length, color: "hsl(174, 58%, 56%)" },
   { name: "Rejected", value: mockReferrals.filter((r) => r.status === "rejected").length, color: "hsl(0, 89%, 68%)" },
 ];
@@ -92,10 +89,10 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Needs review */}
+      {/* Processing referrals */}
       <div>
-        <h2 className="text-lg font-semibold text-foreground mb-4">Referrals Needing Review</h2>
-        <ReferralTable referrals={reviewReferrals} userType="admin" showClinic />
+        <h2 className="text-lg font-semibold text-foreground mb-4">Referrals Being Processed</h2>
+        <ReferralTable referrals={processingReferrals} userType="admin" showClinic />
       </div>
     </div>
   );

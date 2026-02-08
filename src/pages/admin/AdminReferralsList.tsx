@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 
 const filters = [
   { label: "All", value: "all" },
-  { label: "Needs Review", value: "review" },
+  { label: "Processing", value: "processing" },
   { label: "Approved", value: "approved" },
   { label: "Rejected", value: "rejected" },
   { label: "Sent", value: "sent" },
@@ -31,8 +31,8 @@ export default function AdminReferralsList() {
     if (clinicFilter !== "all" && r.clinic_name !== clinicFilter) return false;
 
     if (activeFilter === "all") return true;
-    if (activeFilter === "review") return r.status === "ready_for_review";
-    if (activeFilter === "approved") return r.status === "approved_to_send";
+    if (activeFilter === "processing") return r.status === "processing";
+    if (activeFilter === "approved") return r.status === "approved";
     if (activeFilter === "rejected") return r.status === "rejected";
     if (activeFilter === "sent") return r.status === "sent_to_pharmacy";
     return true;

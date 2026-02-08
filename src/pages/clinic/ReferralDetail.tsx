@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft, Download, FileText, Clock, AlertCircle, User,
   Pill, Stethoscope, Shield, Copy, Phone, Mail, CheckCircle,
-  Send, Upload, Loader2, Eye, XCircle, MessageSquare, Plus
+  Send, Upload, Loader2, XCircle, MessageSquare, Plus
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -17,9 +17,8 @@ import { cn } from "@/lib/utils";
 
 const statusDescriptions: Record<ReferralStatus, string> = {
   uploaded: "Your referral has been submitted and is awaiting processing.",
-  processing: "Our AI is extracting information from your documents.",
-  ready_for_review: "Your referral is being reviewed by the admin team.",
-  approved_to_send: "Your referral has been approved and is ready to send to pharmacy.",
+  processing: "Your referral is being processed by our team.",
+  approved: "Your referral has been approved and is ready to send to pharmacy.",
   sent_to_pharmacy: "Your referral has been sent to the assigned pharmacy.",
   rejected: "This referral was rejected. Please see the reason below.",
 };
@@ -27,8 +26,7 @@ const statusDescriptions: Record<ReferralStatus, string> = {
 const statusTimelineIcons: Record<ReferralStatus, React.ElementType> = {
   uploaded: Upload,
   processing: Loader2,
-  ready_for_review: Eye,
-  approved_to_send: CheckCircle,
+  approved: CheckCircle,
   sent_to_pharmacy: Send,
   rejected: XCircle,
 };
@@ -36,8 +34,7 @@ const statusTimelineIcons: Record<ReferralStatus, React.ElementType> = {
 const statusTimelineColors: Record<ReferralStatus, string> = {
   uploaded: "bg-status-uploaded-fg",
   processing: "bg-status-processing-fg",
-  ready_for_review: "bg-status-review-fg",
-  approved_to_send: "bg-status-approved-fg",
+  approved: "bg-status-approved-fg",
   sent_to_pharmacy: "bg-status-sent-fg",
   rejected: "bg-status-rejected-fg",
 };
@@ -118,7 +115,7 @@ export default function ReferralDetail() {
       )}
 
       {/* Approved/Sent success */}
-      {(referral.status === "approved_to_send" || referral.status === "sent_to_pharmacy") && referral.pharmacy_name && (
+      {(referral.status === "approved" || referral.status === "sent_to_pharmacy") && referral.pharmacy_name && (
         <div className="rounded-xl border border-success/30 bg-success/5 p-5">
           <div className="flex items-center gap-2 mb-3">
             <CheckCircle className="h-5 w-5 text-success" />
@@ -186,17 +183,6 @@ export default function ReferralDetail() {
                   <Field label="Dosing" value={data.clinical.dosing} />
                   <Field label="Quantity" value={data.clinical.quantity} />
                   <Field label="Refill" value={data.clinical.is_refill ? "Yes" : "No"} />
-                  <Field
-                    label="Urgency"
-                    value={data.clinical.urgency}
-                    badge={
-                      data.clinical.urgency === "Urgent"
-                        ? "text-warning bg-warning/10"
-                        : data.clinical.urgency === "Emergency"
-                          ? "text-destructive bg-destructive/10"
-                          : undefined
-                    }
-                  />
                 </div>
               </InfoCard>
 
@@ -223,14 +209,19 @@ export default function ReferralDetail() {
                 <p className="text-sm text-muted-foreground mt-3">
                   {statusDescriptions[referral.status]}
                 </p>
-                {/* Mini progress */}
+                {/* Mini progress - 3 steps: Uploaded, Processing, Sent to Pharmacy */}
                 <div className="mt-4 space-y-2">
-                  {(["uploaded", "processing", "ready_for_review", "approved_to_send", "sent_to_pharmacy"] as ReferralStatus[]).map((step, i) => {
-                    const stepOrder = ["uploaded", "processing", "ready_for_review", "approved_to_send", "sent_to_pharmacy"];
+                  {(["uploaded", "processing", "sent_to_pharmacy"] as ReferralStatus[]).map((step, i) => {
+                    const stepOrder = ["uploaded", "processing", "sent_to_pharmacy"];
                     const currentIdx = stepOrder.indexOf(referral.status);
                     const isRejected = referral.status === "rejected";
-                    const isComplete = !isRejected && i <= currentIdx;
-                    const isCurrent = !isRejected && i === currentIdx;
+                    // For "approved" status, treat it as between processing and sent_to_pharmacy
+                    const effectiveIdx = referral.status === "approved" ? 1.5 : currentIdx;
+                    const isComplete = !isRejected && i <= effectiveIdx;
+                    const isCurrent = !isRejected && (
+                      (referral.status === "approved" && step === "processing") ||
+                      (step === referral.status)
+                    );
 
                     return (
                       <div key={step} className="flex items-center gap-2">
@@ -284,7 +275,7 @@ export default function ReferralDetail() {
                 </p>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" className="flex-1 text-xs">
-                    <Eye className="h-3.5 w-3.5 mr-1" />
+                    <FileText className="h-3.5 w-3.5 mr-1" />
                     View
                   </Button>
                   <Button variant="outline" size="sm" className="flex-1 text-xs">

@@ -1,13 +1,12 @@
 import { cn } from "@/lib/utils";
 import type { ReferralStatus } from "@/data/mockData";
 import { statusLabels } from "@/data/mockData";
-import { Upload, Loader2, Clock, CheckCircle, Send, XCircle, Eye } from "lucide-react";
+import { Upload, Loader2, CheckCircle, Send, XCircle } from "lucide-react";
 
 const statusStyles: Record<ReferralStatus, string> = {
   uploaded: "bg-status-uploaded-bg text-status-uploaded-fg",
   processing: "bg-status-processing-bg text-status-processing-fg",
-  ready_for_review: "bg-status-review-bg text-status-review-fg",
-  approved_to_send: "bg-status-approved-bg text-status-approved-fg",
+  approved: "bg-status-approved-bg text-status-approved-fg",
   sent_to_pharmacy: "bg-status-sent-bg text-status-sent-fg",
   rejected: "bg-status-rejected-bg text-status-rejected-fg",
 };
@@ -15,8 +14,7 @@ const statusStyles: Record<ReferralStatus, string> = {
 const dotStyles: Record<ReferralStatus, string> = {
   uploaded: "bg-status-uploaded-fg",
   processing: "bg-status-processing-fg",
-  ready_for_review: "bg-status-review-fg",
-  approved_to_send: "bg-status-approved-fg",
+  approved: "bg-status-approved-fg",
   sent_to_pharmacy: "bg-status-sent-fg",
   rejected: "bg-status-rejected-fg",
 };
@@ -24,8 +22,7 @@ const dotStyles: Record<ReferralStatus, string> = {
 const statusIcons: Record<ReferralStatus, React.ElementType> = {
   uploaded: Upload,
   processing: Loader2,
-  ready_for_review: Eye,
-  approved_to_send: CheckCircle,
+  approved: CheckCircle,
   sent_to_pharmacy: Send,
   rejected: XCircle,
 };

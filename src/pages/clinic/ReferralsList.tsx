@@ -21,7 +21,7 @@ interface FilterDef {
 
 const filters: FilterDef[] = [
   { label: "All", value: "all", color: "bg-primary text-primary-foreground" },
-  { label: "Pending", value: "pending", color: "bg-warning text-warning-foreground" },
+  { label: "Processing", value: "processing", color: "bg-status-processing-bg text-status-processing-fg" },
   { label: "Approved", value: "approved", color: "bg-success text-success-foreground" },
   { label: "Rejected", value: "rejected", color: "bg-destructive text-destructive-foreground" },
   { label: "Sent", value: "sent", color: "bg-status-sent-bg text-status-sent-fg" },
@@ -29,12 +29,10 @@ const filters: FilterDef[] = [
 
 function getFilterCount(value: string): number {
   if (value === "all") return clinicReferrals.length;
-  if (value === "pending")
-    return clinicReferrals.filter((r) =>
-      ["uploaded", "processing", "ready_for_review"].includes(r.status)
-    ).length;
+  if (value === "processing")
+    return clinicReferrals.filter((r) => r.status === "processing").length;
   if (value === "approved")
-    return clinicReferrals.filter((r) => r.status === "approved_to_send").length;
+    return clinicReferrals.filter((r) => r.status === "approved").length;
   if (value === "rejected")
     return clinicReferrals.filter((r) => r.status === "rejected").length;
   if (value === "sent")
@@ -57,9 +55,8 @@ export default function ReferralsList() {
       if (!matchesSearch) return false;
 
       if (activeFilter === "all") return true;
-      if (activeFilter === "pending")
-        return ["uploaded", "processing", "ready_for_review"].includes(r.status);
-      if (activeFilter === "approved") return r.status === "approved_to_send";
+      if (activeFilter === "processing") return r.status === "processing";
+      if (activeFilter === "approved") return r.status === "approved";
       if (activeFilter === "rejected") return r.status === "rejected";
       if (activeFilter === "sent") return r.status === "sent_to_pharmacy";
       return true;
