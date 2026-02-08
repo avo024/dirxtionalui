@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import type { ReferralStatus } from "@/data/mockData";
-import { statusLabels } from "@/data/mockData";
+import { statusLabels, adminStatusLabels } from "@/data/mockData";
 import { Upload, Loader2, CheckCircle, Send, XCircle } from "lucide-react";
 
 const statusStyles: Record<ReferralStatus, string> = {
@@ -32,11 +32,13 @@ interface StatusBadgeProps {
   size?: "sm" | "md" | "lg";
   showIcon?: boolean;
   className?: string;
+  context?: "clinic" | "admin";
 }
 
-export function StatusBadge({ status, size = "sm", showIcon = false, className }: StatusBadgeProps) {
+export function StatusBadge({ status, size = "sm", showIcon = false, className, context = "clinic" }: StatusBadgeProps) {
   const Icon = statusIcons[status];
   const isProcessing = status === "processing";
+  const labels = context === "admin" ? adminStatusLabels : statusLabels;
 
   const sizeClasses = {
     sm: "px-2.5 py-0.5 text-xs gap-1.5",
@@ -64,7 +66,7 @@ export function StatusBadge({ status, size = "sm", showIcon = false, className }
           )}
         />
       )}
-      {statusLabels[status]}
+      {labels[status]}
     </span>
   );
 }

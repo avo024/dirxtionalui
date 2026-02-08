@@ -776,3 +776,47 @@ export const statusLabels: Record<ReferralStatus, string> = {
   sent_to_pharmacy: "Sent to Pharmacy",
   rejected: "Rejected",
 };
+
+export const adminStatusLabels: Record<ReferralStatus, string> = {
+  uploaded: "Uploaded",
+  processing: "Needs Review",
+  approved: "Approved",
+  sent_to_pharmacy: "Sent to Pharmacy",
+  rejected: "Rejected",
+};
+
+export type ReferralPAStatus = "no_pa" | "pa_required" | "pa_approved" | "pa_expired";
+
+export interface ReferralPAInfo {
+  status: ReferralPAStatus;
+  reason: string;
+}
+
+export function getReferralPAInfo(referral: Referral): ReferralPAInfo {
+  const paRequired = referral.extracted_data.prior_auth.required;
+  const isRefill = referral.extracted_data.clinical.is_refill;
+
+  if (!paRequired) {
+    return { status: "no_pa", reason: "Continuation" };
+  }
+
+  // If sent to pharmacy or approved, PA is approved
+  if (referral.status === "sent_to_pharmacy") {
+    return { status: "pa_approved", reason: isRefill ? "Continuation" : "New Drug" };
+  }
+
+  if (referral.status === "approved") {
+    return { status: "pa_approved", reason: isRefill ? "Continuation" : "New Drug" };
+  }
+
+  // If rejected, PA expired
+  if (referral.status === "rejected") {
+    return { status: "pa_expired", reason: "PA Expired" };
+  }
+
+  // Otherwise PA is required
+  return {
+    status: "pa_required",
+    reason: isRefill ? "Dosage Change" : "New Drug",
+  };
+}

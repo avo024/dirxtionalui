@@ -7,14 +7,14 @@ const processingReferrals = mockReferrals.filter((r) => r.status === "processing
 
 const stats = [
   { label: "Total Referrals", value: mockReferrals.length, icon: FileText, color: "text-primary" },
-  { label: "Processing", value: processingReferrals.length, icon: Clock, color: "text-warning", badge: true },
+  { label: "Needs Review", value: processingReferrals.length, icon: Clock, color: "text-warning", badge: true },
   { label: "Approved Today", value: 1, icon: CheckCircle, color: "text-success" },
   { label: "Rejected Today", value: 0, icon: XCircle, color: "text-destructive" },
   { label: "Sent Today", value: 0, icon: Send, color: "text-primary" },
 ];
 
 const statusPieData = [
-  { name: "Processing", value: mockReferrals.filter((r) => r.status === "processing").length, color: "hsl(210, 80%, 55%)" },
+  { name: "Needs Review", value: mockReferrals.filter((r) => r.status === "processing").length, color: "hsl(210, 80%, 55%)" },
   { name: "Approved", value: mockReferrals.filter((r) => r.status === "approved").length, color: "hsl(148, 48%, 48%)" },
   { name: "Sent", value: mockReferrals.filter((r) => r.status === "sent_to_pharmacy").length, color: "hsl(174, 58%, 56%)" },
   { name: "Rejected", value: mockReferrals.filter((r) => r.status === "rejected").length, color: "hsl(0, 89%, 68%)" },
@@ -91,7 +91,7 @@ export default function AdminDashboard() {
 
       {/* Processing referrals */}
       <div>
-        <h2 className="text-lg font-semibold text-foreground mb-4">Referrals Being Processed</h2>
+        <h2 className="text-lg font-semibold text-foreground mb-4">Referrals Needing Review</h2>
         <ReferralTable referrals={processingReferrals} userType="admin" showClinic />
       </div>
     </div>
