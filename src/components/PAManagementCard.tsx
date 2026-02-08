@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
@@ -66,9 +66,6 @@ function PAWorkflowCard({ referral, paInfo }: { referral: Referral; paInfo: Refe
   const { extracted_data: data } = referral;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [formCompleted, setFormCompleted] = useState(false);
-  const [submittedToInsurance, setSubmittedToInsurance] = useState(false);
-  const [approvedByInsurance, setApprovedByInsurance] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null);
   const [paNumber, setPaNumber] = useState("");
   const [expirationDate, setExpirationDate] = useState<Date | undefined>();
@@ -159,39 +156,6 @@ function PAWorkflowCard({ referral, paInfo }: { referral: Referral; paInfo: Refe
         {data.insurance.has_insurance_card && (
           <p className="text-xs text-muted-foreground">Insurance card on file</p>
         )}
-      </div>
-
-      <Separator />
-
-      {/* PA Workflow Progress */}
-      <div className="space-y-3">
-        <p className="text-xs font-medium text-muted-foreground">PA Workflow Progress</p>
-        <div className="space-y-2">
-          <div className="flex items-center gap-2.5">
-            <Checkbox
-              checked={formCompleted}
-              onCheckedChange={(checked) => setFormCompleted(checked === true)}
-              className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-            />
-            <Label className="text-sm font-normal text-foreground">PA Form Completed</Label>
-          </div>
-          <div className="flex items-center gap-2.5">
-            <Checkbox
-              checked={submittedToInsurance}
-              onCheckedChange={(checked) => setSubmittedToInsurance(checked === true)}
-              className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-            />
-            <Label className="text-sm font-normal text-foreground">PA Submitted to Insurance</Label>
-          </div>
-          <div className="flex items-center gap-2.5">
-            <Checkbox
-              checked={approvedByInsurance}
-              onCheckedChange={(checked) => setApprovedByInsurance(checked === true)}
-              className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-            />
-            <Label className="text-sm font-normal text-foreground">PA Approved by Insurance</Label>
-          </div>
-        </div>
       </div>
 
       <Separator />
