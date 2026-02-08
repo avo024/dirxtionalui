@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { PAStatusBadge } from "@/components/PAStatusBadge";
 import { ConfidenceIndicator } from "@/components/ConfidenceIndicator";
@@ -55,7 +55,7 @@ export default function CreateReferral() {
 
   // Upload state
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
-  const [uploadClinicHandlesPa, setUploadClinicHandlesPa] = useState(false);
+  
 
   // Manual entry state
   const [manualData, setManualData] = useState({
@@ -63,7 +63,6 @@ export default function CreateReferral() {
     isRefill: false,
     providerName: "", npi: "", providerPhone: "", signatureDate: new Date().toISOString().split("T")[0],
     hasInsurance: true, insuranceType: "", insuranceNotes: "",
-    paRequired: false, paClinicHandles: false, paNotes: "",
   });
 
   // Submission state
@@ -439,22 +438,12 @@ export default function CreateReferral() {
               </p>
             </div>
 
-            {/* Prior Authorization (Optional) */}
-            <div className="flex gap-3 p-4 rounded-lg bg-primary/5 border border-primary/10">
-              <Checkbox
-                id="upload-clinic-handles-pa"
-                checked={uploadClinicHandlesPa}
-                onCheckedChange={(v) => setUploadClinicHandlesPa(!!v)}
-                className="mt-0.5 shrink-0"
-              />
-              <div>
-                <label htmlFor="upload-clinic-handles-pa" className="text-sm font-medium text-foreground cursor-pointer">
-                  Our clinic will handle PA in-house
-                </label>
-                <p className="text-xs text-muted-foreground mt-1">
-                  By default, our admin team processes all PA requirements. Check this box only if your clinic prefers to handle PA submissions directly.
-                </p>
-              </div>
+            {/* PA Notice */}
+            <div className="flex items-center gap-3 p-4 rounded-lg bg-primary/5 border border-primary/10">
+              <CheckCircle className="h-5 w-5 text-primary shrink-0" />
+              <p className="text-sm text-foreground">
+                Our team will handle the PA and process
+              </p>
             </div>
           </div>
         )}
@@ -562,43 +551,13 @@ export default function CreateReferral() {
                 </AccordionContent>
               </AccordionItem>
 
-              {/* PA */}
-              <AccordionItem value="pa">
-                <AccordionTrigger className="text-sm font-semibold">
-                  <span className="flex items-center gap-2"><FileText className="h-4 w-4 text-primary" /> Prior Authorization</span>
-                </AccordionTrigger>
-                <AccordionContent className="space-y-4 pt-2">
-                  <div className="space-y-4">
-                    <FormField label="PA Required?">
-                      <div className="flex items-center gap-3 h-10">
-                        <Switch checked={manualData.paRequired} onCheckedChange={(v) => setManualData((d) => ({ ...d, paRequired: v }))} />
-                        <span className="text-sm text-muted-foreground">{manualData.paRequired ? "Yes" : "No"}</span>
-                      </div>
-                    </FormField>
-                    <div className="flex items-start gap-3">
-                      <Checkbox
-                        id="pa-clinic-handles"
-                        checked={manualData.paClinicHandles}
-                        onCheckedChange={(v) => setManualData((d) => ({ ...d, paClinicHandles: !!v }))}
-                        className="mt-0.5"
-                      />
-                      <div>
-                        <label htmlFor="pa-clinic-handles" className="text-sm font-medium text-foreground cursor-pointer">
-                          Our clinic will handle PA in-house
-                        </label>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          By default, our admin team processes all PA requirements
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  {manualData.paRequired && (
-                    <FormField label="PA Notes">
-                      <Textarea value={manualData.paNotes} onChange={(e) => setManualData((d) => ({ ...d, paNotes: e.target.value }))} placeholder="Additional PA details..." rows={2} />
-                    </FormField>
-                  )}
-                </AccordionContent>
-              </AccordionItem>
+              {/* PA Notice */}
+              <div className="flex items-center gap-3 p-4 rounded-lg bg-primary/5 border border-primary/10">
+                <CheckCircle className="h-5 w-5 text-primary shrink-0" />
+                <p className="text-sm text-foreground">
+                  Our team will handle the PA and process
+                </p>
+              </div>
             </Accordion>
           </div>
         )}
