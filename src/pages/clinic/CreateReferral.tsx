@@ -9,14 +9,13 @@ import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { PAStatusBadge } from "@/components/PAStatusBadge";
 import { ConfidenceIndicator } from "@/components/ConfidenceIndicator";
 import { toast } from "@/hooks/use-toast";
 import {
   ArrowLeft, ArrowRight, Check, Upload, UserPlus, Users,
   FileText, Pill, Stethoscope, Shield, Info, Edit,
-  CheckCircle, Loader2, AlertTriangle, Search, X, Sparkles, ShieldCheck, ShieldAlert, ShieldX
+  CheckCircle, Loader2, AlertTriangle, Search, X, Sparkles
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { mockPatients, type Patient } from "@/data/mockData";
@@ -36,70 +35,6 @@ interface UploadedFile {
   zone: "required" | "insurance" | "additional";
 }
 
-interface PACalculationResult {
-  pa_required: boolean;
-  pa_reason: "continuation" | "new_drug" | "dosage_change" | "pa_expired" | "new_patient";
-  pa_expiration?: string;
-  previous_dosage?: string;
-  drug_name?: string;
-}
-
-/** Mock API: POST /patients/{patient_id}/calculate-pa */
-async function calculatePAForPatient(
-  patientId: string,
-  drugName: string,
-  dosage: string
-): Promise<PACalculationResult> {
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 800));
-
-  const patient = mockPatients.find((p) => p.id === patientId);
-  if (!patient) {
-    return { pa_required: true, pa_reason: "new_patient", drug_name: drugName };
-  }
-
-  // PA expired
-  if (patient.pa_status === "expired") {
-    return {
-      pa_required: true,
-      pa_reason: "pa_expired",
-      pa_expiration: patient.pa_expiration_date,
-      drug_name: drugName,
-    };
-  }
-
-  // Different drug than last prescribed
-  if (patient.last_drug && patient.last_drug.toLowerCase() !== drugName.toLowerCase()) {
-    return {
-      pa_required: true,
-      pa_reason: "new_drug",
-      drug_name: drugName,
-    };
-  }
-
-  // Dosage change
-  if (patient.last_dosage && dosage && patient.last_dosage.toLowerCase() !== dosage.toLowerCase()) {
-    return {
-      pa_required: true,
-      pa_reason: "dosage_change",
-      previous_dosage: patient.last_dosage,
-      drug_name: drugName,
-    };
-  }
-
-  // No PA needed — continuation
-  if (patient.pa_status === "active" || patient.pa_status === "expiring") {
-    return {
-      pa_required: false,
-      pa_reason: "continuation",
-      pa_expiration: patient.pa_expiration_date,
-      drug_name: drugName,
-    };
-  }
-
-  // New patient with no PA history
-  return { pa_required: true, pa_reason: "new_patient", drug_name: drugName };
-}
 
 export default function CreateReferral() {
   const [searchParams] = useSearchParams();
@@ -118,9 +53,6 @@ export default function CreateReferral() {
   const [selectedDrug, setSelectedDrug] = useState("");
   const [selectedDosage, setSelectedDosage] = useState("");
 
-  // PA calculation state
-  const [paResult, setPaResult] = useState<PACalculationResult | null>(null);
-  const [paLoading, setPaLoading] = useState(false);
 
   // Referral method
   const [referralMethod, setReferralMethod] = useState<"upload" | "manual" | null>(null);
@@ -147,29 +79,12 @@ export default function CreateReferral() {
   const navigate = useNavigate();
   const progress = Math.round(((currentStep + 1) / steps.length) * 100);
 
-  // Trigger PA calculation when patient + drug + dosage are set
+  // Sync drug/dosage to manual entry form
   useEffect(() => {
-    const patientId = selectedPatient?.id;
-    if (!patientId || !selectedDrug) {
-      setPaResult(null);
-      return;
+    if (selectedDrug || selectedDosage) {
+      setManualData((d) => ({ ...d, drugRequested: selectedDrug, dosing: selectedDosage }));
     }
-
-    let cancelled = false;
-    setPaLoading(true);
-    setPaResult(null);
-
-    calculatePAForPatient(patientId, selectedDrug, selectedDosage).then((result) => {
-      if (!cancelled) {
-        setPaResult(result);
-        setPaLoading(false);
-        // Auto-set the manual entry PA toggle
-        setManualData((d) => ({ ...d, paRequired: result.pa_required, drugRequested: selectedDrug, dosing: selectedDosage }));
-      }
-    });
-
-    return () => { cancelled = true; };
-  }, [selectedPatient?.id, selectedDrug, selectedDosage]);
+  }, [selectedDrug, selectedDosage]);
 
   // Patient search
   const filteredPatients = useMemo(() => {
@@ -318,19 +233,6 @@ export default function CreateReferral() {
               <p className="text-xs text-muted-foreground">DOB: {formatDateShort(selectedPatient.dob)} · {selectedPatient.phone}</p>
             </div>
           </div>
-          {paResult && (
-            <div className={cn(
-              "text-xs font-medium px-2.5 py-1 rounded-full",
-              paResult.pa_required ? "bg-warning/10 text-warning" : "bg-success/10 text-success"
-            )}>
-              PA {paResult.pa_required ? "Required" : "Not Required"}
-            </div>
-          )}
-          {paLoading && (
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Loader2 className="h-3 w-3 animate-spin" /> Checking PA...
-            </div>
-          )}
         </div>
       )}
 
@@ -475,12 +377,6 @@ export default function CreateReferral() {
                     />
                   </div>
                 </div>
-                {paLoading && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" /> Checking PA requirements...
-                  </div>
-                )}
-                {paResult && <PABanner result={paResult} />}
               </div>
             )}
           </div>
@@ -494,9 +390,6 @@ export default function CreateReferral() {
               <h2 className="text-lg font-semibold text-foreground">How would you like to create this referral?</h2>
               <p className="text-sm text-muted-foreground">Choose your preferred method</p>
             </div>
-
-            {/* Dynamic PA Banner */}
-            {paResult && <PABanner result={paResult} />}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Upload Documents */}
@@ -711,9 +604,6 @@ export default function CreateReferral() {
                       <span className="text-sm text-muted-foreground">{manualData.paRequired ? "Yes" : "No"}</span>
                     </div>
                   </FormField>
-                  {paResult && (
-                    <p className="text-xs text-muted-foreground italic">Auto-calculated: PA {paResult.pa_required ? "Required" : "Not Required"} — {getPAReasonLabel(paResult)}</p>
-                  )}
                   {manualData.paRequired && (
                     <>
                       <FormField label="Who will handle PA?">
@@ -818,30 +708,6 @@ export default function CreateReferral() {
                   </div>
                 </ReviewCard>
 
-                {/* PA auto-calc */}
-                {paResult && (
-                  <div className={cn(
-                    "rounded-lg border px-4 py-3",
-                    paResult.pa_required
-                      ? paResult.pa_reason === "pa_expired"
-                        ? "border-destructive/30 bg-destructive/5"
-                        : "border-warning/30 bg-warning/5"
-                      : "border-success/30 bg-success/5"
-                  )}>
-                    <div className="flex items-center gap-2">
-                      {paResult.pa_required ? (
-                        paResult.pa_reason === "pa_expired"
-                          ? <ShieldX className="h-4 w-4 text-destructive" />
-                          : <ShieldAlert className="h-4 w-4 text-warning" />
-                      ) : (
-                        <ShieldCheck className="h-4 w-4 text-success" />
-                      )}
-                      <span className="text-sm font-medium text-foreground">
-                        PA {paResult.pa_required ? "Required" : "Not Required"}: {getPAReasonLabel(paResult)}
-                      </span>
-                    </div>
-                  </div>
-                )}
 
                 {/* Documents */}
                 {uploadedFiles.length > 0 && (
@@ -934,70 +800,6 @@ export default function CreateReferral() {
   );
 }
 
-/* PA Helpers */
-
-function getPAReasonLabel(result: PACalculationResult): string {
-  switch (result.pa_reason) {
-    case "continuation":
-      return `Continuation — PA active until ${result.pa_expiration ? formatDateShort(result.pa_expiration) : "N/A"}`;
-    case "new_drug":
-      return `New Drug — First time prescribing ${result.drug_name || "this medication"}`;
-    case "dosage_change":
-      return `Dosage Change — Previous: ${result.previous_dosage || "unknown"}`;
-    case "pa_expired":
-      return `PA Expired — Previous PA expired on ${result.pa_expiration ? formatDateShort(result.pa_expiration) : "N/A"}`;
-    case "new_patient":
-      return "New Patient — No prior authorization history";
-    default:
-      return "Unknown";
-  }
-}
-
-function PABanner({ result }: { result: PACalculationResult }) {
-  if (!result.pa_required) {
-    return (
-      <Alert variant="success">
-        <ShieldCheck className="h-4 w-4" />
-        <AlertTitle>No PA Required: Continuation</AlertTitle>
-        <AlertDescription>
-          Current PA active until {result.pa_expiration ? formatDateShort(result.pa_expiration) : "N/A"}
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
-  if (result.pa_reason === "pa_expired") {
-    return (
-      <Alert variant="destructive">
-        <ShieldX className="h-4 w-4" />
-        <AlertTitle>PA Required: PA Expired</AlertTitle>
-        <AlertDescription>
-          Previous PA expired on {result.pa_expiration ? formatDateShort(result.pa_expiration) : "N/A"}
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
-  const titleMap: Record<string, string> = {
-    new_drug: "PA Required: New Drug",
-    dosage_change: "PA Required: Dosage Change",
-    new_patient: "PA Required: New Patient",
-  };
-
-  const subtitleMap: Record<string, string> = {
-    new_drug: `First time prescribing ${result.drug_name || "this medication"} for this patient`,
-    dosage_change: `Previous dosage: ${result.previous_dosage || "unknown"}`,
-    new_patient: "No prior authorization history for this patient",
-  };
-
-  return (
-    <Alert variant="warning">
-      <ShieldAlert className="h-4 w-4" />
-      <AlertTitle>{titleMap[result.pa_reason] || "PA Required"}</AlertTitle>
-      <AlertDescription>{subtitleMap[result.pa_reason] || ""}</AlertDescription>
-    </Alert>
-  );
-}
 
 /* Helper Components */
 
