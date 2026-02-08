@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,10 +49,6 @@ export default function CreateReferral() {
   const [patientSearch, setPatientSearch] = useState("");
   const [newPatient, setNewPatient] = useState({ firstName: "", lastName: "", dob: "", phone: "" });
 
-  // Drug & dosage for PA calculation (Step 1)
-  const [selectedDrug, setSelectedDrug] = useState("");
-  const [selectedDosage, setSelectedDosage] = useState("");
-
 
   // Referral method
   const [referralMethod, setReferralMethod] = useState<"upload" | "manual" | null>(null);
@@ -79,12 +75,6 @@ export default function CreateReferral() {
   const navigate = useNavigate();
   const progress = Math.round(((currentStep + 1) / steps.length) * 100);
 
-  // Sync drug/dosage to manual entry form
-  useEffect(() => {
-    if (selectedDrug || selectedDosage) {
-      setManualData((d) => ({ ...d, drugRequested: selectedDrug, dosing: selectedDosage }));
-    }
-  }, [selectedDrug, selectedDosage]);
 
   // Patient search
   const filteredPatients = useMemo(() => {
@@ -141,7 +131,7 @@ export default function CreateReferral() {
     }, 2000);
   };
 
-  const canProceedStep1 = (patientMode === "existing" ? !!selectedPatient : (newPatient.firstName && newPatient.lastName && newPatient.dob && newPatient.phone)) && !!selectedDrug;
+  const canProceedStep1 = patientMode === "existing" ? !!selectedPatient : !!(newPatient.firstName && newPatient.lastName && newPatient.dob && newPatient.phone);
   const canProceedStep2 = referralMethod === "upload" ? uploadedFiles.length > 0 : (manualData.diagnosisCode && manualData.drugRequested);
 
   // SUCCESS STATE
@@ -349,36 +339,6 @@ export default function CreateReferral() {
               </div>
             </div>
 
-            {/* Drug & Dosage fields (shown after patient selected or new patient filled) */}
-            {((patientMode === "existing" && selectedPatient) || (patientMode === "new" && newPatient.firstName && newPatient.lastName)) && (
-              <div className="rounded-xl border border-border p-5 space-y-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <Pill className="h-4 w-4 text-primary" />
-                  <h3 className="text-sm font-semibold text-foreground">Medication Details</h3>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label className="text-sm font-medium text-foreground">
-                      Drug Requested <span className="text-destructive ml-0.5">*</span>
-                    </Label>
-                    <Select value={selectedDrug} onValueChange={setSelectedDrug}>
-                      <SelectTrigger><SelectValue placeholder="Select drug" /></SelectTrigger>
-                      <SelectContent>
-                        {DRUG_OPTIONS.map((drug) => <SelectItem key={drug} value={drug}>{drug}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-sm font-medium text-foreground">Dosage</Label>
-                    <Input
-                      value={selectedDosage}
-                      onChange={(e) => setSelectedDosage(e.target.value)}
-                      placeholder="e.g., 300mg"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         )}
 
