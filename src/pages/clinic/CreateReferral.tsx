@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { PAStatusBadge } from "@/components/PAStatusBadge";
 import { ConfidenceIndicator } from "@/components/ConfidenceIndicator";
@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { mockPatients, type Patient } from "@/data/mockData";
-import { DRUG_OPTIONS, ICD10_OPTIONS } from "@/types/referralForm";
+// Drug/ICD10 options removed — fields are now free text
 import { formatDateShort } from "@/lib/dateUtils";
 
 const steps = [
@@ -59,10 +59,10 @@ export default function CreateReferral() {
   // Manual entry state
   const [manualData, setManualData] = useState({
     diagnosisCode: "", drugRequested: "", dosing: "", quantity: "",
-    isRefill: false, urgency: "routine" as "routine" | "urgent" | "emergency",
+    isRefill: false,
     providerName: "", npi: "", providerPhone: "", signatureDate: new Date().toISOString().split("T")[0],
     hasInsurance: true, insuranceType: "", insuranceNotes: "",
-    paRequired: false, paHandledBy: "", paNotes: "",
+    paRequired: false, paClinicHandles: false, paNotes: "",
   });
 
   // Submission state
@@ -457,21 +457,19 @@ export default function CreateReferral() {
                 </AccordionTrigger>
                 <AccordionContent className="space-y-4 pt-2">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField label="Diagnosis ICD-10" required>
-                      <Select value={manualData.diagnosisCode} onValueChange={(v) => setManualData((d) => ({ ...d, diagnosisCode: v }))}>
-                        <SelectTrigger><SelectValue placeholder="Select diagnosis code" /></SelectTrigger>
-                        <SelectContent>
-                          {ICD10_OPTIONS.map((o) => <SelectItem key={o.code} value={o.code}>{o.code} — {o.description}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
+                    <FormField label="Diagnosis ICD-10" required helper="Enter ICD-10 code and description">
+                      <Input
+                        value={manualData.diagnosisCode}
+                        onChange={(e) => setManualData((d) => ({ ...d, diagnosisCode: e.target.value }))}
+                        placeholder="e.g., L20.9 Atopic Dermatitis"
+                      />
                     </FormField>
-                    <FormField label="Drug Requested" required>
-                      <Select value={manualData.drugRequested} onValueChange={(v) => setManualData((d) => ({ ...d, drugRequested: v }))}>
-                        <SelectTrigger><SelectValue placeholder="Select drug" /></SelectTrigger>
-                        <SelectContent>
-                          {DRUG_OPTIONS.map((drug) => <SelectItem key={drug} value={drug}>{drug}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
+                    <FormField label="Drug Requested" required helper="Enter medication name">
+                      <Input
+                        value={manualData.drugRequested}
+                        onChange={(e) => setManualData((d) => ({ ...d, drugRequested: e.target.value }))}
+                        placeholder="e.g., Dupixent, Skyrizi, Taltz"
+                      />
                     </FormField>
                     <FormField label="Dosing Directions" className="md:col-span-2">
                       <Textarea value={manualData.dosing} onChange={(e) => setManualData((d) => ({ ...d, dosing: e.target.value }))} placeholder="e.g., Inject 300mg SUBQ every other week" rows={2} />
@@ -486,13 +484,6 @@ export default function CreateReferral() {
                       </div>
                     </FormField>
                   </div>
-                  <FormField label="Urgency">
-                    <RadioGroup value={manualData.urgency} onValueChange={(v) => setManualData((d) => ({ ...d, urgency: v as any }))} className="flex gap-4">
-                      <label className="flex items-center gap-2 cursor-pointer"><RadioGroupItem value="routine" /><span className="text-sm">Routine</span></label>
-                      <label className="flex items-center gap-2 cursor-pointer"><RadioGroupItem value="urgent" /><span className="text-sm text-warning font-medium">Urgent</span></label>
-                      <label className="flex items-center gap-2 cursor-pointer"><RadioGroupItem value="emergency" /><span className="text-sm text-destructive font-medium">Emergency</span></label>
-                    </RadioGroup>
-                  </FormField>
                 </AccordionContent>
               </AccordionItem>
 
@@ -558,24 +549,34 @@ export default function CreateReferral() {
                   <span className="flex items-center gap-2"><FileText className="h-4 w-4 text-primary" /> Prior Authorization</span>
                 </AccordionTrigger>
                 <AccordionContent className="space-y-4 pt-2">
-                  <FormField label="PA Required?">
-                    <div className="flex items-center gap-3 h-10">
-                      <Switch checked={manualData.paRequired} onCheckedChange={(v) => setManualData((d) => ({ ...d, paRequired: v }))} />
-                      <span className="text-sm text-muted-foreground">{manualData.paRequired ? "Yes" : "No"}</span>
+                  <div className="space-y-4">
+                    <FormField label="PA Required?">
+                      <div className="flex items-center gap-3 h-10">
+                        <Switch checked={manualData.paRequired} onCheckedChange={(v) => setManualData((d) => ({ ...d, paRequired: v }))} />
+                        <span className="text-sm text-muted-foreground">{manualData.paRequired ? "Yes" : "No"}</span>
+                      </div>
+                    </FormField>
+                    <div className="flex items-start gap-3">
+                      <Checkbox
+                        id="pa-clinic-handles"
+                        checked={manualData.paClinicHandles}
+                        onCheckedChange={(v) => setManualData((d) => ({ ...d, paClinicHandles: !!v }))}
+                        className="mt-0.5"
+                      />
+                      <div>
+                        <label htmlFor="pa-clinic-handles" className="text-sm font-medium text-foreground cursor-pointer">
+                          Our clinic will handle PA in-house
+                        </label>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          By default, our admin team processes all PA requirements
+                        </p>
+                      </div>
                     </div>
-                  </FormField>
+                  </div>
                   {manualData.paRequired && (
-                    <>
-                      <FormField label="Who will handle PA?">
-                        <RadioGroup value={manualData.paHandledBy} onValueChange={(v) => setManualData((d) => ({ ...d, paHandledBy: v }))} className="space-y-2">
-                          <label className="flex items-center gap-2 cursor-pointer"><RadioGroupItem value="pharmacy" /><span className="text-sm">Pharmacy/Admin</span></label>
-                          <label className="flex items-center gap-2 cursor-pointer"><RadioGroupItem value="clinic" /><span className="text-sm">Clinic</span></label>
-                        </RadioGroup>
-                      </FormField>
-                      <FormField label="PA Notes">
-                        <Textarea value={manualData.paNotes} onChange={(e) => setManualData((d) => ({ ...d, paNotes: e.target.value }))} placeholder="Additional PA details..." rows={2} />
-                      </FormField>
-                    </>
+                    <FormField label="PA Notes">
+                      <Textarea value={manualData.paNotes} onChange={(e) => setManualData((d) => ({ ...d, paNotes: e.target.value }))} placeholder="Additional PA details..." rows={2} />
+                    </FormField>
                   )}
                 </AccordionContent>
               </AccordionItem>
@@ -643,7 +644,6 @@ export default function CreateReferral() {
                         <ReviewField label="Drug" value={manualData.drugRequested || "—"} />
                         <ReviewField label="Dosing" value={manualData.dosing || "—"} />
                         <ReviewField label="Quantity" value={manualData.quantity || "—"} />
-                        <ReviewField label="Urgency" value={manualData.urgency} />
                       </>
                     )}
                   </div>
