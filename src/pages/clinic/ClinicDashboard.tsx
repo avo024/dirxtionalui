@@ -13,12 +13,12 @@ const clinicReferrals = mockReferrals.filter(
   (r) => r.clinic_name === "Dallas Dermatology Clinic"
 );
 
-const pendingCount = clinicReferrals.filter((r) =>
-  ["uploaded", "processing", "ready_for_review"].includes(r.status)
+const processingCount = clinicReferrals.filter((r) =>
+  r.status === "processing"
 ).length;
 
 const approvedCount = clinicReferrals.filter((r) =>
-  ["approved_to_send", "sent_to_pharmacy"].includes(r.status)
+  ["approved", "sent_to_pharmacy"].includes(r.status)
 ).length;
 
 const rejectedCount = clinicReferrals.filter(
@@ -51,12 +51,12 @@ export default function ClinicDashboard() {
       subtitleIcon: ArrowUpRight,
     },
     {
-      label: "Pending Review",
-      value: pendingCount,
+      label: "Processing",
+      value: processingCount,
       icon: Clock,
       colorClass: "text-warning",
       bgClass: "bg-warning/10",
-      subtitle: "Awaiting admin review",
+      subtitle: "Being processed",
     },
     {
       label: "Approved",
@@ -64,7 +64,7 @@ export default function ClinicDashboard() {
       icon: CheckCircle,
       colorClass: "text-success",
       bgClass: "bg-success/10",
-      subtitle: "Ready to send",
+      subtitle: "Ready or sent",
     },
     {
       label: "Rejected",

@@ -56,8 +56,7 @@
     --status-uploaded-fg: 220 10% 46%;
     --status-processing-bg: 210 100% 95%;
     --status-processing-fg: 210 80% 45%;
-    --status-review-bg: 38 100% 94%;
-    --status-review-fg: 30 80% 40%;
+    /* review status removed */
     --status-approved-bg: 148 60% 93%;
     --status-approved-fg: 148 50% 35%;
     --status-sent-bg: 174 60% 92%;

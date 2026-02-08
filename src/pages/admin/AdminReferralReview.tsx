@@ -119,17 +119,6 @@ export default function AdminReferralReview() {
                     <Checkbox defaultChecked={data.clinical.is_refill} />
                     <Label className="text-xs font-normal">Is Refill</Label>
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Urgency</Label>
-                    <Select defaultValue={data.clinical.urgency}>
-                      <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Standard">Standard</SelectItem>
-                        <SelectItem value="Urgent">Urgent</SelectItem>
-                        <SelectItem value="Emergency">Emergency</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
                 </div>
               </AccordionContent>
             </AccordionItem>
