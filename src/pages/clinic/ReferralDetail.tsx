@@ -16,11 +16,11 @@ import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 const statusDescriptions: Record<ReferralStatus, string> = {
-  uploaded: "Your referral has been submitted and is awaiting processing.",
-  processing: "Your referral is being processed by our team.",
+  uploaded: "Your referral has been received and is awaiting review.",
+  processing: "Your referral is currently in review by our team.",
   approved: "Your referral has been approved and is ready to send to pharmacy.",
   sent_to_pharmacy: "Your referral has been sent to the assigned pharmacy.",
-  rejected: "This referral was rejected. Please see the reason below.",
+  rejected: "This referral needs your attention. Please see the details below.",
 };
 
 const statusTimelineIcons: Record<ReferralStatus, React.ElementType> = {
@@ -209,13 +209,17 @@ export default function ReferralDetail() {
                 <p className="text-sm text-muted-foreground mt-3">
                   {statusDescriptions[referral.status]}
                 </p>
-                {/* Mini progress - 3 steps: Uploaded, Processing, Sent to Pharmacy */}
+                {/* Mini progress - 3 steps: Received, In Review, Sent to Pharmacy */}
                 <div className="mt-4 space-y-2">
                   {(["uploaded", "processing", "sent_to_pharmacy"] as ReferralStatus[]).map((step, i) => {
                     const stepOrder = ["uploaded", "processing", "sent_to_pharmacy"];
+                    const stepLabels: Record<string, string> = {
+                      uploaded: "Received",
+                      processing: "In Review",
+                      sent_to_pharmacy: "Sent to Pharmacy",
+                    };
                     const currentIdx = stepOrder.indexOf(referral.status);
                     const isRejected = referral.status === "rejected";
-                    // For "approved" status, treat it as between processing and sent_to_pharmacy
                     const effectiveIdx = referral.status === "approved" ? 1.5 : currentIdx;
                     const isComplete = !isRejected && i <= effectiveIdx;
                     const isCurrent = !isRejected && (
@@ -237,7 +241,7 @@ export default function ReferralDetail() {
                             isCurrent ? "font-medium text-foreground" : isComplete ? "text-muted-foreground" : "text-muted-foreground/50"
                           )}
                         >
-                          {step.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                          {stepLabels[step] || step}
                         </span>
                       </div>
                     );
