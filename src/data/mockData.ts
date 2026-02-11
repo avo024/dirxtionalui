@@ -770,15 +770,15 @@ export const mockBlockedReferrals = [
 ];
 
 export const statusLabels: Record<ReferralStatus, string> = {
-  uploaded: "Uploaded",
-  processing: "Processing",
+  uploaded: "Received",
+  processing: "In Review",
   approved: "Approved",
   sent_to_pharmacy: "Sent to Pharmacy",
-  rejected: "Rejected",
+  rejected: "Needs Attention",
 };
 
 export const adminStatusLabels: Record<ReferralStatus, string> = {
-  uploaded: "Uploaded",
+  uploaded: "Received",
   processing: "Needs Review",
   approved: "Approved",
   sent_to_pharmacy: "Sent to Pharmacy",

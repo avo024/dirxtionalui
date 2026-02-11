@@ -141,9 +141,9 @@ export default function CreateReferral() {
         <div className="h-16 w-16 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-6">
           <CheckCircle className="h-8 w-8 text-success" />
         </div>
-        <h1 className="text-2xl font-bold text-foreground mb-2">Referral Submitted Successfully!</h1>
+        <h1 className="text-2xl font-bold text-foreground mb-2">We'll Take It From Here!</h1>
         <p className="text-muted-foreground mb-2">
-          Your referral has been submitted for review. You'll be notified once it's approved.
+          Your referral has been received. We'll handle everything from here and notify you once it's ready.
         </p>
         <p className="text-sm font-mono bg-secondary inline-block px-3 py-1 rounded mb-8">
           REF-{String(Math.floor(Math.random() * 900000) + 100000)}
@@ -171,7 +171,7 @@ export default function CreateReferral() {
     <div className="space-y-6 max-w-3xl animate-fade-in">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Create New Referral</h1>
+        <h1 className="text-2xl font-bold text-foreground">New Referral</h1>
         <p className="text-muted-foreground mt-1">Quick 3-step process to submit a referral</p>
       </div>
 

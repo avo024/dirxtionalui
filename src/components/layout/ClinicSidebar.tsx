@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/clinic/dashboard" },
   { label: "Patients", icon: Users, path: "/clinic/patients" },
-  { label: "Create Referral", icon: Plus, path: "/clinic/referrals/new" },
+  { label: "New Referral", icon: Plus, path: "/clinic/referrals/new" },
   { label: "My Referrals", icon: FileText, path: "/clinic/referrals" },
   { label: "Settings", icon: Settings, path: "/clinic/settings" },
 ];
@@ -49,7 +49,7 @@ export function ClinicSidebar() {
             >
               <item.icon className="h-4 w-4" />
               {item.label}
-              {item.label === "Create Referral" && (
+              {item.label === "New Referral" && (
                 <span className="ml-auto h-5 w-5 rounded bg-primary/10 text-primary flex items-center justify-center text-xs">+</span>
               )}
             </Link>

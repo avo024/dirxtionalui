@@ -21,9 +21,9 @@ interface FilterDef {
 
 const filters: FilterDef[] = [
   { label: "All", value: "all", color: "bg-primary text-primary-foreground" },
-  { label: "Processing", value: "processing", color: "bg-status-processing-bg text-status-processing-fg" },
+  { label: "In Review", value: "processing", color: "bg-status-processing-bg text-status-processing-fg" },
   { label: "Approved", value: "approved", color: "bg-success text-success-foreground" },
-  { label: "Rejected", value: "rejected", color: "bg-destructive text-destructive-foreground" },
+  { label: "Needs Attention", value: "rejected", color: "bg-destructive text-destructive-foreground" },
   { label: "Sent", value: "sent", color: "bg-status-sent-bg text-status-sent-fg" },
 ];
 
@@ -95,7 +95,7 @@ export default function ReferralsList() {
         <Button asChild>
           <Link to="/clinic/referrals/new">
             <Plus className="h-4 w-4 mr-2" />
-            Create New Referral
+            New Referral
           </Link>
         </Button>
       </div>

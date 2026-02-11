@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import {
-  FileText, Clock, CheckCircle, XCircle, Plus, ArrowUpRight,
-  CalendarDays, FileSearch, Users, AlertTriangle, ArrowRight
+  Clock, CheckCircle, XCircle, Plus, ArrowUpRight,
+  CalendarDays, FileSearch, AlertTriangle, ArrowRight, Send
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ReferralTable } from "@/components/ReferralTable";
@@ -21,42 +21,41 @@ const approvedCount = clinicReferrals.filter((r) =>
   ["approved", "sent_to_pharmacy"].includes(r.status)
 ).length;
 
-const rejectedCount = clinicReferrals.filter(
+const needsAttentionCount = clinicReferrals.filter(
   (r) => r.status === "rejected"
+).length;
+
+const sentCount = clinicReferrals.filter(
+  (r) => r.status === "sent_to_pharmacy"
 ).length;
 
 const patientsExpiringPA = mockPatients.filter((p) => p.pa_status === "expiring");
 const rejectedReferrals = clinicReferrals.filter((r) => r.status === "rejected");
+
+// Sort referrals by urgency: rejected > processing > approved > sent
+const urgencyOrder: Record<string, number> = {
+  rejected: 0,
+  processing: 1,
+  approved: 2,
+  uploaded: 3,
+  sent_to_pharmacy: 4,
+};
+
+const sortedRecentReferrals = [...clinicReferrals]
+  .sort((a, b) => (urgencyOrder[a.status] ?? 99) - (urgencyOrder[b.status] ?? 99))
+  .slice(0, 5);
 
 export default function ClinicDashboard() {
   const { user } = useAuth();
 
   const stats = [
     {
-      label: "Total Patients",
-      value: mockPatients.length,
-      icon: Users,
-      colorClass: "text-accent",
-      bgClass: "bg-accent/10",
-      subtitle: "In your records",
-      link: "/clinic/patients",
-    },
-    {
-      label: "Total Referrals",
-      value: clinicReferrals.length,
-      icon: FileText,
-      colorClass: "text-primary",
-      bgClass: "bg-primary/10",
-      subtitle: "+3 this week",
-      subtitleIcon: ArrowUpRight,
-    },
-    {
-      label: "Processing",
+      label: "In Review",
       value: processingCount,
       icon: Clock,
       colorClass: "text-warning",
       bgClass: "bg-warning/10",
-      subtitle: "Being processed",
+      subtitle: "Being reviewed",
     },
     {
       label: "Approved",
@@ -67,12 +66,20 @@ export default function ClinicDashboard() {
       subtitle: "Ready or sent",
     },
     {
-      label: "Rejected",
-      value: rejectedCount,
+      label: "Sent to Pharmacy",
+      value: sentCount,
+      icon: Send,
+      colorClass: "text-primary",
+      bgClass: "bg-primary/10",
+      subtitle: "At pharmacy",
+    },
+    {
+      label: "Needs Attention",
+      value: needsAttentionCount,
       icon: XCircle,
       colorClass: "text-destructive",
       bgClass: "bg-destructive/10",
-      subtitle: "Needs attention",
+      subtitle: "Action required",
     },
   ];
 
@@ -88,16 +95,24 @@ export default function ClinicDashboard() {
             Here's what's happening with your referrals today
           </p>
         </div>
-        <div className="text-right hidden sm:block">
-          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <CalendarDays className="h-4 w-4" />
-            {getFormattedDate()}
+        <div className="flex items-center gap-4">
+          <div className="text-right hidden sm:block">
+            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <CalendarDays className="h-4 w-4" />
+              {getFormattedDate()}
+            </div>
           </div>
+          <Button asChild size="lg">
+            <Link to="/clinic/referrals/new">
+              <Plus className="h-4 w-4 mr-2" />
+              New Referral
+            </Link>
+          </Button>
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat) => (
           <div
             key={stat.label}
@@ -114,12 +129,7 @@ export default function ClinicDashboard() {
               </div>
             </div>
             <p className="text-3xl font-bold text-foreground">{stat.value}</p>
-            <div className="flex items-center gap-1 mt-1.5">
-              {stat.subtitleIcon && (
-                <stat.subtitleIcon className="h-3 w-3 text-success" />
-              )}
-              <p className="text-xs text-muted-foreground">{stat.subtitle}</p>
-            </div>
+            <p className="text-xs text-muted-foreground mt-1.5">{stat.subtitle}</p>
           </div>
         ))}
       </div>
@@ -146,9 +156,10 @@ export default function ClinicDashboard() {
               <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
             </Link>
           )}
-          {rejectedReferrals.length > 0 && (
+          {rejectedReferrals.map((ref) => (
             <Link
-              to="/clinic/referrals?filter=rejected"
+              key={ref.id}
+              to={`/clinic/referrals/${ref.id}`}
               className="flex items-center gap-3 p-4 rounded-xl border border-destructive/30 bg-destructive/5 hover:bg-destructive/10 transition-colors group"
             >
               <div className="h-8 w-8 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
@@ -156,30 +167,17 @@ export default function ClinicDashboard() {
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-foreground">
-                  {rejectedReferrals.length} referral{rejectedReferrals.length > 1 ? "s" : ""} rejected — needs attention
+                  {ref.patient_name} — Needs Attention
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {ref.drug} · {ref.rejection_reason ? ref.rejection_reason.slice(0, 80) + "..." : "Review required"}
                 </p>
               </div>
               <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
             </Link>
-          )}
+          ))}
         </div>
       )}
-
-      {/* Quick Actions */}
-      <div className="flex gap-3">
-        <Button asChild size="lg">
-          <Link to="/clinic/referrals/new">
-            <Plus className="h-4 w-4 mr-2" />
-            Create Referral
-          </Link>
-        </Button>
-        <Button asChild variant="outline" size="lg">
-          <Link to="/clinic/patients">
-            <Users className="h-4 w-4 mr-2" />
-            View Patients
-          </Link>
-        </Button>
-      </div>
 
       {/* Recent referrals */}
       {clinicReferrals.length > 0 ? (
@@ -193,7 +191,7 @@ export default function ClinicDashboard() {
             </Button>
           </div>
           <ReferralTable
-            referrals={clinicReferrals.slice(0, 5)}
+            referrals={sortedRecentReferrals}
             userType="clinic"
           />
         </div>
@@ -211,7 +209,7 @@ export default function ClinicDashboard() {
           <Button asChild>
             <Link to="/clinic/referrals/new">
               <Plus className="h-4 w-4 mr-2" />
-              Create Referral
+              New Referral
             </Link>
           </Button>
         </div>
