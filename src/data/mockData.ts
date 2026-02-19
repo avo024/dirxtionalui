@@ -8,10 +8,20 @@ export type ReferralStatus =
 export interface ExtractedPatient {
   first_name: string;
   last_name: string;
+  mi?: string;
   dob: string;
   gender: string;
   phone: string;
   email: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  height?: string;
+  weight?: string;
+  allergies?: string;
+  authorized_representative?: string;
+  authorized_representative_phone?: string;
 }
 
 export interface ExtractedClinical {
@@ -21,18 +31,40 @@ export interface ExtractedClinical {
   quantity: string;
   is_refill: boolean;
   urgency: string;
+  therapy_type?: string;
+  date_therapy_initiated?: string;
+  duration_of_therapy?: string;
+  frequency?: string;
+  length_of_therapy?: string;
+  administration?: string;
+  administration_location?: string;
 }
 
 export interface ExtractedProvider {
   name: string;
+  first_name?: string;
+  last_name?: string;
+  specialty?: string;
   npi: string;
+  dea_number?: string;
   address: string;
+  city?: string;
+  state?: string;
+  zip?: string;
   phone: string;
+  fax?: string;
+  email?: string;
+  office_contact?: string;
+  requestor?: string;
   signature_date: string;
 }
 
 export interface ExtractedInsurance {
   has_insurance_card: boolean;
+  primary_insurance_name?: string;
+  primary_member_id?: string;
+  secondary_insurance_name?: string;
+  secondary_member_id?: string;
   notes: string;
 }
 
@@ -156,10 +188,10 @@ export const mockReferrals: Referral[] = [
     pharmacy_location: "1234 Commerce St, Dallas, TX 75201",
     pharmacy_contact: "(214) 555-0100",
     extracted_data: {
-      patient: { first_name: "John", last_name: "Doe", dob: "1985-01-15", gender: "Male", phone: "(555) 123-4567", email: "john.doe@email.com" },
-      clinical: { diagnosis_icd10: "L20.9", drug_requested: "Dupixent", dosing: "300mg every 2 weeks", quantity: "2 syringes", is_refill: false, urgency: "Standard" },
-      provider: { name: "Dr. Emily Martinez", npi: "1234567890", address: "5500 Greenville Ave, Dallas, TX 75206", phone: "(214) 555-0200", signature_date: "2026-02-04" },
-      insurance: { has_insurance_card: true, notes: "Blue Cross Blue Shield PPO" },
+      patient: { first_name: "John", last_name: "Doe", mi: "A", dob: "1985-01-15", gender: "Male", phone: "(555) 123-4567", email: "john.doe@email.com", address: "1200 Main St", city: "Dallas", state: "TX", zip: "75201", height: "5'11\"", weight: "185 lbs", allergies: "Penicillin", authorized_representative: "", authorized_representative_phone: "" },
+      clinical: { diagnosis_icd10: "L20.9", drug_requested: "Dupixent", dosing: "300mg", quantity: "2 syringes", is_refill: false, urgency: "Standard", therapy_type: "New Therapy", date_therapy_initiated: "", duration_of_therapy: "12 months", frequency: "Every 2 weeks", length_of_therapy: "26 doses", administration: "Injection", administration_location: "Patient's Home" },
+      provider: { name: "Dr. Emily Martinez", first_name: "Emily", last_name: "Martinez", specialty: "Dermatology", npi: "1234567890", dea_number: "AM1234563", address: "5500 Greenville Ave", city: "Dallas", state: "TX", zip: "75206", phone: "(214) 555-0200", fax: "(214) 555-0201", email: "emartinez@dallasderma.com", office_contact: "Sarah Johnson", requestor: "", signature_date: "2026-02-04" },
+      insurance: { has_insurance_card: true, primary_insurance_name: "Blue Cross Blue Shield", primary_member_id: "BCB-9384756", secondary_insurance_name: "", secondary_member_id: "", notes: "Blue Cross Blue Shield PPO" },
       prior_auth: { required: true, handled_by_us: true },
       confidence: { first_name: 0.98, last_name: 0.97, dob: 0.95, diagnosis_icd10: 0.88, drug_requested: 0.96, npi: 0.72, dosing: 0.65, phone: 0.91 },
     },

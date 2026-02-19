@@ -60,9 +60,16 @@ export default function CreateReferral() {
   // Manual entry state
   const [manualData, setManualData] = useState({
     diagnosisCode: "", drugRequested: "", dosing: "", quantity: "",
-    isRefill: false,
-    providerName: "", npi: "", providerPhone: "", signatureDate: new Date().toISOString().split("T")[0],
+    isRefill: false, therapyType: "new", dateTherapyInitiated: "", durationOfTherapy: "",
+    frequency: "", lengthOfTherapy: "", administration: "", administrationLocation: "",
+    providerFirstName: "", providerLastName: "", providerName: "", npi: "", deaNumber: "",
+    specialty: "", providerPhone: "", providerFax: "", providerEmail: "",
+    providerAddress: "", providerCity: "", providerState: "", providerZip: "",
+    officeContact: "", requestor: "",
+    signatureDate: new Date().toISOString().split("T")[0],
     hasInsurance: true, insuranceType: "", insuranceNotes: "",
+    primaryInsuranceName: "", primaryMemberId: "",
+    secondaryInsuranceName: "", secondaryMemberId: "",
   });
 
   // Submission state
@@ -458,20 +465,13 @@ export default function CreateReferral() {
             </div>
 
             <Accordion type="multiple" defaultValue={["clinical"]}>
-              {/* Clinical */}
+              {/* Medication / Medical Information */}
               <AccordionItem value="clinical">
                 <AccordionTrigger className="text-sm font-semibold">
-                  <span className="flex items-center gap-2"><Pill className="h-4 w-4 text-primary" /> Clinical Information</span>
+                  <span className="flex items-center gap-2"><Pill className="h-4 w-4 text-primary" /> Medication / Medical Information</span>
                 </AccordionTrigger>
                 <AccordionContent className="space-y-4 pt-2">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField label="Diagnosis ICD-10" required helper="Enter ICD-10 code and description">
-                      <Input
-                        value={manualData.diagnosisCode}
-                        onChange={(e) => setManualData((d) => ({ ...d, diagnosisCode: e.target.value }))}
-                        placeholder="e.g., L20.9 Atopic Dermatitis"
-                      />
-                    </FormField>
                     <FormField label="Drug Requested" required helper="Enter medication name">
                       <Input
                         value={manualData.drugRequested}
@@ -479,11 +479,68 @@ export default function CreateReferral() {
                         placeholder="e.g., Dupixent, Skyrizi, Taltz"
                       />
                     </FormField>
-                    <FormField label="Dosing Directions" className="md:col-span-2">
-                      <Textarea value={manualData.dosing} onChange={(e) => setManualData((d) => ({ ...d, dosing: e.target.value }))} placeholder="e.g., Inject 300mg SUBQ every other week" rows={2} />
+                    <FormField label="Diagnosis ICD-10" required helper="Enter ICD-10 code and description">
+                      <Input
+                        value={manualData.diagnosisCode}
+                        onChange={(e) => setManualData((d) => ({ ...d, diagnosisCode: e.target.value }))}
+                        placeholder="e.g., L20.9 Atopic Dermatitis"
+                      />
+                    </FormField>
+                    <FormField label="Therapy Type">
+                      <Select value={manualData.therapyType} onValueChange={(v) => setManualData((d) => ({ ...d, therapyType: v }))}>
+                        <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="new">New Therapy</SelectItem>
+                          <SelectItem value="renewal">Renewal</SelectItem>
+                          <SelectItem value="step_therapy">Step Therapy Exception Request</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormField>
+                    {manualData.therapyType === "renewal" && (
+                      <FormField label="Date Therapy Initiated">
+                        <Input type="date" value={manualData.dateTherapyInitiated} onChange={(e) => setManualData((d) => ({ ...d, dateTherapyInitiated: e.target.value }))} />
+                      </FormField>
+                    )}
+                    <FormField label="Duration of Therapy">
+                      <Input value={manualData.durationOfTherapy} onChange={(e) => setManualData((d) => ({ ...d, durationOfTherapy: e.target.value }))} placeholder="e.g., 12 months" />
+                    </FormField>
+                    <FormField label="Dose/Strength">
+                      <Input value={manualData.dosing} onChange={(e) => setManualData((d) => ({ ...d, dosing: e.target.value }))} placeholder="e.g., 300mg" />
+                    </FormField>
+                    <FormField label="Frequency">
+                      <Input value={manualData.frequency} onChange={(e) => setManualData((d) => ({ ...d, frequency: e.target.value }))} placeholder="e.g., Every 2 weeks" />
                     </FormField>
                     <FormField label="Quantity">
                       <Input value={manualData.quantity} onChange={(e) => setManualData((d) => ({ ...d, quantity: e.target.value }))} placeholder="2 syringes" />
+                    </FormField>
+                    <FormField label="Length of Therapy / #Refills">
+                      <Input value={manualData.lengthOfTherapy} onChange={(e) => setManualData((d) => ({ ...d, lengthOfTherapy: e.target.value }))} placeholder="e.g., 26 doses" />
+                    </FormField>
+                    <FormField label="Administration">
+                      <Select value={manualData.administration} onValueChange={(v) => setManualData((d) => ({ ...d, administration: v }))}>
+                        <SelectTrigger><SelectValue placeholder="Select method" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="oral">Oral/SL</SelectItem>
+                          <SelectItem value="topical">Topical</SelectItem>
+                          <SelectItem value="injection">Injection</SelectItem>
+                          <SelectItem value="iv">IV</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormField>
+                    <FormField label="Administration Location">
+                      <Select value={manualData.administrationLocation} onValueChange={(v) => setManualData((d) => ({ ...d, administrationLocation: v }))}>
+                        <SelectTrigger><SelectValue placeholder="Select location" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="home">Patient's Home</SelectItem>
+                          <SelectItem value="physician">Physician's Office</SelectItem>
+                          <SelectItem value="infusion">Ambulatory Infusion Center</SelectItem>
+                          <SelectItem value="ltc">Long Term Care</SelectItem>
+                          <SelectItem value="home_care">Home Care Agency</SelectItem>
+                          <SelectItem value="hospital">Outpatient Hospital Care</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </FormField>
                     <FormField label="Refill?">
                       <div className="flex items-center gap-3 h-10">
@@ -495,21 +552,54 @@ export default function CreateReferral() {
                 </AccordionContent>
               </AccordionItem>
 
-              {/* Provider */}
+              {/* Prescriber Information */}
               <AccordionItem value="provider">
                 <AccordionTrigger className="text-sm font-semibold">
-                  <span className="flex items-center gap-2"><Stethoscope className="h-4 w-4 text-primary" /> Provider Information</span>
+                  <span className="flex items-center gap-2"><Stethoscope className="h-4 w-4 text-primary" /> Prescriber Information</span>
                 </AccordionTrigger>
                 <AccordionContent className="space-y-4 pt-2">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField label="Provider Name">
-                      <Input value={manualData.providerName} onChange={(e) => setManualData((d) => ({ ...d, providerName: e.target.value }))} placeholder="Dr. Emily Martinez" />
+                    <FormField label="First Name">
+                      <Input value={manualData.providerFirstName} onChange={(e) => setManualData((d) => ({ ...d, providerFirstName: e.target.value }))} placeholder="Emily" />
+                    </FormField>
+                    <FormField label="Last Name">
+                      <Input value={manualData.providerLastName} onChange={(e) => setManualData((d) => ({ ...d, providerLastName: e.target.value }))} placeholder="Martinez" />
+                    </FormField>
+                    <FormField label="Specialty">
+                      <Input value={manualData.specialty} onChange={(e) => setManualData((d) => ({ ...d, specialty: e.target.value }))} placeholder="e.g., Dermatology" />
                     </FormField>
                     <FormField label="NPI" helper="10 digits">
                       <Input value={manualData.npi} onChange={(e) => setManualData((d) => ({ ...d, npi: e.target.value }))} placeholder="1234567890" maxLength={10} />
                     </FormField>
+                    <FormField label="DEA Number">
+                      <Input value={manualData.deaNumber} onChange={(e) => setManualData((d) => ({ ...d, deaNumber: e.target.value }))} placeholder="Optional" />
+                    </FormField>
+                    <FormField label="Address">
+                      <Input value={manualData.providerAddress} onChange={(e) => setManualData((d) => ({ ...d, providerAddress: e.target.value }))} placeholder="5500 Greenville Ave" />
+                    </FormField>
+                    <FormField label="City">
+                      <Input value={manualData.providerCity} onChange={(e) => setManualData((d) => ({ ...d, providerCity: e.target.value }))} placeholder="Dallas" />
+                    </FormField>
+                    <FormField label="State">
+                      <Input value={manualData.providerState} onChange={(e) => setManualData((d) => ({ ...d, providerState: e.target.value }))} placeholder="TX" maxLength={2} />
+                    </FormField>
+                    <FormField label="Zip Code">
+                      <Input value={manualData.providerZip} onChange={(e) => setManualData((d) => ({ ...d, providerZip: e.target.value }))} placeholder="75206" maxLength={10} />
+                    </FormField>
                     <FormField label="Phone">
                       <Input value={manualData.providerPhone} onChange={(e) => setManualData((d) => ({ ...d, providerPhone: e.target.value }))} placeholder="(214) 555-0200" />
+                    </FormField>
+                    <FormField label="Fax">
+                      <Input value={manualData.providerFax} onChange={(e) => setManualData((d) => ({ ...d, providerFax: e.target.value }))} placeholder="(214) 555-0201" />
+                    </FormField>
+                    <FormField label="Email">
+                      <Input type="email" value={manualData.providerEmail} onChange={(e) => setManualData((d) => ({ ...d, providerEmail: e.target.value }))} placeholder="doctor@clinic.com" />
+                    </FormField>
+                    <FormField label="Office Contact Person">
+                      <Input value={manualData.officeContact} onChange={(e) => setManualData((d) => ({ ...d, officeContact: e.target.value }))} placeholder="Office contact name" />
+                    </FormField>
+                    <FormField label="Requestor (if different)">
+                      <Input value={manualData.requestor} onChange={(e) => setManualData((d) => ({ ...d, requestor: e.target.value }))} placeholder="If different than prescriber" />
                     </FormField>
                     <FormField label="Signature Date">
                       <Input type="date" value={manualData.signatureDate} onChange={(e) => setManualData((d) => ({ ...d, signatureDate: e.target.value }))} />
@@ -531,7 +621,19 @@ export default function CreateReferral() {
                     </div>
                   </FormField>
                   {manualData.hasInsurance && (
-                    <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField label="Primary Insurance Name">
+                        <Input value={manualData.primaryInsuranceName} onChange={(e) => setManualData((d) => ({ ...d, primaryInsuranceName: e.target.value }))} placeholder="e.g., Blue Cross Blue Shield" />
+                      </FormField>
+                      <FormField label="Patient ID Number">
+                        <Input value={manualData.primaryMemberId} onChange={(e) => setManualData((d) => ({ ...d, primaryMemberId: e.target.value }))} placeholder="Member/Patient ID" />
+                      </FormField>
+                      <FormField label="Secondary Insurance Name">
+                        <Input value={manualData.secondaryInsuranceName} onChange={(e) => setManualData((d) => ({ ...d, secondaryInsuranceName: e.target.value }))} placeholder="Optional" />
+                      </FormField>
+                      <FormField label="Secondary Patient ID Number">
+                        <Input value={manualData.secondaryMemberId} onChange={(e) => setManualData((d) => ({ ...d, secondaryMemberId: e.target.value }))} placeholder="Optional" />
+                      </FormField>
                       <FormField label="Insurance Type">
                         <Select value={manualData.insuranceType} onValueChange={(v) => setManualData((d) => ({ ...d, insuranceType: v }))}>
                           <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
@@ -544,9 +646,9 @@ export default function CreateReferral() {
                         </Select>
                       </FormField>
                       <FormField label="Insurance Notes">
-                        <Textarea value={manualData.insuranceNotes} onChange={(e) => setManualData((d) => ({ ...d, insuranceNotes: e.target.value }))} placeholder="Plan name, member ID, etc." rows={2} />
+                        <Textarea value={manualData.insuranceNotes} onChange={(e) => setManualData((d) => ({ ...d, insuranceNotes: e.target.value }))} placeholder="Plan name, group number, etc." rows={2} />
                       </FormField>
-                    </>
+                    </div>
                   )}
                 </AccordionContent>
               </AccordionItem>
