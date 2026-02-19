@@ -87,38 +87,65 @@ export default function AdminReferralReview() {
                 <div className="grid grid-cols-2 gap-3 pb-2">
                   <FieldEdit label="First Name" value={data.patient.first_name} confidence={conf.first_name} />
                   <FieldEdit label="Last Name" value={data.patient.last_name} confidence={conf.last_name} />
+                  <FieldEdit label="MI" value={data.patient.mi || ""} />
                   <FieldEdit label="Date of Birth" value={data.patient.dob} confidence={conf.dob} />
                   <FieldEdit label="Gender" value={data.patient.gender} />
                   <FieldEdit label="Phone" value={data.patient.phone} confidence={conf.phone} />
                   <FieldEdit label="Email" value={data.patient.email} />
+                  <FieldEdit label="Address" value={data.patient.address || ""} className="col-span-2" />
+                  <FieldEdit label="City" value={data.patient.city || ""} />
+                  <FieldEdit label="State" value={data.patient.state || ""} />
+                  <FieldEdit label="Zip Code" value={data.patient.zip || ""} />
+                  <FieldEdit label="Height" value={data.patient.height || ""} />
+                  <FieldEdit label="Weight" value={data.patient.weight || ""} />
+                  <FieldEdit label="Allergies" value={data.patient.allergies || ""} className="col-span-2" />
+                  <FieldEdit label="Authorized Representative" value={data.patient.authorized_representative || ""} />
+                  <FieldEdit label="Representative Phone" value={data.patient.authorized_representative_phone || ""} />
                 </div>
               </AccordionContent>
             </AccordionItem>
 
             <AccordionItem value="provider" className="rounded-xl border border-border bg-card card-shadow px-4">
-              <AccordionTrigger className="text-sm font-semibold">Provider Information</AccordionTrigger>
+              <AccordionTrigger className="text-sm font-semibold">Prescriber Information</AccordionTrigger>
               <AccordionContent>
                 <div className="grid grid-cols-2 gap-3 pb-2">
-                  <FieldEdit label="Name" value={data.provider.name} />
+                  <FieldEdit label="First Name" value={data.provider.first_name || ""} />
+                  <FieldEdit label="Last Name" value={data.provider.last_name || ""} />
+                  <FieldEdit label="Specialty" value={data.provider.specialty || ""} />
                   <FieldEdit label="NPI" value={data.provider.npi} confidence={conf.npi} />
-                  <FieldEdit label="Address" value={data.provider.address} className="col-span-2" />
+                  <FieldEdit label="DEA Number" value={data.provider.dea_number || ""} />
+                  <FieldEdit label="Address" value={data.provider.address} />
+                  <FieldEdit label="City" value={data.provider.city || ""} />
+                  <FieldEdit label="State" value={data.provider.state || ""} />
+                  <FieldEdit label="Zip Code" value={data.provider.zip || ""} />
                   <FieldEdit label="Phone" value={data.provider.phone} />
+                  <FieldEdit label="Fax" value={data.provider.fax || ""} />
+                  <FieldEdit label="Email" value={data.provider.email || ""} />
+                  <FieldEdit label="Office Contact Person" value={data.provider.office_contact || ""} />
+                  <FieldEdit label="Requestor (if different)" value={data.provider.requestor || ""} />
                   <FieldEdit label="Signature Date" value={data.provider.signature_date} />
                 </div>
               </AccordionContent>
             </AccordionItem>
 
             <AccordionItem value="clinical" className="rounded-xl border border-border bg-card card-shadow px-4">
-              <AccordionTrigger className="text-sm font-semibold">Clinical Information</AccordionTrigger>
+              <AccordionTrigger className="text-sm font-semibold">Medication / Medical Information</AccordionTrigger>
               <AccordionContent>
                 <div className="grid grid-cols-2 gap-3 pb-2">
-                  <FieldEdit label="Diagnosis (ICD-10)" value={data.clinical.diagnosis_icd10} confidence={conf.diagnosis_icd10} />
                   <FieldEdit label="Drug Requested" value={data.clinical.drug_requested} confidence={conf.drug_requested} />
-                  <FieldEdit label="Dosing" value={data.clinical.dosing} confidence={conf.dosing} />
+                  <FieldEdit label="Diagnosis (ICD-10)" value={data.clinical.diagnosis_icd10} confidence={conf.diagnosis_icd10} />
+                  <FieldEdit label="Therapy Type" value={data.clinical.therapy_type || (data.clinical.is_refill ? "Renewal" : "New Therapy")} />
+                  <FieldEdit label="Date Therapy Initiated" value={data.clinical.date_therapy_initiated || ""} />
+                  <FieldEdit label="Duration of Therapy" value={data.clinical.duration_of_therapy || ""} />
+                  <FieldEdit label="Dose/Strength" value={data.clinical.dosing} confidence={conf.dosing} />
+                  <FieldEdit label="Frequency" value={data.clinical.frequency || ""} />
                   <FieldEdit label="Quantity" value={data.clinical.quantity} />
+                  <FieldEdit label="Length of Therapy / #Refills" value={data.clinical.length_of_therapy || ""} />
+                  <FieldEdit label="Administration" value={data.clinical.administration || ""} />
+                  <FieldEdit label="Administration Location" value={data.clinical.administration_location || ""} />
                   <div className="flex items-center gap-2">
                     <Checkbox defaultChecked={data.clinical.is_refill} />
-                    <Label className="text-xs font-normal">Is Refill</Label>
+                    <Label className="text-xs font-normal">Is Refill / Renewal</Label>
                   </div>
                 </div>
               </AccordionContent>
@@ -131,6 +158,12 @@ export default function AdminReferralReview() {
                   <div className="flex items-center gap-2">
                     <Checkbox defaultChecked={data.insurance.has_insurance_card} />
                     <Label className="text-xs font-normal">Has Insurance Card</Label>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <FieldEdit label="Primary Insurance Name" value={data.insurance.primary_insurance_name || ""} />
+                    <FieldEdit label="Primary Member ID" value={data.insurance.primary_member_id || ""} />
+                    <FieldEdit label="Secondary Insurance Name" value={data.insurance.secondary_insurance_name || ""} />
+                    <FieldEdit label="Secondary Member ID" value={data.insurance.secondary_member_id || ""} />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">Notes</Label>
