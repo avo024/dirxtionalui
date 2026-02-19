@@ -122,19 +122,10 @@ export interface Pharmacy {
   name: string;
   contact_email: string;
   phone: string;
-  locations_count: number;
+  address: string;
+  fax?: string;
   status: "active" | "inactive";
   insurance_compatibility: string[];
-  locations: PharmacyLocation[];
-}
-
-export interface PharmacyLocation {
-  id: string;
-  address: string;
-  zip_codes_served: string[];
-  email: string;
-  phone: string;
-  active: boolean;
 }
 
 export type PAStatus = "active" | "expiring" | "expired" | "none";
@@ -747,52 +738,40 @@ export const mockPharmacies: Pharmacy[] = [
     name: "Optum - Dallas Hub",
     contact_email: "dallas@optum.com",
     phone: "(214) 555-0100",
-    locations_count: 3,
+    address: "1234 Commerce St, Dallas, TX 75201",
+    fax: "(214) 555-0199",
     status: "active",
     insurance_compatibility: ["BCBS", "Aetna", "UnitedHealthcare", "Cigna", "Medicare"],
-    locations: [
-      { id: "loc-1", address: "1234 Commerce St, Dallas, TX 75201", zip_codes_served: ["75201", "75202", "75204"], email: "commerce@optum.com", phone: "(214) 555-0101", active: true },
-      { id: "loc-2", address: "5678 Preston Rd, Dallas, TX 75240", zip_codes_served: ["75240", "75248", "75252"], email: "preston@optum.com", phone: "(214) 555-0102", active: true },
-      { id: "loc-3", address: "910 Main St, Fort Worth, TX 76102", zip_codes_served: ["76102", "76107", "76109"], email: "ftworth@optum.com", phone: "(817) 555-0103", active: true },
-    ],
   },
   {
     id: "pharm-002",
     name: "CarePharma Specialty",
     contact_email: "info@carepharma.com",
     phone: "(214) 555-0300",
-    locations_count: 2,
+    address: "789 Elm St, Dallas, TX 75202",
+    fax: "(214) 555-0399",
     status: "active",
     insurance_compatibility: ["BCBS", "Aetna", "Humana"],
-    locations: [
-      { id: "loc-4", address: "789 Elm St, Dallas, TX 75202", zip_codes_served: ["75202", "75203", "75205"], email: "elm@carepharma.com", phone: "(214) 555-0301", active: true },
-      { id: "loc-5", address: "321 Oak St, Plano, TX 75075", zip_codes_served: ["75075", "75023", "75024"], email: "plano@carepharma.com", phone: "(972) 555-0302", active: true },
-    ],
   },
   {
     id: "pharm-003",
     name: "BioScript Solutions",
     contact_email: "support@bioscript.com",
     phone: "(214) 555-0500",
-    locations_count: 1,
+    address: "456 Oak Lawn Ave, Dallas, TX 75219",
+    fax: "(214) 555-0599",
     status: "active",
     insurance_compatibility: ["Cigna", "UnitedHealthcare", "Medicare", "Medicaid"],
-    locations: [
-      { id: "loc-6", address: "456 Oak Lawn Ave, Dallas, TX 75219", zip_codes_served: ["75219", "75207", "75210"], email: "oaklawn@bioscript.com", phone: "(214) 555-0501", active: true },
-    ],
   },
   {
     id: "pharm-004",
     name: "HealthMart Specialty Rx",
     contact_email: "contact@healthmartrx.com",
     phone: "(817) 555-0700",
-    locations_count: 2,
+    address: "100 W 7th St, Fort Worth, TX 76102",
+    fax: "(817) 555-0799",
     status: "inactive",
     insurance_compatibility: ["BCBS", "Cigna"],
-    locations: [
-      { id: "loc-7", address: "100 W 7th St, Fort Worth, TX 76102", zip_codes_served: ["76102", "76103"], email: "fw@healthmartrx.com", phone: "(817) 555-0701", active: false },
-      { id: "loc-8", address: "200 S Main St, Arlington, TX 76010", zip_codes_served: ["76010", "76011"], email: "arlington@healthmartrx.com", phone: "(817) 555-0702", active: false },
-    ],
   },
 ];
 

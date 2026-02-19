@@ -39,9 +39,9 @@ export default function PharmaciesList() {
           <TableHeader>
             <TableRow className="bg-secondary/50 hover:bg-secondary/50">
               <TableHead className="text-xs font-semibold uppercase text-muted-foreground">Pharmacy Name</TableHead>
+              <TableHead className="text-xs font-semibold uppercase text-muted-foreground">Address</TableHead>
               <TableHead className="text-xs font-semibold uppercase text-muted-foreground">Contact Email</TableHead>
               <TableHead className="text-xs font-semibold uppercase text-muted-foreground">Phone</TableHead>
-              <TableHead className="text-xs font-semibold uppercase text-muted-foreground">Locations</TableHead>
               <TableHead className="text-xs font-semibold uppercase text-muted-foreground">Status</TableHead>
               <TableHead className="text-xs font-semibold uppercase text-muted-foreground text-right">Actions</TableHead>
             </TableRow>
@@ -50,9 +50,9 @@ export default function PharmaciesList() {
             {filtered.map((pharm) => (
               <TableRow key={pharm.id} className="cursor-pointer hover:bg-secondary/30" onClick={() => navigate(`/admin/pharmacies/${pharm.id}`)}>
                 <TableCell className="font-medium">{pharm.name}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{pharm.address}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">{pharm.contact_email}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">{pharm.phone}</TableCell>
-                <TableCell className="text-sm">{pharm.locations_count}</TableCell>
                 <TableCell>
                   <Badge variant={pharm.status === "active" ? "default" : "secondary"} className={pharm.status === "active" ? "bg-success/10 text-success border-0" : ""}>
                     {pharm.status === "active" ? "Active" : "Inactive"}
