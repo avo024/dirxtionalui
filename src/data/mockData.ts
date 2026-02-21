@@ -115,6 +115,11 @@ export interface Referral {
   extracted_data: ExtractedData;
   documents: ReferralDocument[];
   history: HistoryEntry[];
+  // Root-level PA fields from backend API
+  pa_required: boolean;
+  pa_status: "denied" | "approved" | "sent_to_pharmacy" | "pending" | null;
+  pa_required_reason: string;
+  pa_expiration_date: string | null;
 }
 
 export interface Pharmacy {
@@ -197,6 +202,10 @@ export const mockReferrals: Referral[] = [
       { id: "h-1", status: "uploaded", timestamp: "2026-02-05T09:00:00Z", note: "Documents uploaded by clinic", user: "Dallas Dermatology Clinic" },
       { id: "h-2", status: "processing", timestamp: "2026-02-05T09:05:00Z", note: "AI extraction started", user: "System" },
     ],
+    pa_required: true,
+    pa_status: "pending",
+    pa_required_reason: "New Drug — Dupixent",
+    pa_expiration_date: null,
   },
   {
     id: "ref-002",
@@ -230,6 +239,10 @@ export const mockReferrals: Referral[] = [
       { id: "h-5", status: "processing", timestamp: "2026-02-03T14:05:00Z", note: "AI extraction started", user: "System" },
       { id: "h-6", status: "approved", timestamp: "2026-02-05T10:30:00Z", note: "Approved by admin", user: "Admin Team" },
     ],
+    pa_required: true,
+    pa_status: "approved",
+    pa_required_reason: "Continuation — Taltz",
+    pa_expiration_date: "2026-08-15",
   },
   {
     id: "ref-003",
@@ -263,6 +276,10 @@ export const mockReferrals: Referral[] = [
       { id: "h-9", status: "processing", timestamp: "2026-02-01T11:05:00Z", note: "AI extraction started", user: "System" },
       { id: "h-10", status: "rejected", timestamp: "2026-02-04T16:00:00Z", note: "Missing prior authorization documentation", user: "Admin Team" },
     ],
+    pa_required: true,
+    pa_status: "denied",
+    pa_required_reason: "New Drug — Skyrizi",
+    pa_expiration_date: null,
   },
   {
     id: "ref-004",
@@ -299,6 +316,10 @@ export const mockReferrals: Referral[] = [
       { id: "h-14", status: "approved", timestamp: "2026-01-30T11:00:00Z", note: "Approved by admin", user: "Admin Team" },
       { id: "h-15", status: "sent_to_pharmacy", timestamp: "2026-02-03T09:00:00Z", note: "Sent to BioScript Solutions", user: "System" },
     ],
+    pa_required: false,
+    pa_status: null,
+    pa_required_reason: "Continuation of existing therapy",
+    pa_expiration_date: null,
   },
   {
     id: "ref-005",
@@ -331,6 +352,10 @@ export const mockReferrals: Referral[] = [
       { id: "h-17", status: "uploaded", timestamp: "2026-02-07T07:00:00Z", note: "Documents uploaded", user: "Fort Worth Allergy Center" },
       { id: "h-18", status: "processing", timestamp: "2026-02-07T07:05:00Z", note: "AI extraction in progress", user: "System" },
     ],
+    pa_required: true,
+    pa_status: "pending",
+    pa_required_reason: "New Drug — Cosentyx",
+    pa_expiration_date: null,
   },
   {
     id: "ref-006",
@@ -361,6 +386,10 @@ export const mockReferrals: Referral[] = [
       { id: "h-19", status: "uploaded", timestamp: "2026-02-07T10:00:00Z", note: "Documents uploaded", user: "Plano Rheumatology Associates" },
       { id: "h-20", status: "processing", timestamp: "2026-02-07T10:05:00Z", note: "AI extraction started", user: "System" },
     ],
+    pa_required: true,
+    pa_status: "pending",
+    pa_required_reason: "New Drug — Dupixent",
+    pa_expiration_date: null,
   },
   {
     id: "ref-007",
@@ -394,6 +423,10 @@ export const mockReferrals: Referral[] = [
       { id: "h-21", status: "uploaded", timestamp: "2026-02-06T15:00:00Z", note: "Documents uploaded", user: "Dallas Dermatology Clinic" },
       { id: "h-22", status: "processing", timestamp: "2026-02-06T15:05:00Z", note: "AI extraction started", user: "System" },
     ],
+    pa_required: true,
+    pa_status: "pending",
+    pa_required_reason: "New Drug — Skyrizi",
+    pa_expiration_date: null,
   },
   {
     id: "ref-008",
@@ -424,6 +457,10 @@ export const mockReferrals: Referral[] = [
       { id: "h-23", status: "uploaded", timestamp: "2026-02-07T11:30:00Z", note: "Documents uploaded by clinic", user: "Dallas Dermatology Clinic" },
       { id: "h-24", status: "processing", timestamp: "2026-02-07T11:35:00Z", note: "AI extraction started", user: "System" },
     ],
+    pa_required: true,
+    pa_status: "pending",
+    pa_required_reason: "New Drug — Cosentyx",
+    pa_expiration_date: null,
   },
   {
     id: "ref-009",
@@ -456,6 +493,10 @@ export const mockReferrals: Referral[] = [
       { id: "h-25", status: "uploaded", timestamp: "2026-02-06T16:00:00Z", note: "Documents uploaded", user: "Dallas Dermatology Clinic" },
       { id: "h-26", status: "processing", timestamp: "2026-02-07T08:00:00Z", note: "AI extraction started", user: "System" },
     ],
+    pa_required: true,
+    pa_status: "pending",
+    pa_required_reason: "New Drug — Stelara",
+    pa_expiration_date: null,
   },
   {
     id: "ref-010",
@@ -490,6 +531,10 @@ export const mockReferrals: Referral[] = [
       { id: "h-28", status: "processing", timestamp: "2026-02-02T10:05:00Z", note: "AI extraction started", user: "System" },
       { id: "h-29", status: "approved", timestamp: "2026-02-06T14:00:00Z", note: "Approved by admin", user: "Admin Team" },
     ],
+    pa_required: false,
+    pa_status: null,
+    pa_required_reason: "Continuation of existing therapy",
+    pa_expiration_date: null,
   },
   {
     id: "ref-011",
@@ -526,6 +571,10 @@ export const mockReferrals: Referral[] = [
       { id: "h-32", status: "approved", timestamp: "2026-01-28T11:00:00Z", note: "Approved by admin", user: "Admin Team" },
       { id: "h-33", status: "sent_to_pharmacy", timestamp: "2026-02-01T09:00:00Z", note: "Sent to Optum - Dallas Hub", user: "System" },
     ],
+    pa_required: true,
+    pa_status: "approved",
+    pa_required_reason: "Continuation — Rinvoq",
+    pa_expiration_date: "2026-07-01",
   },
   {
     id: "ref-012",
@@ -559,6 +608,10 @@ export const mockReferrals: Referral[] = [
       { id: "h-35", status: "processing", timestamp: "2026-02-04T13:05:00Z", note: "AI extraction started", user: "System" },
       { id: "h-36", status: "rejected", timestamp: "2026-02-06T10:00:00Z", note: "Rejected — NPI mismatch", user: "Admin Team" },
     ],
+    pa_required: true,
+    pa_status: "denied",
+    pa_required_reason: "New Drug — Enbrel",
+    pa_expiration_date: null,
   },
   {
     id: "ref-013",
@@ -590,6 +643,10 @@ export const mockReferrals: Referral[] = [
       { id: "h-37", status: "uploaded", timestamp: "2026-02-07T14:00:00Z", note: "Documents uploaded", user: "Dallas Dermatology Clinic" },
       { id: "h-38", status: "processing", timestamp: "2026-02-07T14:05:00Z", note: "AI extraction started", user: "System" },
     ],
+    pa_required: true,
+    pa_status: "pending",
+    pa_required_reason: "New Drug — Tremfya",
+    pa_expiration_date: null,
   },
   {
     id: "ref-014",
@@ -626,6 +683,10 @@ export const mockReferrals: Referral[] = [
       { id: "h-41", status: "approved", timestamp: "2026-01-24T15:00:00Z", note: "Approved by admin", user: "Admin Team" },
       { id: "h-42", status: "sent_to_pharmacy", timestamp: "2026-01-30T09:00:00Z", note: "Sent to CarePharma Specialty", user: "System" },
     ],
+    pa_required: true,
+    pa_status: "approved",
+    pa_required_reason: "Continuation — Dupixent",
+    pa_expiration_date: "2026-06-30",
   },
   {
     id: "ref-015",
@@ -659,6 +720,10 @@ export const mockReferrals: Referral[] = [
       { id: "h-43", status: "uploaded", timestamp: "2026-02-05T14:00:00Z", note: "Documents uploaded", user: "Dallas Dermatology Clinic" },
       { id: "h-44", status: "processing", timestamp: "2026-02-05T14:05:00Z", note: "AI extraction started", user: "System" },
     ],
+    pa_required: true,
+    pa_status: "pending",
+    pa_required_reason: "New Drug — Humira",
+    pa_expiration_date: null,
   },
   {
     id: "ref-016",
@@ -694,6 +759,10 @@ export const mockReferrals: Referral[] = [
       { id: "h-46", status: "processing", timestamp: "2026-02-03T09:05:00Z", note: "AI extraction started", user: "System" },
       { id: "h-47", status: "approved", timestamp: "2026-02-06T16:00:00Z", note: "Approved by admin", user: "Admin Team" },
     ],
+    pa_required: true,
+    pa_status: "approved",
+    pa_required_reason: "Continuation — Dupixent",
+    pa_expiration_date: "2026-09-01",
   },
 ];
 
@@ -804,30 +873,32 @@ export interface ReferralPAInfo {
 }
 
 export function getReferralPAInfo(referral: Referral): ReferralPAInfo {
-  const paRequired = referral.extracted_data.prior_auth.required;
-  const isRefill = referral.extracted_data.clinical.is_refill;
-
-  if (!paRequired) {
-    return { status: "no_pa", reason: "Continuation" };
+  // 1. Not required → no_pa
+  if (!referral.pa_required) {
+    return {
+      status: "no_pa",
+      reason: referral.pa_required_reason || "Not required",
+    };
   }
 
-  // If sent to pharmacy or approved, PA is approved
-  if (referral.status === "sent_to_pharmacy") {
-    return { status: "pa_approved", reason: isRefill ? "Continuation" : "New Drug" };
+  // 2. Approved with valid expiration → pa_approved
+  //    Approved with expired date → pa_expired
+  if (referral.pa_status === "approved") {
+    if (referral.pa_expiration_date && new Date(referral.pa_expiration_date) < new Date()) {
+      return {
+        status: "pa_expired",
+        reason: referral.pa_required_reason || "PA Expired",
+      };
+    }
+    return {
+      status: "pa_approved",
+      reason: referral.pa_required_reason || "Approved",
+    };
   }
 
-  if (referral.status === "approved") {
-    return { status: "pa_approved", reason: isRefill ? "Continuation" : "New Drug" };
-  }
-
-  // If rejected, PA expired
-  if (referral.status === "rejected") {
-    return { status: "pa_expired", reason: "PA Expired" };
-  }
-
-  // Otherwise PA is required
+  // 3. pa_required=true + anything else (null/denied/pending/sent_to_pharmacy) → pa_required
   return {
     status: "pa_required",
-    reason: isRefill ? "Dosage Change" : "New Drug",
+    reason: referral.pa_required_reason || "PA Required",
   };
 }
