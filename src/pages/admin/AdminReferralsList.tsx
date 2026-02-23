@@ -1,27 +1,56 @@
-import { useState } from "react";
-import { Search } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Search, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ReferralTable } from "@/components/ReferralTable";
-import { mockReferrals } from "@/data/mockData";
+import { adminApi } from "@/lib/api";
+import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 const filters = [
   { label: "All", value: "all" },
-  { label: "Needs Review", value: "processing" },
-  { label: "Approved", value: "approved" },
+  { label: "Needs Review", value: "ready_for_review" },
+  { label: "Approved", value: "approved_to_send" },
   { label: "Rejected", value: "rejected" },
-  { label: "Sent", value: "sent" },
+  { label: "Sent", value: "sent_to_pharmacy" },
 ];
-
-const clinics = [...new Set(mockReferrals.map((r) => r.clinic_name))];
 
 export default function AdminReferralsList() {
   const [activeFilter, setActiveFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [clinicFilter, setClinicFilter] = useState("all");
   const [paSortDirection, setPASortDirection] = useState<"asc" | "desc" | null>(null);
+  const [referrals, setReferrals] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchReferrals = async () => {
+      try {
+        setLoading(true);
+        const response = await adminApi.getReferrals();
+
+        const mapped = (response.items || []).map((r: any) => ({
+          ...r,
+          drug: r.drug_requested,
+          blocked: r.preferred_pharmacy_blocked,
+          dob: r.patient_dob,
+        }));
+
+        setReferrals(mapped);
+      } catch (err: any) {
+        toast({
+          title: "Error",
+          description: err.message || "Failed to load referrals",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchReferrals();
+  }, []);
 
   const handlePASortToggle = () => {
     setPASortDirection((prev) => {
@@ -31,20 +60,29 @@ export default function AdminReferralsList() {
     });
   };
 
-  const filtered = mockReferrals.filter((r) => {
-    const matchesSearch = r.patient_name.toLowerCase().includes(search.toLowerCase()) ||
-      r.id.toLowerCase().includes(search.toLowerCase());
+  const clinics = [...new Set(referrals.map((r: any) => r.clinic_name).filter(Boolean))];
+
+  const filtered = referrals.filter((r: any) => {
+    const matchesSearch = (r.patient_name || "").toLowerCase().includes(search.toLowerCase()) ||
+      (r.id || "").toLowerCase().includes(search.toLowerCase());
     if (!matchesSearch) return false;
 
     if (clinicFilter !== "all" && r.clinic_name !== clinicFilter) return false;
 
     if (activeFilter === "all") return true;
-    if (activeFilter === "processing") return r.status === "processing";
-    if (activeFilter === "approved") return r.status === "approved";
-    if (activeFilter === "rejected") return r.status === "rejected";
-    if (activeFilter === "sent") return r.status === "sent_to_pharmacy";
-    return true;
+    return r.status === activeFilter;
   });
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-3" />
+          <p className="text-muted-foreground">Loading referrals...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -104,7 +142,7 @@ export default function AdminReferralsList() {
       />
 
       <div className="flex items-center justify-between text-sm text-muted-foreground">
-        <span>Showing {filtered.length} of {mockReferrals.length} referrals</span>
+        <span>Showing {filtered.length} of {referrals.length} referrals</span>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" disabled>Previous</Button>
           <Button variant="outline" size="sm" disabled>Next</Button>
