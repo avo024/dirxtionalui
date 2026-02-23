@@ -27,7 +27,7 @@ export default function AdminReferralReview() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [editedData, setEditedData] = useState<any>(null);
-  const [hasChanges, setHasChanges] = useState(false);
+  const [changedSections, setChangedSections] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const fetchReferral = async () => {
@@ -91,19 +91,23 @@ export default function AdminReferralReview() {
         [field]: value,
       },
     }));
-    setHasChanges(true);
+    setChangedSections(prev => new Set(prev).add(section));
   };
 
-  const handleSaveChanges = async () => {
+  const handleSaveSectionChanges = async (section: string) => {
     try {
       await adminApi.updateExtractedData(id!, editedData);
       toast({
         title: "Changes Saved",
-        description: "Extracted data has been updated successfully",
+        description: `${section.charAt(0).toUpperCase() + section.slice(1)} information has been updated`,
       });
-      setHasChanges(false);
-      const freshData = await adminApi.getReferral(id!);
-      const mapped = { ...freshData, drug: freshData.drug_requested, blocked: freshData.preferred_pharmacy_blocked };
+      setChangedSections(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(section);
+        return newSet;
+      });
+      const data = await adminApi.getReferral(id!);
+      const mapped = { ...data, drug: data.drug_requested, blocked: data.preferred_pharmacy_blocked };
       setReferral(mapped);
       setEditedData(mapped.extracted_data || {});
     } catch (err: any) {
@@ -231,7 +235,14 @@ export default function AdminReferralReview() {
           {data ? (
             <Accordion type="multiple" defaultValue={["patient", "provider", "clinical", "insurance", "prior_auth"]} className="space-y-3">
               <AccordionItem value="patient" className="rounded-xl border border-border bg-card card-shadow px-4">
-                <AccordionTrigger className="text-sm font-semibold">Patient Information</AccordionTrigger>
+                <AccordionTrigger className="text-sm font-semibold">
+                  <div className="flex items-center justify-between w-full pr-4">
+                    <span>Patient Information</span>
+                    {changedSections.has('patient') && (
+                      <Button onClick={(e) => { e.stopPropagation(); handleSaveSectionChanges('patient'); }} variant="outline" size="sm" className="ml-auto">Save</Button>
+                    )}
+                  </div>
+                </AccordionTrigger>
                 <AccordionContent>
                   <div className="grid grid-cols-2 gap-3 pb-2">
                     <FieldEdit label="First Name" value={editedData?.patient?.first_name || ""} confidence={conf.first_name} onChange={(v) => updateField("patient", "first_name", v)} />
@@ -255,7 +266,14 @@ export default function AdminReferralReview() {
               </AccordionItem>
 
               <AccordionItem value="provider" className="rounded-xl border border-border bg-card card-shadow px-4">
-                <AccordionTrigger className="text-sm font-semibold">Prescriber Information</AccordionTrigger>
+                <AccordionTrigger className="text-sm font-semibold">
+                  <div className="flex items-center justify-between w-full pr-4">
+                    <span>Prescriber Information</span>
+                    {changedSections.has('provider') && (
+                      <Button onClick={(e) => { e.stopPropagation(); handleSaveSectionChanges('provider'); }} variant="outline" size="sm" className="ml-auto">Save</Button>
+                    )}
+                  </div>
+                </AccordionTrigger>
                 <AccordionContent>
                   <div className="grid grid-cols-2 gap-3 pb-2">
                     <FieldEdit label="First Name" value={editedData?.provider?.first_name || ""} onChange={(v) => updateField("provider", "first_name", v)} />
@@ -278,7 +296,14 @@ export default function AdminReferralReview() {
               </AccordionItem>
 
               <AccordionItem value="clinical" className="rounded-xl border border-border bg-card card-shadow px-4">
-                <AccordionTrigger className="text-sm font-semibold">Medication / Medical Information</AccordionTrigger>
+                <AccordionTrigger className="text-sm font-semibold">
+                  <div className="flex items-center justify-between w-full pr-4">
+                    <span>Medication / Medical Information</span>
+                    {changedSections.has('clinical') && (
+                      <Button onClick={(e) => { e.stopPropagation(); handleSaveSectionChanges('clinical'); }} variant="outline" size="sm" className="ml-auto">Save</Button>
+                    )}
+                  </div>
+                </AccordionTrigger>
                 <AccordionContent>
                   <div className="grid grid-cols-2 gap-3 pb-2">
                     <FieldEdit label="Drug Requested" value={editedData?.clinical?.drug_requested || ""} confidence={conf.drug_requested} onChange={(v) => updateField("clinical", "drug_requested", v)} />
@@ -301,7 +326,14 @@ export default function AdminReferralReview() {
               </AccordionItem>
 
               <AccordionItem value="insurance" className="rounded-xl border border-border bg-card card-shadow px-4">
-                <AccordionTrigger className="text-sm font-semibold">Insurance Information</AccordionTrigger>
+                <AccordionTrigger className="text-sm font-semibold">
+                  <div className="flex items-center justify-between w-full pr-4">
+                    <span>Insurance Information</span>
+                    {changedSections.has('insurance') && (
+                      <Button onClick={(e) => { e.stopPropagation(); handleSaveSectionChanges('insurance'); }} variant="outline" size="sm" className="ml-auto">Save</Button>
+                    )}
+                  </div>
+                </AccordionTrigger>
                 <AccordionContent>
                   <div className="space-y-3 pb-2">
                     <div className="flex items-center gap-2">
@@ -331,14 +363,6 @@ export default function AdminReferralReview() {
             </div>
           )}
 
-          {/* Save Changes button */}
-          {hasChanges && (
-            <div className="flex justify-end my-4">
-              <Button onClick={handleSaveChanges} variant="outline" size="sm">
-                Save Changes
-              </Button>
-            </div>
-          )}
 
           {/* PA Management Card */}
           <PAManagementCard referral={referral} paInfo={paInfo} />
