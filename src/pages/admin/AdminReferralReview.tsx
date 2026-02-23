@@ -26,6 +26,8 @@ export default function AdminReferralReview() {
   const [rejectOpen, setRejectOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const [editedData, setEditedData] = useState<any>(null);
+  const [hasChanges, setHasChanges] = useState(false);
 
   useEffect(() => {
     const fetchReferral = async () => {
@@ -42,6 +44,7 @@ export default function AdminReferralReview() {
         };
 
         setReferral(mapped);
+        setEditedData(mapped.extracted_data || {});
       } catch (err: any) {
         toast({
           title: "Error",
@@ -79,6 +82,38 @@ export default function AdminReferralReview() {
   const { extracted_data: data } = referral;
   const conf = data?.confidence || {};
   const paInfo = getReferralPAInfo(referral);
+
+  const updateField = (section: string, field: string, value: string) => {
+    setEditedData((prev: any) => ({
+      ...prev,
+      [section]: {
+        ...prev?.[section],
+        [field]: value,
+      },
+    }));
+    setHasChanges(true);
+  };
+
+  const handleSaveChanges = async () => {
+    try {
+      await adminApi.updateExtractedData(id!, editedData);
+      toast({
+        title: "Changes Saved",
+        description: "Extracted data has been updated successfully",
+      });
+      setHasChanges(false);
+      const freshData = await adminApi.getReferral(id!);
+      const mapped = { ...freshData, drug: freshData.drug_requested, blocked: freshData.preferred_pharmacy_blocked };
+      setReferral(mapped);
+      setEditedData(mapped.extracted_data || {});
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to save changes",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleApprove = async () => {
     try {
@@ -199,22 +234,22 @@ export default function AdminReferralReview() {
                 <AccordionTrigger className="text-sm font-semibold">Patient Information</AccordionTrigger>
                 <AccordionContent>
                   <div className="grid grid-cols-2 gap-3 pb-2">
-                    <FieldEdit label="First Name" value={data.patient?.first_name} confidence={conf.first_name} />
-                    <FieldEdit label="Last Name" value={data.patient?.last_name} confidence={conf.last_name} />
-                    <FieldEdit label="MI" value={data.patient?.mi || ""} />
-                    <FieldEdit label="Date of Birth" value={data.patient?.dob} confidence={conf.dob} />
-                    <FieldEdit label="Gender" value={data.patient?.gender} />
-                    <FieldEdit label="Phone" value={data.patient?.phone} confidence={conf.phone} />
-                    <FieldEdit label="Email" value={data.patient?.email} />
-                    <FieldEdit label="Address" value={data.patient?.address || ""} className="col-span-2" />
-                    <FieldEdit label="City" value={data.patient?.city || ""} />
-                    <FieldEdit label="State" value={data.patient?.state || ""} />
-                    <FieldEdit label="Zip Code" value={data.patient?.zip || ""} />
-                    <FieldEdit label="Height" value={data.patient?.height || ""} />
-                    <FieldEdit label="Weight" value={data.patient?.weight || ""} />
-                    <FieldEdit label="Allergies" value={data.patient?.allergies || ""} className="col-span-2" />
-                    <FieldEdit label="Authorized Representative" value={data.patient?.authorized_representative || ""} />
-                    <FieldEdit label="Representative Phone" value={data.patient?.authorized_representative_phone || ""} />
+                    <FieldEdit label="First Name" value={editedData?.patient?.first_name || ""} confidence={conf.first_name} onChange={(v) => updateField("patient", "first_name", v)} />
+                    <FieldEdit label="Last Name" value={editedData?.patient?.last_name || ""} confidence={conf.last_name} onChange={(v) => updateField("patient", "last_name", v)} />
+                    <FieldEdit label="MI" value={editedData?.patient?.mi || ""} onChange={(v) => updateField("patient", "mi", v)} />
+                    <FieldEdit label="Date of Birth" value={editedData?.patient?.dob || ""} confidence={conf.dob} onChange={(v) => updateField("patient", "dob", v)} />
+                    <FieldEdit label="Gender" value={editedData?.patient?.gender || ""} onChange={(v) => updateField("patient", "gender", v)} />
+                    <FieldEdit label="Phone" value={editedData?.patient?.phone || ""} confidence={conf.phone} onChange={(v) => updateField("patient", "phone", v)} />
+                    <FieldEdit label="Email" value={editedData?.patient?.email || ""} onChange={(v) => updateField("patient", "email", v)} />
+                    <FieldEdit label="Address" value={editedData?.patient?.address || ""} className="col-span-2" onChange={(v) => updateField("patient", "address", v)} />
+                    <FieldEdit label="City" value={editedData?.patient?.city || ""} onChange={(v) => updateField("patient", "city", v)} />
+                    <FieldEdit label="State" value={editedData?.patient?.state || ""} onChange={(v) => updateField("patient", "state", v)} />
+                    <FieldEdit label="Zip Code" value={editedData?.patient?.zip || ""} onChange={(v) => updateField("patient", "zip", v)} />
+                    <FieldEdit label="Height" value={editedData?.patient?.height || ""} onChange={(v) => updateField("patient", "height", v)} />
+                    <FieldEdit label="Weight" value={editedData?.patient?.weight || ""} onChange={(v) => updateField("patient", "weight", v)} />
+                    <FieldEdit label="Allergies" value={editedData?.patient?.allergies || ""} className="col-span-2" onChange={(v) => updateField("patient", "allergies", v)} />
+                    <FieldEdit label="Authorized Representative" value={editedData?.patient?.authorized_representative || ""} onChange={(v) => updateField("patient", "authorized_representative", v)} />
+                    <FieldEdit label="Representative Phone" value={editedData?.patient?.authorized_representative_phone || ""} onChange={(v) => updateField("patient", "authorized_representative_phone", v)} />
                   </div>
                 </AccordionContent>
               </AccordionItem>
@@ -223,21 +258,21 @@ export default function AdminReferralReview() {
                 <AccordionTrigger className="text-sm font-semibold">Prescriber Information</AccordionTrigger>
                 <AccordionContent>
                   <div className="grid grid-cols-2 gap-3 pb-2">
-                    <FieldEdit label="First Name" value={data.provider?.first_name || ""} />
-                    <FieldEdit label="Last Name" value={data.provider?.last_name || ""} />
-                    <FieldEdit label="Specialty" value={data.provider?.specialty || ""} />
-                    <FieldEdit label="NPI" value={data.provider?.npi} confidence={conf.npi} />
-                    <FieldEdit label="DEA Number" value={data.provider?.dea_number || ""} />
-                    <FieldEdit label="Address" value={data.provider?.address} />
-                    <FieldEdit label="City" value={data.provider?.city || ""} />
-                    <FieldEdit label="State" value={data.provider?.state || ""} />
-                    <FieldEdit label="Zip Code" value={data.provider?.zip || ""} />
-                    <FieldEdit label="Phone" value={data.provider?.phone} />
-                    <FieldEdit label="Fax" value={data.provider?.fax || ""} />
-                    <FieldEdit label="Email" value={data.provider?.email || ""} />
-                    <FieldEdit label="Office Contact Person" value={data.provider?.office_contact || ""} />
-                    <FieldEdit label="Requestor (if different)" value={data.provider?.requestor || ""} />
-                    <FieldEdit label="Signature Date" value={data.provider?.signature_date} />
+                    <FieldEdit label="First Name" value={editedData?.provider?.first_name || ""} onChange={(v) => updateField("provider", "first_name", v)} />
+                    <FieldEdit label="Last Name" value={editedData?.provider?.last_name || ""} onChange={(v) => updateField("provider", "last_name", v)} />
+                    <FieldEdit label="Specialty" value={editedData?.provider?.specialty || ""} onChange={(v) => updateField("provider", "specialty", v)} />
+                    <FieldEdit label="NPI" value={editedData?.provider?.npi || ""} confidence={conf.npi} onChange={(v) => updateField("provider", "npi", v)} />
+                    <FieldEdit label="DEA Number" value={editedData?.provider?.dea_number || ""} onChange={(v) => updateField("provider", "dea_number", v)} />
+                    <FieldEdit label="Address" value={editedData?.provider?.address || ""} onChange={(v) => updateField("provider", "address", v)} />
+                    <FieldEdit label="City" value={editedData?.provider?.city || ""} onChange={(v) => updateField("provider", "city", v)} />
+                    <FieldEdit label="State" value={editedData?.provider?.state || ""} onChange={(v) => updateField("provider", "state", v)} />
+                    <FieldEdit label="Zip Code" value={editedData?.provider?.zip || ""} onChange={(v) => updateField("provider", "zip", v)} />
+                    <FieldEdit label="Phone" value={editedData?.provider?.phone || ""} onChange={(v) => updateField("provider", "phone", v)} />
+                    <FieldEdit label="Fax" value={editedData?.provider?.fax || ""} onChange={(v) => updateField("provider", "fax", v)} />
+                    <FieldEdit label="Email" value={editedData?.provider?.email || ""} onChange={(v) => updateField("provider", "email", v)} />
+                    <FieldEdit label="Office Contact Person" value={editedData?.provider?.office_contact || ""} onChange={(v) => updateField("provider", "office_contact", v)} />
+                    <FieldEdit label="Requestor (if different)" value={editedData?.provider?.requestor || ""} onChange={(v) => updateField("provider", "requestor", v)} />
+                    <FieldEdit label="Signature Date" value={editedData?.provider?.signature_date || ""} onChange={(v) => updateField("provider", "signature_date", v)} />
                   </div>
                 </AccordionContent>
               </AccordionItem>
@@ -246,19 +281,19 @@ export default function AdminReferralReview() {
                 <AccordionTrigger className="text-sm font-semibold">Medication / Medical Information</AccordionTrigger>
                 <AccordionContent>
                   <div className="grid grid-cols-2 gap-3 pb-2">
-                    <FieldEdit label="Drug Requested" value={data.clinical?.drug_requested} confidence={conf.drug_requested} />
-                    <FieldEdit label="Diagnosis (ICD-10)" value={data.clinical?.diagnosis_icd10} confidence={conf.diagnosis_icd10} />
-                    <FieldEdit label="Therapy Type" value={data.clinical?.therapy_type || (data.clinical?.is_refill ? "Renewal" : "New Therapy")} />
-                    <FieldEdit label="Date Therapy Initiated" value={data.clinical?.date_therapy_initiated || ""} />
-                    <FieldEdit label="Duration of Therapy" value={data.clinical?.duration_of_therapy || ""} />
-                    <FieldEdit label="Dose/Strength" value={data.clinical?.dosing} confidence={conf.dosing} />
-                    <FieldEdit label="Frequency" value={data.clinical?.frequency || ""} />
-                    <FieldEdit label="Quantity" value={data.clinical?.quantity} />
-                    <FieldEdit label="Length of Therapy / #Refills" value={data.clinical?.length_of_therapy || ""} />
-                    <FieldEdit label="Administration" value={data.clinical?.administration || ""} />
-                    <FieldEdit label="Administration Location" value={data.clinical?.administration_location || ""} />
+                    <FieldEdit label="Drug Requested" value={editedData?.clinical?.drug_requested || ""} confidence={conf.drug_requested} onChange={(v) => updateField("clinical", "drug_requested", v)} />
+                    <FieldEdit label="Diagnosis (ICD-10)" value={editedData?.clinical?.diagnosis_icd10 || ""} confidence={conf.diagnosis_icd10} onChange={(v) => updateField("clinical", "diagnosis_icd10", v)} />
+                    <FieldEdit label="Therapy Type" value={editedData?.clinical?.therapy_type || ""} onChange={(v) => updateField("clinical", "therapy_type", v)} />
+                    <FieldEdit label="Date Therapy Initiated" value={editedData?.clinical?.date_therapy_initiated || ""} onChange={(v) => updateField("clinical", "date_therapy_initiated", v)} />
+                    <FieldEdit label="Duration of Therapy" value={editedData?.clinical?.duration_of_therapy || ""} onChange={(v) => updateField("clinical", "duration_of_therapy", v)} />
+                    <FieldEdit label="Dose/Strength" value={editedData?.clinical?.dosing || ""} confidence={conf.dosing} onChange={(v) => updateField("clinical", "dosing", v)} />
+                    <FieldEdit label="Frequency" value={editedData?.clinical?.frequency || ""} onChange={(v) => updateField("clinical", "frequency", v)} />
+                    <FieldEdit label="Quantity" value={editedData?.clinical?.quantity || ""} onChange={(v) => updateField("clinical", "quantity", v)} />
+                    <FieldEdit label="Length of Therapy / #Refills" value={editedData?.clinical?.length_of_therapy || ""} onChange={(v) => updateField("clinical", "length_of_therapy", v)} />
+                    <FieldEdit label="Administration" value={editedData?.clinical?.administration || ""} onChange={(v) => updateField("clinical", "administration", v)} />
+                    <FieldEdit label="Administration Location" value={editedData?.clinical?.administration_location || ""} onChange={(v) => updateField("clinical", "administration_location", v)} />
                     <div className="flex items-center gap-2">
-                      <Checkbox defaultChecked={data.clinical?.is_refill} />
+                      <Checkbox checked={editedData?.clinical?.is_refill || false} onCheckedChange={(checked) => updateField("clinical", "is_refill", checked as any)} />
                       <Label className="text-xs font-normal">Is Refill / Renewal</Label>
                     </div>
                   </div>
@@ -270,18 +305,18 @@ export default function AdminReferralReview() {
                 <AccordionContent>
                   <div className="space-y-3 pb-2">
                     <div className="flex items-center gap-2">
-                      <Checkbox defaultChecked={data.insurance?.has_insurance_card} />
+                      <Checkbox checked={editedData?.insurance?.has_insurance_card || false} onCheckedChange={(checked) => updateField("insurance", "has_insurance_card", checked as any)} />
                       <Label className="text-xs font-normal">Has Insurance Card</Label>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
-                      <FieldEdit label="Primary Insurance Name" value={data.insurance?.primary_insurance_name || ""} />
-                      <FieldEdit label="Primary Member ID" value={data.insurance?.primary_member_id || ""} />
-                      <FieldEdit label="Secondary Insurance Name" value={data.insurance?.secondary_insurance_name || ""} />
-                      <FieldEdit label="Secondary Member ID" value={data.insurance?.secondary_member_id || ""} />
+                      <FieldEdit label="Primary Insurance Name" value={editedData?.insurance?.primary_insurance_name || ""} onChange={(v) => updateField("insurance", "primary_insurance_name", v)} />
+                      <FieldEdit label="Primary Member ID" value={editedData?.insurance?.primary_member_id || ""} onChange={(v) => updateField("insurance", "primary_member_id", v)} />
+                      <FieldEdit label="Secondary Insurance Name" value={editedData?.insurance?.secondary_insurance_name || ""} onChange={(v) => updateField("insurance", "secondary_insurance_name", v)} />
+                      <FieldEdit label="Secondary Member ID" value={editedData?.insurance?.secondary_member_id || ""} onChange={(v) => updateField("insurance", "secondary_member_id", v)} />
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs text-muted-foreground">Notes</Label>
-                      <Textarea defaultValue={data.insurance?.notes} className="text-sm" rows={2} />
+                      <Textarea value={editedData?.insurance?.notes || ""} onChange={(e) => updateField("insurance", "notes", e.target.value)} className="text-sm" rows={2} />
                     </div>
                   </div>
                 </AccordionContent>
@@ -293,6 +328,15 @@ export default function AdminReferralReview() {
                 <FileText className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
                 <p className="text-sm text-muted-foreground">No extracted data yet. Use "Extract with AI" to process this referral.</p>
               </div>
+            </div>
+          )}
+
+          {/* Save Changes button */}
+          {hasChanges && (
+            <div className="flex justify-end my-4">
+              <Button onClick={handleSaveChanges} variant="outline" size="sm">
+                Save Changes
+              </Button>
             </div>
           )}
 
@@ -361,14 +405,18 @@ export default function AdminReferralReview() {
   );
 }
 
-function FieldEdit({ label, value, confidence, className }: { label: string; value: string; confidence?: number; className?: string }) {
+function FieldEdit({ label, value, confidence, className, onChange }: { label: string; value: string; confidence?: number; className?: string; onChange?: (newValue: string) => void }) {
   return (
     <div className={className}>
       <div className="flex items-center gap-1.5 mb-1">
         <Label className="text-xs text-muted-foreground">{label}</Label>
         {confidence !== undefined && <ConfidenceIndicator confidence={confidence} />}
       </div>
-      <Input defaultValue={value || ""} className="h-8 text-sm" />
+      <Input
+        value={value || ""}
+        onChange={(e) => onChange?.(e.target.value)}
+        className="h-8 text-sm"
+      />
     </div>
   );
 }
