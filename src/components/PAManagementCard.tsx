@@ -41,7 +41,7 @@ interface UploadedFile {
 }
 
 export function PAManagementCard({ referral, paInfo }: PAManagementCardProps) {
-  const isNoPA = paInfo.status === "no_pa";
+  const isNoPA = paInfo.status === "not_required";
 
   if (isNoPA) {
     return <PANotRequiredCard paInfo={paInfo} />;
