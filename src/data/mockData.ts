@@ -865,7 +865,7 @@ export const adminStatusLabels: Record<ReferralStatus, string> = {
   rejected: "Rejected",
 };
 
-export type ReferralPAStatus = "no_pa" | "pa_required" | "pa_approved" | "pa_expired";
+export type ReferralPAStatus = "not_required" | "required_processing" | "required_submitted" | "required_approved" | "required_denied";
 
 export interface ReferralPAInfo {
   status: ReferralPAStatus;
@@ -873,32 +873,39 @@ export interface ReferralPAInfo {
 }
 
 export function getReferralPAInfo(referral: Referral): ReferralPAInfo {
-  // 1. Not required → no_pa
+  // 1. Not required
   if (!referral.pa_required) {
     return {
-      status: "no_pa",
+      status: "not_required",
       reason: referral.pa_required_reason || "Not required",
     };
   }
 
-  // 2. Approved with valid expiration → pa_approved
-  //    Approved with expired date → pa_expired
+  // 2. PA is required — determine workflow status
   if (referral.pa_status === "approved") {
-    if (referral.pa_expiration_date && new Date(referral.pa_expiration_date) < new Date()) {
-      return {
-        status: "pa_expired",
-        reason: referral.pa_required_reason || "PA Expired",
-      };
-    }
     return {
-      status: "pa_approved",
-      reason: referral.pa_required_reason || "Approved",
+      status: "required_approved",
+      reason: referral.pa_required_reason || "Approved by insurance",
     };
   }
 
-  // 3. pa_required=true + anything else (null/denied/pending/sent_to_pharmacy) → pa_required
+  if (referral.pa_status === "denied") {
+    return {
+      status: "required_denied",
+      reason: referral.pa_required_reason || "Denied by insurance",
+    };
+  }
+
+  if (referral.pa_status === "sent_to_pharmacy") {
+    return {
+      status: "required_submitted",
+      reason: referral.pa_required_reason || "Submitted to insurance",
+    };
+  }
+
+  // Default: processing (pending, null, or any other status)
   return {
-    status: "pa_required",
+    status: "required_processing",
     reason: referral.pa_required_reason || "PA Required",
   };
 }

@@ -1,25 +1,30 @@
-import { Shield, AlertTriangle, CheckCircle, XCircle } from "lucide-react";
+import { Shield, AlertTriangle, CheckCircle, XCircle, Clock, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ReferralPAStatus, ReferralPAInfo } from "@/data/mockData";
 
 const paStatusConfig: Record<ReferralPAStatus, { label: string; className: string; icon: React.ElementType }> = {
-  no_pa: {
-    label: "No PA",
-    className: "bg-status-approved-bg text-status-approved-fg",
+  not_required: {
+    label: "Not Required",
+    className: "bg-muted text-muted-foreground",
     icon: Shield,
   },
-  pa_required: {
-    label: "PA Required",
+  required_processing: {
+    label: "Required - Processing",
     className: "bg-warning/10 text-warning",
-    icon: AlertTriangle,
+    icon: Clock,
   },
-  pa_approved: {
-    label: "PA Approved",
+  required_submitted: {
+    label: "Required - Submitted",
+    className: "bg-blue-500/10 text-blue-600",
+    icon: Send,
+  },
+  required_approved: {
+    label: "Required - Approved",
     className: "bg-status-approved-bg text-status-approved-fg",
     icon: CheckCircle,
   },
-  pa_expired: {
-    label: "PA Expired",
+  required_denied: {
+    label: "Required - Denied",
     className: "bg-destructive/10 text-destructive",
     icon: XCircle,
   },
@@ -44,15 +49,18 @@ export function PAStatusCell({ paInfo }: PAStatusCellProps) {
         <Icon className="h-3 w-3" />
         {config.label}
       </span>
-      <span className="text-[11px] text-muted-foreground pl-1">{paInfo.reason}</span>
+      {paInfo.reason && paInfo.status !== "not_required" && (
+        <span className="text-[11px] text-muted-foreground pl-1">{paInfo.reason}</span>
+      )}
     </div>
   );
 }
 
-/** Sort priority: pa_required first, pa_expired, pa_approved, no_pa last */
+/** Sort priority: processing first, denied, submitted, approved, not_required last */
 export const paSortOrder: Record<ReferralPAStatus, number> = {
-  pa_required: 0,
-  pa_expired: 1,
-  pa_approved: 2,
-  no_pa: 3,
+  required_processing: 0,
+  required_denied: 1,
+  required_submitted: 2,
+  required_approved: 3,
+  not_required: 4,
 };
