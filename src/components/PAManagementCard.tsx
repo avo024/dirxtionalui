@@ -24,6 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+import { adminApi } from "@/lib/api";
 import type { Referral, ReferralPAInfo } from "@/data/mockData";
 
 export type PADecisionStatus = "processing" | "approved" | "denied";
@@ -100,12 +101,39 @@ function PAWorkflowCard({ referral, paInfo }: { referral: Referral; paInfo: Refe
     if (file) handleFileSelect(file);
   };
 
-  const handleSave = () => {
-    toast({ title: "PA Details Saved", description: "Prior authorization details have been saved." });
+  const handleSave = async () => {
+    try {
+      if (startDate) {
+        await adminApi.submitPA(
+          referral.id,
+          startDate.toISOString().split('T')[0]
+        );
+        toast({ title: "PA Submitted", description: "Prior authorization has been submitted to insurance." });
+      } else {
+        toast({ title: "Date Required", description: "Please select a submission date before saving.", variant: "destructive" });
+      }
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Failed to submit PA", variant: "destructive" });
+    }
   };
 
-  const handleMarkComplete = () => {
-    toast({ title: "PA Marked as Complete", description: `PA for ${referral.patient_name} has been marked as complete.` });
+  const handleMarkComplete = async () => {
+    try {
+      if (!paNumber.trim() || !expirationDate) {
+        toast({ title: "Missing Information", description: "PA number and expiration date are required", variant: "destructive" });
+        return;
+      }
+      await adminApi.recordPADecision(referral.id, {
+        decision: 'approved',
+        decision_date: new Date().toISOString().split('T')[0],
+        expiration_date: expirationDate.toISOString().split('T')[0],
+        approval_duration: paNumber,
+      });
+      toast({ title: "PA Approved", description: `PA for ${referral.patient_name} has been marked as approved.` });
+      setTimeout(() => window.location.reload(), 1000);
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Failed to record PA approval", variant: "destructive" });
+    }
   };
 
   const handleDeleteFile = () => {
@@ -118,16 +146,25 @@ function PAWorkflowCard({ referral, paInfo }: { referral: Referral; paInfo: Refe
     toast({ title: "PA Status Updated", description: `PA status set to ${value}.` });
   };
 
-  const handleSendDenialToClinic = () => {
+  const handleSendDenialToClinic = async () => {
     if (!denialReason.trim()) {
-      toast({ title: "Reason Required", description: "Please provide a denial reason before sending to the clinic.", variant: "destructive" });
+      toast({ title: "Reason Required", description: "Please provide a denial reason before recording.", variant: "destructive" });
       return;
     }
     setSendingToClinic(true);
-    setTimeout(() => {
+    try {
+      await adminApi.recordPADecision(referral.id, {
+        decision: 'denied',
+        decision_date: new Date().toISOString().split('T')[0],
+        denial_reason: denialReason,
+      });
+      toast({ title: "PA Denied", description: `PA denial has been recorded with reason: ${denialReason}` });
+      setTimeout(() => window.location.reload(), 1000);
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Failed to record PA denial", variant: "destructive" });
+    } finally {
       setSendingToClinic(false);
-      toast({ title: "Denial Sent to Clinic", description: `Denial reason has been sent to ${referral.clinic_name}.` });
-    }, 1500);
+    }
   };
 
   const paStatusBadge = () => {
@@ -377,7 +414,7 @@ function PAWorkflowCard({ referral, paInfo }: { referral: Referral; paInfo: Refe
               onClick={handleMarkComplete}
             >
               <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
-              Mark PA as Complete
+              Record PA as Approved
             </Button>
           </div>
         </>
@@ -434,7 +471,7 @@ function PAWorkflowCard({ referral, paInfo }: { referral: Referral; paInfo: Refe
               ) : (
                 <Send className="h-3.5 w-3.5 mr-1.5" />
               )}
-              Send Denial to Clinic
+              Record PA as Denied
             </Button>
           </div>
         </>
