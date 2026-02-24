@@ -499,16 +499,6 @@ function PAWorkflowCard({ referral, paInfo }: { referral: Referral; paInfo: Refe
             <Button variant="outline" size="sm" onClick={() => setIsEditMode(false)}>
               Cancel
             </Button>
-            {paDecisionStatus === "denied" && (
-              <Button variant="destructive" size="sm" disabled={!denialReason.trim() || sendingToClinic} onClick={handleSendDenialToClinic}>
-                {sendingToClinic ? (
-                  <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                ) : (
-                  <XCircle className="h-3.5 w-3.5 mr-1.5" />
-                )}
-                Record PA as Denied
-              </Button>
-            )}
           </div>
         </div>
       )}
