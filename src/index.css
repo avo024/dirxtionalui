@@ -15,8 +15,8 @@
     --popover: 0 0% 100%;
     --popover-foreground: 220 20% 14%;
 
-    --primary: 159 57% 72%;
-    --primary-foreground: 159 60% 15%;
+    --primary: 159 68% 62%;
+    --primary-foreground: 0 0% 100%;
 
     --secondary: 220 14% 96%;
     --secondary-foreground: 220 20% 20%;
@@ -38,18 +38,18 @@
 
     --border: 220 13% 91%;
     --input: 220 13% 91%;
-    --ring: 159 57% 72%;
+    --ring: 159 68% 62%;
 
     --radius: 0.75rem;
 
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 220 10% 40%;
-    --sidebar-primary: 159 57% 65%;
-    --sidebar-primary-foreground: 159 60% 15%;
+    --sidebar-primary: 159 68% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 159 40% 96%;
     --sidebar-accent-foreground: 159 50% 28%;
     --sidebar-border: 220 13% 93%;
-    --sidebar-ring: 159 57% 72%;
+    --sidebar-ring: 159 68% 62%;
 
     /* Status semantic colors */
     --status-uploaded-bg: 220 14% 96%;
