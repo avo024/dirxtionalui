@@ -1,8 +1,9 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, FileText, AlertOctagon, Building2, Settings, LogOut, Pill } from "lucide-react";
+import { LayoutDashboard, FileText, AlertOctagon, Building2, Settings, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { mockReferrals } from "@/data/mockData";
+import logo from "@/assets/logo.png";
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
@@ -21,11 +22,8 @@ export function AdminSidebar() {
   return (
     <aside className="w-60 shrink-0 border-r border-sidebar-border bg-sidebar flex flex-col h-screen sticky top-0">
       {/* Logo */}
-      <div className="flex items-center gap-2.5 px-5 py-5 border-b border-sidebar-border">
-        <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-          <Pill className="h-4 w-4 text-primary-foreground" />
-        </div>
-        <span className="font-semibold text-foreground text-sm">ReferralFlow</span>
+      <div className="flex items-center px-5 py-4 border-b border-sidebar-border">
+        <img src={logo} alt="DiRxctional" className="h-8 w-auto" />
       </div>
 
       {/* Role */}

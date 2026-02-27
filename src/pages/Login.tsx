@@ -1,7 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Pill, Building2, Shield } from "lucide-react";
+import { Building2, Shield } from "lucide-react";
 import { useEffect } from "react";
+import logo from "@/assets/logo.png";
 
 export default function Login() {
   const { login, isAuthenticated, user } = useAuth();
@@ -23,10 +24,7 @@ export default function Login() {
       <div className="w-full max-w-md space-y-8">
         {/* Logo */}
         <div className="text-center">
-          <div className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-primary mb-4">
-            <Pill className="h-7 w-7 text-primary-foreground" />
-          </div>
-          <h1 className="text-2xl font-bold text-foreground">ReferralFlow</h1>
+          <img src={logo} alt="DiRxctional" className="h-12 w-auto mx-auto mb-4" />
           <p className="text-muted-foreground mt-1">Clinical Referral Automation Platform</p>
         </div>
 
