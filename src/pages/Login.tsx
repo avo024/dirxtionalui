@@ -24,7 +24,7 @@ export default function Login() {
       <div className="w-full max-w-md space-y-8">
         {/* Logo */}
         <div className="text-center">
-          <img src={logo} alt="DiRxctional" className="h-20 w-auto mx-auto mb-4" />
+          <img src={logo} alt="DiRxctional" className="h-40 w-auto mx-auto mb-4" />
           <p className="text-muted-foreground mt-1">Clinical Referral Automation Platform</p>
         </div>
 
