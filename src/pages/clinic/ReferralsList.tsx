@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Search, Plus, FileSearch, ChevronLeft, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -6,12 +6,11 @@ import { Button } from "@/components/ui/button";
 import { ReferralTable } from "@/components/ReferralTable";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { mockReferrals } from "@/data/mockData";
+import { clinicApi } from "@/lib/api";
+import { mapReferralsFromBackend } from "@/lib/dataMapper";
 import { cn } from "@/lib/utils";
-
-const clinicReferrals = mockReferrals.filter(
-  (r) => r.clinic_name === "Dallas Dermatology Clinic"
-);
+import { useToast } from "@/hooks/use-toast";
+import type { Referral } from "@/types/index";
 
 interface FilterDef {
   label: string;
@@ -27,27 +26,46 @@ const filters: FilterDef[] = [
   { label: "Sent", value: "sent", color: "bg-status-sent-bg text-status-sent-fg" },
 ];
 
-function getFilterCount(value: string): number {
-  if (value === "all") return clinicReferrals.length;
-  if (value === "processing")
-    return clinicReferrals.filter((r) => r.status === "processing").length;
-  if (value === "approved")
-    return clinicReferrals.filter((r) => r.status === "approved").length;
-  if (value === "rejected")
-    return clinicReferrals.filter((r) => r.status === "rejected").length;
-  if (value === "sent")
-    return clinicReferrals.filter((r) => r.status === "sent_to_pharmacy").length;
-  return 0;
-}
-
 export default function ReferralsList() {
+  const [referrals, setReferrals] = useState<Referral[]>([]);
+  const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState("10");
+  const { toast } = useToast();
+
+  useEffect(() => {
+    async function fetchReferrals() {
+      try {
+        setLoading(true);
+        const response = await clinicApi.getReferrals();
+        setReferrals(mapReferralsFromBackend(response.items || response || []));
+      } catch (err) {
+        console.error("Failed to fetch referrals:", err);
+        toast({
+          title: "Error loading referrals",
+          description: err instanceof Error ? err.message : "Could not connect to the server.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchReferrals();
+  }, [toast]);
+
+  function getFilterCount(value: string): number {
+    if (value === "all") return referrals.length;
+    if (value === "processing") return referrals.filter((r) => r.status === "processing").length;
+    if (value === "approved") return referrals.filter((r) => r.status === "approved").length;
+    if (value === "rejected") return referrals.filter((r) => r.status === "rejected").length;
+    if (value === "sent") return referrals.filter((r) => r.status === "sent_to_pharmacy").length;
+    return 0;
+  }
 
   const filtered = useMemo(() => {
-    return clinicReferrals.filter((r) => {
+    return referrals.filter((r) => {
       const matchesSearch =
         r.patient_name.toLowerCase().includes(search.toLowerCase()) ||
         r.drug.toLowerCase().includes(search.toLowerCase()) ||
@@ -61,7 +79,7 @@ export default function ReferralsList() {
       if (activeFilter === "sent") return r.status === "sent_to_pharmacy";
       return true;
     });
-  }, [activeFilter, search]);
+  }, [activeFilter, search, referrals]);
 
   const itemsPerPage = parseInt(pageSize);
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
@@ -142,8 +160,14 @@ export default function ReferralsList() {
         </div>
       </div>
 
-      {/* Table or Empty State */}
-      {filtered.length > 0 ? (
+      {/* Loading State */}
+      {loading ? (
+        <div className="space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-14 w-full rounded-lg" />
+          ))}
+        </div>
+      ) : filtered.length > 0 ? (
         <ReferralTable referrals={paginatedReferrals} userType="clinic" />
       ) : search || activeFilter !== "all" ? (
         <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
@@ -188,7 +212,7 @@ export default function ReferralsList() {
       )}
 
       {/* Pagination */}
-      {filtered.length > 0 && (
+      {!loading && filtered.length > 0 && (
         <div className="flex items-center justify-between text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
             <span>
