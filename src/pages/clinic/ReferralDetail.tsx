@@ -312,10 +312,64 @@ export default function ReferralDetail() {
               {/* Insurance & PA Card */}
               <InfoCard icon={Shield} title="Insurance & PA">
                 <div className="space-y-3">
-                  <Field label="Has Insurance" value={insurance.has_insurance_card ? "Yes" : "No"} />
-                  {insurance.notes && <Field label="Insurance Notes" value={insurance.notes} />}
-                  <Field label="PA Required" value={priorAuth.required ? "Yes" : "No"} />
-                  <Field label="PA Handled By" value={priorAuth.handled_by_us ? "Pharmacy/Admin" : "Clinic"} />
+                  <Field label="Has Insurance" value={insurance.has_insurance_card ? 'Yes' : 'No'} />
+                  {insurance.primary_insurance_name && (
+                    <Field label="Primary Insurance" value={insurance.primary_insurance_name} />
+                  )}
+                  {insurance.primary_member_id && (
+                    <Field label="Member ID" value={insurance.primary_member_id} />
+                  )}
+                  {insurance.secondary_insurance_name && (
+                    <Field label="Secondary Insurance" value={insurance.secondary_insurance_name} />
+                  )}
+                  {insurance.notes && (
+                    <Field label="Insurance Notes" value={insurance.notes} />
+                  )}
+                  <div className="border-t border-border pt-3" />
+                  <Field label="PA Required" value={referral.pa_required ? 'Yes' : 'No'} />
+                  {referral.pa_required && (
+                    <>
+                      <div>
+                        <p className="text-muted-foreground text-xs mb-1">PA Status</p>
+                        {!referral.pa_status || referral.pa_status === null ? (
+                          <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-secondary text-muted-foreground">
+                            Pending Submission
+                          </span>
+                        ) : referral.pa_status === 'approved' ? (
+                          <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-status-approved-bg text-status-approved-fg">
+                            ✓ Approved
+                          </span>
+                        ) : referral.pa_status === 'denied' ? (
+                          <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-destructive/10 text-destructive">
+                            ✗ Denied
+                          </span>
+                        ) : referral.pa_status === 'pending' ? (
+                          <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-status-processing-bg text-status-processing-fg">
+                            In Progress
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-secondary text-muted-foreground">
+                            {referral.pa_status}
+                          </span>
+                        )}
+                      </div>
+                      {referral.pa_status === 'approved' && (
+                        <>
+                          {referral.pa_number && <Field label="PA Number" value={referral.pa_number} />}
+                          {referral.pa_expiration_date && (
+                            <Field label="PA Expires" value={formatDateShort(referral.pa_expiration_date)} />
+                          )}
+                        </>
+                      )}
+                      {referral.pa_status === 'denied' && referral.pa_denial_reason && (
+                        <Field label="Denial Reason" value={referral.pa_denial_reason} />
+                      )}
+                      <Field
+                        label="PA Handled By"
+                        value={priorAuth.handled_by_us ? 'DiRxtional' : 'Clinic'}
+                      />
+                    </>
+                  )}
                 </div>
               </InfoCard>
             </div>
