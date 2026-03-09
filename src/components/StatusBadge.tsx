@@ -3,10 +3,12 @@ import type { ReferralStatus } from "@/data/mockData";
 import { statusLabels, adminStatusLabels } from "@/data/mockData";
 import { Upload, Loader2, CheckCircle, Send, XCircle } from "lucide-react";
 
-const statusStyles: Record<ReferralStatus, string> = {
+const statusStyles: Record<string, string> = {
   uploaded: "bg-status-uploaded-bg text-status-uploaded-fg",
   processing: "bg-status-processing-bg text-status-processing-fg",
+  ready_for_review: "bg-status-processing-bg text-status-processing-fg",
   approved: "bg-status-approved-bg text-status-approved-fg",
+  approved_to_send: "bg-status-approved-bg text-status-approved-fg",
   sent_to_pharmacy: "bg-status-sent-bg text-status-sent-fg",
   rejected: "bg-status-rejected-bg text-status-rejected-fg",
 };
