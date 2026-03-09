@@ -3,26 +3,32 @@ import type { ReferralStatus } from "@/data/mockData";
 import { statusLabels, adminStatusLabels } from "@/data/mockData";
 import { Upload, Loader2, CheckCircle, Send, XCircle } from "lucide-react";
 
-const statusStyles: Record<ReferralStatus, string> = {
+const statusStyles: Record<string, string> = {
   uploaded: "bg-status-uploaded-bg text-status-uploaded-fg",
   processing: "bg-status-processing-bg text-status-processing-fg",
+  ready_for_review: "bg-status-processing-bg text-status-processing-fg",
   approved: "bg-status-approved-bg text-status-approved-fg",
+  approved_to_send: "bg-status-approved-bg text-status-approved-fg",
   sent_to_pharmacy: "bg-status-sent-bg text-status-sent-fg",
   rejected: "bg-status-rejected-bg text-status-rejected-fg",
 };
 
-const dotStyles: Record<ReferralStatus, string> = {
+const dotStyles: Record<string, string> = {
   uploaded: "bg-status-uploaded-fg",
   processing: "bg-status-processing-fg",
+  ready_for_review: "bg-status-processing-fg",
   approved: "bg-status-approved-fg",
+  approved_to_send: "bg-status-approved-fg",
   sent_to_pharmacy: "bg-status-sent-fg",
   rejected: "bg-status-rejected-fg",
 };
 
-const statusIcons: Record<ReferralStatus, React.ElementType> = {
+const statusIcons: Record<string, React.ElementType> = {
   uploaded: Upload,
   processing: Loader2,
+  ready_for_review: Loader2,
   approved: CheckCircle,
+  approved_to_send: CheckCircle,
   sent_to_pharmacy: Send,
   rejected: XCircle,
 };
@@ -37,7 +43,18 @@ interface StatusBadgeProps {
 
 export function StatusBadge({ status, size = "sm", showIcon = false, className, context = "clinic" }: StatusBadgeProps) {
   const Icon = statusIcons[status];
-  const isProcessing = status === "processing";
+  const isProcessing = status === "processing" || status === "ready_for_review";
+
+  if (!Icon || !statusStyles[status]) {
+    return (
+      <span className={cn(
+        "inline-flex items-center rounded-full font-medium px-2.5 py-0.5 text-xs bg-secondary text-muted-foreground",
+        className
+      )}>
+        {status}
+      </span>
+    );
+  }
   const labels = context === "admin" ? adminStatusLabels : statusLabels;
 
   const sizeClasses = {

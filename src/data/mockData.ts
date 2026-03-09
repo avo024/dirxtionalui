@@ -1,7 +1,9 @@
 export type ReferralStatus =
   | "uploaded"
   | "processing"
+  | "ready_for_review"
   | "approved"
+  | "approved_to_send"
   | "rejected"
   | "sent_to_pharmacy";
 
@@ -852,7 +854,9 @@ export const mockBlockedReferrals = [
 export const statusLabels: Record<ReferralStatus, string> = {
   uploaded: "Received",
   processing: "In Review",
+  ready_for_review: "In Review",
   approved: "Approved",
+  approved_to_send: "Sent to Pharmacy",
   sent_to_pharmacy: "Sent to Pharmacy",
   rejected: "Needs Attention",
 };
@@ -860,7 +864,9 @@ export const statusLabels: Record<ReferralStatus, string> = {
 export const adminStatusLabels: Record<ReferralStatus, string> = {
   uploaded: "Received",
   processing: "Needs Review",
+  ready_for_review: "Needs Review",
   approved: "Approved",
+  approved_to_send: "Approved & Sent",
   sent_to_pharmacy: "Sent to Pharmacy",
   rejected: "Rejected",
 };
