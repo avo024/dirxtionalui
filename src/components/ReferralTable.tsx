@@ -136,6 +136,9 @@ export function ReferralTable({ referrals, userType, showClinic = false, paSortD
                 <TableCell>
                   <StatusBadge status={ref.status} context={userType} />
                 </TableCell>
+                {isAdmin && (
+                  <TableCell className="text-sm text-muted-foreground">{(ref as any).pharmacy_name || "—"}</TableCell>
+                )}
                 <TableCell>
                   <Tooltip>
                     <TooltipTrigger className="text-sm text-muted-foreground">
