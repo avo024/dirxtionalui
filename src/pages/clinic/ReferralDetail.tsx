@@ -202,21 +202,22 @@ export default function ReferralDetail() {
               {/* Patient Info */}
               <InfoCard icon={User} title="Patient Information">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <Field label="Name" value={patientFullName} />
+                  <Field label="First Name" value={patient.first_name || '—'} />
+                  <Field label="Last Name" value={patient.last_name || '—'} />
+                  <Field label="MI" value={patient.mi || '—'} />
                   <Field label="Date of Birth" value={patient.dob ? formatDateShort(patient.dob) : '—'} />
                   <Field label="Gender" value={patient.gender || '—'} />
-                  <CopyableField
-                    label="Phone"
-                    value={patient.phone || '—'}
-                    icon={Phone}
-                    onCopy={() => copyToClipboard(patient.phone || '', "Phone")}
-                  />
-                  <CopyableField
-                    label="Email"
-                    value={patient.email || '—'}
-                    icon={Mail}
-                    onCopy={() => copyToClipboard(patient.email || '', "Email")}
-                  />
+                  <CopyableField label="Phone" value={patient.phone || '—'} icon={Phone} onCopy={() => copyToClipboard(patient.phone || '', 'Phone')} />
+                  <CopyableField label="Email" value={patient.email || '—'} icon={Mail} onCopy={() => copyToClipboard(patient.email || '', 'Email')} />
+                  <Field label="Address" value={patient.address || '—'} />
+                  <Field label="City" value={patient.city || '—'} />
+                  <Field label="State" value={patient.state || '—'} />
+                  <Field label="Zip Code" value={patient.zip || '—'} />
+                  <Field label="Height" value={patient.height || '—'} />
+                  <Field label="Weight" value={patient.weight || '—'} />
+                  <Field label="Allergies" value={patient.allergies || '—'} />
+                  <Field label="Authorized Representative" value={patient.authorized_representative || '—'} />
+                  <Field label="Representative Phone" value={patient.authorized_representative_phone || '—'} />
                 </div>
               </InfoCard>
 
@@ -225,19 +226,36 @@ export default function ReferralDetail() {
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <Field label="Diagnosis (ICD-10)" value={clinical.diagnosis_icd10 || '—'} />
                   <Field label="Drug Requested" value={clinical.drug_requested || '—'} />
-                  <Field label="Dosing" value={clinical.dosing || '—'} />
+                  <Field label="Therapy Type" value={clinical.therapy_type || '—'} />
+                  <Field label="Date Therapy Initiated" value={clinical.date_therapy_initiated ? formatDateShort(clinical.date_therapy_initiated) : '—'} />
+                  <Field label="Duration of Therapy" value={clinical.duration_of_therapy || '—'} />
+                  <Field label="Dose/Strength" value={clinical.dosing || '—'} />
+                  <Field label="Frequency" value={clinical.frequency || '—'} />
                   <Field label="Quantity" value={clinical.quantity || '—'} />
-                  <Field label="Refill" value={clinical.is_refill ? "Yes" : "No"} />
+                  <Field label="Length of Therapy / #Refills" value={clinical.length_of_therapy || '—'} />
+                  <Field label="Administration" value={clinical.administration || '—'} />
+                  <Field label="Administration Location" value={clinical.administration_location || '—'} />
+                  <Field label="Refill / Renewal" value={clinical.is_refill ? 'Yes' : 'No'} />
                 </div>
               </InfoCard>
 
               {/* Provider Info */}
               <InfoCard icon={Stethoscope} title="Provider Information">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <Field label="Name" value={provider.name || '—'} />
+                  <Field label="First Name" value={provider.first_name || '—'} />
+                  <Field label="Last Name" value={provider.last_name || '—'} />
+                  <Field label="Specialty" value={provider.specialty || '—'} />
                   <Field label="NPI" value={provider.npi || '—'} />
+                  <Field label="DEA Number" value={provider.dea_number || '—'} />
                   <Field label="Address" value={provider.address || '—'} />
+                  <Field label="City" value={provider.city || '—'} />
+                  <Field label="State" value={provider.state || '—'} />
+                  <Field label="Zip Code" value={provider.zip || '—'} />
                   <Field label="Phone" value={provider.phone || '—'} />
+                  <Field label="Fax" value={provider.fax || '—'} />
+                  <Field label="Email" value={provider.email || '—'} />
+                  <Field label="Office Contact Person" value={provider.office_contact || '—'} />
+                  <Field label="Requestor" value={provider.requestor || '—'} />
                   <Field label="Signature Date" value={provider.signature_date ? formatDateShort(provider.signature_date) : '—'} />
                 </div>
               </InfoCard>
@@ -294,10 +312,64 @@ export default function ReferralDetail() {
               {/* Insurance & PA Card */}
               <InfoCard icon={Shield} title="Insurance & PA">
                 <div className="space-y-3">
-                  <Field label="Has Insurance" value={insurance.has_insurance_card ? "Yes" : "No"} />
-                  {insurance.notes && <Field label="Insurance Notes" value={insurance.notes} />}
-                  <Field label="PA Required" value={priorAuth.required ? "Yes" : "No"} />
-                  <Field label="PA Handled By" value={priorAuth.handled_by_us ? "Pharmacy/Admin" : "Clinic"} />
+                  <Field label="Has Insurance" value={insurance.has_insurance_card ? 'Yes' : 'No'} />
+                  {insurance.primary_insurance_name && (
+                    <Field label="Primary Insurance" value={insurance.primary_insurance_name} />
+                  )}
+                  {insurance.primary_member_id && (
+                    <Field label="Member ID" value={insurance.primary_member_id} />
+                  )}
+                  {insurance.secondary_insurance_name && (
+                    <Field label="Secondary Insurance" value={insurance.secondary_insurance_name} />
+                  )}
+                  {insurance.notes && (
+                    <Field label="Insurance Notes" value={insurance.notes} />
+                  )}
+                  <div className="border-t border-border pt-3" />
+                  <Field label="PA Required" value={referral.pa_required ? 'Yes' : 'No'} />
+                  {referral.pa_required && (
+                    <>
+                      <div>
+                        <p className="text-muted-foreground text-xs mb-1">PA Status</p>
+                        {!referral.pa_status || referral.pa_status === null ? (
+                          <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-secondary text-muted-foreground">
+                            Pending Submission
+                          </span>
+                        ) : referral.pa_status === 'approved' ? (
+                          <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-status-approved-bg text-status-approved-fg">
+                            ✓ Approved
+                          </span>
+                        ) : referral.pa_status === 'denied' ? (
+                          <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-destructive/10 text-destructive">
+                            ✗ Denied
+                          </span>
+                        ) : referral.pa_status === 'pending' ? (
+                          <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-status-processing-bg text-status-processing-fg">
+                            In Progress
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-secondary text-muted-foreground">
+                            {referral.pa_status}
+                          </span>
+                        )}
+                      </div>
+                      {referral.pa_status === 'approved' && (
+                        <>
+                          {referral.pa_number && <Field label="PA Number" value={referral.pa_number} />}
+                          {referral.pa_expiration_date && (
+                            <Field label="PA Expires" value={formatDateShort(referral.pa_expiration_date)} />
+                          )}
+                        </>
+                      )}
+                      {referral.pa_status === 'denied' && referral.pa_denial_reason && (
+                        <Field label="Denial Reason" value={referral.pa_denial_reason} />
+                      )}
+                      <Field
+                        label="PA Handled By"
+                        value={priorAuth.handled_by_us ? 'DiRxtional' : 'Clinic'}
+                      />
+                    </>
+                  )}
                 </div>
               </InfoCard>
             </div>
