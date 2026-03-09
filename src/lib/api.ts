@@ -48,6 +48,13 @@ export const clinicApi = {
     return handleResponse(response);
   },
 
+  async getReferralDocuments(id: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/referrals/${id}/documents`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
   async uploadDocument(referralId: string, file: File, docType: string): Promise<any> {
     const formData = new FormData();
     formData.append('file', file);
