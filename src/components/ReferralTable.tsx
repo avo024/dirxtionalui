@@ -88,6 +88,7 @@ export function ReferralTable({ referrals, userType, showClinic = false, paSortD
               </TableHead>
             )}
             <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</TableHead>
+            {isAdmin && <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Pharmacy</TableHead>}
             <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Created</TableHead>
             {userType === "clinic" && <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Updated</TableHead>}
             <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-right">Actions</TableHead>
@@ -135,6 +136,9 @@ export function ReferralTable({ referrals, userType, showClinic = false, paSortD
                 <TableCell>
                   <StatusBadge status={ref.status} context={userType} />
                 </TableCell>
+                {isAdmin && (
+                  <TableCell className="text-sm text-muted-foreground">{(ref as any).pharmacy_name || "—"}</TableCell>
+                )}
                 <TableCell>
                   <Tooltip>
                     <TooltipTrigger className="text-sm text-muted-foreground">
