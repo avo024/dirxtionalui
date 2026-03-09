@@ -23,10 +23,12 @@ const dotStyles: Record<string, string> = {
   rejected: "bg-status-rejected-fg",
 };
 
-const statusIcons: Record<ReferralStatus, React.ElementType> = {
+const statusIcons: Record<string, React.ElementType> = {
   uploaded: Upload,
   processing: Loader2,
+  ready_for_review: Loader2,
   approved: CheckCircle,
+  approved_to_send: CheckCircle,
   sent_to_pharmacy: Send,
   rejected: XCircle,
 };
