@@ -57,9 +57,8 @@ export default function ReferralsList() {
   function getFilterCount(value: string): number {
     if (value === "all") return referrals.length;
     if (value === "processing") return referrals.filter((r) => r.status === "processing").length;
-    if (value === "approved") return referrals.filter((r) => r.status === "approved").length;
     if (value === "rejected") return referrals.filter((r) => r.status === "rejected").length;
-    if (value === "sent") return referrals.filter((r) => r.status === "sent_to_pharmacy").length;
+    if (value === "approved_to_send") return referrals.filter((r) => r.status === "approved_to_send").length;
     return 0;
   }
 
