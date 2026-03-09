@@ -242,10 +242,20 @@ export default function ReferralDetail() {
               {/* Provider Info */}
               <InfoCard icon={Stethoscope} title="Provider Information">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <Field label="Name" value={provider.name || '—'} />
+                  <Field label="First Name" value={provider.first_name || '—'} />
+                  <Field label="Last Name" value={provider.last_name || '—'} />
+                  <Field label="Specialty" value={provider.specialty || '—'} />
                   <Field label="NPI" value={provider.npi || '—'} />
+                  <Field label="DEA Number" value={provider.dea_number || '—'} />
                   <Field label="Address" value={provider.address || '—'} />
+                  <Field label="City" value={provider.city || '—'} />
+                  <Field label="State" value={provider.state || '—'} />
+                  <Field label="Zip Code" value={provider.zip || '—'} />
                   <Field label="Phone" value={provider.phone || '—'} />
+                  <Field label="Fax" value={provider.fax || '—'} />
+                  <Field label="Email" value={provider.email || '—'} />
+                  <Field label="Office Contact Person" value={provider.office_contact || '—'} />
+                  <Field label="Requestor" value={provider.requestor || '—'} />
                   <Field label="Signature Date" value={provider.signature_date ? formatDateShort(provider.signature_date) : '—'} />
                 </div>
               </InfoCard>
