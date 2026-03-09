@@ -226,9 +226,16 @@ export default function ReferralDetail() {
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <Field label="Diagnosis (ICD-10)" value={clinical.diagnosis_icd10 || '—'} />
                   <Field label="Drug Requested" value={clinical.drug_requested || '—'} />
-                  <Field label="Dosing" value={clinical.dosing || '—'} />
+                  <Field label="Therapy Type" value={clinical.therapy_type || '—'} />
+                  <Field label="Date Therapy Initiated" value={clinical.date_therapy_initiated ? formatDateShort(clinical.date_therapy_initiated) : '—'} />
+                  <Field label="Duration of Therapy" value={clinical.duration_of_therapy || '—'} />
+                  <Field label="Dose/Strength" value={clinical.dosing || '—'} />
+                  <Field label="Frequency" value={clinical.frequency || '—'} />
                   <Field label="Quantity" value={clinical.quantity || '—'} />
-                  <Field label="Refill" value={clinical.is_refill ? "Yes" : "No"} />
+                  <Field label="Length of Therapy / #Refills" value={clinical.length_of_therapy || '—'} />
+                  <Field label="Administration" value={clinical.administration || '—'} />
+                  <Field label="Administration Location" value={clinical.administration_location || '—'} />
+                  <Field label="Refill / Renewal" value={clinical.is_refill ? 'Yes' : 'No'} />
                 </div>
               </InfoCard>
 
