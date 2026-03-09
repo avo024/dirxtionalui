@@ -13,10 +13,12 @@ const statusStyles: Record<string, string> = {
   rejected: "bg-status-rejected-bg text-status-rejected-fg",
 };
 
-const dotStyles: Record<ReferralStatus, string> = {
+const dotStyles: Record<string, string> = {
   uploaded: "bg-status-uploaded-fg",
   processing: "bg-status-processing-fg",
+  ready_for_review: "bg-status-processing-fg",
   approved: "bg-status-approved-fg",
+  approved_to_send: "bg-status-approved-fg",
   sent_to_pharmacy: "bg-status-sent-fg",
   rejected: "bg-status-rejected-fg",
 };
