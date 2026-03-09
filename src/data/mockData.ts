@@ -1,7 +1,9 @@
 export type ReferralStatus =
   | "uploaded"
   | "processing"
+  | "ready_for_review"
   | "approved"
+  | "approved_to_send"
   | "rejected"
   | "sent_to_pharmacy";
 
