@@ -202,21 +202,22 @@ export default function ReferralDetail() {
               {/* Patient Info */}
               <InfoCard icon={User} title="Patient Information">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <Field label="Name" value={patientFullName} />
+                  <Field label="First Name" value={patient.first_name || '—'} />
+                  <Field label="Last Name" value={patient.last_name || '—'} />
+                  <Field label="MI" value={patient.mi || '—'} />
                   <Field label="Date of Birth" value={patient.dob ? formatDateShort(patient.dob) : '—'} />
                   <Field label="Gender" value={patient.gender || '—'} />
-                  <CopyableField
-                    label="Phone"
-                    value={patient.phone || '—'}
-                    icon={Phone}
-                    onCopy={() => copyToClipboard(patient.phone || '', "Phone")}
-                  />
-                  <CopyableField
-                    label="Email"
-                    value={patient.email || '—'}
-                    icon={Mail}
-                    onCopy={() => copyToClipboard(patient.email || '', "Email")}
-                  />
+                  <CopyableField label="Phone" value={patient.phone || '—'} icon={Phone} onCopy={() => copyToClipboard(patient.phone || '', 'Phone')} />
+                  <CopyableField label="Email" value={patient.email || '—'} icon={Mail} onCopy={() => copyToClipboard(patient.email || '', 'Email')} />
+                  <Field label="Address" value={patient.address || '—'} />
+                  <Field label="City" value={patient.city || '—'} />
+                  <Field label="State" value={patient.state || '—'} />
+                  <Field label="Zip Code" value={patient.zip || '—'} />
+                  <Field label="Height" value={patient.height || '—'} />
+                  <Field label="Weight" value={patient.weight || '—'} />
+                  <Field label="Allergies" value={patient.allergies || '—'} />
+                  <Field label="Authorized Representative" value={patient.authorized_representative || '—'} />
+                  <Field label="Representative Phone" value={patient.authorized_representative_phone || '—'} />
                 </div>
               </InfoCard>
 
