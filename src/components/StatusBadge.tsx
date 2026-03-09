@@ -43,7 +43,18 @@ interface StatusBadgeProps {
 
 export function StatusBadge({ status, size = "sm", showIcon = false, className, context = "clinic" }: StatusBadgeProps) {
   const Icon = statusIcons[status];
-  const isProcessing = status === "processing";
+  const isProcessing = status === "processing" || status === "ready_for_review";
+
+  if (!Icon || !statusStyles[status]) {
+    return (
+      <span className={cn(
+        "inline-flex items-center rounded-full font-medium px-2.5 py-0.5 text-xs bg-secondary text-muted-foreground",
+        className
+      )}>
+        {status}
+      </span>
+    );
+  }
   const labels = context === "admin" ? adminStatusLabels : statusLabels;
 
   const sizeClasses = {

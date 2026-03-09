@@ -11,9 +11,8 @@ import { cn } from "@/lib/utils";
 const filters = [
   { label: "All", value: "all" },
   { label: "Needs Review", value: "ready_for_review" },
-  { label: "Approved", value: "approved_to_send" },
   { label: "Rejected", value: "rejected" },
-  { label: "Sent", value: "sent_to_pharmacy" },
+  { label: "Approved & Sent", value: "approved_to_send" },
 ];
 
 export default function AdminReferralsList() {

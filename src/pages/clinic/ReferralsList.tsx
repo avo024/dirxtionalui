@@ -72,9 +72,8 @@ export default function ReferralsList() {
 
       if (activeFilter === "all") return true;
       if (activeFilter === "processing") return r.status === "processing";
-      if (activeFilter === "approved") return r.status === "approved";
       if (activeFilter === "rejected") return r.status === "rejected";
-      if (activeFilter === "sent") return r.status === "sent_to_pharmacy";
+      if (activeFilter === "approved_to_send") return r.status === "approved_to_send";
       return true;
     });
   }, [activeFilter, search, referrals]);
