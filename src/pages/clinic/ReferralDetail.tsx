@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft, Download, FileText, Clock, AlertCircle, User,
@@ -10,15 +10,19 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { mockReferrals, type ReferralStatus } from "@/data/mockData";
+import { Skeleton } from "@/components/ui/skeleton";
+import { clinicApi } from "@/lib/api";
+import { mapReferralFromBackend } from "@/lib/dataMapper";
 import { formatDateTime, formatDateShort } from "@/lib/dateUtils";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
+type ReferralStatus = "uploaded" | "processing" | "approved_to_send" | "rejected" | "sent_to_pharmacy";
+
 const statusDescriptions: Record<ReferralStatus, string> = {
   uploaded: "Your referral has been received and is awaiting review.",
-  processing: "Your referral is currently in review by our team.",
-  approved: "Your referral has been approved and is ready to send to pharmacy.",
+  processing: "Your referral is currently being reviewed by our team.",
+  approved_to_send: "Your referral has been approved and is being sent to the pharmacy.",
   sent_to_pharmacy: "Your referral has been sent to the assigned pharmacy.",
   rejected: "This referral needs your attention. Please see the details below.",
 };
@@ -26,7 +30,7 @@ const statusDescriptions: Record<ReferralStatus, string> = {
 const statusTimelineIcons: Record<ReferralStatus, React.ElementType> = {
   uploaded: Upload,
   processing: Loader2,
-  approved: CheckCircle,
+  approved_to_send: CheckCircle,
   sent_to_pharmacy: Send,
   rejected: XCircle,
 };
@@ -34,7 +38,7 @@ const statusTimelineIcons: Record<ReferralStatus, React.ElementType> = {
 const statusTimelineColors: Record<ReferralStatus, string> = {
   uploaded: "bg-status-uploaded-fg",
   processing: "bg-status-processing-fg",
-  approved: "bg-status-approved-fg",
+  approved_to_send: "bg-status-approved-fg",
   sent_to_pharmacy: "bg-status-sent-fg",
   rejected: "bg-status-rejected-fg",
 };
@@ -42,16 +46,46 @@ const statusTimelineColors: Record<ReferralStatus, string> = {
 export default function ReferralDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const referral = mockReferrals.find((r) => r.id === id);
-  const [notes, setNotes] = useState<{ text: string; date: string; author: string }[]>([
-    { text: "Patient called to check on referral status.", date: "2026-02-06T14:30:00Z", author: "Sarah Johnson" },
-  ]);
+  const [referral, setReferral] = useState<any>(null);
+  const [documents, setDocuments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [notes, setNotes] = useState<{ text: string; date: string; author: string }[]>([]);
   const [newNote, setNewNote] = useState("");
 
-  if (!referral) {
+  useEffect(() => {
+    if (!id) return;
+    setLoading(true);
+
+    Promise.all([
+      clinicApi.getReferral(id),
+      clinicApi.getReferralDocuments(id).catch(() => ({ items: [] })),
+    ])
+      .then(([referralData, docsData]) => {
+        setReferral(mapReferralFromBackend(referralData));
+        setDocuments(docsData.items || []);
+      })
+      .catch((err) => {
+        console.error("Failed to load referral:", err);
+        setError("Failed to load referral details.");
+      })
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-6 w-72" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    );
+  }
+
+  if (error || !referral) {
     return (
       <div className="text-center py-20">
-        <p className="text-muted-foreground">Referral not found</p>
+        <p className="text-muted-foreground">{error || "Referral not found"}</p>
         <Button variant="outline" className="mt-4" onClick={() => navigate("/clinic/referrals")}>
           Back to Referrals
         </Button>
@@ -59,7 +93,14 @@ export default function ReferralDetail() {
     );
   }
 
-  const { extracted_data: data } = referral;
+  const data = referral.extracted_data || {};
+  const patient = data.patient || {};
+  const clinical = data.clinical || {};
+  const provider = data.provider || {};
+  const insurance = data.insurance || {};
+  const priorAuth = data.prior_auth || {};
+
+  const patientFullName = patient.full_name || `${patient.first_name || ''} ${patient.last_name || ''}`.trim() || '—';
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -89,12 +130,12 @@ export default function ReferralDetail() {
       <div className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-2xl font-bold text-foreground">{referral.patient_name}</h1>
+            <h1 className="text-2xl font-bold text-foreground">{referral.patient_name || patientFullName}</h1>
             <StatusBadge status={referral.status} size="md" showIcon />
           </div>
           <p className="text-muted-foreground text-sm">
             <span className="font-mono bg-secondary px-1.5 py-0.5 rounded text-xs mr-2">{referral.id.toUpperCase()}</span>
-            {referral.drug} · Created {formatDateShort(referral.created_at)}
+            {referral.drug || '—'} · Created {formatDateShort(referral.created_at)}
           </p>
         </div>
         {referral.status === "sent_to_pharmacy" && (
@@ -115,12 +156,12 @@ export default function ReferralDetail() {
       )}
 
       {/* Approved/Sent success */}
-      {(referral.status === "approved" || referral.status === "sent_to_pharmacy") && referral.pharmacy_name && (
+      {(referral.status === "approved_to_send" || referral.status === "sent_to_pharmacy") && referral.pharmacy_name && (
         <div className="rounded-xl border border-success/30 bg-success/5 p-5">
           <div className="flex items-center gap-2 mb-3">
             <CheckCircle className="h-5 w-5 text-success" />
             <h3 className="font-semibold text-foreground">
-              {referral.status === "sent_to_pharmacy" ? "Referral Sent" : "Referral Approved"}
+              {referral.status === "sent_to_pharmacy" ? "Referral Sent" : "Referral Approved & Sending"}
             </h3>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
@@ -128,14 +169,18 @@ export default function ReferralDetail() {
               <span className="text-muted-foreground">Pharmacy:</span>{" "}
               <span className="font-medium text-foreground">{referral.pharmacy_name}</span>
             </div>
-            <div>
-              <span className="text-muted-foreground">Location:</span>{" "}
-              <span className="font-medium text-foreground">{referral.pharmacy_location}</span>
-            </div>
-            <div>
-              <span className="text-muted-foreground">Contact:</span>{" "}
-              <span className="font-medium text-foreground">{referral.pharmacy_contact}</span>
-            </div>
+            {referral.pharmacy_location && (
+              <div>
+                <span className="text-muted-foreground">Location:</span>{" "}
+                <span className="font-medium text-foreground">{referral.pharmacy_location}</span>
+              </div>
+            )}
+            {referral.pharmacy_contact && (
+              <div>
+                <span className="text-muted-foreground">Contact:</span>{" "}
+                <span className="font-medium text-foreground">{referral.pharmacy_contact}</span>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -157,20 +202,20 @@ export default function ReferralDetail() {
               {/* Patient Info */}
               <InfoCard icon={User} title="Patient Information">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <Field label="Name" value={`${data.patient.first_name} ${data.patient.last_name}`} />
-                  <Field label="Date of Birth" value={formatDateShort(data.patient.dob)} />
-                  <Field label="Gender" value={data.patient.gender} />
+                  <Field label="Name" value={patientFullName} />
+                  <Field label="Date of Birth" value={patient.dob ? formatDateShort(patient.dob) : '—'} />
+                  <Field label="Gender" value={patient.gender || '—'} />
                   <CopyableField
                     label="Phone"
-                    value={data.patient.phone}
+                    value={patient.phone || '—'}
                     icon={Phone}
-                    onCopy={() => copyToClipboard(data.patient.phone, "Phone")}
+                    onCopy={() => copyToClipboard(patient.phone || '', "Phone")}
                   />
                   <CopyableField
                     label="Email"
-                    value={data.patient.email}
+                    value={patient.email || '—'}
                     icon={Mail}
-                    onCopy={() => copyToClipboard(data.patient.email, "Email")}
+                    onCopy={() => copyToClipboard(patient.email || '', "Email")}
                   />
                 </div>
               </InfoCard>
@@ -178,22 +223,22 @@ export default function ReferralDetail() {
               {/* Clinical Info */}
               <InfoCard icon={Pill} title="Clinical Information">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <Field label="Diagnosis (ICD-10)" value={data.clinical.diagnosis_icd10} />
-                  <Field label="Drug Requested" value={data.clinical.drug_requested} />
-                  <Field label="Dosing" value={data.clinical.dosing} />
-                  <Field label="Quantity" value={data.clinical.quantity} />
-                  <Field label="Refill" value={data.clinical.is_refill ? "Yes" : "No"} />
+                  <Field label="Diagnosis (ICD-10)" value={clinical.diagnosis_icd10 || '—'} />
+                  <Field label="Drug Requested" value={clinical.drug_requested || '—'} />
+                  <Field label="Dosing" value={clinical.dosing || '—'} />
+                  <Field label="Quantity" value={clinical.quantity || '—'} />
+                  <Field label="Refill" value={clinical.is_refill ? "Yes" : "No"} />
                 </div>
               </InfoCard>
 
               {/* Provider Info */}
               <InfoCard icon={Stethoscope} title="Provider Information">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <Field label="Name" value={data.provider.name} />
-                  <Field label="NPI" value={data.provider.npi} />
-                  <Field label="Address" value={data.provider.address} />
-                  <Field label="Phone" value={data.provider.phone} />
-                  <Field label="Signature Date" value={formatDateShort(data.provider.signature_date)} />
+                  <Field label="Name" value={provider.name || '—'} />
+                  <Field label="NPI" value={provider.npi || '—'} />
+                  <Field label="Address" value={provider.address || '—'} />
+                  <Field label="Phone" value={provider.phone || '—'} />
+                  <Field label="Signature Date" value={provider.signature_date ? formatDateShort(provider.signature_date) : '—'} />
                 </div>
               </InfoCard>
             </div>
@@ -207,25 +252,22 @@ export default function ReferralDetail() {
                 </h3>
                 <StatusBadge status={referral.status} size="lg" showIcon />
                 <p className="text-sm text-muted-foreground mt-3">
-                  {statusDescriptions[referral.status]}
+                  {statusDescriptions[referral.status as ReferralStatus] || ''}
                 </p>
-                {/* Mini progress - 3 steps: Received, In Review, Sent to Pharmacy */}
+                {/* Mini progress - 4 steps */}
                 <div className="mt-4 space-y-2">
-                  {(["uploaded", "processing", "sent_to_pharmacy"] as ReferralStatus[]).map((step, i) => {
-                    const stepOrder = ["uploaded", "processing", "sent_to_pharmacy"];
+                  {(["uploaded", "processing", "approved_to_send", "sent_to_pharmacy"] as ReferralStatus[]).map((step, i) => {
+                    const stepOrder = ["uploaded", "processing", "approved_to_send", "sent_to_pharmacy"];
                     const stepLabels: Record<string, string> = {
                       uploaded: "Received",
                       processing: "In Review",
+                      approved_to_send: "Approved",
                       sent_to_pharmacy: "Sent to Pharmacy",
                     };
                     const currentIdx = stepOrder.indexOf(referral.status);
                     const isRejected = referral.status === "rejected";
-                    const effectiveIdx = referral.status === "approved" ? 1.5 : currentIdx;
-                    const isComplete = !isRejected && i <= effectiveIdx;
-                    const isCurrent = !isRejected && (
-                      (referral.status === "approved" && step === "processing") ||
-                      (step === referral.status)
-                    );
+                    const isComplete = !isRejected && stepOrder.indexOf(step) <= currentIdx;
+                    const isCurrent = !isRejected && step === referral.status;
 
                     return (
                       <div key={step} className="flex items-center gap-2">
@@ -252,10 +294,10 @@ export default function ReferralDetail() {
               {/* Insurance & PA Card */}
               <InfoCard icon={Shield} title="Insurance & PA">
                 <div className="space-y-3">
-                  <Field label="Has Insurance" value={data.insurance.has_insurance_card ? "Yes" : "No"} />
-                  {data.insurance.notes && <Field label="Insurance Notes" value={data.insurance.notes} />}
-                  <Field label="PA Required" value={data.prior_auth.required ? "Yes" : "No"} />
-                  <Field label="PA Handled By" value={data.prior_auth.handled_by_us ? "Pharmacy/Admin" : "Clinic"} />
+                  <Field label="Has Insurance" value={insurance.has_insurance_card ? "Yes" : "No"} />
+                  {insurance.notes && <Field label="Insurance Notes" value={insurance.notes} />}
+                  <Field label="PA Required" value={priorAuth.required ? "Yes" : "No"} />
+                  <Field label="PA Handled By" value={priorAuth.handled_by_us ? "Pharmacy/Admin" : "Clinic"} />
                 </div>
               </InfoCard>
             </div>
@@ -264,70 +306,124 @@ export default function ReferralDetail() {
 
         {/* DOCUMENTS TAB */}
         <TabsContent value="documents" className="mt-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {referral.documents.map((doc) => (
-              <div
-                key={doc.id}
-                className="rounded-xl border border-border bg-card p-5 card-shadow group hover:card-shadow-md transition-all duration-200"
-              >
-                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
-                  <FileText className="h-5 w-5 text-primary" />
+          {documents.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border p-12 text-center">
+              <FileText className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+              <p className="text-sm text-muted-foreground">No documents uploaded yet</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {documents.map((doc: any) => (
+                <div
+                  key={doc.id}
+                  className="rounded-xl border border-border bg-card p-5 card-shadow group hover:card-shadow-md transition-all duration-200"
+                >
+                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
+                    <FileText className="h-5 w-5 text-primary" />
+                  </div>
+                  <p className="text-sm font-medium text-foreground mb-0.5">{doc.file_name || doc.name || 'Document'}</p>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Uploaded {formatDateShort(doc.uploaded_at || doc.created_at)}
+                  </p>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" className="flex-1 text-xs">
+                      <FileText className="h-3.5 w-3.5 mr-1" />
+                      View
+                    </Button>
+                    <Button variant="outline" size="sm" className="flex-1 text-xs">
+                      <Download className="h-3.5 w-3.5 mr-1" />
+                      Download
+                    </Button>
+                  </div>
                 </div>
-                <p className="text-sm font-medium text-foreground mb-0.5">{doc.name}</p>
-                <p className="text-xs text-muted-foreground mb-3">
-                  Uploaded {formatDateShort(doc.uploaded_at)}
-                </p>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="flex-1 text-xs">
-                    <FileText className="h-3.5 w-3.5 mr-1" />
-                    View
-                  </Button>
-                  <Button variant="outline" size="sm" className="flex-1 text-xs">
-                    <Download className="h-3.5 w-3.5 mr-1" />
-                    Download
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </TabsContent>
 
         {/* HISTORY TAB */}
         <TabsContent value="history" className="mt-4">
           <div className="rounded-xl border border-border bg-card p-5 card-shadow">
             <div className="space-y-0">
-              {[...referral.history].reverse().map((entry, i) => {
-                const Icon = statusTimelineIcons[entry.status];
-                const colorClass = statusTimelineColors[entry.status];
+              {/* Received */}
+              <div className="flex gap-4">
+                <div className="flex flex-col items-center">
+                  <div className="h-8 w-8 rounded-full flex items-center justify-center mt-0.5 shrink-0 bg-status-uploaded-fg">
+                    <Upload className="h-4 w-4 text-white" />
+                  </div>
+                  {referral.status !== "uploaded" && <div className="w-px flex-1 bg-border my-1" />}
+                </div>
+                <div className="pb-6">
+                  <p className="text-sm font-medium text-foreground">Referral Received</p>
+                  <p className="text-xs text-muted-foreground">{formatDateTime(referral.created_at)}</p>
+                </div>
+              </div>
 
-                return (
-                  <div key={entry.id} className="flex gap-4">
-                    <div className="flex flex-col items-center">
-                      <div
-                        className={cn(
-                          "h-8 w-8 rounded-full flex items-center justify-center mt-0.5 shrink-0",
-                          colorClass
-                        )}
-                      >
-                        <Icon className="h-4 w-4 text-white" />
-                      </div>
-                      {i < referral.history.length - 1 && (
-                        <div className="w-px flex-1 bg-border my-1" />
-                      )}
+              {/* In Review */}
+              {referral.status !== "uploaded" && (
+                <div className="flex gap-4">
+                  <div className="flex flex-col items-center">
+                    <div className="h-8 w-8 rounded-full flex items-center justify-center mt-0.5 shrink-0 bg-status-processing-fg">
+                      <Loader2 className="h-4 w-4 text-white" />
                     </div>
-                    <div className="pb-6">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <StatusBadge status={entry.status} size="sm" />
-                        <span className="text-xs text-muted-foreground">
-                          {formatDateTime(entry.timestamp)}
-                        </span>
-                      </div>
-                      <p className="text-sm text-foreground mt-1">{entry.note}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">By: {entry.user}</p>
+                    {(referral.status === "approved_to_send" || referral.status === "sent_to_pharmacy") && (
+                      <div className="w-px flex-1 bg-border my-1" />
+                    )}
+                  </div>
+                  <div className="pb-6">
+                    <p className="text-sm font-medium text-foreground">Under Review</p>
+                    <p className="text-xs text-muted-foreground">{formatDateTime(referral.updated_at)}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Approved */}
+              {(referral.status === "approved_to_send" || referral.status === "sent_to_pharmacy") && (
+                <div className="flex gap-4">
+                  <div className="flex flex-col items-center">
+                    <div className="h-8 w-8 rounded-full flex items-center justify-center mt-0.5 shrink-0 bg-status-approved-fg">
+                      <CheckCircle className="h-4 w-4 text-white" />
+                    </div>
+                    {referral.status === "sent_to_pharmacy" && (
+                      <div className="w-px flex-1 bg-border my-1" />
+                    )}
+                  </div>
+                  <div className="pb-6">
+                    <p className="text-sm font-medium text-foreground">Approved</p>
+                    <p className="text-xs text-muted-foreground">{formatDateTime(referral.updated_at)}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Sent to Pharmacy */}
+              {referral.status === "sent_to_pharmacy" && (
+                <div className="flex gap-4">
+                  <div className="flex flex-col items-center">
+                    <div className="h-8 w-8 rounded-full flex items-center justify-center mt-0.5 shrink-0 bg-status-sent-fg">
+                      <Send className="h-4 w-4 text-white" />
                     </div>
                   </div>
-                );
-              })}
+                  <div className="pb-6">
+                    <p className="text-sm font-medium text-foreground">Sent to Pharmacy</p>
+                    <p className="text-xs text-muted-foreground">{formatDateTime(referral.updated_at)}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Rejected */}
+              {referral.status === "rejected" && (
+                <div className="flex gap-4">
+                  <div className="flex flex-col items-center">
+                    <div className="h-8 w-8 rounded-full flex items-center justify-center mt-0.5 shrink-0 bg-status-rejected-fg">
+                      <XCircle className="h-4 w-4 text-white" />
+                    </div>
+                  </div>
+                  <div className="pb-6">
+                    <p className="text-sm font-medium text-foreground">Rejected</p>
+                    <p className="text-xs text-muted-foreground">{formatDateTime(referral.updated_at)}</p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </TabsContent>
