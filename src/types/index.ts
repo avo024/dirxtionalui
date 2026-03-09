@@ -243,7 +243,9 @@ export const statusLabels: Record<ReferralStatus, string> = {
 export const adminStatusLabels: Record<ReferralStatus, string> = {
   uploaded: "Received",
   processing: "Needs Review",
+  ready_for_review: "Needs Review",
   approved: "Approved",
+  approved_to_send: "Approved & Sent",
   sent_to_pharmacy: "Sent to Pharmacy",
   rejected: "Rejected",
 };
