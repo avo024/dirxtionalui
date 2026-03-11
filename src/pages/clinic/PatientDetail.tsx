@@ -315,6 +315,16 @@ export default function PatientDetail() {
                     )}
                   </div>
                 </div>
+                <InfoField label="Address" value={patient.address || '—'} />
+                <InfoField label="City" value={patient.city || '—'} />
+                <InfoField label="State" value={patient.state || '—'} />
+                <InfoField label="Zip Code" value={patient.zip || '—'} />
+                <InfoField label="Height" value={patient.height || '—'} />
+                <InfoField label="Weight" value={patient.weight || '—'} />
+                <InfoField label="Allergies" value={patient.allergies || '—'} />
+                <InfoField label="Authorized Representative" value={patient.authorized_representative || '—'} />
+                <InfoField label="Representative Phone" value={patient.authorized_representative_phone || '—'} />
+                <InfoField label="Alternate Phone" value={patient.phone_alternate || '—'} />
               </div>
             </div>
 
@@ -329,7 +339,10 @@ export default function PatientDetail() {
               <div className="grid grid-cols-2 gap-4">
                 <InfoField label="Insurance Type" value={patient.insurance_type || '—'} />
                 <InfoField label="Plan Details" value={patient.insurance_notes || '—'} />
-                <InfoField label="PA Status" value={(patient.pa_status || '').charAt(0).toUpperCase() + (patient.pa_status || '').slice(1) || '—'} />
+                <div>
+                  <p className="text-muted-foreground text-xs mb-0.5">PA Status</p>
+                  <PAStatusBadge status={patient.pa_status || 'none'} expirationDate={patient.pa_expiration_date} />
+                </div>
                 <InfoField label="PA Expiration" value={patient.pa_expiration_date ? formatDateShort(patient.pa_expiration_date) : "N/A"} />
               </div>
             </div>
