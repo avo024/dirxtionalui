@@ -339,7 +339,10 @@ export default function PatientDetail() {
               <div className="grid grid-cols-2 gap-4">
                 <InfoField label="Insurance Type" value={patient.insurance_type || '—'} />
                 <InfoField label="Plan Details" value={patient.insurance_notes || '—'} />
-                <InfoField label="PA Status" value={(patient.pa_status || '').charAt(0).toUpperCase() + (patient.pa_status || '').slice(1) || '—'} />
+                <div>
+                  <p className="text-muted-foreground text-xs mb-0.5">PA Status</p>
+                  <PAStatusBadge status={patient.pa_status || 'none'} expirationDate={patient.pa_expiration_date} />
+                </div>
                 <InfoField label="PA Expiration" value={patient.pa_expiration_date ? formatDateShort(patient.pa_expiration_date) : "N/A"} />
               </div>
             </div>
