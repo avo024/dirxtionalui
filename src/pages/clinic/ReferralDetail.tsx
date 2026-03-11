@@ -86,7 +86,7 @@ export default function ReferralDetail() {
     return (
       <div className="text-center py-20">
         <p className="text-muted-foreground">{error || "Referral not found"}</p>
-        <Button variant="outline" className="mt-4" onClick={() => navigate("/clinic/referrals")}>
+        <Button variant="outline" className="mt-4" onClick={() => navigate(-1)}>
           Back to Referrals
         </Button>
       </div>
@@ -121,7 +121,7 @@ export default function ReferralDetail() {
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" onClick={() => navigate("/clinic/referrals")} className="gap-1.5">
+        <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-1.5">
           <ArrowLeft className="h-4 w-4" />
           Back to Referrals
         </Button>
