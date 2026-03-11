@@ -77,6 +77,20 @@ export const clinicApi = {
     });
     return handleResponse(response);
   },
+
+  async getPatient(id: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/patients/${id}`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  async getPatientDrugs(id: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/patients/${id}/drugs`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
 };
 
 // ============================================================================
