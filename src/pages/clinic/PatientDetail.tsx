@@ -9,12 +9,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PAStatusBadge } from "@/components/PAStatusBadge";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { mockPatients, mockReferrals, mockPatientDrugs, type PatientDrug } from "@/data/mockData";
+import { clinicApi } from "@/lib/api";
 import { formatDateShort, getRelativeTime } from "@/lib/dateUtils";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
-function getDrugPABadge(drug: PatientDrug) {
+function getDrugPABadge(drug: any) {
   const today = new Date();
 
   if (!drug.pa_status || drug.pa_status === "pending") {
@@ -39,21 +39,39 @@ function getDrugPABadge(drug: PatientDrug) {
 export default function PatientDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const patient = mockPatients.find((p) => p.id === id);
-
-  // Mock API: GET /patients/{patient_id}/drugs — hooks before early return
-  const [medications, setMedications] = useState<PatientDrug[]>([]);
+  const [patient, setPatient] = useState<any>(null);
+  const [medications, setMedications] = useState<any[]>([]);
+  const [referrals, setReferrals] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [medsLoading, setMedsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!id) return;
+    setLoading(true);
+    clinicApi.getPatient(id)
+      .then((data) => setPatient(data))
+      .catch(() => setError("Failed to load patient"))
+      .finally(() => setLoading(false));
+  }, [id]);
 
   useEffect(() => {
     if (!id) return;
     setMedsLoading(true);
-    const timer = setTimeout(() => {
-      const drugs = mockPatientDrugs.filter((d) => d.patient_id === id);
-      setMedications(drugs);
-      setMedsLoading(false);
-    }, 600);
-    return () => clearTimeout(timer);
+    clinicApi.getPatientDrugs(id)
+      .then((data) => setMedications(data.drugs || []))
+      .catch(() => setMedications([]))
+      .finally(() => setMedsLoading(false));
+  }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    clinicApi.getReferrals()
+      .then((data) => {
+        const patientRefs = (data.items || []).filter((r: any) => r.patient_id === id);
+        setReferrals(patientRefs);
+      })
+      .catch(() => setReferrals([]));
   }, [id]);
 
   const sortedMedications = useMemo(() => {
@@ -65,10 +83,18 @@ export default function PatientDetail() {
     });
   }, [medications]);
 
-  if (!patient) {
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error || !patient) {
     return (
       <div className="text-center py-20">
-        <p className="text-muted-foreground">Patient not found</p>
+        <p className="text-muted-foreground">{error || "Patient not found"}</p>
         <Button variant="outline" className="mt-4" onClick={() => navigate("/clinic/patients")}>
           Back to Patients
         </Button>
@@ -76,14 +102,9 @@ export default function PatientDetail() {
     );
   }
 
-  const fullName = `${patient.first_name} ${patient.last_name}`;
-  const patientReferrals = mockReferrals.filter(
-    (r) => r.patient_name === fullName && r.clinic_name === "Dallas Dermatology Clinic"
-  );
-
-  const allDocuments = patientReferrals.flatMap((r) =>
-    r.documents.map((d) => ({ ...d, referralId: r.id, referralDrug: r.drug }))
-  );
+  const fullName = patient.full_name || `${patient.first_name || ''} ${patient.last_name || ''}`.trim() || '—';
+  const patientReferrals = referrals;
+  const allDocuments: any[] = [];
 
   const getAge = (dob: string) => {
     const birth = new Date(dob);
@@ -99,6 +120,8 @@ export default function PatientDetail() {
     toast({ title: "Copied!", description: `${label} copied to clipboard` });
   };
 
+  const firstName = patient.full_name?.split(' ')[0] || 'Patient';
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Back */}
@@ -112,17 +135,17 @@ export default function PatientDetail() {
         <div>
           <h1 className="text-2xl font-bold text-foreground mb-1">{fullName}</h1>
           <div className="flex items-center gap-3 flex-wrap text-sm text-muted-foreground">
-            <span>Age {getAge(patient.dob)}</span>
-            <span className="text-border">|</span>
-            <span>DOB: {formatDateShort(patient.dob)}</span>
-            <span className="text-border">|</span>
-            <span>{patient.phone}</span>
+            {patient.dob && <span>Age {getAge(patient.dob)}</span>}
+            {patient.dob && <span className="text-border">|</span>}
+            {patient.dob && <span>DOB: {formatDateShort(patient.dob)}</span>}
+            {patient.phone_primary && <span className="text-border">|</span>}
+            {patient.phone_primary && <span>{patient.phone_primary}</span>}
           </div>
         </div>
         <Button asChild>
           <Link to={`/clinic/referrals/new?patientId=${patient.id}`}>
             <Plus className="h-4 w-4 mr-2" />
-            New Referral for {patient.first_name}
+            New Referral for {firstName}
           </Link>
         </Button>
       </div>
@@ -147,7 +170,7 @@ export default function PatientDetail() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
                 <p className="text-xs text-muted-foreground mb-0.5">Current Drug</p>
-                <p className="text-sm font-medium text-foreground">{patient.last_drug} {patient.last_dosage}</p>
+                <p className="text-sm font-medium text-foreground">{patient.last_drug || '—'} {patient.last_dosage || ''}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground mb-0.5">PA Status</p>
@@ -161,7 +184,7 @@ export default function PatientDetail() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground mb-0.5">Last Referral</p>
-                <p className="text-sm font-medium text-foreground">{getRelativeTime(patient.last_referral_date)}</p>
+                <p className="text-sm font-medium text-foreground">{patient.created_at ? getRelativeTime(patient.created_at) : '—'}</p>
               </div>
             </div>
             {patient.pa_status === "expiring" && (
@@ -209,14 +232,14 @@ export default function PatientDetail() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1.5">
                           <Pill className="h-3.5 w-3.5 text-muted-foreground" />
-                          <span className="text-sm text-foreground">{ref.drug}</span>
+                          <span className="text-sm text-foreground">{ref.drug || ref.drug_requested || '—'}</span>
                         </div>
                       </td>
                       <td className="px-4 py-3">
                         <StatusBadge status={ref.status} />
                       </td>
                       <td className="px-4 py-3 text-sm text-muted-foreground">
-                        {getRelativeTime(ref.created_at)}
+                        {ref.created_at ? getRelativeTime(ref.created_at) : '—'}
                       </td>
                       <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                         <Button variant="outline" size="sm" className="text-xs" asChild>
@@ -246,7 +269,7 @@ export default function PatientDetail() {
           <Button asChild size="lg" className="w-full sm:w-auto">
             <Link to={`/clinic/referrals/new?patientId=${patient.id}`}>
               <Plus className="h-4 w-4 mr-2" />
-              Create New Referral for {patient.first_name}
+              Create New Referral for {firstName}
             </Link>
           </Button>
         </TabsContent>
@@ -264,24 +287,28 @@ export default function PatientDetail() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <InfoField label="Full Name" value={fullName} />
-                <InfoField label="Date of Birth" value={`${formatDateShort(patient.dob)} (Age ${getAge(patient.dob)})`} />
-                <InfoField label="Gender" value={patient.gender} />
+                <InfoField label="Date of Birth" value={patient.dob ? `${formatDateShort(patient.dob)} (Age ${getAge(patient.dob)})` : '—'} />
+                <InfoField label="Gender" value={patient.gender || '—'} />
                 <div>
                   <p className="text-muted-foreground text-xs mb-0.5">Phone</p>
                   <div className="flex items-center gap-1">
-                    <p className="font-medium text-foreground text-sm">{patient.phone}</p>
-                    <button onClick={() => copyToClipboard(patient.phone, "Phone")} className="p-0.5 rounded hover:bg-secondary transition-colors">
-                      <Copy className="h-3 w-3 text-muted-foreground" />
-                    </button>
+                    <p className="font-medium text-foreground text-sm">{patient.phone_primary || '—'}</p>
+                    {patient.phone_primary && (
+                      <button onClick={() => copyToClipboard(patient.phone_primary, "Phone")} className="p-0.5 rounded hover:bg-secondary transition-colors">
+                        <Copy className="h-3 w-3 text-muted-foreground" />
+                      </button>
+                    )}
                   </div>
                 </div>
                 <div>
                   <p className="text-muted-foreground text-xs mb-0.5">Email</p>
                   <div className="flex items-center gap-1">
-                    <p className="font-medium text-foreground text-sm">{patient.email}</p>
-                    <button onClick={() => copyToClipboard(patient.email, "Email")} className="p-0.5 rounded hover:bg-secondary transition-colors">
-                      <Copy className="h-3 w-3 text-muted-foreground" />
-                    </button>
+                    <p className="font-medium text-foreground text-sm">{patient.email || '—'}</p>
+                    {patient.email && (
+                      <button onClick={() => copyToClipboard(patient.email, "Email")} className="p-0.5 rounded hover:bg-secondary transition-colors">
+                        <Copy className="h-3 w-3 text-muted-foreground" />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -296,9 +323,9 @@ export default function PatientDetail() {
                 <h3 className="font-semibold text-foreground text-sm">Insurance Information</h3>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <InfoField label="Insurance Type" value={patient.insurance_type} />
-                <InfoField label="Plan Details" value={patient.insurance_notes} />
-                <InfoField label="PA Status" value={patient.pa_status.charAt(0).toUpperCase() + patient.pa_status.slice(1)} />
+                <InfoField label="Insurance Type" value={patient.insurance_type || '—'} />
+                <InfoField label="Plan Details" value={patient.insurance_notes || '—'} />
+                <InfoField label="PA Status" value={(patient.pa_status || '').charAt(0).toUpperCase() + (patient.pa_status || '').slice(1) || '—'} />
                 <InfoField label="PA Expiration" value={patient.pa_expiration_date ? formatDateShort(patient.pa_expiration_date) : "N/A"} />
               </div>
             </div>
@@ -324,7 +351,6 @@ export default function PatientDetail() {
                       !drug.is_active && "opacity-60"
                     )}
                   >
-                    {/* Top row: drug name + PA badge */}
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -342,12 +368,10 @@ export default function PatientDetail() {
                       </span>
                     </div>
 
-                    {/* Subtitle: dosage + frequency */}
                     <p className="text-sm text-muted-foreground mb-3">
-                      {drug.dosage} · {drug.frequency}
+                      {drug.dosage} · {drug.frequency || '—'}
                     </p>
 
-                    {/* Bottom row: dates */}
                     <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-border pt-3 mb-3">
                       <span>
                         PA expires: {drug.pa_expiration_date ? formatDateShort(drug.pa_expiration_date) : "N/A"}
@@ -357,7 +381,6 @@ export default function PatientDetail() {
                       </span>
                     </div>
 
-                    {/* Action button */}
                     <Button variant="outline" size="sm" className="w-full text-xs">
                       <Eye className="h-3.5 w-3.5 mr-1" />
                       View PA Details
@@ -386,15 +409,15 @@ export default function PatientDetail() {
           {allDocuments.length > 0 ? (
             <div className="space-y-4">
               {patientReferrals.map((ref) => {
-                const docs = allDocuments.filter((d) => d.referralId === ref.id);
+                const docs = allDocuments.filter((d: any) => d.referralId === ref.id);
                 if (docs.length === 0) return null;
                 return (
                   <div key={ref.id}>
                     <h3 className="text-sm font-semibold text-muted-foreground mb-2">
-                      {ref.id.toUpperCase()} — {ref.drug} ({formatDateShort(ref.created_at)})
+                      {ref.id.toUpperCase()} — {ref.drug || ref.drug_requested || '—'} ({ref.created_at ? formatDateShort(ref.created_at) : '—'})
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {docs.map((doc) => (
+                      {docs.map((doc: any) => (
                         <div key={doc.id} className="rounded-xl border border-border bg-card p-4 card-shadow group hover:card-shadow-md transition-all duration-200">
                           <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
                             <FileText className="h-4 w-4 text-primary" />
