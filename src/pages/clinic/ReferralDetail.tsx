@@ -274,14 +274,13 @@ export default function ReferralDetail() {
                 </p>
                 {/* Mini progress - 4 steps */}
                 <div className="mt-4 space-y-2">
-                  {(["uploaded", "processing", "approved_to_send", "sent_to_pharmacy"] as ReferralStatus[]).map((step, i) => {
-                    const stepOrder = ["uploaded", "processing", "approved_to_send", "sent_to_pharmacy"];
-                    const stepLabels: Record<string, string> = {
-                      uploaded: "Received",
-                      processing: "In Review",
-                      approved_to_send: "Approved",
-                      sent_to_pharmacy: "Sent to Pharmacy",
-                    };
+                   {(["uploaded", "processing", "approved_to_send"] as ReferralStatus[]).map((step, i) => {
+                     const stepOrder = ["uploaded", "processing", "approved_to_send"];
+                     const stepLabels: Record<string, string> = {
+                       uploaded: "Received",
+                       processing: "In Review",
+                       approved_to_send: "Sent to Pharmacy",
+                     };
                     const currentIdx = stepOrder.indexOf(referral.status);
                     const isRejected = referral.status === "rejected";
                     const isComplete = !isRejected && stepOrder.indexOf(step) <= currentIdx;
