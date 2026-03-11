@@ -86,7 +86,7 @@ export default function ReferralDetail() {
     return (
       <div className="text-center py-20">
         <p className="text-muted-foreground">{error || "Referral not found"}</p>
-        <Button variant="outline" className="mt-4" onClick={() => navigate("/clinic/referrals")}>
+        <Button variant="outline" className="mt-4" onClick={() => navigate(-1)}>
           Back to Referrals
         </Button>
       </div>
