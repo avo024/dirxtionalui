@@ -137,6 +137,8 @@ export const adminApi = {
     decision_date: string;
     expiration_date?: string;
     approval_duration?: string;
+    pa_number?: string;
+    ref_number?: string;
     denial_reason?: string;
   }): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/admin/referrals/${id}/pa/decision`, {
