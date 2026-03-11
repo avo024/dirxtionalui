@@ -102,8 +102,8 @@ function PAWorkflowCard({ referral, paInfo }: { referral: Referral; paInfo: Refe
     if (paData.reference_number || paData.ref_number) setRefNumber(paData.reference_number || paData.ref_number);
     if (paData.denial_reason) setDenialReason(paData.denial_reason);
     if (paData.notes) setPaNotes(paData.notes);
-    if (paData.start_date || paData.submitted_date) {
-      setStartDate(new Date(paData.start_date || paData.submitted_date));
+    if (paData.submitted_date || paData.decision_date) {
+      setStartDate(new Date(paData.submitted_date || paData.decision_date));
     }
     if (paData.expiration_date || referral.pa_expiration_date) {
       setExpirationDate(new Date(paData.expiration_date || referral.pa_expiration_date));
