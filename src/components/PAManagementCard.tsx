@@ -89,7 +89,7 @@ function PAWorkflowCard({ referral, paInfo }: { referral: Referral; paInfo: Refe
     if (referral.pa_status === 'approved' || referral.pa_status === 'denied') {
       setPaDecisionStatus(referral.pa_status as PADecisionStatus);
       setIsEditMode(false);
-    } else if (referral.pa_status === 'pending' || referral.pa_status === 'submitted') {
+    } else if (referral.pa_status === 'pending' || (referral.pa_status as string) === 'submitted') {
       setPaDecisionStatus('processing');
       setIsEditMode(true);
     } else {
