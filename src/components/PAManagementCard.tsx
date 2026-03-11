@@ -84,11 +84,37 @@ function PAWorkflowCard({ referral, paInfo }: { referral: Referral; paInfo: Refe
   const [sendingToClinic, setSendingToClinic] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
 
-  // Determine default mode based on existing PA data
   useEffect(() => {
-    const hasExistingPA = referral.pa_status === "approved" || referral.pa_status === "denied" || referral.pa_expiration_date;
-    setIsEditMode(!hasExistingPA);
-  }, [paInfo]);
+    // Load existing PA status into local state
+    if (referral.pa_status === 'approved' || referral.pa_status === 'denied') {
+      setPaDecisionStatus(referral.pa_status as PADecisionStatus);
+      setIsEditMode(false);
+    } else if (referral.pa_status === 'pending' || referral.pa_status === 'submitted') {
+      setPaDecisionStatus('processing');
+      setIsEditMode(true);
+    } else {
+      setPaDecisionStatus('processing');
+      setIsEditMode(!referral.pa_expiration_date);
+    }
+    // Load existing PA data fields from referral.pa_data
+    const paData = (referral as any).pa_data || {};
+    if (paData.pa_number) setPaNumber(paData.pa_number);
+    if (paData.ref_number) setRefNumber(paData.ref_number);
+    if (paData.denial_reason) setDenialReason(paData.denial_reason);
+    if (paData.notes) setPaNotes(paData.notes);
+    if (paData.submitted_date) {
+      setStartDate(new Date(paData.submitted_date));
+    }
+    if (paData.expiration_date || referral.pa_expiration_date) {
+      setExpirationDate(new Date(paData.expiration_date || referral.pa_expiration_date));
+    }
+    if (paData.file_name) {
+      setUploadedFile({
+        name: paData.file_name,
+        uploadedAt: paData.uploaded_at ? new Date(paData.uploaded_at) : new Date(),
+      });
+    }
+  }, [referral.id, referral.pa_status, referral.pa_expiration_date]);
 
   const canMarkComplete = paDecisionStatus === "approved" && paNumber.trim() !== "" && expirationDate !== undefined && uploadedFile !== null;
 
