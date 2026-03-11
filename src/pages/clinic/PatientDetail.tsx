@@ -315,6 +315,16 @@ export default function PatientDetail() {
                     )}
                   </div>
                 </div>
+                <InfoField label="Address" value={patient.address || '—'} />
+                <InfoField label="City" value={patient.city || '—'} />
+                <InfoField label="State" value={patient.state || '—'} />
+                <InfoField label="Zip Code" value={patient.zip || '—'} />
+                <InfoField label="Height" value={patient.height || '—'} />
+                <InfoField label="Weight" value={patient.weight || '—'} />
+                <InfoField label="Allergies" value={patient.allergies || '—'} />
+                <InfoField label="Authorized Representative" value={patient.authorized_representative || '—'} />
+                <InfoField label="Representative Phone" value={patient.authorized_representative_phone || '—'} />
+                <InfoField label="Alternate Phone" value={patient.phone_alternate || '—'} />
               </div>
             </div>
 
