@@ -121,7 +121,7 @@ export default function ReferralDetail() {
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" onClick={() => navigate("/clinic/referrals")} className="gap-1.5">
+        <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-1.5">
           <ArrowLeft className="h-4 w-4" />
           Back to Referrals
         </Button>
