@@ -239,7 +239,7 @@ export default function PatientDetail() {
                         <StatusBadge status={ref.status} />
                       </td>
                       <td className="px-4 py-3 text-sm text-muted-foreground">
-                        {ref.created_at ? getRelativeTime(ref.created_at) : '—'}
+                        {ref.created_at ? formatDateShort(ref.created_at) : '—'}
                       </td>
                       <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                         <Button variant="outline" size="sm" className="text-xs" asChild>
