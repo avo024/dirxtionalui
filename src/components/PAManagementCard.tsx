@@ -286,7 +286,7 @@ function PAWorkflowCard({ referral, paInfo }: { referral: Referral; paInfo: Refe
           <p className="text-sm font-medium mt-1">{refNumber || "—"}</p>
         </div>
         <div>
-          <Label className="text-xs text-muted-foreground">Submission Date</Label>
+          <Label className="text-xs text-muted-foreground">Start Date</Label>
           <p className="text-sm font-medium mt-1">
             {startDate ? format(startDate, "MMM d, yyyy") : "—"}
           </p>
