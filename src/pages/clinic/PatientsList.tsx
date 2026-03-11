@@ -1,11 +1,12 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Search, Plus, Users, ChevronLeft, ChevronRight, Pill } from "lucide-react";
+import { Search, Plus, Users, ChevronLeft, ChevronRight, Pill, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PAStatusBadge } from "@/components/PAStatusBadge";
-import { mockPatients } from "@/data/mockData";
+import { clinicApi } from "@/lib/api";
+import { toast } from "@/hooks/use-toast";
 import { getRelativeTime, formatDateShort } from "@/lib/dateUtils";
 import { cn } from "@/lib/utils";
 
@@ -16,22 +17,29 @@ export default function PatientsList() {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
 
-  const filtered = useMemo(() => {
-    return mockPatients.filter((p) => {
-      const q = search.toLowerCase();
-      const matchesSearch =
-        `${p.first_name} ${p.last_name}`.toLowerCase().includes(q) ||
-        p.dob.includes(q) ||
-        p.phone.includes(q) ||
-        p.email.toLowerCase().includes(q);
-      if (!matchesSearch) return false;
+  const [patients, setPatients] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-      if (filter === "active") return ["active", "expiring"].includes(p.pa_status) && p.referral_count > 0;
-      if (filter === "inactive") return p.pa_status === "none" || p.pa_status === "expired";
+  useEffect(() => {
+    setLoading(true);
+    clinicApi.getPatients(search)
+      .then((data) => {
+        setPatients(data.items || []);
+      })
+      .catch(() => {
+        toast({ title: "Error", description: "Failed to load patients", variant: "destructive" });
+      })
+      .finally(() => setLoading(false));
+  }, [search]);
+
+  const filtered = useMemo(() => {
+    return patients.filter((p) => {
+      if (filter === "active") return p.pa_status === "approved" && p.last_drug;
+      if (filter === "inactive") return !p.pa_status || p.pa_status === "none" || p.pa_status === "expired";
       if (filter === "expiring") return p.pa_status === "expiring";
       return true;
     });
-  }, [search, filter]);
+  }, [patients, filter]);
 
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
@@ -90,8 +98,15 @@ export default function PatientsList() {
         </Select>
       </div>
 
+      {/* Loading */}
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      )}
+
       {/* Table */}
-      {paginated.length > 0 ? (
+      {!loading && paginated.length > 0 ? (
         <div className="rounded-xl border border-border bg-card card-shadow overflow-hidden">
           <table className="w-full">
             <thead>
@@ -116,24 +131,24 @@ export default function PatientsList() {
                 >
                   <td className="px-4 py-3">
                     <span className="font-semibold text-foreground text-sm hover:underline">
-                      {patient.first_name} {patient.last_name}
+                      {patient.full_name || '—'}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-sm text-muted-foreground">
-                    {formatDateShort(patient.dob)} ({getAge(patient.dob)})
+                    {patient.dob ? `${formatDateShort(patient.dob)} (${getAge(patient.dob)})` : '—'}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5">
                       <Pill className="h-3.5 w-3.5 text-muted-foreground" />
-                      <span className="text-sm text-foreground">{patient.last_drug}</span>
+                      <span className="text-sm text-foreground">{patient.last_drug || '—'}</span>
                     </div>
-                    <span className="text-xs text-muted-foreground">{patient.last_dosage}</span>
+                    <span className="text-xs text-muted-foreground">{patient.last_dosage || ''}</span>
                   </td>
                   <td className="px-4 py-3 text-sm text-muted-foreground">
-                    {getRelativeTime(patient.last_referral_date)}
+                    {patient.created_at ? getRelativeTime(patient.created_at) : '—'}
                   </td>
                   <td className="px-4 py-3">
-                    <PAStatusBadge status={patient.pa_status} expirationDate={patient.pa_expiration_date} />
+                    <PAStatusBadge status={patient.pa_status || 'none'} expirationDate={patient.pa_expiration_date} />
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
@@ -150,7 +165,7 @@ export default function PatientsList() {
             </tbody>
           </table>
         </div>
-      ) : (
+      ) : !loading ? (
         <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
           <div className="mx-auto h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
             <Users className="h-7 w-7 text-muted-foreground" />
@@ -171,10 +186,10 @@ export default function PatientsList() {
             </>
           )}
         </div>
-      )}
+      ) : null}
 
       {/* Pagination */}
-      {filtered.length > pageSize && (
+      {!loading && filtered.length > pageSize && (
         <div className="flex items-center justify-between text-sm text-muted-foreground">
           <span>Showing {startItem}-{endItem} of {filtered.length} patients</span>
           <div className="flex items-center gap-1">

@@ -25,6 +25,14 @@ function getHeaders(): HeadersInit {
 // ============================================================================
 
 export const clinicApi = {
+  async getPatients(search?: string): Promise<any> {
+    const params = search ? `?search=${encodeURIComponent(search)}` : '';
+    const response = await fetch(`${API_BASE_URL}/patients${params}`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
   async getReferrals(): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/referrals`, {
       headers: getHeaders(),
