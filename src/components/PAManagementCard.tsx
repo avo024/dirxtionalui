@@ -162,7 +162,9 @@ function PAWorkflowCard({ referral, paInfo }: { referral: Referral; paInfo: Refe
         decision: 'approved',
         decision_date: new Date().toISOString().split('T')[0],
         expiration_date: expirationDate.toISOString().split('T')[0],
-        approval_duration: paNumber,
+        pa_number: paNumber,
+        ref_number: refNumber,
+        approval_duration: "",
       });
       toast({ title: "PA Approved", description: `PA for ${referral.patient_name} has been marked as approved.` });
       setIsEditMode(false);
