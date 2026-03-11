@@ -137,18 +137,50 @@ function PAWorkflowCard({ referral, paInfo }: { referral: Referral; paInfo: Refe
 
   const handleSave = async () => {
     try {
-      if (startDate) {
+      if (paDecisionStatus === "approved") {
+        if (!paNumber.trim() || !expirationDate) {
+          toast({ title: "Missing Information", description: "PA number and expiration date are required.", variant: "destructive" });
+          return;
+        }
+        await adminApi.recordPADecision(referral.id, {
+          decision: 'approved',
+          decision_date: new Date().toISOString().split('T')[0],
+          expiration_date: expirationDate.toISOString().split('T')[0],
+          pa_number: paNumber,
+          ref_number: refNumber,
+          approval_duration: "",
+        });
+        toast({ title: "PA Approved", description: `PA for ${referral.patient_name} has been marked as approved.` });
+        setIsEditMode(false);
+        setTimeout(() => window.location.reload(), 1000);
+      } else if (paDecisionStatus === "denied") {
+        if (!denialReason.trim()) {
+          toast({ title: "Reason Required", description: "Please provide a denial reason.", variant: "destructive" });
+          return;
+        }
+        await adminApi.recordPADecision(referral.id, {
+          decision: 'denied',
+          decision_date: new Date().toISOString().split('T')[0],
+          denial_reason: denialReason,
+        });
+        toast({ title: "PA Denied", description: "PA denial has been recorded." });
+        setIsEditMode(false);
+        setTimeout(() => window.location.reload(), 1000);
+      } else {
+        // processing — just save submission date
+        if (!startDate) {
+          toast({ title: "Date Required", description: "Please select a submission date.", variant: "destructive" });
+          return;
+        }
         await adminApi.submitPA(
           referral.id,
           startDate.toISOString().split('T')[0]
         );
-        toast({ title: "PA Submitted", description: "Prior authorization has been submitted to insurance." });
+        toast({ title: "PA Submitted", description: "Prior authorization submission date saved." });
         setIsEditMode(false);
-      } else {
-        toast({ title: "Date Required", description: "Please select a submission date before saving.", variant: "destructive" });
       }
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to submit PA", variant: "destructive" });
+      toast({ title: "Error", description: err.message || "Failed to save PA", variant: "destructive" });
     }
   };
 
