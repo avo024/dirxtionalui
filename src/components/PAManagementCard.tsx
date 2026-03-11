@@ -116,7 +116,7 @@ function PAWorkflowCard({ referral, paInfo }: { referral: Referral; paInfo: Refe
     }
   }, [referral.id, referral.pa_status, referral.pa_expiration_date]);
 
-  const canMarkComplete = paDecisionStatus === "approved" && paNumber.trim() !== "" && expirationDate !== undefined && uploadedFile !== null;
+  const canMarkComplete = paDecisionStatus === "approved" && paNumber.trim() !== "" && expirationDate !== undefined;
 
   const handleFileSelect = (file: File) => {
     const validTypes = ["application/pdf", "image/jpeg", "image/png"];
