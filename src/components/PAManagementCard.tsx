@@ -99,7 +99,7 @@ function PAWorkflowCard({ referral, paInfo }: { referral: Referral; paInfo: Refe
     // Load existing PA data fields from referral.pa_data
     const paData = (referral as any).pa_data || {};
     if (paData.pa_number) setPaNumber(paData.pa_number);
-    if (paData.ref_number) setRefNumber(paData.ref_number);
+    if (paData.reference_number || paData.ref_number) setRefNumber(paData.reference_number || paData.ref_number);
     if (paData.denial_reason) setDenialReason(paData.denial_reason);
     if (paData.notes) setPaNotes(paData.notes);
     if (paData.submitted_date) {
