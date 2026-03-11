@@ -170,21 +170,25 @@ export default function PatientDetail() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
                 <p className="text-xs text-muted-foreground mb-0.5">Current Drug</p>
-                <p className="text-sm font-medium text-foreground">{patient.last_drug || '—'} {patient.last_dosage || ''}</p>
+                <p className="text-sm font-medium text-foreground">
+                  {patient.last_drug ? `${patient.last_drug} ${patient.last_dosage || ''}`.trim() : '—'}
+                </p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground mb-0.5">PA Status</p>
-                <PAStatusBadge status={patient.pa_status} expirationDate={patient.pa_expiration_date} />
+                <PAStatusBadge status={patient.pa_status || 'none'} expirationDate={patient.pa_expiration_date} />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground mb-0.5">PA Expiration</p>
                 <p className="text-sm font-medium text-foreground">
-                  {patient.pa_expiration_date ? formatDateShort(patient.pa_expiration_date) : "N/A"}
+                  {patient.pa_expiration_date ? formatDateShort(patient.pa_expiration_date) : 'N/A'}
                 </p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground mb-0.5">Last Referral</p>
-                <p className="text-sm font-medium text-foreground">{patient.created_at ? getRelativeTime(patient.created_at) : '—'}</p>
+                <p className="text-sm font-medium text-foreground">
+                  {referrals.length > 0 ? formatDateShort(referrals[0].created_at) : '—'}
+                </p>
               </div>
             </div>
             {patient.pa_status === "expiring" && (
