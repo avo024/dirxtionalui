@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,9 +18,24 @@ import {
   CheckCircle, Loader2, AlertTriangle, Search, X, Sparkles
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { mockPatients, type Patient } from "@/data/mockData";
+import { clinicApi } from "@/lib/api";
+import { mapManualFormToBackend } from "@/lib/dataMapper";
 // Drug/ICD10 options removed — fields are now free text
 import { formatDateShort } from "@/lib/dateUtils";
+
+type Patient = {
+  id: string;
+  full_name?: string;
+  first_name?: string;
+  last_name?: string;
+  dob?: string;
+  phone_primary?: string;
+  phone?: string;
+  pa_status?: string;
+  pa_expiration_date?: string;
+  last_drug?: string;
+  last_dosage?: string;
+};
 
 const steps = [
   { label: "Select Patient", icon: Users },
@@ -33,22 +48,27 @@ interface UploadedFile {
   name: string;
   size: string;
   zone: "required" | "insurance" | "additional";
+  file?: File;
 }
 
 
 export default function CreateReferral() {
   const [searchParams] = useSearchParams();
   const preselectedPatientId = searchParams.get("patientId");
-  const preselectedPatient = preselectedPatientId
-    ? mockPatients.find((p) => p.id === preselectedPatientId)
-    : null;
 
-  const [currentStep, setCurrentStep] = useState(preselectedPatient ? 1 : 0);
-  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(preselectedPatient || null);
-  const [patientMode, setPatientMode] = useState<"existing" | "new" | null>(preselectedPatient ? "existing" : null);
+  const [currentStep, setCurrentStep] = useState(preselectedPatientId ? 1 : 0);
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [patientMode, setPatientMode] = useState<"existing" | "new" | null>(preselectedPatientId ? "existing" : null);
   const [patientSearch, setPatientSearch] = useState("");
   const [newPatient, setNewPatient] = useState({ firstName: "", lastName: "", dob: "", phone: "" });
 
+  // Fetch preselected patient
+  useEffect(() => {
+    if (!preselectedPatientId) return;
+    clinicApi.getPatient(preselectedPatientId)
+      .then((data) => setSelectedPatient(data))
+      .catch(() => toast({ title: "Error", description: "Failed to load patient", variant: "destructive" }));
+  }, [preselectedPatientId]);
 
   // Referral method
   const [referralMethod, setReferralMethod] = useState<"upload" | "manual" | null>(null);
@@ -83,15 +103,21 @@ export default function CreateReferral() {
   const progress = Math.round(((currentStep + 1) / steps.length) * 100);
 
 
-  // Patient search
-  const filteredPatients = useMemo(() => {
-    if (!patientSearch.trim()) return [];
-    const q = patientSearch.toLowerCase();
-    return mockPatients.filter((p) =>
-      `${p.first_name} ${p.last_name}`.toLowerCase().includes(q) ||
-      p.dob.includes(q) ||
-      p.phone.includes(q)
-    ).slice(0, 5);
+  // Patient search (debounced API call)
+  const [filteredPatients, setFilteredPatients] = useState<Patient[]>([]);
+  const searchTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (!patientSearch.trim()) {
+      setFilteredPatients([]);
+      return;
+    }
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    searchTimeout.current = setTimeout(() => {
+      clinicApi.getPatients(patientSearch)
+        .then((data) => setFilteredPatients((data.items || []).slice(0, 5)))
+        .catch(() => setFilteredPatients([]));
+    }, 300);
   }, [patientSearch]);
 
   const getAge = (dob: string) => {
@@ -103,19 +129,20 @@ export default function CreateReferral() {
     return age;
   };
 
-  const simulateUpload = (zone: UploadedFile["zone"]) => {
-    const names: Record<string, string> = {
-      required: "referral-form.pdf",
-      insurance: "insurance-card.jpg",
-      additional: "chart-notes.pdf",
-    };
-    const file: UploadedFile = {
-      id: `file-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
-      name: names[zone] || "document.pdf",
-      size: `${(Math.random() * 4 + 0.5).toFixed(1)} MB`,
+  const handleRealFileUpload = async (file: File, zone: UploadedFile["zone"]) => {
+    const validTypes = ["application/pdf", "image/jpeg", "image/png"];
+    if (!validTypes.includes(file.type)) {
+      toast({ title: "Invalid file type", description: "Please upload PDF, JPG, or PNG", variant: "destructive" });
+      return;
+    }
+    const newFile: UploadedFile = {
+      id: `file-${Date.now()}`,
+      name: file.name,
+      size: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
       zone,
+      file,
     };
-    setUploadedFiles((prev) => [...prev, file]);
+    setUploadedFiles((prev) => [...prev, newFile]);
   };
 
   const removeFile = (id: string) => {
@@ -130,13 +157,69 @@ export default function CreateReferral() {
     }, 3000);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setSubmitting(true);
-    setTimeout(() => {
+    try {
+      // Step 1: Create patient if new
+      let patientId = selectedPatient?.id;
+      if (patientMode === "new") {
+        const created = await clinicApi.createPatient({
+          full_name: `${newPatient.firstName} ${newPatient.lastName}`.trim(),
+          dob: newPatient.dob,
+          phone_primary: newPatient.phone,
+        });
+        patientId = created.id;
+      }
+
+      // Step 2: Build referral payload
+      const referralPayload: any = {
+        patient_id: patientId,
+        referral_method: referralMethod,
+        urgency: "routine",
+      };
+
+      if (referralMethod === "manual") {
+        const mapped = mapManualFormToBackend(manualData);
+        referralPayload.extracted_data = mapped;
+        referralPayload.drug_requested = manualData.drugRequested;
+      } else {
+        referralPayload.drug_requested = "";
+      }
+
+      // Step 3: Create referral
+      const referral = await clinicApi.createReferral(referralPayload);
+
+      // Step 4: Upload files if any
+      if (uploadedFiles.length > 0) {
+        for (const f of uploadedFiles) {
+          if (f.file) {
+            try {
+              await clinicApi.uploadDocument(referral.id, f.file, f.zone);
+            } catch (err) {
+              console.error("File upload failed:", err);
+            }
+          }
+        }
+      }
+
       setSubmitting(false);
       setSubmitted(true);
-    }, 2000);
+
+    } catch (err: any) {
+      setSubmitting(false);
+      toast({
+        title: "Submission Failed",
+        description: err.message || "Failed to create referral. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
+
+  const getPatientName = (patient: Patient) =>
+    patient.full_name || `${patient.first_name || ''} ${patient.last_name || ''}`.trim();
+
+  const getPatientPhone = (patient: Patient) =>
+    patient.phone_primary || patient.phone || '—';
 
   const canProceedStep1 = patientMode === "existing" ? !!selectedPatient : !!(newPatient.firstName && newPatient.lastName && newPatient.dob && newPatient.phone);
   const canProceedStep2 = referralMethod === "upload" ? uploadedFiles.length > 0 : (manualData.diagnosisCode && manualData.drugRequested);
@@ -226,8 +309,8 @@ export default function CreateReferral() {
               <Users className="h-4 w-4 text-primary" />
             </div>
             <div>
-              <p className="text-sm font-medium text-foreground">{selectedPatient.first_name} {selectedPatient.last_name}</p>
-              <p className="text-xs text-muted-foreground">DOB: {formatDateShort(selectedPatient.dob)} · {selectedPatient.phone}</p>
+              <p className="text-sm font-medium text-foreground">{getPatientName(selectedPatient)}</p>
+              <p className="text-xs text-muted-foreground">DOB: {formatDateShort(selectedPatient.dob || '')} · {getPatientPhone(selectedPatient)}</p>
             </div>
           </div>
         </div>
@@ -281,8 +364,8 @@ export default function CreateReferral() {
                               selectedPatient?.id === p.id && "bg-primary/5"
                             )}
                           >
-                            <p className="text-sm font-medium text-foreground">{p.first_name} {p.last_name}</p>
-                            <p className="text-xs text-muted-foreground">DOB: {formatDateShort(p.dob)} · Last: {p.last_drug}</p>
+                            <p className="text-sm font-medium text-foreground">{getPatientName(p)}</p>
+                            <p className="text-xs text-muted-foreground">DOB: {formatDateShort(p.dob || '')} · Last: {p.last_drug || '—'}</p>
                           </button>
                         ))}
                       </div>
@@ -290,17 +373,17 @@ export default function CreateReferral() {
                     {selectedPatient && (
                       <div className="rounded-lg bg-secondary/50 p-3 space-y-1.5">
                         <div className="flex items-center justify-between">
-                          <p className="text-sm font-semibold text-foreground">{selectedPatient.first_name} {selectedPatient.last_name}</p>
+                          <p className="text-sm font-semibold text-foreground">{getPatientName(selectedPatient)}</p>
                           <button onClick={(e) => { e.stopPropagation(); setSelectedPatient(null); }} className="text-muted-foreground hover:text-foreground">
                             <X className="h-4 w-4" />
                           </button>
                         </div>
-                        <p className="text-xs text-muted-foreground">DOB: {formatDateShort(selectedPatient.dob)} · Phone: {selectedPatient.phone}</p>
+                        <p className="text-xs text-muted-foreground">DOB: {formatDateShort(selectedPatient.dob || '')} · Phone: {getPatientPhone(selectedPatient)}</p>
                         <div className="flex items-center gap-2">
                           <Pill className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-xs text-muted-foreground">Last drug: {selectedPatient.last_drug} {selectedPatient.last_dosage}</span>
+                          <span className="text-xs text-muted-foreground">Last drug: {selectedPatient.last_drug || '—'} {selectedPatient.last_dosage || ''}</span>
                         </div>
-                        <PAStatusBadge status={selectedPatient.pa_status} expirationDate={selectedPatient.pa_expiration_date} />
+                        <PAStatusBadge status={(selectedPatient.pa_status as any) || 'none'} expirationDate={selectedPatient.pa_expiration_date} />
                       </div>
                     )}
                   </div>
@@ -410,6 +493,10 @@ export default function CreateReferral() {
               <p className="text-sm text-muted-foreground">Upload all relevant documents for this referral</p>
             </div>
 
+            <input id="upload-required" type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => e.target.files?.[0] && handleRealFileUpload(e.target.files[0], 'required')} />
+            <input id="upload-insurance" type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => e.target.files?.[0] && handleRealFileUpload(e.target.files[0], 'insurance')} />
+            <input id="upload-additional" type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => e.target.files?.[0] && handleRealFileUpload(e.target.files[0], 'additional')} />
+
             <div className="space-y-4">
               <UploadZone
                 label="Referral Form / Prescription"
@@ -417,7 +504,7 @@ export default function CreateReferral() {
                 icon={FileText}
                 required
                 files={uploadedFiles.filter((f) => f.zone === "required")}
-                onUpload={() => simulateUpload("required")}
+                onUpload={() => document.getElementById('upload-required')?.click()}
                 onRemove={removeFile}
               />
               <UploadZone
@@ -425,7 +512,7 @@ export default function CreateReferral() {
                 subtitle="Front & back — Upload both as separate files"
                 icon={Shield}
                 files={uploadedFiles.filter((f) => f.zone === "insurance")}
-                onUpload={() => simulateUpload("insurance")}
+                onUpload={() => document.getElementById('upload-insurance')?.click()}
                 onRemove={removeFile}
               />
               <UploadZone
@@ -433,7 +520,7 @@ export default function CreateReferral() {
                 subtitle="Optional — Any additional supporting documents"
                 icon={FileText}
                 files={uploadedFiles.filter((f) => f.zone === "additional")}
-                onUpload={() => simulateUpload("additional")}
+                onUpload={() => document.getElementById('upload-additional')?.click()}
                 onRemove={removeFile}
               />
             </div>
@@ -701,9 +788,9 @@ export default function CreateReferral() {
                 {/* Patient Info */}
                 <ReviewCard icon={Users} title="Patient Information">
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    <ReviewField label="Name" value={selectedPatient ? `${selectedPatient.first_name} ${selectedPatient.last_name}` : `${newPatient.firstName} ${newPatient.lastName}`} />
-                    <ReviewField label="DOB" value={selectedPatient ? formatDateShort(selectedPatient.dob) : newPatient.dob} />
-                    <ReviewField label="Phone" value={selectedPatient?.phone || newPatient.phone} />
+                    <ReviewField label="Name" value={selectedPatient ? getPatientName(selectedPatient) : `${newPatient.firstName} ${newPatient.lastName}`} />
+                    <ReviewField label="DOB" value={selectedPatient ? formatDateShort(selectedPatient.dob || '') : newPatient.dob} />
+                    <ReviewField label="Phone" value={selectedPatient ? getPatientPhone(selectedPatient) : newPatient.phone} />
                   </div>
                 </ReviewCard>
 

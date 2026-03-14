@@ -91,6 +91,15 @@ export const clinicApi = {
     });
     return handleResponse(response);
   },
+
+  async createPatient(data: any): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/patients`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
 };
 
 // ============================================================================
