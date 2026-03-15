@@ -487,6 +487,34 @@ export default function CreateReferral() {
                         <Input value={newPatient.zip} onChange={(e) => setNewPatient((p) => ({ ...p, zip: e.target.value }))} placeholder="62701" className="mt-1" />
                       </div>
                     </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Middle Initial</Label>
+                        <Input placeholder="M" maxLength={1} value={newPatient.mi || ""} onChange={(e) => setNewPatient((p) => ({ ...p, mi: e.target.value }))} className="mt-1" />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Height</Label>
+                        <Input placeholder='e.g. 5&apos;6"' value={newPatient.height || ""} onChange={(e) => setNewPatient((p) => ({ ...p, height: e.target.value }))} className="mt-1" />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Weight</Label>
+                        <Input placeholder="e.g. 145 lbs" value={newPatient.weight || ""} onChange={(e) => setNewPatient((p) => ({ ...p, weight: e.target.value }))} className="mt-1" />
+                      </div>
+                    </div>
+                    <div className="col-span-2">
+                      <Label className="text-xs text-muted-foreground">Allergies</Label>
+                      <Input placeholder="e.g. Penicillin, Sulfa" value={newPatient.allergies || ""} onChange={(e) => setNewPatient((p) => ({ ...p, allergies: e.target.value }))} className="mt-1" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Authorized Representative</Label>
+                        <Input placeholder="Name (if applicable)" value={newPatient.authorizedRepresentative || ""} onChange={(e) => setNewPatient((p) => ({ ...p, authorizedRepresentative: e.target.value }))} className="mt-1" />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Representative Phone</Label>
+                        <Input placeholder="Phone (if applicable)" value={newPatient.authorizedRepresentativePhone || ""} onChange={(e) => setNewPatient((p) => ({ ...p, authorizedRepresentativePhone: e.target.value }))} className="mt-1" />
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
