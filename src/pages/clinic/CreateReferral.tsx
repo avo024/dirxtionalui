@@ -60,7 +60,10 @@ export default function CreateReferral() {
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [patientMode, setPatientMode] = useState<"existing" | "new" | null>(preselectedPatientId ? "existing" : null);
   const [patientSearch, setPatientSearch] = useState("");
-  const [newPatient, setNewPatient] = useState({ firstName: "", lastName: "", dob: "", phone: "" });
+  const [newPatient, setNewPatient] = useState({ 
+    firstName: "", lastName: "", dob: "", phone: "", 
+    email: "", gender: "", address: "", city: "", state: "", zip: "" 
+  });
 
   // Fetch preselected patient
   useEffect(() => {
