@@ -404,6 +404,7 @@ function PAWorkflowCard({ referral, paInfo }: { referral: Referral; paInfo: Refe
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="not_started">Not Started</SelectItem>
                 <SelectItem value="processing">Processing</SelectItem>
                 <SelectItem value="approved">Approved</SelectItem>
                 <SelectItem value="denied">Denied</SelectItem>
