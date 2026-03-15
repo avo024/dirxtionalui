@@ -428,20 +428,56 @@ export default function CreateReferral() {
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1">
                         <Label className="text-xs">First Name <span className="text-destructive">*</span></Label>
-                        <Input value={newPatient.firstName} onChange={(e) => setNewPatient((p) => ({ ...p, firstName: e.target.value }))} placeholder="John" />
+                        <Input value={newPatient.firstName} onChange={(e) => setNewPatient((p) => ({ ...p, firstName: e.target.value }))} placeholder="John" className="mt-1" />
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs">Last Name <span className="text-destructive">*</span></Label>
-                        <Input value={newPatient.lastName} onChange={(e) => setNewPatient((p) => ({ ...p, lastName: e.target.value }))} placeholder="Doe" />
+                        <Input value={newPatient.lastName} onChange={(e) => setNewPatient((p) => ({ ...p, lastName: e.target.value }))} placeholder="Doe" className="mt-1" />
                       </div>
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs">Date of Birth <span className="text-destructive">*</span></Label>
-                      <Input type="date" value={newPatient.dob} onChange={(e) => setNewPatient((p) => ({ ...p, dob: e.target.value }))} />
+                      <Input type="date" value={newPatient.dob} onChange={(e) => setNewPatient((p) => ({ ...p, dob: e.target.value }))} className="mt-1" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Gender <span className="text-destructive">*</span></Label>
+                      <Select value={newPatient.gender} onValueChange={(v) => setNewPatient((p) => ({ ...p, gender: v }))}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Select gender" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Male">Male</SelectItem>
+                          <SelectItem value="Female">Female</SelectItem>
+                          <SelectItem value="Other">Other</SelectItem>
+                          <SelectItem value="Prefer not to say">Prefer not to say</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs">Phone <span className="text-destructive">*</span></Label>
-                      <Input value={newPatient.phone} onChange={(e) => setNewPatient((p) => ({ ...p, phone: e.target.value }))} placeholder="(555) 123-4567" />
+                      <Input value={newPatient.phone} onChange={(e) => setNewPatient((p) => ({ ...p, phone: e.target.value }))} placeholder="(555) 123-4567" className="mt-1" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Email</Label>
+                      <Input type="email" value={newPatient.email || ""} onChange={(e) => setNewPatient((p) => ({ ...p, email: e.target.value }))} placeholder="patient@email.com" className="mt-1" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Address <span className="text-destructive">*</span></Label>
+                      <Input value={newPatient.address} onChange={(e) => setNewPatient((p) => ({ ...p, address: e.target.value }))} placeholder="123 Main St" className="mt-1" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">City <span className="text-destructive">*</span></Label>
+                      <Input value={newPatient.city} onChange={(e) => setNewPatient((p) => ({ ...p, city: e.target.value }))} placeholder="Springfield" className="mt-1" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs">State <span className="text-destructive">*</span></Label>
+                        <Input value={newPatient.state} onChange={(e) => setNewPatient((p) => ({ ...p, state: e.target.value.toUpperCase() }))} placeholder="IL" maxLength={2} className="mt-1" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Zip <span className="text-destructive">*</span></Label>
+                        <Input value={newPatient.zip} onChange={(e) => setNewPatient((p) => ({ ...p, zip: e.target.value }))} placeholder="62701" className="mt-1" />
+                      </div>
                     </div>
                   </div>
                 )}
