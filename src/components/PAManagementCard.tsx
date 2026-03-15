@@ -174,15 +174,12 @@ function PAWorkflowCard({ referral, paInfo }: { referral: Referral; paInfo: Refe
         setIsEditMode(false);
         setTimeout(() => window.location.reload(), 1000);
       } else {
-        // processing — just save submission date
-        if (!startDate) {
-          toast({ title: "Date Required", description: "Please select a submission date.", variant: "destructive" });
-          return;
-        }
-        await adminApi.submitPA(
-          referral.id,
-          startDate.toISOString().split('T')[0]
-        );
+        // processing — just save submission date (default to today if none selected)
+        const submissionDate = startDate 
+          ? startDate.toISOString().split('T')[0] 
+          : new Date().toISOString().split('T')[0];
+        await adminApi.submitPA(referral.id, submissionDate);
+        if (!startDate) setStartDate(new Date());
         toast({ title: "PA Submitted", description: "Prior authorization submission date saved." });
         setIsEditMode(false);
       }
