@@ -230,7 +230,17 @@ export default function CreateReferral() {
   const getPatientPhone = (patient: Patient) =>
     patient.phone_primary || patient.phone || '—';
 
-  const canProceedStep1 = patientMode === "existing" ? !!selectedPatient : !!(newPatient.firstName && newPatient.lastName && newPatient.dob && newPatient.phone);
+  const canProceedStep1 = patientMode === "existing" ? !!selectedPatient : !!(
+    newPatient.firstName.trim() !== "" &&
+    newPatient.lastName.trim() !== "" &&
+    newPatient.dob !== "" &&
+    newPatient.phone.trim() !== "" &&
+    newPatient.gender !== "" &&
+    newPatient.address.trim() !== "" &&
+    newPatient.city.trim() !== "" &&
+    newPatient.state.trim() !== "" &&
+    newPatient.zip.trim() !== ""
+  );
   const canProceedStep2 = referralMethod === "upload" ? uploadedFiles.length > 0 : (manualData.diagnosisCode && manualData.drugRequested);
 
   // SUCCESS STATE
