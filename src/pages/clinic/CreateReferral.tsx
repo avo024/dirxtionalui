@@ -411,7 +411,7 @@ export default function CreateReferral() {
 
               {/* New Patient Card */}
               <div
-                onClick={() => setPatientMode("new")}
+                onClick={() => { setPatientMode("new"); setSelectedPatient(null); }}
                 className={cn(
                   "rounded-xl border-2 p-5 cursor-pointer transition-all duration-200",
                   patientMode === "new" ? "border-primary bg-primary/[0.02]" : "border-border hover:border-primary/40"
