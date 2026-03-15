@@ -28,7 +28,7 @@ import { toast } from "@/hooks/use-toast";
 import { adminApi } from "@/lib/api";
 import type { Referral, ReferralPAInfo } from "@/data/mockData";
 
-export type PADecisionStatus = "processing" | "approved" | "denied";
+export type PADecisionStatus = "not_started" | "processing" | "approved" | "denied";
 
 interface PAManagementCardProps {
   referral: Referral;
