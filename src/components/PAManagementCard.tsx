@@ -247,6 +247,13 @@ function PAWorkflowCard({ referral, paInfo }: { referral: Referral; paInfo: Refe
 
   const paStatusBadge = () => {
     switch (paDecisionStatus) {
+      case "not_started":
+        return (
+          <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium bg-muted text-muted-foreground">
+            <Shield className="h-3 w-3" />
+            Not Started
+          </span>
+        );
       case "processing":
         return (
           <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium bg-warning/10 text-warning">
