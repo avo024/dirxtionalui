@@ -92,6 +92,9 @@ function PAWorkflowCard({ referral, paInfo }: { referral: Referral; paInfo: Refe
     } else if (referral.pa_status === 'pending' || (referral.pa_status as string) === 'submitted') {
       setPaDecisionStatus('processing');
       setIsEditMode(true);
+    } else if (!referral.pa_status || referral.pa_status === null) {
+      setPaDecisionStatus('not_started');
+      setIsEditMode(false);
     } else {
       setPaDecisionStatus('processing');
       setIsEditMode(!referral.pa_expiration_date);
