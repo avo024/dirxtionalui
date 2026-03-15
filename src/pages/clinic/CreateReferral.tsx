@@ -925,7 +925,12 @@ export default function CreateReferral() {
                     <ReviewField label="Dose/Strength" value={manualData.dosing || "—"} />
                     <ReviewField label="Quantity" value={manualData.quantity || "—"} />
                     <ReviewField label="Frequency" value={manualData.frequency || "—"} />
-                    <ReviewField label="Therapy Type" value={manualData.therapyType || "—"} />
+                    <ReviewField label="Therapy Type" value={
+                      manualData.therapyType === "new" ? "New Therapy" :
+                      manualData.therapyType === "renewal" ? "Renewal" :
+                      manualData.therapyType === "step_therapy" ? "Step Therapy" :
+                      manualData.therapyType || "—"
+                    } />
                     <ReviewField label="Refill" value={manualData.isRefill ? "Yes" : "No"} />
                     <ReviewField label="Administration" value={manualData.administration || "—"} />
                     <ReviewField label="Duration" value={manualData.durationOfTherapy || "—"} />
