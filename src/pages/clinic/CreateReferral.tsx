@@ -170,6 +170,12 @@ export default function CreateReferral() {
           full_name: `${newPatient.firstName} ${newPatient.lastName}`.trim(),
           dob: newPatient.dob,
           phone_primary: newPatient.phone,
+          email: newPatient.email,
+          gender: newPatient.gender,
+          address: newPatient.address,
+          city: newPatient.city,
+          state: newPatient.state,
+          zip: newPatient.zip,
         });
         patientId = created.id;
       }
