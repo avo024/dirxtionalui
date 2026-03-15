@@ -62,7 +62,9 @@ export default function CreateReferral() {
   const [patientSearch, setPatientSearch] = useState("");
   const [newPatient, setNewPatient] = useState({ 
     firstName: "", lastName: "", dob: "", phone: "", 
-    email: "", gender: "", address: "", city: "", state: "", zip: "" 
+    email: "", gender: "", address: "", city: "", state: "", zip: "",
+    mi: "", height: "", weight: "", allergies: "",
+    authorizedRepresentative: "", authorizedRepresentativePhone: "",
   });
 
   // Fetch preselected patient
