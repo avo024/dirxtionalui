@@ -195,11 +195,40 @@ export default function CreateReferral() {
         urgency: "routine",
       };
 
+      // Build patient section from actual patient data
+      const patientSection = patientMode === "new" ? {
+        first_name: newPatient.firstName,
+        last_name: newPatient.lastName,
+        mi: newPatient.mi || "",
+        dob: newPatient.dob,
+        gender: newPatient.gender,
+        phone: newPatient.phone,
+        email: newPatient.email || "",
+        address: newPatient.address,
+        city: newPatient.city,
+        state: newPatient.state,
+        zip: newPatient.zip,
+        height: newPatient.height || "",
+        weight: newPatient.weight || "",
+        allergies: newPatient.allergies || "",
+        authorized_representative: newPatient.authorizedRepresentative || "",
+        authorized_representative_phone: newPatient.authorizedRepresentativePhone || "",
+      } : {
+        first_name: selectedPatient?.full_name?.split(' ')[0] || "",
+        last_name: selectedPatient?.full_name?.split(' ').slice(1).join(' ') || "",
+        dob: selectedPatient?.dob || "",
+        phone: selectedPatient?.phone_primary || selectedPatient?.phone || "",
+      };
+
       if (referralMethod === "manual") {
         const mapped = mapManualFormToBackend(manualData);
-        referralPayload.extracted_data = mapped;
+        referralPayload.extracted_data = {
+          ...mapped,
+          patient: { ...((mapped as any).patient || {}), ...patientSection },
+        };
         referralPayload.drug_requested = manualData.drugRequested;
       } else {
+        referralPayload.extracted_data = { patient: patientSection };
         referralPayload.drug_requested = "";
       }
 
