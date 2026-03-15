@@ -321,7 +321,7 @@ export default function CreateReferral() {
       </div>
 
       {/* Selected patient banner (sticky when on step 2+) */}
-      {selectedPatient && currentStep > 0 && (
+      {selectedPatient && patientMode === "existing" && currentStep > 0 && (
         <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
@@ -349,7 +349,7 @@ export default function CreateReferral() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Existing Patient Card */}
               <div
-                onClick={() => setPatientMode("existing")}
+                onClick={() => { setPatientMode("existing"); setNewPatient({ firstName: "", lastName: "", dob: "", phone: "", email: "", gender: "", address: "", city: "", state: "", zip: "" }); }}
                 className={cn(
                   "rounded-xl border-2 p-5 cursor-pointer transition-all duration-200",
                   patientMode === "existing" ? "border-primary bg-primary/[0.02]" : "border-border hover:border-primary/40"
@@ -411,7 +411,7 @@ export default function CreateReferral() {
 
               {/* New Patient Card */}
               <div
-                onClick={() => setPatientMode("new")}
+                onClick={() => { setPatientMode("new"); setSelectedPatient(null); }}
                 className={cn(
                   "rounded-xl border-2 p-5 cursor-pointer transition-all duration-200",
                   patientMode === "new" ? "border-primary bg-primary/[0.02]" : "border-border hover:border-primary/40"
