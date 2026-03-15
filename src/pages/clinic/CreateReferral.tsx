@@ -377,7 +377,7 @@ export default function CreateReferral() {
                         {filteredPatients.map((p) => (
                           <button
                             key={p.id}
-                            onClick={(e) => { e.stopPropagation(); setSelectedPatient(p); setPatientSearch(""); }}
+                            onClick={(e) => { e.stopPropagation(); setSelectedPatient(p); setPatientSearch(""); if (p.last_drug) { setManualData((prev) => ({ ...prev, drugRequested: p.last_drug || "" })); } }}
                             className={cn(
                               "w-full text-left px-3 py-2.5 border-b border-border last:border-0 hover:bg-secondary/50 transition-colors",
                               selectedPatient?.id === p.id && "bg-primary/5"
