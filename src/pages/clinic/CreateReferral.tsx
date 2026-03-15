@@ -60,7 +60,10 @@ export default function CreateReferral() {
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [patientMode, setPatientMode] = useState<"existing" | "new" | null>(preselectedPatientId ? "existing" : null);
   const [patientSearch, setPatientSearch] = useState("");
-  const [newPatient, setNewPatient] = useState({ firstName: "", lastName: "", dob: "", phone: "" });
+  const [newPatient, setNewPatient] = useState({ 
+    firstName: "", lastName: "", dob: "", phone: "", 
+    email: "", gender: "", address: "", city: "", state: "", zip: "" 
+  });
 
   // Fetch preselected patient
   useEffect(() => {
@@ -167,6 +170,12 @@ export default function CreateReferral() {
           full_name: `${newPatient.firstName} ${newPatient.lastName}`.trim(),
           dob: newPatient.dob,
           phone_primary: newPatient.phone,
+          email: newPatient.email,
+          gender: newPatient.gender,
+          address: newPatient.address,
+          city: newPatient.city,
+          state: newPatient.state,
+          zip: newPatient.zip,
         });
         patientId = created.id;
       }
@@ -221,7 +230,17 @@ export default function CreateReferral() {
   const getPatientPhone = (patient: Patient) =>
     patient.phone_primary || patient.phone || '—';
 
-  const canProceedStep1 = patientMode === "existing" ? !!selectedPatient : !!(newPatient.firstName && newPatient.lastName && newPatient.dob && newPatient.phone);
+  const canProceedStep1 = patientMode === "existing" ? !!selectedPatient : !!(
+    newPatient.firstName.trim() !== "" &&
+    newPatient.lastName.trim() !== "" &&
+    newPatient.dob !== "" &&
+    newPatient.phone.trim() !== "" &&
+    newPatient.gender !== "" &&
+    newPatient.address.trim() !== "" &&
+    newPatient.city.trim() !== "" &&
+    newPatient.state.trim() !== "" &&
+    newPatient.zip.trim() !== ""
+  );
   const canProceedStep2 = referralMethod === "upload" ? uploadedFiles.length > 0 : (manualData.diagnosisCode && manualData.drugRequested);
 
   // SUCCESS STATE
@@ -358,7 +377,7 @@ export default function CreateReferral() {
                         {filteredPatients.map((p) => (
                           <button
                             key={p.id}
-                            onClick={(e) => { e.stopPropagation(); setSelectedPatient(p); setPatientSearch(""); }}
+                            onClick={(e) => { e.stopPropagation(); setSelectedPatient(p); setPatientSearch(""); if (p.last_drug) { setManualData((prev) => ({ ...prev, drugRequested: p.last_drug || "" })); } }}
                             className={cn(
                               "w-full text-left px-3 py-2.5 border-b border-border last:border-0 hover:bg-secondary/50 transition-colors",
                               selectedPatient?.id === p.id && "bg-primary/5"
@@ -409,20 +428,56 @@ export default function CreateReferral() {
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1">
                         <Label className="text-xs">First Name <span className="text-destructive">*</span></Label>
-                        <Input value={newPatient.firstName} onChange={(e) => setNewPatient((p) => ({ ...p, firstName: e.target.value }))} placeholder="John" />
+                        <Input value={newPatient.firstName} onChange={(e) => setNewPatient((p) => ({ ...p, firstName: e.target.value }))} placeholder="John" className="mt-1" />
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs">Last Name <span className="text-destructive">*</span></Label>
-                        <Input value={newPatient.lastName} onChange={(e) => setNewPatient((p) => ({ ...p, lastName: e.target.value }))} placeholder="Doe" />
+                        <Input value={newPatient.lastName} onChange={(e) => setNewPatient((p) => ({ ...p, lastName: e.target.value }))} placeholder="Doe" className="mt-1" />
                       </div>
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs">Date of Birth <span className="text-destructive">*</span></Label>
-                      <Input type="date" value={newPatient.dob} onChange={(e) => setNewPatient((p) => ({ ...p, dob: e.target.value }))} />
+                      <Input type="date" value={newPatient.dob} onChange={(e) => setNewPatient((p) => ({ ...p, dob: e.target.value }))} className="mt-1" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Gender <span className="text-destructive">*</span></Label>
+                      <Select value={newPatient.gender} onValueChange={(v) => setNewPatient((p) => ({ ...p, gender: v }))}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Select gender" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Male">Male</SelectItem>
+                          <SelectItem value="Female">Female</SelectItem>
+                          <SelectItem value="Other">Other</SelectItem>
+                          <SelectItem value="Prefer not to say">Prefer not to say</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs">Phone <span className="text-destructive">*</span></Label>
-                      <Input value={newPatient.phone} onChange={(e) => setNewPatient((p) => ({ ...p, phone: e.target.value }))} placeholder="(555) 123-4567" />
+                      <Input value={newPatient.phone} onChange={(e) => setNewPatient((p) => ({ ...p, phone: e.target.value }))} placeholder="(555) 123-4567" className="mt-1" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Email</Label>
+                      <Input type="email" value={newPatient.email || ""} onChange={(e) => setNewPatient((p) => ({ ...p, email: e.target.value }))} placeholder="patient@email.com" className="mt-1" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Address <span className="text-destructive">*</span></Label>
+                      <Input value={newPatient.address} onChange={(e) => setNewPatient((p) => ({ ...p, address: e.target.value }))} placeholder="123 Main St" className="mt-1" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">City <span className="text-destructive">*</span></Label>
+                      <Input value={newPatient.city} onChange={(e) => setNewPatient((p) => ({ ...p, city: e.target.value }))} placeholder="Springfield" className="mt-1" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs">State <span className="text-destructive">*</span></Label>
+                        <Input value={newPatient.state} onChange={(e) => setNewPatient((p) => ({ ...p, state: e.target.value.toUpperCase() }))} placeholder="IL" maxLength={2} className="mt-1" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Zip <span className="text-destructive">*</span></Label>
+                        <Input value={newPatient.zip} onChange={(e) => setNewPatient((p) => ({ ...p, zip: e.target.value }))} placeholder="62701" className="mt-1" />
+                      </div>
                     </div>
                   </div>
                 )}
