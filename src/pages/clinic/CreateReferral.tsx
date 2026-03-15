@@ -908,49 +908,55 @@ export default function CreateReferral() {
                 {/* Patient Info */}
                 <ReviewCard icon={Users} title="Patient Information">
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    <ReviewField label="Name" value={selectedPatient ? getPatientName(selectedPatient) : `${newPatient.firstName} ${newPatient.lastName}`} />
-                    <ReviewField label="DOB" value={selectedPatient ? formatDateShort(selectedPatient.dob || '') : newPatient.dob} />
-                    <ReviewField label="Phone" value={selectedPatient ? getPatientPhone(selectedPatient) : newPatient.phone} />
+                    <ReviewField label="Name" value={patientMode === "new" ? `${newPatient.firstName} ${newPatient.lastName}`.trim() : (selectedPatient?.full_name || "—")} />
+                    <ReviewField label="DOB" value={patientMode === "new" ? newPatient.dob : (selectedPatient?.dob || "—")} />
+                    <ReviewField label="Phone" value={patientMode === "new" ? newPatient.phone : (selectedPatient?.phone_primary || selectedPatient?.phone || "—")} />
+                    <ReviewField label="Gender" value={patientMode === "new" ? newPatient.gender : "—"} />
+                    <ReviewField label="Address" value={patientMode === "new" ? `${newPatient.address}, ${newPatient.city}, ${newPatient.state} ${newPatient.zip}`.trim() : "—"} />
+                    <ReviewField label="Email" value={patientMode === "new" ? (newPatient.email || "—") : "—"} />
                   </div>
                 </ReviewCard>
 
-                {/* Clinical Info (extracted or manual) */}
+                {/* Clinical Info */}
                 <ReviewCard icon={Pill} title="Clinical Information">
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {referralMethod === "upload" ? (
-                      <>
-                        <ReviewField label="Diagnosis" value="L20.9 — Atopic Dermatitis" confidence={0.88} />
-                        <ReviewField label="Drug" value={selectedPatient?.last_drug || "Dupixent"} confidence={0.96} />
-                        <ReviewField label="Dosing" value={selectedPatient?.last_dosage || "300mg every 2 weeks"} confidence={0.65} />
-                        <ReviewField label="Quantity" value="2 syringes" confidence={0.92} />
-                        <ReviewField label="Urgency" value="Standard" confidence={0.95} />
-                      </>
-                    ) : (
-                      <>
-                        <ReviewField label="Diagnosis" value={manualData.diagnosisCode || "—"} />
-                        <ReviewField label="Drug" value={manualData.drugRequested || "—"} />
-                        <ReviewField label="Dosing" value={manualData.dosing || "—"} />
-                        <ReviewField label="Quantity" value={manualData.quantity || "—"} />
-                      </>
-                    )}
+                    <ReviewField label="Diagnosis (ICD-10)" value={manualData.diagnosisCode || "—"} />
+                    <ReviewField label="Drug Requested" value={manualData.drugRequested || "—"} />
+                    <ReviewField label="Dose/Strength" value={manualData.dosing || "—"} />
+                    <ReviewField label="Quantity" value={manualData.quantity || "—"} />
+                    <ReviewField label="Frequency" value={manualData.frequency || "—"} />
+                    <ReviewField label="Therapy Type" value={manualData.therapyType || "—"} />
+                    <ReviewField label="Refill" value={manualData.isRefill ? "Yes" : "No"} />
+                    <ReviewField label="Administration" value={manualData.administration || "—"} />
+                    <ReviewField label="Duration" value={manualData.durationOfTherapy || "—"} />
                   </div>
                 </ReviewCard>
 
                 {/* Provider */}
                 <ReviewCard icon={Stethoscope} title="Provider Information">
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {referralMethod === "upload" ? (
-                      <>
-                        <ReviewField label="Provider" value="Dr. Emily Martinez" confidence={0.97} />
-                        <ReviewField label="NPI" value="1234567890" confidence={0.72} />
-                        <ReviewField label="Phone" value="(214) 555-0200" confidence={0.91} />
-                      </>
-                    ) : (
-                      <>
-                        <ReviewField label="Provider" value={manualData.providerName || "—"} />
-                        <ReviewField label="NPI" value={manualData.npi || "—"} />
-                        <ReviewField label="Phone" value={manualData.providerPhone || "—"} />
-                      </>
+                    <ReviewField label="Provider Name" value={`${manualData.providerFirstName} ${manualData.providerLastName}`.trim() || "—"} />
+                    <ReviewField label="NPI" value={manualData.npi || "—"} />
+                    <ReviewField label="Phone" value={manualData.providerPhone || "—"} />
+                    <ReviewField label="Specialty" value={manualData.specialty || "—"} />
+                    <ReviewField label="Address" value={manualData.providerAddress ? `${manualData.providerAddress}, ${manualData.providerCity}, ${manualData.providerState}`.trim() : "—"} />
+                    <ReviewField label="Fax" value={manualData.providerFax || "—"} />
+                    <ReviewField label="Email" value={manualData.providerEmail || "—"} />
+                    <ReviewField label="Signature Date" value={manualData.signatureDate || "—"} />
+                  </div>
+                </ReviewCard>
+
+                {/* Insurance */}
+                <ReviewCard icon={Shield} title="Insurance Information">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    <ReviewField label="Has Insurance" value={manualData.hasInsurance ? "Yes" : "No"} />
+                    <ReviewField label="Primary Insurance" value={manualData.primaryInsuranceName || "—"} />
+                    <ReviewField label="Member ID" value={manualData.primaryMemberId || "—"} />
+                    {manualData.secondaryInsuranceName && (
+                      <ReviewField label="Secondary Insurance" value={manualData.secondaryInsuranceName} />
+                    )}
+                    {manualData.insuranceNotes && (
+                      <ReviewField label="Notes" value={manualData.insuranceNotes} />
                     )}
                   </div>
                 </ReviewCard>
