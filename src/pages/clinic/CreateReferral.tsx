@@ -357,7 +357,7 @@ export default function CreateReferral() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Existing Patient Card */}
               <div
-                onClick={() => { setPatientMode("existing"); setNewPatient({ firstName: "", lastName: "", dob: "", phone: "", email: "", gender: "", address: "", city: "", state: "", zip: "" }); }}
+                onClick={() => { setPatientMode("existing"); setNewPatient({ firstName: "", lastName: "", dob: "", phone: "", email: "", gender: "", address: "", city: "", state: "", zip: "", mi: "", height: "", weight: "", allergies: "", authorizedRepresentative: "", authorizedRepresentativePhone: "" }); }}
                 className={cn(
                   "rounded-xl border-2 p-5 cursor-pointer transition-all duration-200",
                   patientMode === "existing" ? "border-primary bg-primary/[0.02]" : "border-border hover:border-primary/40"
