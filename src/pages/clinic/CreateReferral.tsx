@@ -178,6 +178,12 @@ export default function CreateReferral() {
           city: newPatient.city,
           state: newPatient.state,
           zip: newPatient.zip,
+          mi: newPatient.mi,
+          height: newPatient.height,
+          weight: newPatient.weight,
+          allergies: newPatient.allergies,
+          authorized_representative: newPatient.authorizedRepresentative,
+          authorized_representative_phone: newPatient.authorizedRepresentativePhone,
         });
         patientId = created.id;
       }
