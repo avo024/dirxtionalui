@@ -321,7 +321,7 @@ export default function CreateReferral() {
       </div>
 
       {/* Selected patient banner (sticky when on step 2+) */}
-      {selectedPatient && currentStep > 0 && (
+      {selectedPatient && patientMode === "existing" && currentStep > 0 && (
         <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
