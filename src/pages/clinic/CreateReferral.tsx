@@ -224,7 +224,7 @@ export default function CreateReferral() {
         const mapped = mapManualFormToBackend(manualData);
         referralPayload.extracted_data = {
           ...mapped,
-          patient: { ...(mapped.patient || {}), ...patientSection },
+          patient: { ...((mapped as any).patient || {}), ...patientSection },
         };
         referralPayload.drug_requested = manualData.drugRequested;
       } else {
