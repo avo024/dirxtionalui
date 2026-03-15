@@ -139,6 +139,10 @@ function PAWorkflowCard({ referral, paInfo }: { referral: Referral; paInfo: Refe
   };
 
   const handleSave = async () => {
+    if (paDecisionStatus === "not_started") {
+      toast({ title: "Select a PA Status", description: "Please select Processing, Approved, or Denied before saving.", variant: "destructive" });
+      return;
+    }
     try {
       if (paDecisionStatus === "approved") {
         if (!paNumber.trim() || !expirationDate) {
