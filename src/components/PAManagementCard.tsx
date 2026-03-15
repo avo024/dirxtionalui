@@ -28,7 +28,7 @@ import { toast } from "@/hooks/use-toast";
 import { adminApi } from "@/lib/api";
 import type { Referral, ReferralPAInfo } from "@/data/mockData";
 
-export type PADecisionStatus = "processing" | "approved" | "denied";
+export type PADecisionStatus = "not_started" | "processing" | "approved" | "denied";
 
 interface PAManagementCardProps {
   referral: Referral;
@@ -92,6 +92,9 @@ function PAWorkflowCard({ referral, paInfo }: { referral: Referral; paInfo: Refe
     } else if (referral.pa_status === 'pending' || (referral.pa_status as string) === 'submitted') {
       setPaDecisionStatus('processing');
       setIsEditMode(true);
+    } else if (!referral.pa_status || referral.pa_status === null) {
+      setPaDecisionStatus('not_started');
+      setIsEditMode(false);
     } else {
       setPaDecisionStatus('processing');
       setIsEditMode(!referral.pa_expiration_date);
@@ -136,6 +139,10 @@ function PAWorkflowCard({ referral, paInfo }: { referral: Referral; paInfo: Refe
   };
 
   const handleSave = async () => {
+    if (paDecisionStatus === "not_started") {
+      toast({ title: "Select a PA Status", description: "Please select Processing, Approved, or Denied before saving.", variant: "destructive" });
+      return;
+    }
     try {
       if (paDecisionStatus === "approved") {
         if (!paNumber.trim() || !expirationDate) {
@@ -240,6 +247,13 @@ function PAWorkflowCard({ referral, paInfo }: { referral: Referral; paInfo: Refe
 
   const paStatusBadge = () => {
     switch (paDecisionStatus) {
+      case "not_started":
+        return (
+          <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium bg-muted text-muted-foreground">
+            <Shield className="h-3 w-3" />
+            Not Started
+          </span>
+        );
       case "processing":
         return (
           <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium bg-warning/10 text-warning">
@@ -268,6 +282,13 @@ function PAWorkflowCard({ referral, paInfo }: { referral: Referral; paInfo: Refe
 
   const ViewModeDisplay = () => (
     <div className="space-y-4">
+      {paDecisionStatus === "not_started" && (
+        <div className="flex items-center gap-2 py-2">
+          <Shield className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">PA not yet started. Click Edit PA Details to begin.</span>
+        </div>
+      )}
+
       {/* Status display */}
       <div className="flex items-center gap-3">
         <span className="text-xs text-muted-foreground">PA Status:</span>
@@ -383,6 +404,7 @@ function PAWorkflowCard({ referral, paInfo }: { referral: Referral; paInfo: Refe
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="not_started">Not Started</SelectItem>
                 <SelectItem value="processing">Processing</SelectItem>
                 <SelectItem value="approved">Approved</SelectItem>
                 <SelectItem value="denied">Denied</SelectItem>
