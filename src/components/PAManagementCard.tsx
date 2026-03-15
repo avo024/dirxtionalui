@@ -282,6 +282,13 @@ function PAWorkflowCard({ referral, paInfo }: { referral: Referral; paInfo: Refe
 
   const ViewModeDisplay = () => (
     <div className="space-y-4">
+      {paDecisionStatus === "not_started" && (
+        <div className="flex items-center gap-2 py-2">
+          <Shield className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">PA not yet started. Click Edit PA Details to begin.</span>
+        </div>
+      )}
+
       {/* Status display */}
       <div className="flex items-center gap-3">
         <span className="text-xs text-muted-foreground">PA Status:</span>
