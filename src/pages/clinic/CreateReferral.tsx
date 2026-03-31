@@ -71,7 +71,17 @@ export default function CreateReferral() {
   useEffect(() => {
     if (!preselectedPatientId) return;
     clinicApi.getPatient(preselectedPatientId)
-      .then((data) => setSelectedPatient(data))
+      .then((data) => {
+        setSelectedPatient(data);
+        setPatientMode("existing");
+        // Pre-fill manual form with existing patient data
+        if (data.last_drug) {
+          setManualData((prev) => ({
+            ...prev,
+            drugRequested: data.last_drug || "",
+          }));
+        }
+      })
       .catch(() => toast({ title: "Error", description: "Failed to load patient", variant: "destructive" }));
   }, [preselectedPatientId]);
 
