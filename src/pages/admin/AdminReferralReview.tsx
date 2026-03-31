@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { StatusBadge } from "@/components/StatusBadge";
+import { Badge } from "@/components/ui/badge";
 import { ConfidenceIndicator } from "@/components/ConfidenceIndicator";
 import { DocumentViewer } from "@/components/DocumentViewer";
 import { ConfirmModal } from "@/components/ConfirmModal";
