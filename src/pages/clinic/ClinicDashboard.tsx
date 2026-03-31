@@ -156,9 +156,10 @@ export default function ClinicDashboard() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.map((stat) => (
-            <div
+            <Link
               key={stat.label}
-              className="group rounded-xl border border-border bg-card p-5 card-shadow transition-all duration-200 hover:scale-[1.02] hover:card-shadow-md"
+              to={stat.link}
+              className="group rounded-xl border border-border bg-card p-5 card-shadow transition-all duration-200 hover:scale-[1.02] hover:card-shadow-md block"
             >
               <div className="flex items-center justify-between mb-3">
                 <p className="text-sm font-medium text-muted-foreground">
@@ -172,7 +173,7 @@ export default function ClinicDashboard() {
               </div>
               <p className="text-3xl font-bold text-foreground">{stat.value}</p>
               <p className="text-xs text-muted-foreground mt-1.5">{stat.subtitle}</p>
-            </div>
+            </Link>
           ))}
         </div>
       )}
