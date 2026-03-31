@@ -1,33 +1,18 @@
 
 
-## Remove drug pre-fill from preselected patient useEffect
+## Update ClinicDashboard Stats
 
-**File**: `src/pages/clinic/CreateReferral.tsx`
+**File**: `src/pages/clinic/ClinicDashboard.tsx`
 
-Remove the `last_drug` pre-fill block from the patient preselection `useEffect`, keeping only `setSelectedPatient(data)` and `setPatientMode("existing")` in the `.then()` callback.
+### 1. Add `paExpiringSoonCount` (after line 45)
+Add a new count derived from patients with PA expiring within 30 days.
 
-**Before**:
-```tsx
-.then((data) => {
-  setSelectedPatient(data);
-  setPatientMode("existing");
-  // Pre-fill manual form with existing patient data
-  if (data.last_drug) {
-    setManualData((prev) => ({
-      ...prev,
-      drugRequested: data.last_drug || "",
-    }));
-  }
-})
-```
+### 2. Replace stats array (lines 74–107)
+Remove "Approved" card, keep "In Review", "Sent to Pharmacy", "Needs Attention", add "PA Expiring Soon". Each stat gets a `link` property for navigation.
 
-**After**:
-```tsx
-.then((data) => {
-  setSelectedPatient(data);
-  setPatientMode("existing");
-})
-```
+### 3. Make stat cards clickable (lines 146–163)
+Change `<div>` to `<Link to={stat.link}>` with `block` class added. Close with `</Link>`. `Link` is already imported.
 
-Single edit, no other files affected.
+### 4. Remove unused imports
+Remove `CheckCircle` and `ArrowUpRight` (no longer used after removing the "Approved" card).
 
