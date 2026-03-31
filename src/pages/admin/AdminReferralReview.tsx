@@ -239,7 +239,7 @@ export default function AdminReferralReview() {
       <div className="flex flex-col lg:flex-row" style={{ height: "calc(100vh - 140px)" }}>
         {/* Left: Document viewer */}
         <div className="lg:w-1/2 border-r border-border flex flex-col min-h-[400px]">
-          <DocumentViewer documents={referral.documents || []} className="flex-1" />
+          <DocumentViewer documents={documents} className="flex-1" />
         </div>
 
         {/* Right: Extracted data */}
