@@ -122,9 +122,13 @@ function PAWorkflowCard({ referral, paInfo }: { referral: Referral; paInfo: Refe
   const canMarkComplete = paDecisionStatus === "approved" && paNumber.trim() !== "" && expirationDate !== undefined;
 
   const handleFileSelect = (file: File) => {
-    const validTypes = ["application/pdf", "image/jpeg", "image/png"];
+    const validTypes = ["application/pdf", "image/jpeg", "image/png", "image/tiff"];
     if (!validTypes.includes(file.type)) {
-      toast({ title: "Invalid file type", description: "Please upload a PDF, JPG, or PNG file.", variant: "destructive" });
+      toast({ title: "Invalid file type", description: "Please upload a PDF, JPG, PNG, or TIFF file.", variant: "destructive" });
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Maximum file size is 10 MB", variant: "destructive" });
       return;
     }
     setUploadedFile({ name: file.name, uploadedAt: new Date() });
@@ -439,7 +443,7 @@ function PAWorkflowCard({ referral, paInfo }: { referral: Referral; paInfo: Refe
                     <input
                       ref={fileInputRef}
                       type="file"
-                      accept=".pdf,.jpg,.jpeg,.png"
+                      accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif"
                       className="hidden"
                       onChange={(e) => {
                         const file = e.target.files?.[0];
