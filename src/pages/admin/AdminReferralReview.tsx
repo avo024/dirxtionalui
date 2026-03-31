@@ -220,6 +220,7 @@ export default function AdminReferralReview() {
               {documents.length > 0 && (
                 <Badge variant="secondary" className="text-xs">{documents.length} doc{documents.length !== 1 ? 's' : ''}</Badge>
               )}
+            </div>
             <p className="text-sm text-muted-foreground">{referral.drug} · {referral.clinic_name} · {referral.id}</p>
           </div>
         </div>
