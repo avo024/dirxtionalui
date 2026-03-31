@@ -41,7 +41,7 @@ export default function ClinicDashboard() {
   ).length;
 
   const sentCount = referrals.filter((r) =>
-    r.status === "sent_to_pharmacy"
+    r.status === "approved_to_send"
   ).length;
 
   const paExpiringSoonCount = patients.filter((p) => {
