@@ -22,6 +22,7 @@ export default function AdminReferralReview() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [referral, setReferral] = useState<any>(null);
+  const [documents, setDocuments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [approveOpen, setApproveOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
