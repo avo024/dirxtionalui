@@ -40,6 +40,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/invite/:token" element={<InviteAcceptPage />} />
 
             {/* Clinic routes */}
             <Route path="/clinic" element={<ClinicLayout />}>
