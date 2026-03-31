@@ -72,7 +72,12 @@ export const clinicApi = {
   async uploadDocument(referralId: string, file: File, docType: string): Promise<any> {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('doc_type', docType);
+    const docTypeMap: Record<string, string> = {
+      required: 'referral_form',
+      insurance: 'insurance_front',
+      additional: 'chart_notes',
+    };
+    formData.append('doc_type', docTypeMap[docType] || docType);
 
     const response = await fetch(`${API_BASE_URL}/referrals/${referralId}/documents`, {
       method: 'POST',
