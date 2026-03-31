@@ -205,6 +205,20 @@ export const adminApi = {
     return handleResponse(response);
   },
 
+  async getReferralDocuments(id: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/admin/referrals/${id}/documents`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  async getDocumentUrl(docId: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/admin/documents/${docId}/url`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
   async reassignPharmacy(id: string, pharmacyId: string): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/admin/referrals/${id}/reassign-pharmacy`, {
       method: 'POST',

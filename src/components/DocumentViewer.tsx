@@ -1,95 +1,206 @@
-import { useState } from "react";
-import { ZoomIn, ZoomOut, ChevronLeft, ChevronRight, FileText } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { ZoomIn, ZoomOut, Download, RefreshCw, FileText, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import type { ReferralDocument } from "@/data/mockData";
+import { adminApi } from "@/lib/api";
+
+interface BackendDocument {
+  id: string;
+  original_filename: string;
+  file_type: string;
+  doc_type: string;
+  uploaded_at: string;
+}
 
 interface DocumentViewerProps {
-  documents: ReferralDocument[];
+  documents: BackendDocument[];
   className?: string;
 }
 
+interface CachedUrl {
+  url: string;
+  fetchedAt: number;
+}
+
+const URL_EXPIRY_MS = 4 * 60 * 1000; // 4 minutes
+
+function isImageType(fileType: string): boolean {
+  return ["image/jpeg", "image/png", "image/tiff", "image/jpg"].includes(fileType);
+}
+
+function isPdfType(fileType: string): boolean {
+  return fileType === "application/pdf";
+}
+
 export function DocumentViewer({ documents, className }: DocumentViewerProps) {
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [activeDocId, setActiveDocId] = useState<string>("");
+  const [urlCache, setUrlCache] = useState<Record<string, CachedUrl>>({});
+  const [loadingUrl, setLoadingUrl] = useState(false);
+  const [urlError, setUrlError] = useState(false);
   const [zoom, setZoom] = useState(100);
 
-  const activeDoc = documents[activeIndex];
+  // Set initial active doc
+  useEffect(() => {
+    if (documents.length > 0 && !activeDocId) {
+      setActiveDocId(documents[0].id);
+    }
+  }, [documents, activeDocId]);
+
+  const activeDoc = documents.find((d) => d.id === activeDocId);
+  const cachedEntry = activeDocId ? urlCache[activeDocId] : undefined;
+  const isExpired = cachedEntry ? Date.now() - cachedEntry.fetchedAt > URL_EXPIRY_MS : true;
+  const activeUrl = cachedEntry && !isExpired ? cachedEntry.url : undefined;
+
+  const fetchUrl = useCallback(async (docId: string) => {
+    setLoadingUrl(true);
+    setUrlError(false);
+    try {
+      const data = await adminApi.getDocumentUrl(docId);
+      setUrlCache((prev) => ({
+        ...prev,
+        [docId]: { url: data.url, fetchedAt: Date.now() },
+      }));
+    } catch {
+      setUrlError(true);
+    } finally {
+      setLoadingUrl(false);
+    }
+  }, []);
+
+  // Fetch URL when active doc changes or is expired
+  useEffect(() => {
+    if (!activeDocId) return;
+    const cached = urlCache[activeDocId];
+    if (!cached || Date.now() - cached.fetchedAt > URL_EXPIRY_MS) {
+      fetchUrl(activeDocId);
+    }
+  }, [activeDocId, fetchUrl]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (documents.length === 0) {
+    return (
+      <div className={cn("flex items-center justify-center h-full", className)}>
+        <div className="text-center p-8">
+          <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+          <p className="text-sm font-medium text-foreground">No documents uploaded</p>
+          <p className="text-xs text-muted-foreground mt-1">No documents uploaded for this referral</p>
+        </div>
+      </div>
+    );
+  }
+
+  const isImage = activeDoc ? isImageType(activeDoc.file_type) : false;
+  const isPdf = activeDoc ? isPdfType(activeDoc.file_type) : false;
 
   return (
     <div className={cn("flex flex-col h-full", className)}>
       {/* Document tabs */}
-      <div className="flex gap-1 border-b border-border bg-secondary/50 p-1 overflow-x-auto">
-        {documents.map((doc, i) => (
-          <button
-            key={doc.id}
-            onClick={() => setActiveIndex(i)}
-            className={cn(
-              "px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-colors",
-              i === activeIndex
-                ? "bg-card text-foreground card-shadow"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            {doc.name}
-          </button>
-        ))}
+      <div className="border-b border-border bg-secondary/50 p-1 overflow-x-auto">
+        <Tabs value={activeDocId} onValueChange={setActiveDocId}>
+          <TabsList className="h-auto bg-transparent gap-1 flex-wrap">
+            {documents.map((doc) => (
+              <TabsTrigger
+                key={doc.id}
+                value={doc.id}
+                className="text-xs px-3 py-1.5 data-[state=active]:bg-card data-[state=active]:shadow-sm"
+              >
+                <span className="truncate max-w-[140px]">{doc.original_filename}</span>
+                <Badge variant="secondary" className="ml-1.5 text-[10px] px-1.5 py-0">
+                  {doc.doc_type}
+                </Badge>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
       </div>
 
       {/* Toolbar */}
       <div className="flex items-center justify-between border-b border-border px-3 py-2 bg-card">
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => setActiveIndex(Math.max(0, activeIndex - 1))}
-            disabled={activeIndex === 0}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="text-xs text-muted-foreground px-2">
-            {activeIndex + 1} / {documents.length}
-          </span>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => setActiveIndex(Math.min(documents.length - 1, activeIndex + 1))}
-            disabled={activeIndex === documents.length - 1}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+          {isImage ? <ImageIcon className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />}
+          <span>{activeDoc?.original_filename}</span>
         </div>
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setZoom(Math.max(50, zoom - 25))}>
-            <ZoomOut className="h-4 w-4" />
-          </Button>
-          <span className="text-xs text-muted-foreground w-10 text-center">{zoom}%</span>
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setZoom(Math.min(200, zoom + 25))}>
-            <ZoomIn className="h-4 w-4" />
-          </Button>
+          {isImage && (
+            <>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setZoom(Math.max(25, zoom - 25))}>
+                <ZoomOut className="h-4 w-4" />
+              </Button>
+              <span className="text-xs text-muted-foreground w-10 text-center">{zoom}%</span>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setZoom(Math.min(300, zoom + 25))}>
+                <ZoomIn className="h-4 w-4" />
+              </Button>
+            </>
+          )}
+          {activeUrl && (
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => window.open(activeUrl, "_blank")}>
+              <Download className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
 
       {/* Document area */}
-      <div className="flex-1 flex items-center justify-center bg-secondary/30 p-8 overflow-auto">
-        <div
-          className="bg-card rounded-lg card-shadow-md flex flex-col items-center justify-center gap-4 p-12 text-center"
-          style={{ transform: `scale(${zoom / 100})`, transformOrigin: "center" }}
-        >
-          <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-            <FileText className="h-8 w-8 text-primary" />
+      <div className="flex-1 flex items-center justify-center bg-secondary/30 overflow-auto relative" style={{ minHeight: 400 }}>
+        {loadingUrl && (
+          <div className="text-center">
+            <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+            <p className="text-xs text-muted-foreground">Loading document...</p>
           </div>
-          <div>
-            <p className="font-medium text-foreground">{activeDoc?.name}</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              PDF/Image viewer — will be integrated later
-            </p>
-            <p className="text-xs text-muted-foreground mt-2">
-              Uploaded: {activeDoc?.uploaded_at}
-            </p>
+        )}
+
+        {urlError && !loadingUrl && (
+          <div className="text-center p-8">
+            <p className="text-sm text-destructive mb-2">Failed to load document</p>
+            <Button variant="outline" size="sm" onClick={() => fetchUrl(activeDocId)}>
+              <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+              Retry
+            </Button>
           </div>
-        </div>
+        )}
+
+        {activeUrl && !loadingUrl && isPdf && (
+          <iframe src={activeUrl} className="w-full h-full border-0" title={activeDoc?.original_filename} />
+        )}
+
+        {activeUrl && !loadingUrl && isImage && (
+          <div className="w-full h-full flex items-center justify-center p-4 overflow-auto">
+            <img
+              src={activeUrl}
+              alt={activeDoc?.original_filename}
+              className="cursor-pointer transition-transform"
+              style={{ transform: `scale(${zoom / 100})`, transformOrigin: "center", maxWidth: "100%", objectFit: "contain" }}
+              onClick={() => window.open(activeUrl, "_blank")}
+              onError={() => setUrlError(true)}
+            />
+          </div>
+        )}
+
+        {activeUrl && !loadingUrl && !isPdf && !isImage && (
+          <div className="text-center p-8">
+            <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+            <p className="text-sm text-foreground">{activeDoc?.original_filename}</p>
+            <p className="text-xs text-muted-foreground mt-1">Preview not available for this file type</p>
+            <Button variant="outline" size="sm" className="mt-3" onClick={() => window.open(activeUrl, "_blank")}>
+              <Download className="h-3.5 w-3.5 mr-1.5" />
+              Download
+            </Button>
+          </div>
+        )}
+
+        {/* Expiration refresh overlay */}
+        {cachedEntry && isExpired && !loadingUrl && !urlError && (
+          <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground mb-2">Document URL expired</p>
+              <Button variant="outline" size="sm" onClick={() => fetchUrl(activeDocId)}>
+                <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                Refresh
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

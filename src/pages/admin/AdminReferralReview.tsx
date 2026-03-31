@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { StatusBadge } from "@/components/StatusBadge";
+import { Badge } from "@/components/ui/badge";
 import { ConfidenceIndicator } from "@/components/ConfidenceIndicator";
 import { DocumentViewer } from "@/components/DocumentViewer";
 import { ConfirmModal } from "@/components/ConfirmModal";
@@ -21,6 +22,7 @@ export default function AdminReferralReview() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [referral, setReferral] = useState<any>(null);
+  const [documents, setDocuments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [approveOpen, setApproveOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
@@ -45,6 +47,14 @@ export default function AdminReferralReview() {
 
         setReferral(mapped);
         setEditedData(mapped.extracted_data || {});
+
+        // Fetch documents
+        try {
+          const docsRes = await adminApi.getReferralDocuments(id);
+          setDocuments(docsRes.items || docsRes || []);
+        } catch {
+          // Documents may not exist yet, that's ok
+        }
       } catch (err: any) {
         toast({
           title: "Error",
@@ -207,6 +217,9 @@ export default function AdminReferralReview() {
             <div className="flex items-center gap-2">
               <h1 className="text-lg font-bold text-foreground">{referral.patient_name}</h1>
               <StatusBadge status={referral.status} />
+              {documents.length > 0 && (
+                <Badge variant="secondary" className="text-xs">{documents.length} doc{documents.length !== 1 ? 's' : ''}</Badge>
+              )}
             </div>
             <p className="text-sm text-muted-foreground">{referral.drug} · {referral.clinic_name} · {referral.id}</p>
           </div>
@@ -227,7 +240,7 @@ export default function AdminReferralReview() {
       <div className="flex flex-col lg:flex-row" style={{ height: "calc(100vh - 140px)" }}>
         {/* Left: Document viewer */}
         <div className="lg:w-1/2 border-r border-border flex flex-col min-h-[400px]">
-          <DocumentViewer documents={referral.documents || []} className="flex-1" />
+          <DocumentViewer documents={documents} className="flex-1" />
         </div>
 
         {/* Right: Extracted data */}
