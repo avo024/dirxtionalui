@@ -87,14 +87,7 @@ export default function ClinicDashboard() {
       colorClass: "text-warning",
       bgClass: "bg-warning/10",
       subtitle: "Being reviewed",
-    },
-    {
-      label: "Approved",
-      value: approvedCount,
-      icon: CheckCircle,
-      colorClass: "text-success",
-      bgClass: "bg-success/10",
-      subtitle: "Ready or sent",
+      link: "/clinic/referrals?filter=processing",
     },
     {
       label: "Sent to Pharmacy",
@@ -103,6 +96,7 @@ export default function ClinicDashboard() {
       colorClass: "text-primary",
       bgClass: "bg-primary/10",
       subtitle: "At pharmacy",
+      link: "/clinic/referrals?filter=sent",
     },
     {
       label: "Needs Attention",
@@ -111,6 +105,16 @@ export default function ClinicDashboard() {
       colorClass: "text-destructive",
       bgClass: "bg-destructive/10",
       subtitle: "Action required",
+      link: "/clinic/referrals?filter=rejected",
+    },
+    {
+      label: "PA Expiring Soon",
+      value: paExpiringSoonCount,
+      icon: AlertTriangle,
+      colorClass: "text-warning",
+      bgClass: "bg-warning/10",
+      subtitle: "Within 30 days",
+      link: "/clinic/patients?filter=expiring",
     },
   ];
 
