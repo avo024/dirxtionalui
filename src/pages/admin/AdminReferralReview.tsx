@@ -47,6 +47,14 @@ export default function AdminReferralReview() {
 
         setReferral(mapped);
         setEditedData(mapped.extracted_data || {});
+
+        // Fetch documents
+        try {
+          const docsRes = await adminApi.getReferralDocuments(id);
+          setDocuments(docsRes.items || docsRes || []);
+        } catch {
+          // Documents may not exist yet, that's ok
+        }
       } catch (err: any) {
         toast({
           title: "Error",
