@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import {
-  Clock, CheckCircle, XCircle, Plus, ArrowUpRight,
+  Clock, XCircle, Plus,
   CalendarDays, FileSearch, AlertTriangle, ArrowRight, Send
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,14 @@ export default function ClinicDashboard() {
     r.status === "sent_to_pharmacy"
   ).length;
 
+  const paExpiringSoonCount = patients.filter((p) => {
+    if (!p.pa_expiration_date) return false;
+    const expDate = new Date(p.pa_expiration_date);
+    const today = new Date();
+    const daysUntil = Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    return daysUntil <= 30 && daysUntil > 0;
+  }).length;
+
   const needsAttentionCount = referrals.filter((r) =>
     r.status === "rejected"
   ).length;
@@ -79,14 +87,7 @@ export default function ClinicDashboard() {
       colorClass: "text-warning",
       bgClass: "bg-warning/10",
       subtitle: "Being reviewed",
-    },
-    {
-      label: "Approved",
-      value: approvedCount,
-      icon: CheckCircle,
-      colorClass: "text-success",
-      bgClass: "bg-success/10",
-      subtitle: "Ready or sent",
+      link: "/clinic/referrals?filter=processing",
     },
     {
       label: "Sent to Pharmacy",
@@ -95,6 +96,7 @@ export default function ClinicDashboard() {
       colorClass: "text-primary",
       bgClass: "bg-primary/10",
       subtitle: "At pharmacy",
+      link: "/clinic/referrals?filter=sent",
     },
     {
       label: "Needs Attention",
@@ -103,6 +105,16 @@ export default function ClinicDashboard() {
       colorClass: "text-destructive",
       bgClass: "bg-destructive/10",
       subtitle: "Action required",
+      link: "/clinic/referrals?filter=rejected",
+    },
+    {
+      label: "PA Expiring Soon",
+      value: paExpiringSoonCount,
+      icon: AlertTriangle,
+      colorClass: "text-warning",
+      bgClass: "bg-warning/10",
+      subtitle: "Within 30 days",
+      link: "/clinic/patients?filter=expiring",
     },
   ];
 
@@ -144,9 +156,10 @@ export default function ClinicDashboard() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.map((stat) => (
-            <div
+            <Link
               key={stat.label}
-              className="group rounded-xl border border-border bg-card p-5 card-shadow transition-all duration-200 hover:scale-[1.02] hover:card-shadow-md"
+              to={stat.link}
+              className="group rounded-xl border border-border bg-card p-5 card-shadow transition-all duration-200 hover:scale-[1.02] hover:card-shadow-md block"
             >
               <div className="flex items-center justify-between mb-3">
                 <p className="text-sm font-medium text-muted-foreground">
@@ -160,7 +173,7 @@ export default function ClinicDashboard() {
               </div>
               <p className="text-3xl font-bold text-foreground">{stat.value}</p>
               <p className="text-xs text-muted-foreground mt-1.5">{stat.subtitle}</p>
-            </div>
+            </Link>
           ))}
         </div>
       )}
