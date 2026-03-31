@@ -20,6 +20,12 @@ function getHeaders(): HeadersInit {
   };
 }
 
+function getAuthHeaders(): HeadersInit {
+  return {
+    'X-DEV-ADMIN': '1',
+  };
+}
+
 // ============================================================================
 // CLINIC ENDPOINTS
 // ============================================================================
