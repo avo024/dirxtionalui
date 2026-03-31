@@ -1,52 +1,75 @@
 import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
 import {
   Clock, CheckCircle, XCircle, Plus, ArrowUpRight,
   CalendarDays, FileSearch, AlertTriangle, ArrowRight, Send
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ReferralTable } from "@/components/ReferralTable";
 import { useAuth } from "@/contexts/AuthContext";
-import { mockReferrals, mockPatients } from "@/data/mockData";
+import { clinicApi } from "@/lib/api";
+import { mapReferralsFromBackend } from "@/lib/dataMapper";
 import { getGreeting, getFormattedDate } from "@/lib/dateUtils";
-
-const clinicReferrals = mockReferrals.filter(
-  (r) => r.clinic_name === "Dallas Dermatology Clinic"
-);
-
-const processingCount = clinicReferrals.filter((r) =>
-  r.status === "processing"
-).length;
-
-const approvedCount = clinicReferrals.filter((r) =>
-  ["approved", "sent_to_pharmacy"].includes(r.status)
-).length;
-
-const needsAttentionCount = clinicReferrals.filter(
-  (r) => r.status === "rejected"
-).length;
-
-const sentCount = clinicReferrals.filter(
-  (r) => r.status === "sent_to_pharmacy"
-).length;
-
-const patientsExpiringPA = mockPatients.filter((p) => p.pa_status === "expiring");
-const rejectedReferrals = clinicReferrals.filter((r) => r.status === "rejected");
-
-// Sort referrals by urgency: rejected > processing > approved > sent
-const urgencyOrder: Record<string, number> = {
-  rejected: 0,
-  processing: 1,
-  approved: 2,
-  uploaded: 3,
-  sent_to_pharmacy: 4,
-};
-
-const sortedRecentReferrals = [...clinicReferrals]
-  .sort((a, b) => (urgencyOrder[a.status] ?? 99) - (urgencyOrder[b.status] ?? 99))
-  .slice(0, 5);
 
 export default function ClinicDashboard() {
   const { user } = useAuth();
+
+  const [referrals, setReferrals] = useState<any[]>([]);
+  const [patients, setPatients] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      clinicApi.getReferrals(),
+      clinicApi.getPatients(),
+    ])
+      .then(([refData, patData]) => {
+        setReferrals(mapReferralsFromBackend(refData.items || []));
+        setPatients(patData.items || []);
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  const processingCount = referrals.filter((r) =>
+    ["processing", "ready_for_review", "uploaded"].includes(r.status)
+  ).length;
+
+  const approvedCount = referrals.filter((r) =>
+    r.status === "approved_to_send"
+  ).length;
+
+  const sentCount = referrals.filter((r) =>
+    r.status === "sent_to_pharmacy"
+  ).length;
+
+  const needsAttentionCount = referrals.filter((r) =>
+    r.status === "rejected"
+  ).length;
+
+  const patientsExpiringPA = patients.filter((p) => {
+    if (!p.pa_expiration_date) return false;
+    const expDate = new Date(p.pa_expiration_date);
+    const today = new Date();
+    const daysUntil = Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    return daysUntil <= 30 && daysUntil > 0;
+  });
+
+  const rejectedReferrals = referrals.filter((r) => r.status === "rejected");
+
+  const urgencyOrder: Record<string, number> = {
+    rejected: 0,
+    needs_info: 1,
+    ready_for_review: 2,
+    processing: 3,
+    approved_to_send: 4,
+    uploaded: 5,
+  };
+
+  const sortedRecentReferrals = [...referrals]
+    .sort((a, b) => (urgencyOrder[a.status] ?? 99) - (urgencyOrder[b.status] ?? 99))
+    .slice(0, 5);
 
   const stats = [
     {
@@ -112,30 +135,38 @@ export default function ClinicDashboard() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat) => (
-          <div
-            key={stat.label}
-            className="group rounded-xl border border-border bg-card p-5 card-shadow transition-all duration-200 hover:scale-[1.02] hover:card-shadow-md"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-medium text-muted-foreground">
-                {stat.label}
-              </p>
-              <div
-                className={`h-9 w-9 rounded-lg ${stat.bgClass} flex items-center justify-center transition-transform duration-200 group-hover:scale-110`}
-              >
-                <stat.icon className={`h-4.5 w-4.5 ${stat.colorClass}`} />
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-[120px] rounded-xl" />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {stats.map((stat) => (
+            <div
+              key={stat.label}
+              className="group rounded-xl border border-border bg-card p-5 card-shadow transition-all duration-200 hover:scale-[1.02] hover:card-shadow-md"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-medium text-muted-foreground">
+                  {stat.label}
+                </p>
+                <div
+                  className={`h-9 w-9 rounded-lg ${stat.bgClass} flex items-center justify-center transition-transform duration-200 group-hover:scale-110`}
+                >
+                  <stat.icon className={`h-4.5 w-4.5 ${stat.colorClass}`} />
+                </div>
               </div>
+              <p className="text-3xl font-bold text-foreground">{stat.value}</p>
+              <p className="text-xs text-muted-foreground mt-1.5">{stat.subtitle}</p>
             </div>
-            <p className="text-3xl font-bold text-foreground">{stat.value}</p>
-            <p className="text-xs text-muted-foreground mt-1.5">{stat.subtitle}</p>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Alerts */}
-      {(patientsExpiringPA.length > 0 || rejectedReferrals.length > 0) && (
+      {!loading && (patientsExpiringPA.length > 0 || rejectedReferrals.length > 0) && (
         <div className="space-y-3">
           {patientsExpiringPA.length > 0 && (
             <Link
@@ -150,7 +181,7 @@ export default function ClinicDashboard() {
                   {patientsExpiringPA.length} patient{patientsExpiringPA.length > 1 ? "s" : ""} with PA expiring in the next 30 days
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {patientsExpiringPA.map((p) => `${p.first_name} ${p.last_name}`).join(", ")}
+                  {patientsExpiringPA.map((p) => p.full_name || `${p.first_name || ''} ${p.last_name || ''}`.trim()).join(", ")}
                 </p>
               </div>
               <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
@@ -170,7 +201,7 @@ export default function ClinicDashboard() {
                   {ref.patient_name} — Needs Attention
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {ref.drug} · {ref.rejection_reason ? ref.rejection_reason.slice(0, 80) + "..." : "Review required"}
+                  {ref.drug_requested || ref.drug || '—'} · {ref.rejection_reason ? ref.rejection_reason.slice(0, 80) + "..." : "Review required"}
                 </p>
               </div>
               <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
@@ -180,7 +211,12 @@ export default function ClinicDashboard() {
       )}
 
       {/* Recent referrals */}
-      {clinicReferrals.length > 0 ? (
+      {loading ? (
+        <div>
+          <Skeleton className="h-6 w-40 mb-4" />
+          <Skeleton className="h-[200px] rounded-xl" />
+        </div>
+      ) : referrals.length > 0 ? (
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-foreground">
