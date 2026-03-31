@@ -227,13 +227,6 @@ export const adminApi = {
     });
     return handleResponse(response);
   },
-    const response = await fetch(`${API_BASE_URL}/admin/referrals/${id}/reassign-pharmacy`, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify({ new_pharmacy_id: pharmacyId }),
-    });
-    return handleResponse(response);
-  },
 };
 
 // ============================================================================
