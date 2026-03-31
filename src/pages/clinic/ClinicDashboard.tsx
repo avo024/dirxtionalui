@@ -44,6 +44,14 @@ export default function ClinicDashboard() {
     r.status === "sent_to_pharmacy"
   ).length;
 
+  const paExpiringSoonCount = patients.filter((p) => {
+    if (!p.pa_expiration_date) return false;
+    const expDate = new Date(p.pa_expiration_date);
+    const today = new Date();
+    const daysUntil = Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    return daysUntil <= 30 && daysUntil > 0;
+  }).length;
+
   const needsAttentionCount = referrals.filter((r) =>
     r.status === "rejected"
   ).length;
