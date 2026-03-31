@@ -909,7 +909,13 @@ export default function CreateReferral() {
                 <ReviewCard icon={Users} title="Patient Information">
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     <ReviewField label="Name" value={patientMode === "new" ? `${newPatient.firstName} ${newPatient.lastName}`.trim() : (selectedPatient?.full_name || "—")} />
-                    <ReviewField label="DOB" value={patientMode === "new" ? newPatient.dob : (selectedPatient?.dob || "—")} />
+                    <ReviewField label="DOB" value={
+                      patientMode === "new" 
+                        ? newPatient.dob 
+                        : selectedPatient?.dob 
+                          ? formatDateShort(selectedPatient.dob)
+                          : "—"
+                    } />
                     <ReviewField label="Phone" value={patientMode === "new" ? newPatient.phone : (selectedPatient?.phone_primary || selectedPatient?.phone || "—")} />
                     <ReviewField label="Gender" value={patientMode === "new" ? newPatient.gender : "—"} />
                     <ReviewField label="Address" value={patientMode === "new" ? `${newPatient.address}, ${newPatient.city}, ${newPatient.state} ${newPatient.zip}`.trim() : "—"} />
