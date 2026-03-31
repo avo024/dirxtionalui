@@ -1,19 +1,21 @@
 
 
-## Fix `uploadDocument` headers in `src/lib/api.ts`
+## Map upload zone names to backend doc_type values in `src/lib/api.ts`
 
-Since `getHeaders()` includes `Content-Type: application/json` which breaks FormData uploads, we need a two-part fix:
+**What**: The `uploadDocument` method currently passes the raw zone name (`required`, `insurance`, `additional`) as `doc_type`. The backend expects specific values like `referral_form`, `insurance_front`, `chart_notes`.
 
-### 1. Add `getAuthHeaders()` helper (after line 21)
-A new function that returns only auth headers (no Content-Type):
+**Change** (line 70 in `uploadDocument`):
+
+Replace `formData.append('doc_type', docType);` with a mapping lookup:
+
 ```ts
-function getAuthHeaders(): HeadersInit {
-  return { 'X-DEV-ADMIN': '1' };
-}
+const docTypeMap: Record<string, string> = {
+  required: 'referral_form',
+  insurance: 'insurance_front',
+  additional: 'chart_notes',
+};
+formData.append('doc_type', docTypeMap[docType] || docType);
 ```
 
-### 2. Update `uploadDocument` (lines 73–75)
-Replace the inline `{ 'X-DEV-ADMIN': '1' }` with `getAuthHeaders()`.
-
-This centralizes the auth header so if it changes later (e.g., real JWT tokens), `uploadDocument` picks it up automatically — while keeping Content-Type out for FormData.
+Single edit in `src/lib/api.ts`, no other files affected.
 
