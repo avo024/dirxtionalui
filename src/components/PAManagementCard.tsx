@@ -443,7 +443,7 @@ function PAWorkflowCard({ referral, paInfo }: { referral: Referral; paInfo: Refe
                     <input
                       ref={fileInputRef}
                       type="file"
-                      accept=".pdf,.jpg,.jpeg,.png"
+                      accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif"
                       className="hidden"
                       onChange={(e) => {
                         const file = e.target.files?.[0];

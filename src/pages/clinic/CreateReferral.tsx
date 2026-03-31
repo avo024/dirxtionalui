@@ -620,9 +620,9 @@ export default function CreateReferral() {
               <p className="text-sm text-muted-foreground">Upload all relevant documents for this referral</p>
             </div>
 
-            <input id="upload-required" type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => e.target.files?.[0] && handleRealFileUpload(e.target.files[0], 'required')} />
-            <input id="upload-insurance" type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => e.target.files?.[0] && handleRealFileUpload(e.target.files[0], 'insurance')} />
-            <input id="upload-additional" type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => e.target.files?.[0] && handleRealFileUpload(e.target.files[0], 'additional')} />
+            <input id="upload-required" type="file" accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif" className="hidden" onChange={(e) => e.target.files?.[0] && handleRealFileUpload(e.target.files[0], 'required')} />
+            <input id="upload-insurance" type="file" accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif" className="hidden" onChange={(e) => e.target.files?.[0] && handleRealFileUpload(e.target.files[0], 'insurance')} />
+            <input id="upload-additional" type="file" accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif" className="hidden" onChange={(e) => e.target.files?.[0] && handleRealFileUpload(e.target.files[0], 'additional')} />
 
             <div className="space-y-4">
               <UploadZone
