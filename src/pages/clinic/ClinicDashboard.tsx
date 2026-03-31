@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import {
-  Clock, CheckCircle, XCircle, Plus, ArrowUpRight,
+  Clock, XCircle, Plus,
   CalendarDays, FileSearch, AlertTriangle, ArrowRight, Send
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
