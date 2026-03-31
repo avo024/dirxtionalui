@@ -76,9 +76,7 @@ export const clinicApi = {
 
     const response = await fetch(`${API_BASE_URL}/referrals/${referralId}/documents`, {
       method: 'POST',
-      headers: {
-        'X-DEV-ADMIN': '1',
-      },
+      headers: getAuthHeaders(),
       body: formData,
     });
     return handleResponse(response);
