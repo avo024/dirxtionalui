@@ -217,7 +217,9 @@ export default function AdminReferralReview() {
             <div className="flex items-center gap-2">
               <h1 className="text-lg font-bold text-foreground">{referral.patient_name}</h1>
               <StatusBadge status={referral.status} />
-            </div>
+              {documents.length > 0 && (
+                <Badge variant="secondary" className="text-xs">{documents.length} doc{documents.length !== 1 ? 's' : ''}</Badge>
+              )}
             <p className="text-sm text-muted-foreground">{referral.drug} · {referral.clinic_name} · {referral.id}</p>
           </div>
         </div>
