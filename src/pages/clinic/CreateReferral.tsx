@@ -138,9 +138,13 @@ export default function CreateReferral() {
   };
 
   const handleRealFileUpload = async (file: File, zone: UploadedFile["zone"]) => {
-    const validTypes = ["application/pdf", "image/jpeg", "image/png"];
+    const validTypes = ["application/pdf", "image/jpeg", "image/png", "image/tiff"];
     if (!validTypes.includes(file.type)) {
-      toast({ title: "Invalid file type", description: "Please upload PDF, JPG, or PNG", variant: "destructive" });
+      toast({ title: "Invalid file type", description: "Please upload PDF, JPG, PNG, or TIFF", variant: "destructive" });
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Maximum file size is 10 MB", variant: "destructive" });
       return;
     }
     const newFile: UploadedFile = {
