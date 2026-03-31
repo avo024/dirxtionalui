@@ -212,7 +212,7 @@ export default function AdminReferralReview() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {referral.status === 'uploaded' && (
+          {(referral.status === 'uploaded' || referral.status === 'ready_for_review') && (
             <Button onClick={handleProcessWithAI} variant="outline" size="sm">
               Extract with AI
             </Button>
