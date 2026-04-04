@@ -31,13 +31,22 @@ export type ReferralPAStatus =
 // EXTRACTED DATA (nested inside Referral)
 // ============================================================================
 
+export interface ExtractedPatientGuardian {
+  name?: string;
+  relationship?: string;
+  phone?: string;
+}
+
 export interface ExtractedPatient {
   first_name: string;
   last_name: string;
   mi?: string;
+  middle_initial?: string;
   dob: string;
   gender: string;
   phone: string;
+  phone_primary?: string;
+  phone_secondary?: string;
   email: string;
   address?: string;
   city?: string;
@@ -46,17 +55,38 @@ export interface ExtractedPatient {
   height?: string;
   weight?: string;
   allergies?: string;
+  mrn?: string;
+  language?: string;
+  preferred_contact_method?: string;
   authorized_representative?: string;
   authorized_representative_phone?: string;
+  guardian?: ExtractedPatientGuardian;
 }
 
 export interface ExtractedClinical {
   diagnosis_icd10: string;
+  diagnosis_icd10_primary?: string;
+  diagnosis_description?: string;
+  diagnoses?: string[];
   drug_requested: string;
+  brand_name?: string;
+  generic_name?: string;
   dosing: string;
+  dosing_directions?: string;
+  dose_amount?: string;
+  dose_frequency?: string;
+  route?: string;
   quantity: string;
+  day_supply?: string;
+  refills?: string;
+  device_type?: string;
   is_refill: boolean;
+  is_new_start?: boolean;
+  loading_dose?: string;
+  maintenance_dose?: string;
   urgency: string;
+  prior_failed_medications?: string[];
+  clinical_justification?: string;
   therapy_type?: string;
   date_therapy_initiated?: string;
   duration_of_therapy?: string;
@@ -81,22 +111,69 @@ export interface ExtractedProvider {
   fax?: string;
   email?: string;
   office_contact?: string;
+  office_name?: string;
+  office_address?: string;
+  office_city?: string;
+  office_state?: string;
+  office_zip?: string;
+  collaborating_physician?: string;
+  collaborating_npi?: string;
+  tax_id?: string;
   requestor?: string;
   signature_date: string;
 }
 
 export interface ExtractedInsurance {
   has_insurance_card: boolean;
+  has_insurance?: boolean;
   primary_insurance_name?: string;
+  primary_plan_name?: string;
   primary_member_id?: string;
+  primary_group_number?: string;
+  primary_policy_id?: string;
+  primary_rxbin?: string;
+  primary_rxpcn?: string;
+  primary_carrier_phone?: string;
   secondary_insurance_name?: string;
+  secondary_plan_name?: string;
   secondary_member_id?: string;
+  secondary_group_number?: string;
+  policyholder_name?: string;
+  policyholder_relationship?: string;
+  pharmacy_benefit_or_medical_benefit?: string;
   notes: string;
 }
 
 export interface ExtractedPriorAuth {
   required: boolean;
   handled_by_us: boolean;
+  handled_by_clinic?: boolean;
+  pa_number?: string;
+  reference_number?: string;
+  submission_date?: string;
+  expiration_date?: string;
+  status?: string;
+}
+
+export interface ExtractedPharmacy {
+  preferred_pharmacy_name?: string;
+  preferred_pharmacy_phone?: string;
+  preferred_pharmacy_fax?: string;
+}
+
+export interface ExtractedDermatology {
+  bsa_percentage?: string;
+  iga_score?: string;
+  easi_score?: string;
+  pasi_score?: string;
+  poem_score?: string;
+  itch_nrs_score?: string;
+  condition_severity?: string;
+  affected_body_areas?: string[];
+  prior_topicals_tried?: string[];
+  prior_systemics_tried?: string[];
+  phototherapy_tried?: boolean;
+  date_of_diagnosis?: string;
 }
 
 export interface ExtractedData {
@@ -105,7 +182,12 @@ export interface ExtractedData {
   provider: ExtractedProvider;
   insurance: ExtractedInsurance;
   prior_auth: ExtractedPriorAuth;
+  pharmacy?: ExtractedPharmacy;
+  dermatology?: ExtractedDermatology;
   confidence: Record<string, number>;
+  meta?: {
+    confidence?: Record<string, number>;
+  };
 }
 
 // ============================================================================
