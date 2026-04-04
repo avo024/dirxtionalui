@@ -85,6 +85,11 @@ export interface ExtractedClinical {
   loading_dose?: string;
   maintenance_dose?: string;
   urgency: string;
+  ship_to?: string;
+  loading_dose_received?: boolean;
+  loading_dose_start_date?: string;
+  tb_ruled_out?: boolean;
+  tb_test_date?: string;
   prior_failed_medications?: string[];
   clinical_justification?: string;
   therapy_type?: string;
