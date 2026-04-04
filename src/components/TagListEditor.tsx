@@ -5,10 +5,20 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { X, Plus } from "lucide-react";
 
+function getDisplayText(item: any): string {
+  if (typeof item === "string") return item;
+  if (item && typeof item === "object") {
+    if (item.code && item.description) return `${item.code} - ${item.description}`;
+    if (item.code) return item.code;
+    if (item.name) return item.name;
+  }
+  return String(item);
+}
+
 interface TagListEditorProps {
   label: string;
-  items: string[];
-  onChange: (items: string[]) => void;
+  items: any[];
+  onChange: (items: any[]) => void;
   placeholder?: string;
   className?: string;
 }
@@ -18,7 +28,7 @@ export function TagListEditor({ label, items, onChange, placeholder = "Add item.
 
   const handleAdd = () => {
     const trimmed = inputValue.trim();
-    if (trimmed && !items.includes(trimmed)) {
+    if (trimmed && !items.some((item) => getDisplayText(item) === trimmed)) {
       onChange([...items, trimmed]);
       setInputValue("");
     }
@@ -41,7 +51,7 @@ export function TagListEditor({ label, items, onChange, placeholder = "Add item.
       <div className="flex flex-wrap gap-1.5 mb-2">
         {items.map((item, i) => (
           <Badge key={i} variant="secondary" className="text-xs gap-1 pr-1">
-            {item}
+            {getDisplayText(item)}
             <button onClick={() => handleRemove(i)} className="ml-0.5 hover:text-destructive">
               <X className="h-3 w-3" />
             </button>
