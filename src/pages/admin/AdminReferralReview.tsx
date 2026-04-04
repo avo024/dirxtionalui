@@ -441,6 +441,35 @@ export default function AdminReferralReview() {
                     <FieldEdit label="Loading Dose" value={editedData?.clinical?.loading_dose || ""} onChange={(v) => updateField("clinical", "loading_dose", v)} />
                     <FieldEdit label="Maintenance Dose" value={editedData?.clinical?.maintenance_dose || ""} onChange={(v) => updateField("clinical", "maintenance_dose", v)} />
                   </div>
+                  <div className="pb-2">
+                    <Label className="text-xs text-muted-foreground mb-1 block">Ship To</Label>
+                    <Select value={editedData?.clinical?.ship_to || ""} onValueChange={(v) => updateField("clinical", "ship_to", v)}>
+                      <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select..." /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Patient's Home">Patient's Home</SelectItem>
+                        <SelectItem value="Doctor's Office">Doctor's Office</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 pb-2 items-center">
+                    <div className="flex items-center gap-2">
+                      <Checkbox checked={editedData?.clinical?.loading_dose_received || false} onCheckedChange={(checked) => updateField("clinical", "loading_dose_received", checked)} />
+                      <Label className="text-xs font-normal">Loading Dose Received?</Label>
+                    </div>
+                    {editedData?.clinical?.loading_dose_received && (
+                      <FieldEdit label="Start Date" value={editedData?.clinical?.loading_dose_start_date || ""} onChange={(v) => updateField("clinical", "loading_dose_start_date", v)} />
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 pb-2 items-center">
+                    <div className="flex items-center gap-2">
+                      <Checkbox checked={editedData?.clinical?.tb_ruled_out || false} onCheckedChange={(checked) => updateField("clinical", "tb_ruled_out", checked)} />
+                      <Label className="text-xs font-normal">TB Ruled Out?</Label>
+                    </div>
+                    {editedData?.clinical?.tb_ruled_out && (
+                      <FieldEdit label="TB Test Date" value={editedData?.clinical?.tb_test_date || ""} onChange={(v) => updateField("clinical", "tb_test_date", v)} />
+                    )}
+                  </div>
                   <div className="pb-3">
                     <TagListEditor label="Prior Failed Medications" items={editedData?.clinical?.prior_failed_medications || []} onChange={(items) => updateArrayField("clinical", "prior_failed_medications", items)} placeholder="Add medication..." />
                   </div>
