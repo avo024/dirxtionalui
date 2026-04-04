@@ -1,21 +1,38 @@
 
 
-## Add 5 Missing Clinical Fields
+## Fix TagListEditor to Handle Object Arrays
 
-### Files to edit
+**File**: `src/components/TagListEditor.tsx`
 
-**1. `src/types/index.ts`** — Add to `ExtractedClinical` interface:
-- `ship_to?: string`
-- `loading_dose_received?: boolean`
-- `loading_dose_start_date?: string`
-- `tb_ruled_out?: boolean`
-- `tb_test_date?: string`
+### Problem
+The backend returns diagnoses as `[{code: "L20.9", description: "Atopic Dermatitis"}]` but TagListEditor expects `string[]`, causing a crash when React tries to render an object.
 
-**2. `src/pages/admin/AdminReferralReview.tsx`** — Add fields to the Clinical accordion section, after the existing Loading Dose / Maintenance Dose row:
+### Solution
+Update TagListEditor to accept `any[]` instead of `string[]` and normalize items internally:
 
-- **Ship To** dropdown (full width): options "Patient's Home", "Doctor's Office", "Other"
-- **Loading Dose Received?** checkbox + **Loading Dose Start Date** date input (2 columns, date only visible when checkbox is true)
-- **TB Ruled Out?** checkbox + **TB Test Date** date input (2 columns, date only visible when checkbox is true)
+1. **Change props type**: `items: any[]` (keep `onChange` as `(items: any[]) => void`)
+2. **Add a display helper**: `getDisplayText(item)` that returns the string if it's a string, or `"code - description"` if it's an object with those keys, or `JSON.stringify(item)` as fallback
+3. **Use `getDisplayText`** in the Badge render and in the duplicate check when adding new items
+4. **New items added via input** remain plain strings — no need to construct objects
 
-These go before the Prior Failed Medications TagListEditor, using the existing `updateField("clinical", ...)` pattern. Checkboxes use the same Checkbox + Label pattern already used for `is_new_start` and `is_refill`.
+### Changes
+
+```tsx
+// Props
+items: any[];
+onChange: (items: any[]) => void;
+
+// Helper
+function getDisplayText(item: any): string {
+  if (typeof item === "string") return item;
+  if (item && typeof item === "object") {
+    if (item.code && item.description) return `${item.code} - ${item.description}`;
+    if (item.code) return item.code;
+    if (item.name) return item.name;
+  }
+  return String(item);
+}
+```
+
+Badge renders `{getDisplayText(item)}`. Duplicate check uses `getDisplayText`. No other files need changes.
 
