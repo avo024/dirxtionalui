@@ -296,13 +296,14 @@ export default function CreateReferral() {
         </div>
         <h1 className="text-2xl font-bold text-foreground mb-2">We'll Take It From Here!</h1>
         <p className="text-muted-foreground mb-2">
-          Your referral has been received. We'll handle everything from here and notify you once it's ready.
+          Referral submitted successfully! Our team will review your documents and process the referral. You'll receive a notification when it's been approved.
         </p>
         <p className="text-sm font-mono bg-secondary inline-block px-3 py-1 rounded mb-8">
           REF-{String(Math.floor(Math.random() * 900000) + 100000)}
         </p>
         <div className="flex gap-3 justify-center">
-          <Button onClick={() => navigate("/clinic/referrals")}>View Referrals</Button>
+          <Button onClick={() => navigate("/clinic")}>Back to Dashboard</Button>
+          <Button variant="outline" onClick={() => navigate("/clinic/referrals")}>View Referrals</Button>
           <Button variant="outline" onClick={() => {
             setSelectedPatient(null);
             setPatientMode(null);
@@ -883,132 +884,67 @@ export default function CreateReferral() {
           <div className="space-y-6">
             <div className="mb-2">
               <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-1">Step 3 of 3</p>
-              <h2 className="text-lg font-semibold text-foreground">Review Referral</h2>
-              <p className="text-sm text-muted-foreground">Confirm the information before submitting</p>
+              <h2 className="text-lg font-semibold text-foreground">Submit Referral</h2>
+              <p className="text-sm text-muted-foreground">Confirm and submit your referral for processing</p>
             </div>
 
-            {/* AI Extraction animation */}
-            {referralMethod === "upload" && !extracted && (
-              <div className="text-center py-8">
-                {extracting ? (
-                  <>
-                    <Loader2 className="h-10 w-10 text-primary mx-auto mb-4 animate-spin" />
-                    <p className="text-foreground font-medium">AI is extracting information...</p>
-                    <p className="text-sm text-muted-foreground">This takes 10-20 seconds</p>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-10 w-10 text-primary mx-auto mb-4" />
-                    <p className="text-foreground font-medium mb-4">Ready to extract data from your documents</p>
-                    <Button onClick={handleStartExtraction}>
-                      <Sparkles className="h-4 w-4 mr-2" />
-                      Start AI Extraction
-                    </Button>
-                  </>
-                )}
+            {/* Patient Info */}
+            <ReviewCard icon={Users} title="Patient Information">
+              <div className="grid grid-cols-2 gap-3">
+                <ReviewField label="Name" value={patientMode === "new" ? `${newPatient.firstName} ${newPatient.lastName}`.trim() : (selectedPatient?.full_name || "—")} />
+                <ReviewField label="DOB" value={
+                  patientMode === "new" 
+                    ? newPatient.dob 
+                    : selectedPatient?.dob 
+                      ? formatDateShort(selectedPatient.dob)
+                      : "—"
+                } />
               </div>
-            )}
+            </ReviewCard>
 
-            {/* Show extracted/manual data */}
-            {(referralMethod === "manual" || extracted) && (
-              <>
-                {/* Patient Info */}
-                <ReviewCard icon={Users} title="Patient Information">
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    <ReviewField label="Name" value={patientMode === "new" ? `${newPatient.firstName} ${newPatient.lastName}`.trim() : (selectedPatient?.full_name || "—")} />
-                    <ReviewField label="DOB" value={
-                      patientMode === "new" 
-                        ? newPatient.dob 
-                        : selectedPatient?.dob 
-                          ? formatDateShort(selectedPatient.dob)
-                          : "—"
-                    } />
-                    <ReviewField label="Phone" value={patientMode === "new" ? newPatient.phone : (selectedPatient?.phone_primary || selectedPatient?.phone || "—")} />
-                    <ReviewField label="Gender" value={patientMode === "new" ? newPatient.gender : "—"} />
-                    <ReviewField label="Address" value={patientMode === "new" ? `${newPatient.address}, ${newPatient.city}, ${newPatient.state} ${newPatient.zip}`.trim() : "—"} />
-                    <ReviewField label="Email" value={patientMode === "new" ? (newPatient.email || "—") : "—"} />
-                  </div>
-                </ReviewCard>
-
-                {/* Clinical Info */}
-                <ReviewCard icon={Pill} title="Clinical Information">
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    <ReviewField label="Diagnosis (ICD-10)" value={manualData.diagnosisCode || "—"} />
-                    <ReviewField label="Drug Requested" value={manualData.drugRequested || "—"} />
-                    <ReviewField label="Dose/Strength" value={manualData.dosing || "—"} />
-                    <ReviewField label="Quantity" value={manualData.quantity || "—"} />
-                    <ReviewField label="Frequency" value={manualData.frequency || "—"} />
-                    <ReviewField label="Therapy Type" value={
-                      manualData.therapyType === "new" ? "New Therapy" :
-                      manualData.therapyType === "renewal" ? "Renewal" :
-                      manualData.therapyType === "step_therapy" ? "Step Therapy" :
-                      manualData.therapyType || "—"
-                    } />
-                    <ReviewField label="Refill" value={manualData.isRefill ? "Yes" : "No"} />
-                    <ReviewField label="Administration" value={manualData.administration || "—"} />
-                    <ReviewField label="Duration" value={manualData.durationOfTherapy || "—"} />
-                  </div>
-                </ReviewCard>
-
-                {/* Provider */}
-                <ReviewCard icon={Stethoscope} title="Provider Information">
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    <ReviewField label="Provider Name" value={`${manualData.providerFirstName} ${manualData.providerLastName}`.trim() || "—"} />
-                    <ReviewField label="NPI" value={manualData.npi || "—"} />
-                    <ReviewField label="Phone" value={manualData.providerPhone || "—"} />
-                    <ReviewField label="Specialty" value={manualData.specialty || "—"} />
-                    <ReviewField label="Address" value={manualData.providerAddress ? `${manualData.providerAddress}, ${manualData.providerCity}, ${manualData.providerState}`.trim() : "—"} />
-                    <ReviewField label="Fax" value={manualData.providerFax || "—"} />
-                    <ReviewField label="Email" value={manualData.providerEmail || "—"} />
-                    <ReviewField label="Signature Date" value={manualData.signatureDate || "—"} />
-                  </div>
-                </ReviewCard>
-
-                {/* Insurance */}
-                <ReviewCard icon={Shield} title="Insurance Information">
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    <ReviewField label="Has Insurance" value={manualData.hasInsurance ? "Yes" : "No"} />
-                    <ReviewField label="Primary Insurance" value={manualData.primaryInsuranceName || "—"} />
-                    <ReviewField label="Member ID" value={manualData.primaryMemberId || "—"} />
-                    {manualData.secondaryInsuranceName && (
-                      <ReviewField label="Secondary Insurance" value={manualData.secondaryInsuranceName} />
-                    )}
-                    {manualData.insuranceNotes && (
-                      <ReviewField label="Notes" value={manualData.insuranceNotes} />
-                    )}
-                  </div>
-                </ReviewCard>
-
-
-                {/* Documents */}
-                {uploadedFiles.length > 0 && (
-                  <ReviewCard icon={FileText} title="Documents">
-                    <div className="space-y-1.5">
-                      {uploadedFiles.map((f) => (
-                        <div key={f.id} className="flex items-center gap-2 text-sm">
-                          <CheckCircle className="h-3.5 w-3.5 text-success" />
-                          <span className="text-foreground">{f.name}</span>
-                          <span className="text-muted-foreground">({f.size})</span>
-                        </div>
-                      ))}
+            {/* Documents */}
+            {uploadedFiles.length > 0 && (
+              <ReviewCard icon={FileText} title="Documents Uploaded">
+                <div className="space-y-1.5">
+                  {uploadedFiles.map((f) => (
+                    <div key={f.id} className="flex items-center gap-2 text-sm">
+                      <CheckCircle className="h-3.5 w-3.5 text-success" />
+                      <span className="text-foreground">{f.name}</span>
+                      <span className="text-muted-foreground">({f.size})</span>
                     </div>
-                  </ReviewCard>
-                )}
-
-                {/* Confirm */}
-                <div className="flex items-start gap-3 p-4 rounded-lg bg-secondary/50 border border-border">
-                  <input
-                    type="checkbox"
-                    checked={confirmAccuracy}
-                    onChange={(e) => setConfirmAccuracy(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 rounded border-input text-primary focus:ring-primary"
-                  />
-                  <label className="text-sm text-foreground">
-                    I confirm all information is accurate and complete.
-                  </label>
+                  ))}
                 </div>
-              </>
+              </ReviewCard>
             )}
+
+            {/* Info notes */}
+            <div className="space-y-3">
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
+                <Sparkles className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                <p className="text-sm text-foreground">
+                  Our AI will automatically extract patient info, provider details, drug information, and more from your documents.
+                </p>
+              </div>
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
+                <Shield className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                <p className="text-sm text-foreground">
+                  Our team will handle the prior authorization process.
+                </p>
+              </div>
+            </div>
+
+            {/* Confirm */}
+            <div className="flex items-start gap-3 p-4 rounded-lg bg-secondary/50 border border-border">
+              <input
+                type="checkbox"
+                checked={confirmAccuracy}
+                onChange={(e) => setConfirmAccuracy(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-input text-primary focus:ring-primary"
+              />
+              <label className="text-sm text-foreground">
+                I confirm all information is accurate and complete.
+              </label>
+            </div>
           </div>
         )}
       </div>
@@ -1053,7 +989,7 @@ export default function CreateReferral() {
           </Button>
         )}
 
-        {currentStep === 2 && (referralMethod === "manual" || extracted) && (
+        {currentStep === 2 && (
           <Button
             onClick={handleSubmit}
             disabled={!confirmAccuracy || submitting}
