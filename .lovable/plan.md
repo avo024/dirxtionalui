@@ -1,84 +1,53 @@
 
 
-## Preview PDF Before Approve — Admin Review Flow
+## Simplify Clinic Step 3 — Submit Confirmation
 
 ### Overview
-Update the bottom action bar to be status-aware, add a "Send to Pharmacy" action with its API endpoint, and change the approve flow to stay on the page instead of navigating away.
+Replace the detailed review screen (Clinical, Provider, Insurance sections) with a simple confirmation view. The clinic just uploaded documents — the admin team handles extraction and review.
 
-### Files to edit
+### File: `src/pages/clinic/CreateReferral.tsx`
 
-**1. `src/lib/api.ts`** — Add `deliverReferral` to adminApi
-```ts
-async deliverReferral(id: string): Promise<any> {
-  const response = await fetch(`${API_BASE_URL}/admin/referrals/${id}/deliver`, {
-    method: 'POST',
-    headers: getHeaders(),
-  });
-  return handleResponse(response);
-}
+#### 1. Replace Step 3 content (lines 882–1013)
+
+**Remove:**
+- AI extraction animation block (lines 891–910)
+- The conditional `(referralMethod === "manual" || extracted)` wrapper
+- Clinical Information ReviewCard (lines 933–951)
+- Provider Information ReviewCard (lines 953–965)
+- Insurance Information ReviewCard (lines 967–980)
+
+**Keep:**
+- Patient Information ReviewCard (lines 916–931) — but simplify to just Name and DOB
+- Documents ReviewCard (lines 984–996)
+- Confirm checkbox (lines 998–1009)
+
+**Add:**
+- New heading: "Submit Referral" / "Confirm and submit your referral for processing"
+- Two info notes with `Info` icon: AI extraction note + PA handling note
+- For manual referrals, still show patient info and documents only (no clinical/provider/insurance review)
+
+**New Step 3 structure:**
+```
+Step 3 of 3 — "Submit Referral"
+"Confirm and submit your referral for processing"
+
+[Patient card: Name + DOB only]
+[Documents card: filenames with green checkmarks]
+[Info note: "Our AI will automatically extract..."]
+[Info note: "Our team will handle the prior authorization process."]
+[Confirm checkbox]
 ```
 
-**2. `src/pages/admin/AdminReferralReview.tsx`**
+#### 2. Update submit button condition (line 1056)
+Change from `(referralMethod === "manual" || extracted)` to just `currentStep === 2` — no longer gated on extraction completion since we skip extraction entirely.
 
-#### a. Update `handleApprove` (line 159)
-After approve succeeds, instead of `navigate("/admin/referrals")`, re-fetch the referral to update status in-place:
-```ts
-const data = await adminApi.getReferral(id!);
-const mapped = { ...data, drug: data.drug_requested, blocked: data.preferred_pharmacy_blocked };
-setReferral(mapped);
-setEditedData(mapped.extracted_data || {});
-```
+#### 3. Update success message (lines 297–299)
+Change description to: "Referral submitted successfully! Our team will review your documents and process the referral. You'll receive a notification when it's been approved."
 
-#### b. Add `handleDeliver` handler
-```ts
-const handleDeliver = async () => {
-  try {
-    await adminApi.deliverReferral(id!);
-    toast({ title: "Sent to Pharmacy", description: "Referral has been sent to the pharmacy." });
-    const data = await adminApi.getReferral(id!);
-    const mapped = { ...data, drug: data.drug_requested, blocked: data.preferred_pharmacy_blocked };
-    setReferral(mapped);
-  } catch (err: any) {
-    toast({ title: "Error", description: err.message || "Failed to send", variant: "destructive" });
-  }
-};
-```
+Add a "Back to Dashboard" button alongside the existing buttons.
 
-#### c. Add `deliverOpen` state for confirm modal
-
-#### d. Replace bottom action bar (lines 655–663)
-Make buttons status-conditional:
-
-```text
-Status-based button visibility:
-┌────────────────────┬──────────┬─────────┬────────┬──────────────────┐
-│ Status             │ Preview  │ Reject  │ Approve│ Send to Pharmacy │
-├────────────────────┼──────────┼─────────┼────────┼──────────────────┤
-│ ready_for_review   │ ✓        │ ✓       │ ✓      │                  │
-│ uploaded           │ ✓        │ ✓       │ ✓      │                  │
-│ approved_to_send   │ ✓        │         │        │ ✓                │
-│ sent_to_pharmacy   │ ✓        │         │        │                  │
-│ rejected           │ ✓        │         │        │                  │
-└────────────────────┴──────────┴─────────┴────────┴──────────────────┘
-```
-
-- "Preview PDF" always shown (outline-primary, existing handler)
-- Helper text "Preview the PDF before approving" shown for review statuses
-- "Send to Pharmacy" button uses `variant="success"`, opens a ConfirmModal
-- "Approve" button shown only for reviewable statuses
-
-#### e. Add deliver ConfirmModal (after reject modal)
-```tsx
-<ConfirmModal
-  open={deliverOpen}
-  onOpenChange={setDeliverOpen}
-  title="Send to Pharmacy"
-  description={`Send ${referral.patient_name}'s referral to the pharmacy?`}
-  confirmLabel="Send"
-  variant="success"
-  onConfirm={handleDeliver}
-/>
-```
+#### 4. Remove extraction-related gating
+Since Step 3 no longer needs extraction, remove the extraction trigger and `extracted` gate. The submit button should be enabled as soon as the confirm checkbox is checked.
 
 ### No other files affected
 
