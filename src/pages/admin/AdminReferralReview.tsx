@@ -28,6 +28,7 @@ export default function AdminReferralReview() {
   const [loading, setLoading] = useState(true);
   const [approveOpen, setApproveOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
+  const [deliverOpen, setDeliverOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [editedData, setEditedData] = useState<any>(null);
@@ -164,7 +165,10 @@ export default function AdminReferralReview() {
         description: `${referral.patient_name}'s referral has been approved and PDF generated.`,
       });
       setApproveOpen(false);
-      navigate("/admin/referrals");
+      const data = await adminApi.getReferral(id!);
+      const mapped = { ...data, drug: data.drug_requested, blocked: data.preferred_pharmacy_blocked };
+      setReferral(mapped);
+      setEditedData(mapped.extracted_data || {});
     } catch (err: any) {
       toast({
         title: "Error",
@@ -653,13 +657,27 @@ export default function AdminReferralReview() {
       </div>
 
       {/* Bottom action bar */}
-      <div className="fixed bottom-0 left-60 right-0 border-t border-border bg-card px-6 py-3 flex items-center justify-end gap-3 z-10">
-        <Button variant="outline-primary" onClick={handlePreviewPDF}>
-          <FileText className="h-4 w-4 mr-2" />
-          Preview PDF
-        </Button>
-        <Button variant="destructive" onClick={() => setRejectOpen(true)}>Reject</Button>
-        <Button variant="success" onClick={() => setApproveOpen(true)}>Approve</Button>
+      <div className="fixed bottom-0 left-60 right-0 border-t border-border bg-card px-6 py-3 flex items-center justify-between z-10">
+        <div className="text-sm text-muted-foreground">
+          {(referral.status === 'ready_for_review' || referral.status === 'uploaded') && (
+            <span>Preview the PDF before approving</span>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          <Button variant="outline-primary" onClick={handlePreviewPDF}>
+            <FileText className="h-4 w-4 mr-2" />
+            Preview PDF
+          </Button>
+          {(referral.status === 'ready_for_review' || referral.status === 'uploaded') && (
+            <>
+              <Button variant="destructive" onClick={() => setRejectOpen(true)}>Reject</Button>
+              <Button variant="success" onClick={() => setApproveOpen(true)}>Approve</Button>
+            </>
+          )}
+          {referral.status === 'approved_to_send' && (
+            <Button variant="success" onClick={() => setDeliverOpen(true)}>Send to Pharmacy</Button>
+          )}
+        </div>
       </div>
 
       {/* Approve modal */}
@@ -671,6 +689,29 @@ export default function AdminReferralReview() {
         confirmLabel="Approve"
         variant="success"
         onConfirm={handleApprove}
+      />
+
+      {/* Deliver modal */}
+      <ConfirmModal
+        open={deliverOpen}
+        onOpenChange={setDeliverOpen}
+        title="Send to Pharmacy"
+        description={`Send ${referral.patient_name}'s referral to the pharmacy?`}
+        confirmLabel="Send"
+        variant="success"
+        onConfirm={async () => {
+          try {
+            await adminApi.deliverReferral(id!);
+            toast({ title: "Sent to Pharmacy", description: "Referral has been sent to the pharmacy." });
+            setDeliverOpen(false);
+            const data = await adminApi.getReferral(id!);
+            const mapped = { ...data, drug: data.drug_requested, blocked: data.preferred_pharmacy_blocked };
+            setReferral(mapped);
+            setEditedData(mapped.extracted_data || {});
+          } catch (err: any) {
+            toast({ title: "Error", description: err.message || "Failed to send", variant: "destructive" });
+          }
+        }}
       />
 
       {/* Reject modal */}
