@@ -255,6 +255,13 @@ export default function CreateReferral() {
         }
       }
 
+      // Step 5: Trigger AI extraction in background (fire-and-forget)
+      try {
+        await clinicApi.finalizeReferral(referral.id);
+      } catch (err) {
+        console.warn('Finalize call failed (admin can retry manually):', err);
+      }
+
       setSubmitting(false);
       setSubmitted(true);
 
@@ -296,7 +303,7 @@ export default function CreateReferral() {
         </div>
         <h1 className="text-2xl font-bold text-foreground mb-2">We'll Take It From Here!</h1>
         <p className="text-muted-foreground mb-2">
-          Referral submitted successfully! Our team will review your documents and process the referral. You'll receive a notification when it's been approved.
+          Referral submitted successfully! Our AI is extracting the details now and our team will review within the hour.
         </p>
         <p className="text-sm font-mono bg-secondary inline-block px-3 py-1 rounded mb-8">
           REF-{String(Math.floor(Math.random() * 900000) + 100000)}
