@@ -1,53 +1,44 @@
 
 
-## Simplify Clinic Step 3 — Submit Confirmation
+## Auto-trigger AI Extraction on Clinic Submit
 
 ### Overview
-Replace the detailed review screen (Clinical, Provider, Insurance sections) with a simple confirmation view. The clinic just uploaded documents — the admin team handles extraction and review.
+After documents are uploaded in the clinic submit flow, call `POST /referrals/{id}/finalize` to trigger background AI extraction. Fire-and-forget — failures are logged but don't block the user.
 
-### File: `src/pages/clinic/CreateReferral.tsx`
+### Changes
 
-#### 1. Replace Step 3 content (lines 882–1013)
+**1. `src/lib/api.ts`** — Add `finalizeReferral` to `clinicApi`
 
-**Remove:**
-- AI extraction animation block (lines 891–910)
-- The conditional `(referralMethod === "manual" || extracted)` wrapper
-- Clinical Information ReviewCard (lines 933–951)
-- Provider Information ReviewCard (lines 953–965)
-- Insurance Information ReviewCard (lines 967–980)
-
-**Keep:**
-- Patient Information ReviewCard (lines 916–931) — but simplify to just Name and DOB
-- Documents ReviewCard (lines 984–996)
-- Confirm checkbox (lines 998–1009)
-
-**Add:**
-- New heading: "Submit Referral" / "Confirm and submit your referral for processing"
-- Two info notes with `Info` icon: AI extraction note + PA handling note
-- For manual referrals, still show patient info and documents only (no clinical/provider/insurance review)
-
-**New Step 3 structure:**
-```
-Step 3 of 3 — "Submit Referral"
-"Confirm and submit your referral for processing"
-
-[Patient card: Name + DOB only]
-[Documents card: filenames with green checkmarks]
-[Info note: "Our AI will automatically extract..."]
-[Info note: "Our team will handle the prior authorization process."]
-[Confirm checkbox]
+```ts
+async finalizeReferral(referralId: string): Promise<any> {
+  const response = await fetch(`${API_BASE_URL}/referrals/${referralId}/finalize`, {
+    method: 'POST',
+    headers: getHeaders(),
+  });
+  return handleResponse(response);
+},
 ```
 
-#### 2. Update submit button condition (line 1056)
-Change from `(referralMethod === "manual" || extracted)` to just `currentStep === 2` — no longer gated on extraction completion since we skip extraction entirely.
+**2. `src/pages/clinic/CreateReferral.tsx`** — Call finalize after document uploads
 
-#### 3. Update success message (lines 297–299)
-Change description to: "Referral submitted successfully! Our team will review your documents and process the referral. You'll receive a notification when it's been approved."
+Insert between line 256 (end of file upload loop) and line 258 (`setSubmitting(false)`):
 
-Add a "Back to Dashboard" button alongside the existing buttons.
+```ts
+// Step 5: Trigger AI extraction in background (fire-and-forget)
+try {
+  await clinicApi.finalizeReferral(referral.id);
+} catch (err) {
+  console.warn('Finalize call failed (admin can retry manually):', err);
+}
+```
 
-#### 4. Remove extraction-related gating
-Since Step 3 no longer needs extraction, remove the extraction trigger and `extracted` gate. The submit button should be enabled as soon as the confirm checkbox is checked.
+**3. `src/pages/clinic/CreateReferral.tsx`** — Update success message (line 299)
+
+Change from:
+> "Referral submitted successfully! Our team will review your documents and process the referral. You'll receive a notification when it's been approved."
+
+To:
+> "Referral submitted successfully! Our AI is extracting the details now and our team will review within the hour."
 
 ### No other files affected
 
