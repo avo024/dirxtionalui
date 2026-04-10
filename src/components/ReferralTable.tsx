@@ -123,10 +123,7 @@ export function ReferralTable({ referrals, userType, showClinic = false, paSortD
                   <TableCell className="text-sm text-muted-foreground">{ref.clinic_name}</TableCell>
                 )}
                 <TableCell>
-                  <div className="flex items-center gap-1.5">
-                    <Pill className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="text-sm">{ref.drug}</span>
-                  </div>
+                  <span className="text-sm">{ref.drug}</span>
                 </TableCell>
                 {isAdmin && paInfo && (
                   <TableCell>
