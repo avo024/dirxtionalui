@@ -390,39 +390,44 @@ export default function PatientDetail() {
             )}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Basic Info */}
-            <div className="rounded-xl border border-border bg-card p-5 card-shadow">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <User className="h-4 w-4 text-primary" />
+          {isEditing ? (
+            /* ── Edit mode: all fields in one card ── */
+            <div className="rounded-xl border border-border bg-card p-5 card-shadow space-y-6">
+              <div>
+                <h3 className="font-semibold text-foreground text-xs uppercase tracking-wider mb-3">Personal Information</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <EditField label="Full Name" value={editData.full_name} onChange={(v) => setField("full_name", v)} />
+                  <div>
+                    <p className="text-muted-foreground text-xs mb-1">Date of Birth</p>
+                    <Input type="date" value={editData.dob} onChange={(e) => setField("dob", e.target.value)} className="h-8 text-sm" />
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs mb-1">Gender</p>
+                    <Select value={editData.gender} onValueChange={(v) => setField("gender", v)}>
+                      <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Male">Male</SelectItem>
+                        <SelectItem value="Female">Female</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                        <SelectItem value="Prefer not to say">Prefer not to say</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <EditField label="Email" value={editData.email} onChange={(v) => setField("email", v)} />
                 </div>
-                <h3 className="font-semibold text-foreground text-sm">Basic Information</h3>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                {isEditing ? (
-                  <>
-                    <EditField label="Full Name" value={editData.full_name} onChange={(v) => setField("full_name", v)} />
-                    <div>
-                      <p className="text-muted-foreground text-xs mb-1">Date of Birth</p>
-                      <Input type="date" value={editData.dob} onChange={(e) => setField("dob", e.target.value)} className="h-8 text-sm" />
+              <div>
+                <h3 className="font-semibold text-foreground text-xs uppercase tracking-wider mb-3">Contact</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <EditField label="Phone" value={editData.phone_primary} onChange={(v) => setField("phone_primary", v)} />
+                  <EditField label="Alternate Phone" value={editData.phone_alternate} onChange={(v) => setField("phone_alternate", v)} />
+                  <div className="col-span-2">
+                    <EditField label="Street Address" value={editData.address} onChange={(v) => setField("address", v)} />
+                  </div>
+                  <div className="col-span-2 grid grid-cols-4 gap-4">
+                    <div className="col-span-2">
+                      <EditField label="City" value={editData.city} onChange={(v) => setField("city", v)} />
                     </div>
-                    <div>
-                      <p className="text-muted-foreground text-xs mb-1">Gender</p>
-                      <Select value={editData.gender} onValueChange={(v) => setField("gender", v)}>
-                        <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Male">Male</SelectItem>
-                          <SelectItem value="Female">Female</SelectItem>
-                          <SelectItem value="Other">Other</SelectItem>
-                          <SelectItem value="Prefer not to say">Prefer not to say</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <EditField label="Phone" value={editData.phone_primary} onChange={(v) => setField("phone_primary", v)} />
-                    <EditField label="Email" value={editData.email} onChange={(v) => setField("email", v)} />
-                    <EditField label="Address" value={editData.address} onChange={(v) => setField("address", v)} />
-                    <EditField label="City" value={editData.city} onChange={(v) => setField("city", v)} />
                     <div>
                       <p className="text-muted-foreground text-xs mb-1">State</p>
                       <Select value={editData.state} onValueChange={(v) => setField("state", v)}>
@@ -432,78 +437,120 @@ export default function PatientDetail() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <EditField label="Zip Code" value={editData.zip} onChange={(v) => setField("zip", v)} />
-                    <EditField label="Height" value={editData.height} onChange={(v) => setField("height", v)} />
-                    <EditField label="Weight" value={editData.weight} onChange={(v) => setField("weight", v)} />
-                    <div className="col-span-2">
-                      <p className="text-muted-foreground text-xs mb-1">Allergies</p>
-                      <Textarea value={editData.allergies} onChange={(e) => setField("allergies", e.target.value)} rows={2} className="text-sm" />
-                    </div>
-                    <EditField label="Authorized Representative" value={editData.authorized_representative} onChange={(v) => setField("authorized_representative", v)} />
-                    <EditField label="Representative Phone" value={editData.authorized_representative_phone} onChange={(v) => setField("authorized_representative_phone", v)} />
-                    <EditField label="Alternate Phone" value={editData.phone_alternate} onChange={(v) => setField("phone_alternate", v)} />
-                  </>
-                ) : (
-                  <>
-                    <InfoField label="Full Name" value={fullName} />
-                    <InfoField label="Date of Birth" value={patient.dob ? `${formatDateShort(patient.dob)} (Age ${getAge(patient.dob)})` : '—'} />
-                    <InfoField label="Gender" value={patient.gender || '—'} />
-                    <div>
-                      <p className="text-muted-foreground text-xs mb-0.5">Phone</p>
-                      <div className="flex items-center gap-1">
-                        <p className="font-medium text-foreground text-sm">{patient.phone_primary || '—'}</p>
-                        {patient.phone_primary && (
-                          <button onClick={() => copyToClipboard(patient.phone_primary, "Phone")} className="p-0.5 rounded hover:bg-secondary transition-colors">
-                            <Copy className="h-3 w-3 text-muted-foreground" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground text-xs mb-0.5">Email</p>
-                      <div className="flex items-center gap-1">
-                        <p className="font-medium text-foreground text-sm">{patient.email || '—'}</p>
-                        {patient.email && (
-                          <button onClick={() => copyToClipboard(patient.email, "Email")} className="p-0.5 rounded hover:bg-secondary transition-colors">
-                            <Copy className="h-3 w-3 text-muted-foreground" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    <InfoField label="Address" value={patient.address || '—'} />
-                    <InfoField label="City" value={patient.city || '—'} />
-                    <InfoField label="State" value={patient.state || '—'} />
-                    <InfoField label="Zip Code" value={patient.zip || '—'} />
-                    <InfoField label="Height" value={patient.height || '—'} />
-                    <InfoField label="Weight" value={patient.weight || '—'} />
-                    <InfoField label="Allergies" value={patient.allergies || '—'} />
-                    <InfoField label="Authorized Representative" value={patient.authorized_representative || '—'} />
-                    <InfoField label="Representative Phone" value={patient.authorized_representative_phone || '—'} />
-                    <InfoField label="Alternate Phone" value={patient.phone_alternate || '—'} />
-                  </>
-                )}
+                    <EditField label="Zip" value={editData.zip} onChange={(v) => setField("zip", v)} />
+                  </div>
+                </div>
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground text-xs uppercase tracking-wider mb-3">Medical</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <EditField label="Height" value={editData.height} onChange={(v) => setField("height", v)} />
+                  <EditField label="Weight" value={editData.weight} onChange={(v) => setField("weight", v)} />
+                  <div className="col-span-2">
+                    <p className="text-muted-foreground text-xs mb-1">Allergies</p>
+                    <Textarea value={editData.allergies} onChange={(e) => setField("allergies", e.target.value)} rows={2} className="text-sm" />
+                  </div>
+                </div>
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground text-xs uppercase tracking-wider mb-3">Guardian / Authorized Representative</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <EditField label="Authorized Representative" value={editData.authorized_representative} onChange={(v) => setField("authorized_representative", v)} />
+                  <EditField label="Representative Phone" value={editData.authorized_representative_phone} onChange={(v) => setField("authorized_representative_phone", v)} />
+                </div>
               </div>
             </div>
+          ) : (
+            /* ── Read mode: grouped sections ── */
+            <div className="space-y-4">
+              {/* Section 1: Personal Information */}
+              <div className="rounded-xl border border-border bg-muted/50 p-5 card-shadow">
+                <h3 className="font-semibold text-foreground text-xs uppercase tracking-wider mb-4">Personal Information</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <InfoField label="Full Name" value={fullName} />
+                  <InfoField label="Date of Birth" value={patient.dob ? `${formatDateShort(patient.dob)} (Age ${getAge(patient.dob)})` : '—'} />
+                  <InfoField label="Gender" value={patient.gender || '—'} />
+                  <div>
+                    <p className="text-muted-foreground text-xs mb-0.5">Email</p>
+                    <div className="flex items-center gap-1">
+                      <p className="font-medium text-foreground text-sm">{patient.email || '—'}</p>
+                      {patient.email && (
+                        <button onClick={() => copyToClipboard(patient.email, "Email")} className="p-0.5 rounded hover:bg-secondary transition-colors">
+                          <Copy className="h-3 w-3 text-muted-foreground" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-            {/* Insurance Info */}
-            <div className="rounded-xl border border-border bg-card p-5 card-shadow">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Shield className="h-4 w-4 text-primary" />
+              {/* Section 2: Contact */}
+              <div className="rounded-xl border border-border bg-card p-5 card-shadow">
+                <h3 className="font-semibold text-foreground text-xs uppercase tracking-wider mb-4">Contact</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-muted-foreground text-xs mb-0.5">Phone</p>
+                    <div className="flex items-center gap-1">
+                      <p className="font-medium text-foreground text-sm">{patient.phone_primary || '—'}</p>
+                      {patient.phone_primary && (
+                        <button onClick={() => copyToClipboard(patient.phone_primary, "Phone")} className="p-0.5 rounded hover:bg-secondary transition-colors">
+                          <Copy className="h-3 w-3 text-muted-foreground" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <InfoField label="Alternate Phone" value={patient.phone_alternate || '—'} />
+                  <div className="col-span-2">
+                    <InfoField label="Street Address" value={patient.address || '—'} />
+                  </div>
+                  <div className="col-span-2 grid grid-cols-4 gap-4">
+                    <div className="col-span-2">
+                      <InfoField label="City" value={patient.city || '—'} />
+                    </div>
+                    <InfoField label="State" value={patient.state || '—'} />
+                    <InfoField label="Zip" value={patient.zip || '—'} />
+                  </div>
                 </div>
-                <h3 className="font-semibold text-foreground text-sm">Insurance Information</h3>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <InfoField label="Insurance Type" value={patient.insurance_type || '—'} />
-                <InfoField label="Plan Details" value={patient.insurance_notes || '—'} />
-                <div>
-                  <p className="text-muted-foreground text-xs mb-0.5">PA Status</p>
-                  <PAStatusBadge status={patient.pa_status || 'none'} expirationDate={patient.pa_expiration_date} />
+
+              {/* Section 3: Medical */}
+              <div className="rounded-xl border border-border bg-muted/50 p-5 card-shadow">
+                <h3 className="font-semibold text-foreground text-xs uppercase tracking-wider mb-4">Medical</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <InfoField label="Height" value={patient.height || '—'} />
+                  <InfoField label="Weight" value={patient.weight || '—'} />
+                  <div className="col-span-2">
+                    <InfoField label="Allergies" value={patient.allergies || '—'} />
+                  </div>
                 </div>
-                <InfoField label="PA Expiration" value={patient.pa_expiration_date ? formatDateShort(patient.pa_expiration_date) : "N/A"} />
+              </div>
+
+              {/* Section 4: Guardian (only if data exists) */}
+              {patient.authorized_representative && (
+                <div className="rounded-xl border border-border bg-card p-5 card-shadow">
+                  <h3 className="font-semibold text-foreground text-xs uppercase tracking-wider mb-4">Guardian / Authorized Representative</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <InfoField label="Authorized Representative" value={patient.authorized_representative} />
+                    <InfoField label="Representative Phone" value={patient.authorized_representative_phone || '—'} />
+                  </div>
+                </div>
+              )}
+
+              {/* Insurance Info */}
+              <div className="rounded-xl border border-border bg-muted/50 p-5 card-shadow">
+                <h3 className="font-semibold text-foreground text-xs uppercase tracking-wider mb-4">Insurance Information</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <InfoField label="Insurance Type" value={patient.insurance_type || '—'} />
+                  <InfoField label="Plan Details" value={patient.insurance_notes || '—'} />
+                  <div>
+                    <p className="text-muted-foreground text-xs mb-0.5">PA Status</p>
+                    <PAStatusBadge status={patient.pa_status || 'none'} expirationDate={patient.pa_expiration_date} />
+                  </div>
+                  <InfoField label="PA Expiration" value={patient.pa_expiration_date ? formatDateShort(patient.pa_expiration_date) : "N/A"} />
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </TabsContent>
 
         {/* MEDICATIONS TAB */}
