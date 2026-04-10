@@ -2,37 +2,40 @@ import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   ArrowLeft, Plus, User, Shield, Phone, Mail, Copy,
-  FileText, Pill, Eye, Download, ClipboardList, Loader2
+  FileText, Pill, ClipboardList, Loader2, Pencil, Save, X, Eye
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PAStatusBadge } from "@/components/PAStatusBadge";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { clinicApi } from "@/lib/api";
 import { formatDateShort, getRelativeTime } from "@/lib/dateUtils";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+
+const US_STATES = [
+  "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA",
+  "KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ",
+  "NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT",
+  "VA","WA","WV","WI","WY","DC"
+];
 
 function getDrugPABadge(drug: any) {
   const today = new Date();
-
   if (!drug.pa_status || drug.pa_status === "pending") {
     return { label: "No PA", className: "bg-muted text-muted-foreground" };
   }
-
   if (drug.pa_status === "approved" && drug.pa_expiration_date) {
     const expDate = new Date(drug.pa_expiration_date);
-    if (expDate < today) {
-      return { label: "PA Expired", className: "bg-destructive/10 text-destructive" };
-    }
+    if (expDate < today) return { label: "PA Expired", className: "bg-destructive/10 text-destructive" };
     const daysUntil = Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-    if (daysUntil <= 30) {
-      return { label: "PA Expiring Soon", className: "bg-warning/10 text-warning" };
-    }
+    if (daysUntil <= 30) return { label: "PA Expiring Soon", className: "bg-warning/10 text-warning" };
     return { label: "PA Active", className: "bg-success/10 text-success" };
   }
-
   return { label: "No PA", className: "bg-muted text-muted-foreground" };
 }
 
@@ -46,14 +49,21 @@ export default function PatientDetail() {
   const [medsLoading, setMedsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  // Inline editing state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState<any>({});
+  const [saving, setSaving] = useState(false);
+
+  const loadPatient = () => {
     if (!id) return;
     setLoading(true);
     clinicApi.getPatient(id)
       .then((data) => setPatient(data))
       .catch(() => setError("Failed to load patient"))
       .finally(() => setLoading(false));
-  }, [id]);
+  };
+
+  useEffect(() => { loadPatient(); }, [id]);
 
   useEffect(() => {
     if (!id) return;
@@ -83,6 +93,49 @@ export default function PatientDetail() {
     });
   }, [medications]);
 
+  const startEditing = () => {
+    setEditData({
+      full_name: patient.full_name || "",
+      dob: patient.dob || "",
+      gender: patient.gender || "",
+      phone_primary: patient.phone_primary || "",
+      phone_alternate: patient.phone_alternate || "",
+      email: patient.email || "",
+      address: patient.address || "",
+      city: patient.city || "",
+      state: patient.state || "",
+      zip: patient.zip || "",
+      height: patient.height || "",
+      weight: patient.weight || "",
+      allergies: patient.allergies || "",
+      authorized_representative: patient.authorized_representative || "",
+      authorized_representative_phone: patient.authorized_representative_phone || "",
+    });
+    setIsEditing(true);
+  };
+
+  const cancelEditing = () => {
+    setIsEditing(false);
+    setEditData({});
+  };
+
+  const saveEdits = async () => {
+    if (!id) return;
+    setSaving(true);
+    try {
+      await clinicApi.updatePatient(id, editData);
+      toast.success("Patient updated successfully");
+      setIsEditing(false);
+      loadPatient();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update patient");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const setField = (field: string, value: string) => setEditData((d: any) => ({ ...d, [field]: value }));
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -104,7 +157,6 @@ export default function PatientDetail() {
 
   const fullName = patient.full_name || `${patient.first_name || ''} ${patient.last_name || ''}`.trim() || '—';
   const patientReferrals = referrals;
-  const allDocuments: any[] = [];
 
   const getAge = (dob: string) => {
     const birth = new Date(dob);
@@ -117,7 +169,7 @@ export default function PatientDetail() {
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
-    toast({ title: "Copied!", description: `${label} copied to clipboard` });
+    toast.success(`${label} copied to clipboard`);
   };
 
   const firstName = patient.full_name?.split(' ')[0] || 'Patient';
@@ -156,7 +208,6 @@ export default function PatientDetail() {
           <TabsTrigger value="history">Referral History</TabsTrigger>
           <TabsTrigger value="info">Patient Information</TabsTrigger>
           <TabsTrigger value="medications">Medications</TabsTrigger>
-          <TabsTrigger value="documents">Documents</TabsTrigger>
         </TabsList>
 
         {/* REFERRAL HISTORY TAB */}
@@ -280,6 +331,26 @@ export default function PatientDetail() {
 
         {/* PATIENT INFO TAB */}
         <TabsContent value="info" className="mt-4 space-y-4">
+          <div className="flex justify-end">
+            {!isEditing ? (
+              <Button variant="outline" size="sm" onClick={startEditing}>
+                <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                Edit
+              </Button>
+            ) : (
+              <div className="flex gap-2">
+                <Button size="sm" onClick={saveEdits} disabled={saving}>
+                  {saving ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1.5" />}
+                  Save
+                </Button>
+                <Button variant="outline" size="sm" onClick={cancelEditing} disabled={saving}>
+                  <X className="h-3.5 w-3.5 mr-1.5" />
+                  Cancel
+                </Button>
+              </div>
+            )}
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Basic Info */}
             <div className="rounded-xl border border-border bg-card p-5 card-shadow">
@@ -290,41 +361,88 @@ export default function PatientDetail() {
                 <h3 className="font-semibold text-foreground text-sm">Basic Information</h3>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <InfoField label="Full Name" value={fullName} />
-                <InfoField label="Date of Birth" value={patient.dob ? `${formatDateShort(patient.dob)} (Age ${getAge(patient.dob)})` : '—'} />
-                <InfoField label="Gender" value={patient.gender || '—'} />
-                <div>
-                  <p className="text-muted-foreground text-xs mb-0.5">Phone</p>
-                  <div className="flex items-center gap-1">
-                    <p className="font-medium text-foreground text-sm">{patient.phone_primary || '—'}</p>
-                    {patient.phone_primary && (
-                      <button onClick={() => copyToClipboard(patient.phone_primary, "Phone")} className="p-0.5 rounded hover:bg-secondary transition-colors">
-                        <Copy className="h-3 w-3 text-muted-foreground" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <p className="text-muted-foreground text-xs mb-0.5">Email</p>
-                  <div className="flex items-center gap-1">
-                    <p className="font-medium text-foreground text-sm">{patient.email || '—'}</p>
-                    {patient.email && (
-                      <button onClick={() => copyToClipboard(patient.email, "Email")} className="p-0.5 rounded hover:bg-secondary transition-colors">
-                        <Copy className="h-3 w-3 text-muted-foreground" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-                <InfoField label="Address" value={patient.address || '—'} />
-                <InfoField label="City" value={patient.city || '—'} />
-                <InfoField label="State" value={patient.state || '—'} />
-                <InfoField label="Zip Code" value={patient.zip || '—'} />
-                <InfoField label="Height" value={patient.height || '—'} />
-                <InfoField label="Weight" value={patient.weight || '—'} />
-                <InfoField label="Allergies" value={patient.allergies || '—'} />
-                <InfoField label="Authorized Representative" value={patient.authorized_representative || '—'} />
-                <InfoField label="Representative Phone" value={patient.authorized_representative_phone || '—'} />
-                <InfoField label="Alternate Phone" value={patient.phone_alternate || '—'} />
+                {isEditing ? (
+                  <>
+                    <EditField label="Full Name" value={editData.full_name} onChange={(v) => setField("full_name", v)} />
+                    <div>
+                      <p className="text-muted-foreground text-xs mb-1">Date of Birth</p>
+                      <Input type="date" value={editData.dob} onChange={(e) => setField("dob", e.target.value)} className="h-8 text-sm" />
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs mb-1">Gender</p>
+                      <Select value={editData.gender} onValueChange={(v) => setField("gender", v)}>
+                        <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Male">Male</SelectItem>
+                          <SelectItem value="Female">Female</SelectItem>
+                          <SelectItem value="Other">Other</SelectItem>
+                          <SelectItem value="Prefer not to say">Prefer not to say</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <EditField label="Phone" value={editData.phone_primary} onChange={(v) => setField("phone_primary", v)} />
+                    <EditField label="Email" value={editData.email} onChange={(v) => setField("email", v)} />
+                    <EditField label="Address" value={editData.address} onChange={(v) => setField("address", v)} />
+                    <EditField label="City" value={editData.city} onChange={(v) => setField("city", v)} />
+                    <div>
+                      <p className="text-muted-foreground text-xs mb-1">State</p>
+                      <Select value={editData.state} onValueChange={(v) => setField("state", v)}>
+                        <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="State" /></SelectTrigger>
+                        <SelectContent>
+                          {US_STATES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <EditField label="Zip Code" value={editData.zip} onChange={(v) => setField("zip", v)} />
+                    <EditField label="Height" value={editData.height} onChange={(v) => setField("height", v)} />
+                    <EditField label="Weight" value={editData.weight} onChange={(v) => setField("weight", v)} />
+                    <div className="col-span-2">
+                      <p className="text-muted-foreground text-xs mb-1">Allergies</p>
+                      <Textarea value={editData.allergies} onChange={(e) => setField("allergies", e.target.value)} rows={2} className="text-sm" />
+                    </div>
+                    <EditField label="Authorized Representative" value={editData.authorized_representative} onChange={(v) => setField("authorized_representative", v)} />
+                    <EditField label="Representative Phone" value={editData.authorized_representative_phone} onChange={(v) => setField("authorized_representative_phone", v)} />
+                    <EditField label="Alternate Phone" value={editData.phone_alternate} onChange={(v) => setField("phone_alternate", v)} />
+                  </>
+                ) : (
+                  <>
+                    <InfoField label="Full Name" value={fullName} />
+                    <InfoField label="Date of Birth" value={patient.dob ? `${formatDateShort(patient.dob)} (Age ${getAge(patient.dob)})` : '—'} />
+                    <InfoField label="Gender" value={patient.gender || '—'} />
+                    <div>
+                      <p className="text-muted-foreground text-xs mb-0.5">Phone</p>
+                      <div className="flex items-center gap-1">
+                        <p className="font-medium text-foreground text-sm">{patient.phone_primary || '—'}</p>
+                        {patient.phone_primary && (
+                          <button onClick={() => copyToClipboard(patient.phone_primary, "Phone")} className="p-0.5 rounded hover:bg-secondary transition-colors">
+                            <Copy className="h-3 w-3 text-muted-foreground" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs mb-0.5">Email</p>
+                      <div className="flex items-center gap-1">
+                        <p className="font-medium text-foreground text-sm">{patient.email || '—'}</p>
+                        {patient.email && (
+                          <button onClick={() => copyToClipboard(patient.email, "Email")} className="p-0.5 rounded hover:bg-secondary transition-colors">
+                            <Copy className="h-3 w-3 text-muted-foreground" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <InfoField label="Address" value={patient.address || '—'} />
+                    <InfoField label="City" value={patient.city || '—'} />
+                    <InfoField label="State" value={patient.state || '—'} />
+                    <InfoField label="Zip Code" value={patient.zip || '—'} />
+                    <InfoField label="Height" value={patient.height || '—'} />
+                    <InfoField label="Weight" value={patient.weight || '—'} />
+                    <InfoField label="Allergies" value={patient.allergies || '—'} />
+                    <InfoField label="Authorized Representative" value={patient.authorized_representative || '—'} />
+                    <InfoField label="Representative Phone" value={patient.authorized_representative_phone || '—'} />
+                    <InfoField label="Alternate Phone" value={patient.phone_alternate || '—'} />
+                  </>
+                )}
               </div>
             </div>
 
@@ -420,49 +538,6 @@ export default function PatientDetail() {
             </div>
           )}
         </TabsContent>
-
-        {/* DOCUMENTS TAB */}
-        <TabsContent value="documents" className="mt-4">
-          {allDocuments.length > 0 ? (
-            <div className="space-y-4">
-              {patientReferrals.map((ref) => {
-                const docs = allDocuments.filter((d: any) => d.referralId === ref.id);
-                if (docs.length === 0) return null;
-                return (
-                  <div key={ref.id}>
-                    <h3 className="text-sm font-semibold text-muted-foreground mb-2">
-                      {ref.id.toUpperCase()} — {ref.drug || ref.drug_requested || '—'} ({ref.created_at ? formatDateShort(ref.created_at) : '—'})
-                    </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {docs.map((doc: any) => (
-                        <div key={doc.id} className="rounded-xl border border-border bg-card p-4 card-shadow group hover:card-shadow-md transition-all duration-200">
-                          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
-                            <FileText className="h-4 w-4 text-primary" />
-                          </div>
-                          <p className="text-sm font-medium text-foreground mb-0.5">{doc.name}</p>
-                          <p className="text-xs text-muted-foreground mb-3">Uploaded {formatDateShort(doc.uploaded_at)}</p>
-                          <div className="flex gap-2">
-                            <Button variant="outline" size="sm" className="flex-1 text-xs">
-                              <Eye className="h-3.5 w-3.5 mr-1" />View
-                            </Button>
-                            <Button variant="outline" size="sm" className="flex-1 text-xs">
-                              <Download className="h-3.5 w-3.5 mr-1" />Download
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
-              <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground">No documents found for this patient</p>
-            </div>
-          )}
-        </TabsContent>
       </Tabs>
     </div>
   );
@@ -473,6 +548,15 @@ function InfoField({ label, value }: { label: string; value: string }) {
     <div>
       <p className="text-muted-foreground text-xs mb-0.5">{label}</p>
       <p className="font-medium text-foreground text-sm">{value}</p>
+    </div>
+  );
+}
+
+function EditField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div>
+      <p className="text-muted-foreground text-xs mb-1">{label}</p>
+      <Input value={value} onChange={(e) => onChange(e.target.value)} className="h-8 text-sm" />
     </div>
   );
 }
