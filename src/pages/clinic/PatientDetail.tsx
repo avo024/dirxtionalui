@@ -359,13 +359,6 @@ export default function PatientDetail() {
             </div>
           )}
 
-          {/* Quick Action */}
-          <Button asChild size="lg" className="w-full sm:w-auto">
-            <Link to={`/clinic/referrals/new?patientId=${patient.id}`}>
-              <Plus className="h-4 w-4 mr-2" />
-              Create New Referral for {firstName}
-            </Link>
-          </Button>
         </TabsContent>
 
         {/* PATIENT INFO TAB */}
@@ -464,8 +457,8 @@ export default function PatientDetail() {
             /* ── Read mode: grouped sections ── */
             <div className="space-y-4">
               {/* Section 1: Personal Information */}
-              <div className="rounded-xl border border-border bg-muted/50 p-5 card-shadow">
-                <h3 className="font-semibold text-foreground text-xs uppercase tracking-wider mb-4">Personal Information</h3>
+              <div className="rounded-lg border border-border/50 bg-muted/30 p-5">
+                <h3 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase mb-4">Personal Information</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <InfoField label="Full Name" value={fullName} />
                   <InfoField label="Date of Birth" value={patient.dob ? `${formatDateShort(patient.dob)} (Age ${getAge(patient.dob)})` : '—'} />
@@ -485,8 +478,8 @@ export default function PatientDetail() {
               </div>
 
               {/* Section 2: Contact */}
-              <div className="rounded-xl border border-border bg-card p-5 card-shadow">
-                <h3 className="font-semibold text-foreground text-xs uppercase tracking-wider mb-4">Contact</h3>
+              <div className="rounded-lg border border-border/50 bg-card p-5">
+                <h3 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase mb-4">Contact</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-muted-foreground text-xs mb-0.5">Phone</p>
@@ -514,8 +507,8 @@ export default function PatientDetail() {
               </div>
 
               {/* Section 3: Medical */}
-              <div className="rounded-xl border border-border bg-muted/50 p-5 card-shadow">
-                <h3 className="font-semibold text-foreground text-xs uppercase tracking-wider mb-4">Medical</h3>
+              <div className="rounded-lg border border-border/50 bg-muted/30 p-5">
+                <h3 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase mb-4">Medical</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <InfoField label="Height" value={patient.height || '—'} />
                   <InfoField label="Weight" value={patient.weight || '—'} />
@@ -527,8 +520,8 @@ export default function PatientDetail() {
 
               {/* Section 4: Guardian (only if data exists) */}
               {patient.authorized_representative && (
-                <div className="rounded-xl border border-border bg-card p-5 card-shadow">
-                  <h3 className="font-semibold text-foreground text-xs uppercase tracking-wider mb-4">Guardian / Authorized Representative</h3>
+                <div className="rounded-lg border border-border/50 bg-card p-5">
+                  <h3 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase mb-4">Guardian / Authorized Representative</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <InfoField label="Authorized Representative" value={patient.authorized_representative} />
                     <InfoField label="Representative Phone" value={patient.authorized_representative_phone || '—'} />
@@ -537,8 +530,8 @@ export default function PatientDetail() {
               )}
 
               {/* Insurance Info */}
-              <div className="rounded-xl border border-border bg-muted/50 p-5 card-shadow">
-                <h3 className="font-semibold text-foreground text-xs uppercase tracking-wider mb-4">Insurance Information</h3>
+              <div className="rounded-lg border border-border/50 bg-muted/30 p-5">
+                <h3 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase mb-4">Insurance Information</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <InfoField label="Insurance Type" value={patient.insurance_type || '—'} />
                   <InfoField label="Plan Details" value={patient.insurance_notes || '—'} />

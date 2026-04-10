@@ -216,6 +216,7 @@ export interface HistoryEntry {
 
 export interface Referral {
   id: string;
+  patient_id?: string;
   patient_name: string;
   patient_dob: string;
   patient_phone: string;

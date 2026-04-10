@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Eye, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -117,7 +117,17 @@ export function ReferralTable({ referrals, userType, showClinic = false, paSortD
                   </Tooltip>
                 </TableCell>
                 <TableCell>
-                  <span className="font-medium text-foreground hover:underline">{ref.patient_name}</span>
+                  {(ref as any).patient_id ? (
+                    <Link
+                      to={`/clinic/patients/${(ref as any).patient_id}`}
+                      className="text-primary hover:underline font-medium"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {ref.patient_name}
+                    </Link>
+                  ) : (
+                    <span className="font-medium text-foreground">{ref.patient_name}</span>
+                  )}
                 </TableCell>
                 {showClinic && (
                   <TableCell className="text-sm text-muted-foreground">{ref.clinic_name}</TableCell>
