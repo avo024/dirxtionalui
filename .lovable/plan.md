@@ -1,39 +1,55 @@
 
 
-## Fix Two Bugs in Patient Edit Mode
+## Four Improvements to Clinic Referral Detail
 
-### Bug 1: DOB clears on edit
+### Overview
+Enhance the referral detail page with: rejection banner with resubmit, categorized documents with real filenames, document upload for rejected referrals, and a dynamic timeline from the API.
 
-**File: `src/pages/clinic/PatientDetail.tsx`** (line 99)
+### 1. API additions (`src/lib/api.ts`)
 
-In `startEditing()`, change:
-```ts
-dob: patient.dob || "",
-```
-to:
-```ts
-dob: formatDateForInput(patient.dob),
-```
+Add two new methods to `clinicApi`:
+- `resubmitReferral(referralId)` — POST `/referrals/{referralId}/resubmit`
+- `getReferralHistory(referralId)` — GET `/referrals/{referralId}/history`, returns `{ items: [] }`
 
-Add helper function before the component:
-```ts
-const formatDateForInput = (dateStr: string | null | undefined): string => {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return dateStr;
-  return d.toISOString().split('T')[0];
-};
-```
+### 2. Rejection banner (`ReferralDetail.tsx`, lines 149-156)
 
-### Bug 2: Tab resets to "Referral History" after save
+Replace the current simple alert with a more prominent banner:
+- Use `AlertTriangle` icon, title "Referral Needs Attention"
+- Show `referral.rejection_reason` or fallback text
+- Show even when `rejection_reason` is null/empty (current code hides it)
+- Include a "Resubmit Referral" button inside the banner (triggers resubmit flow)
 
-**Same file**, line 206: Change `<Tabs defaultValue="history">` to controlled:
+### 3. Documents tab overhaul (lines 378-413)
 
-Add state: `const [activeTab, setActiveTab] = useState("history");`
+Replace flat document list with categorized sections:
+- Group documents by `doc_type`: Referral Form (`referral_form`), Insurance (`insurance_front`, `insurance_back`), Chart Notes (`chart_notes`), Other
+- Show `original_filename` instead of generic "Document" name
+- Use `FileText` for PDFs, `Image` icon for image types
+- Empty categories show dashed placeholder ("No insurance documents uploaded")
 
-Replace: `<Tabs defaultValue="history">` → `<Tabs value={activeTab} onValueChange={setActiveTab}>`
+When `status === 'rejected'`, add upload zones below the document categories:
+- Three drop zones (Referral Form, Insurance, Chart Notes) using file input
+- On upload: call existing `clinicApi.uploadDocument()`, refresh documents list, show toast
+- Track `newUploadsCount` state to enable the resubmit button
 
-No other changes needed — `activeTab` persists across the re-render triggered by `loadPatient()`.
+### 4. Resubmit flow
 
-### No other files affected
+- "Resubmit Referral" button in rejection banner and at bottom of documents tab (when rejected)
+- On click: call `clinicApi.resubmitReferral(id)`, show success toast with message about re-extraction
+- On success: reload referral data (status changes to `processing`)
+
+### 5. History tab overhaul (lines 416-500)
+
+Replace hardcoded status-based timeline with dynamic API-driven timeline:
+- Fetch history from `clinicApi.getReferralHistory(id)` on mount (alongside existing fetches)
+- Map `event_type` to human-readable labels and color codes:
+  - Green: `referral_approved`, `ai_extraction_completed`, `delivery_completed`, `pa_approved`
+  - Red: `referral_rejected`, `pa_denied`
+  - Blue: `referral_created`, `document_uploaded`, `referral_finalized`, `referral_resubmitted`, `pa_submitted`
+- Show timestamp formatted with `formatDateTime`
+- Fallback: if history fetch fails or returns empty, show the current hardcoded timeline as before
+
+### Files changed
+- `src/lib/api.ts` — add 2 methods
+- `src/pages/clinic/ReferralDetail.tsx` — rewrite rejection banner, documents tab, history tab, add upload + resubmit state
 
