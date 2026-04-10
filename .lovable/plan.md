@@ -1,55 +1,57 @@
 
 
-## Four Improvements to Clinic Referral Detail
+## Clinic UI Polish: Drug Icon, Resubmit Flow, Timeline Cleanup
 
-### Overview
-Enhance the referral detail page with: rejection banner with resubmit, categorized documents with real filenames, document upload for rejected referrals, and a dynamic timeline from the API.
+### 1. Remove drug pill icon from referral tables
 
-### 1. API additions (`src/lib/api.ts`)
+**File: `src/components/ReferralTable.tsx`** (lines 125-130)
 
-Add two new methods to `clinicApi`:
-- `resubmitReferral(referralId)` — POST `/referrals/{referralId}/resubmit`
-- `getReferralHistory(referralId)` — GET `/referrals/{referralId}/history`, returns `{ items: [] }`
+Replace the `<div>` with flex/gap/Pill icon with just `<span className="text-sm">{ref.drug}</span>`. Remove `Pill` from the lucide imports.
 
-### 2. Rejection banner (`ReferralDetail.tsx`, lines 149-156)
+### 2. Fix resubmit flow — single button in Documents tab only
 
-Replace the current simple alert with a more prominent banner:
-- Use `AlertTriangle` icon, title "Referral Needs Attention"
-- Show `referral.rejection_reason` or fallback text
-- Show even when `rejection_reason` is null/empty (current code hides it)
-- Include a "Resubmit Referral" button inside the banner (triggers resubmit flow)
+**File: `src/pages/clinic/ReferralDetail.tsx`** (lines 244-253)
 
-### 3. Documents tab overhaul (lines 378-413)
+Remove the `<Button>` for resubmit from the rejection banner. Replace with a text line: *"Go to the Documents tab to upload missing information, then resubmit."*
 
-Replace flat document list with categorized sections:
-- Group documents by `doc_type`: Referral Form (`referral_form`), Insurance (`insurance_front`, `insurance_back`), Chart Notes (`chart_notes`), Other
-- Show `original_filename` instead of generic "Document" name
-- Use `FileText` for PDFs, `Image` icon for image types
-- Empty categories show dashed placeholder ("No insurance documents uploaded")
+The resubmit button at line 496-503 in the Documents tab stays as-is.
 
-When `status === 'rejected'`, add upload zones below the document categories:
-- Three drop zones (Referral Form, Insurance, Chart Notes) using file input
-- On upload: call existing `clinicApi.uploadDocument()`, refresh documents list, show toast
-- Track `newUploadsCount` state to enable the resubmit button
+### 3. Clean up History timeline
 
-### 4. Resubmit flow
+**File: `src/pages/clinic/ReferralDetail.tsx`**
 
-- "Resubmit Referral" button in rejection banner and at bottom of documents tab (when rejected)
-- On click: call `clinicApi.resubmitReferral(id)`, show success toast with message about re-extraction
-- On success: reload referral data (status changes to `processing`)
+**A. Expand EVENT_LABELS** (lines 40-52) to include all mappings:
+- `ai_extraction_completed_auto` → "AI extraction completed"
+- `validation_updated` → "Document validation updated"
+- `pharmacy_reassigned` → "Pharmacy reassigned"
+- `delivery_failed` → "Pharmacy delivery failed"
+- `pa_processing` → "Prior authorization in processing"
+- `admin_edit` → "Admin updated referral details"
+- `final_pdf_generated` → "Referral PDF generated"
+- Update `delivery_completed` → "Sent to pharmacy"
 
-### 5. History tab overhaul (lines 416-500)
+Add fallback: for unknown event types, title-case with underscores replaced by spaces.
 
-Replace hardcoded status-based timeline with dynamic API-driven timeline:
-- Fetch history from `clinicApi.getReferralHistory(id)` on mount (alongside existing fetches)
-- Map `event_type` to human-readable labels and color codes:
-  - Green: `referral_approved`, `ai_extraction_completed`, `delivery_completed`, `pa_approved`
-  - Red: `referral_rejected`, `pa_denied`
-  - Blue: `referral_created`, `document_uploaded`, `referral_finalized`, `referral_resubmitted`, `pa_submitted`
-- Show timestamp formatted with `formatDateTime`
-- Fallback: if history fetch fails or returns empty, show the current hardcoded timeline as before
+**B. Filter out noise events** — before rendering, filter history to exclude: `validation_updated`, `admin_edit`, `final_pdf_generated`.
+
+**C. Per-event icons** — replace the generic `Clock` icon with:
+- `Send` for `referral_created`, `referral_finalized`, `referral_resubmitted`
+- `FileText` for `document_uploaded`
+- `Sparkles` for `ai_extraction_completed`, `ai_extraction_completed_auto`
+- `CheckCircle` for `referral_approved`, `delivery_completed`, `pa_approved`
+- `XCircle` for `referral_rejected`, `delivery_failed`, `pa_denied`
+- `Clock` for `pa_submitted`, `pa_processing`
+- `AlertCircle` (gray) for everything else
+
+Update `EVENT_COLORS` to include:
+- Yellow/warning for `pa_submitted`, `pa_processing`
+- Red for `delivery_failed`
+
+**D. Separate rejection reason** — for `referral_rejected`, show the reason as a second line below the label (not appended with colon).
+
+**E. Visual polish** — timeline connector line stays thin (`w-px`), timestamp text is already `text-xs text-muted-foreground`, add `pb-8` instead of `pb-6` for more spacing.
 
 ### Files changed
-- `src/lib/api.ts` — add 2 methods
-- `src/pages/clinic/ReferralDetail.tsx` — rewrite rejection banner, documents tab, history tab, add upload + resubmit state
+- `src/components/ReferralTable.tsx` — remove Pill icon
+- `src/pages/clinic/ReferralDetail.tsx` — rejection banner text, timeline overhaul
 
