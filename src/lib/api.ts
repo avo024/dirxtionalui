@@ -141,6 +141,22 @@ export const clinicApi = {
     });
     return handleResponse(response);
   },
+
+  async getReferralNotes(referralId: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/referrals/${referralId}/notes`, {
+      headers: getHeaders(),
+    });
+    return handleResponse<{ items: any[] }>(response);
+  },
+
+  async addReferralNote(referralId: string, content: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/referrals/${referralId}/notes`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ content }),
+    });
+    return handleResponse(response);
+  },
 };
 
 // ============================================================================
@@ -264,6 +280,22 @@ export const adminApi = {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify({ new_pharmacy_id: pharmacyId }),
+    });
+    return handleResponse(response);
+  },
+
+  async getReferralNotes(referralId: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/admin/referrals/${referralId}/notes`, {
+      headers: getHeaders(),
+    });
+    return handleResponse<{ items: any[] }>(response);
+  },
+
+  async addReferralNote(referralId: string, content: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/admin/referrals/${referralId}/notes`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ content }),
     });
     return handleResponse(response);
   },
