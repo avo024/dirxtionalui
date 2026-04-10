@@ -4,7 +4,7 @@ import {
   ArrowLeft, Download, FileText, Clock, AlertCircle, User,
   Pill, Stethoscope, Shield, Copy, Phone, Mail, CheckCircle,
   Send, Upload, Loader2, XCircle, MessageSquare, Plus,
-  AlertTriangle, Image, RefreshCw
+  AlertTriangle, Image, RefreshCw, Sparkles, Circle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/StatusBadge";
