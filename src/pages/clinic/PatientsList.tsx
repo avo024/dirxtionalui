@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Search, Plus, Users, ChevronLeft, ChevronRight, Pill, Loader2 } from "lucide-react";
+import { Search, Plus, Users, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -138,10 +138,7 @@ export default function PatientsList() {
                     {patient.dob ? `${formatDateShort(patient.dob)} (${getAge(patient.dob)})` : '—'}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-1.5">
-                      <Pill className="h-3.5 w-3.5 text-muted-foreground" />
-                      <span className="text-sm text-foreground">{patient.last_drug || '—'}</span>
-                    </div>
+                    <span className="text-sm text-foreground">{patient.last_drug || '—'}</span>
                     <span className="text-xs text-muted-foreground">{patient.last_dosage || ''}</span>
                   </td>
                   <td className="px-4 py-3 text-sm text-muted-foreground">
