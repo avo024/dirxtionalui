@@ -309,7 +309,7 @@ export default function CreateReferral() {
           REF-{String(Math.floor(Math.random() * 900000) + 100000)}
         </p>
         <div className="flex gap-3 justify-center">
-          <Button onClick={() => navigate("/clinic")}>Back to Dashboard</Button>
+          <Button onClick={() => navigate("/clinic/dashboard")}>Back to Dashboard</Button>
           <Button variant="outline" onClick={() => navigate("/clinic/referrals")}>View Referrals</Button>
           <Button variant="outline" onClick={() => {
             setSelectedPatient(null);

@@ -565,7 +565,7 @@ export default function AdminReferralReview() {
               <AccordionItem value="prior_auth" className="rounded-xl border border-border bg-card card-shadow px-4">
                 <AccordionTrigger className="text-sm font-semibold">
                   <div className="flex items-center justify-between w-full pr-4">
-                    <span>Prior Authorization</span>
+                    <span>Prior Authorization (referral metadata)</span>
                     <SectionSaveButton section="prior_auth" />
                   </div>
                 </AccordionTrigger>
@@ -580,24 +580,6 @@ export default function AdminReferralReview() {
                         <Checkbox checked={editedData?.prior_auth?.handled_by_clinic ?? editedData?.prior_auth?.handled_by_us ?? false} onCheckedChange={(checked) => updateField("prior_auth", "handled_by_clinic", checked)} />
                         <Label className="text-xs font-normal">Handled by Clinic</Label>
                       </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <FieldEdit label="PA Number" value={editedData?.prior_auth?.pa_number || ""} onChange={(v) => updateField("prior_auth", "pa_number", v)} />
-                      <FieldEdit label="Reference Number" value={editedData?.prior_auth?.reference_number || ""} onChange={(v) => updateField("prior_auth", "reference_number", v)} />
-                      <FieldEdit label="Submission Date" value={editedData?.prior_auth?.submission_date || ""} onChange={(v) => updateField("prior_auth", "submission_date", v)} />
-                      <FieldEdit label="Expiration Date" value={editedData?.prior_auth?.expiration_date || ""} onChange={(v) => updateField("prior_auth", "expiration_date", v)} />
-                    </div>
-                    <div>
-                      <Label className="text-xs text-muted-foreground mb-1 block">Status</Label>
-                      <Select value={editedData?.prior_auth?.status || ""} onValueChange={(v) => updateField("prior_auth", "status", v)}>
-                        <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select..." /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="pending">Pending</SelectItem>
-                          <SelectItem value="submitted">Submitted</SelectItem>
-                          <SelectItem value="approved">Approved</SelectItem>
-                          <SelectItem value="denied">Denied</SelectItem>
-                        </SelectContent>
-                      </Select>
                     </div>
                   </div>
                 </AccordionContent>
