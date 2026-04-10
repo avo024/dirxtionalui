@@ -226,44 +226,78 @@ export default function PatientDetail() {
               <Shield className="h-4 w-4 text-primary" />
               <h3 className="font-semibold text-foreground text-sm">Prior Authorization Status</h3>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div>
-                <p className="text-xs text-muted-foreground mb-0.5">Current Drug</p>
-                <p className="text-sm font-medium text-foreground">
-                  {patient.last_drug ? `${patient.last_drug} ${patient.last_dosage || ''}`.trim() : '—'}
-                </p>
+            {medsLoading ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground mb-0.5">PA Status</p>
-                <PAStatusBadge status={patient.pa_status || 'none'} expirationDate={patient.pa_expiration_date} />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground mb-0.5">PA Expiration</p>
-                <p className="text-sm font-medium text-foreground">
-                  {patient.pa_expiration_date ? formatDateShort(patient.pa_expiration_date) : 'N/A'}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground mb-0.5">Last Referral</p>
-                <p className="text-sm font-medium text-foreground">
-                  {referrals.length > 0 ? formatDateShort(referrals[0].created_at) : '—'}
-                </p>
-              </div>
-            </div>
-            {patient.pa_status === "expiring" && (
-              <Alert className="mt-4 border-warning/30 bg-warning/5">
-                <AlertDescription className="text-sm text-foreground">
-                  ⚠️ PA expires on {formatDateShort(patient.pa_expiration_date)}. Consider creating a new referral.
-                </AlertDescription>
-              </Alert>
-            )}
-            {patient.pa_status === "expired" && (
-              <Alert className="mt-4 border-destructive/30 bg-destructive/5">
-                <AlertDescription className="text-sm text-foreground">
-                  ❌ PA expired on {formatDateShort(patient.pa_expiration_date)}. A new referral with PA is required.
-                </AlertDescription>
-              </Alert>
-            )}
+            ) : (() => {
+              const activeDrugs = medications.filter(m => m.is_active);
+              if (activeDrugs.length === 0) {
+                return (
+                  <p className="text-sm text-muted-foreground py-2">
+                    No active medications — medications appear here after a referral is approved.
+                  </p>
+                );
+              }
+              const today = new Date();
+              return (
+                <div className="space-y-3">
+                  {activeDrugs.map((drug: any) => {
+                    const badge = getDrugPABadge(drug);
+                    const expDate = drug.pa_expiration_date ? new Date(drug.pa_expiration_date) : null;
+                    const isExpired = expDate && expDate < today;
+                    const daysUntil = expDate ? Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : null;
+                    const isExpiringSoon = daysUntil !== null && daysUntil > 0 && daysUntil <= 30;
+
+                    return (
+                      <div key={drug.id}>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-0.5">Current Drug</p>
+                            <p className="text-sm font-medium text-foreground">
+                              {drug.drug_name}
+                              {drug.dosage && <span className="text-muted-foreground font-normal ml-1">{drug.dosage}</span>}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-0.5">PA Status</p>
+                            <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium", badge.className)}>
+                              {badge.label}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-0.5">PA Expiration</p>
+                            <p className={cn("text-sm font-medium", isExpired ? "text-destructive" : isExpiringSoon ? "text-warning" : "text-foreground")}>
+                              {expDate ? (isExpired ? `Expired ${formatDateShort(drug.pa_expiration_date)}` : formatDateShort(drug.pa_expiration_date)) : 'N/A'}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-0.5">Last Filled</p>
+                            <p className="text-sm font-medium text-foreground">
+                              {drug.last_filled ? formatDateShort(drug.last_filled) : '—'}
+                            </p>
+                          </div>
+                        </div>
+                        {isExpiringSoon && (
+                          <Alert className="mt-2 border-warning/30 bg-warning/5">
+                            <AlertDescription className="text-sm text-foreground">
+                              ⚠️ PA for {drug.drug_name} expires on {formatDateShort(drug.pa_expiration_date)}. Consider creating a new referral.
+                            </AlertDescription>
+                          </Alert>
+                        )}
+                        {isExpired && (
+                          <Alert className="mt-2 border-destructive/30 bg-destructive/5">
+                            <AlertDescription className="text-sm text-foreground">
+                              ❌ PA for {drug.drug_name} expired on {formatDateShort(drug.pa_expiration_date)}. A new referral with PA is required.
+                            </AlertDescription>
+                          </Alert>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Referrals Table */}
@@ -293,10 +327,7 @@ export default function PatientDetail() {
                         <span className="font-mono text-xs bg-secondary px-1.5 py-0.5 rounded">{ref.id.toUpperCase()}</span>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-1.5">
-                          <Pill className="h-3.5 w-3.5 text-muted-foreground" />
-                          <span className="text-sm text-foreground">{ref.drug || ref.drug_requested || '—'}</span>
-                        </div>
+                        <span className="text-sm text-foreground">{ref.drug || ref.drug_requested || '—'}</span>
                       </td>
                       <td className="px-4 py-3">
                         <StatusBadge status={ref.status} />
