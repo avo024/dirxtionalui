@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PAStatusBadge } from "@/components/PAStatusBadge";
 import { StatusBadge } from "@/components/StatusBadge";
+import { ClinicPABadge } from "@/components/ClinicPABadge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { clinicApi } from "@/lib/api";
 import { formatDateShort, getRelativeTime } from "@/lib/dateUtils";
