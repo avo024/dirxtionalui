@@ -24,6 +24,13 @@ const US_STATES = [
   "VA","WA","WV","WI","WY","DC"
 ];
 
+const formatDateForInput = (dateStr: string | null | undefined): string => {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr as string;
+  return d.toISOString().split('T')[0];
+};
+
 function getDrugPABadge(drug: any) {
   const today = new Date();
   if (!drug.pa_status || drug.pa_status === "pending") {
@@ -48,6 +55,7 @@ export default function PatientDetail() {
   const [loading, setLoading] = useState(true);
   const [medsLoading, setMedsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("history");
 
   // Inline editing state
   const [isEditing, setIsEditing] = useState(false);
@@ -96,7 +104,7 @@ export default function PatientDetail() {
   const startEditing = () => {
     setEditData({
       full_name: patient.full_name || "",
-      dob: patient.dob || "",
+      dob: formatDateForInput(patient.dob),
       gender: patient.gender || "",
       phone_primary: patient.phone_primary || "",
       phone_alternate: patient.phone_alternate || "",
@@ -203,7 +211,7 @@ export default function PatientDetail() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="history">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="history">Referral History</TabsTrigger>
           <TabsTrigger value="info">Patient Information</TabsTrigger>
