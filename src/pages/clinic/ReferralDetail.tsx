@@ -46,9 +46,11 @@ const EVENT_LABELS: Record<string, string> = {
   validation_updated: "Document validation updated",
   referral_approved: "Referral approved by admin",
   referral_rejected: "Referral rejected",
+  referral_rejectd: "Referral rejected",
   referral_resubmitted: "Referral resubmitted by clinic",
   pharmacy_reassigned: "Pharmacy reassigned",
   delivery_completed: "Sent to pharmacy",
+  sent_to_pharmacy: "Sent to pharmacy",
   delivery_failed: "Pharmacy delivery failed",
   pa_submitted: "Prior authorization submitted",
   pa_approved: "Prior authorization approved",
@@ -70,19 +72,21 @@ function getEventIcon(eventType: string) {
   if (["referral_created", "referral_finalized", "referral_resubmitted"].includes(eventType)) return Send;
   if (eventType === "document_uploaded") return FileText;
   if (eventType === "ai_extraction_completed" || eventType === "ai_extraction_completed_auto") return Sparkles;
-  if (["referral_approved", "delivery_completed", "pa_approved"].includes(eventType)) return CheckCircle;
-  if (["referral_rejected", "delivery_failed", "pa_denied"].includes(eventType)) return XCircle;
+  if (["referral_approved", "delivery_completed", "sent_to_pharmacy", "pa_approved"].includes(eventType)) return CheckCircle;
+  if (["referral_rejected", "referral_rejectd", "delivery_failed", "pa_denied"].includes(eventType)) return XCircle;
   if (["pa_submitted", "pa_processing"].includes(eventType)) return Clock;
   return Circle;
 }
 
 const EVENT_COLORS: Record<string, string> = {
   referral_approved: "bg-green-500",
-  ai_extraction_completed: "bg-green-500",
-  ai_extraction_completed_auto: "bg-green-500",
+  ai_extraction_completed: "bg-blue-500",
+  ai_extraction_completed_auto: "bg-blue-500",
   delivery_completed: "bg-green-500",
+  sent_to_pharmacy: "bg-green-500",
   pa_approved: "bg-green-500",
   referral_rejected: "bg-destructive",
+  referral_rejectd: "bg-destructive",
   pa_denied: "bg-destructive",
   delivery_failed: "bg-destructive",
   pa_submitted: "bg-warning",
