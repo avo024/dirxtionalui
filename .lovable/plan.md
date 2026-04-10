@@ -1,27 +1,30 @@
 
 
-## Fix Referral Tab Filtering + Dashboard Stat Card Navigation
+## Fix PA Summary Card on Patient Detail
 
-### 1. ReferralsList.tsx — Filter logic overhaul
+### Problem
+The "Prior Authorization Status" card (lines 223-267) reads from stale patient-level fields (`patient.last_drug`, `patient.pa_status`, `patient.pa_expiration_date`). The real data is already fetched in `medications` state.
 
-**Update filters array** (line 21-26): Change filter values to `in_review`, `rejected`, `sent_to_pharmacy`.
+### Solution
 
-**Add `filterStatusMap`** and use it in both `getFilterCount` and the `filtered` memo:
-```
-in_review → ["processing", "ready_for_review", "uploaded"]
-rejected → ["rejected"]
-sent_to_pharmacy → ["sent_to_pharmacy", "approved_to_send"]
-```
+**File: `src/pages/clinic/PatientDetail.tsx`** (lines 222-267)
 
-**Read query param**: Import `useSearchParams`, initialize `activeFilter` from `searchParams.get('filter') || 'all'`.
+Replace the single-row PA summary with a medications-driven layout:
 
-### 2. ClinicDashboard.tsx — Fix stat card links
+1. **Derive `activeDrugs`** from `medications.filter(m => m.is_active)` (can reuse `sortedMedications` filtered to active)
 
-- "In Review" link → `?filter=in_review`
-- "Sent to Pharmacy" link → `?filter=sent_to_pharmacy`
-- Also fix `sentCount` (line 43-45) to include `sent_to_pharmacy` status, not just `approved_to_send`
+2. **If no active drugs**: Show empty state message — "No active medications — medications appear here after a referral is approved."
+
+3. **If active drugs exist**: Show a summary row per drug with 4 columns:
+   - **Current Drug**: `drug_name` + dosage in lighter text
+   - **PA Status**: Use existing `getDrugPABadge()` helper (already at line 34) to render colored badge
+   - **PA Expiration**: Formatted date, with warning color if within 30 days, red if expired
+   - **Last Filled**: `last_filled` date if available
+
+4. **Expiration alerts**: For each drug with expiring/expired PA, show the appropriate warning/error alert below
+
+5. Also remove the `Pill` icon from the referrals table drug column (line 297) — same fix applied elsewhere but missed here.
 
 ### Files changed
-- `src/pages/clinic/ReferralsList.tsx`
-- `src/pages/clinic/ClinicDashboard.tsx`
+- `src/pages/clinic/PatientDetail.tsx` — rewrite PA summary card, remove pill icon from referrals table
 
