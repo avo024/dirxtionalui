@@ -1,8 +1,9 @@
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { LayoutDashboard, FileText, AlertOctagon, Building2, Settings, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
-import { mockReferrals } from "@/data/mockData";
+import { adminApi } from "@/lib/api";
 import logo from "@/assets/logo.png";
 
 const navItems = [
@@ -16,8 +17,17 @@ const navItems = [
 export function AdminSidebar() {
   const location = useLocation();
   const { logout } = useAuth();
+  const [needsReviewCount, setNeedsReviewCount] = useState(0);
 
-  const processingCount = mockReferrals.filter((r) => r.status === "processing").length;
+  useEffect(() => {
+    adminApi.getReferralCounts()
+      .then((counts) => {
+        setNeedsReviewCount(counts.needs_review || 0);
+      })
+      .catch(() => {
+        // Silently fail — badge just won't show
+      });
+  }, []);
 
   return (
     <aside className="w-60 shrink-0 border-r border-sidebar-border bg-sidebar flex flex-col h-screen sticky top-0">
@@ -50,9 +60,9 @@ export function AdminSidebar() {
             >
               <item.icon className="h-4 w-4" />
               {item.label}
-              {item.label === "All Referrals" && processingCount > 0 && (
-                <span className="ml-auto h-5 min-w-[20px] rounded-full bg-warning text-warning-foreground flex items-center justify-center text-xs px-1.5">
-                  {processingCount}
+              {item.label === "All Referrals" && needsReviewCount > 0 && (
+                <span className="ml-auto h-5 min-w-[20px] rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs px-1.5">
+                  {needsReviewCount}
                 </span>
               )}
             </Link>
