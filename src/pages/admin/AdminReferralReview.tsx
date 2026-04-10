@@ -34,43 +34,52 @@ export default function AdminReferralReview() {
   const [editedData, setEditedData] = useState<any>(null);
   const [changedSections, setChangedSections] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    const fetchReferral = async () => {
-      if (!id) return;
+  const fetchReferralData = async (isPolling = false) => {
+    if (!id) return;
 
+    try {
+      if (!isPolling) setLoading(true);
+      const data = await adminApi.getReferral(id);
+
+      const mapped = {
+        ...data,
+        drug: data.drug_requested,
+        blocked: data.preferred_pharmacy_blocked,
+      };
+
+      setReferral(mapped);
+      setEditedData(mapped.extracted_data || {});
+
+      // Fetch documents
       try {
-        setLoading(true);
-        const data = await adminApi.getReferral(id);
-
-        const mapped = {
-          ...data,
-          drug: data.drug_requested,
-          blocked: data.preferred_pharmacy_blocked,
-        };
-
-        setReferral(mapped);
-        setEditedData(mapped.extracted_data || {});
-
-        // Fetch documents
-        try {
-          const docsRes = await adminApi.getReferralDocuments(id);
-          setDocuments(docsRes.items || docsRes || []);
-        } catch {
-          // Documents may not exist yet, that's ok
-        }
-      } catch (err: any) {
+        const docsRes = await adminApi.getReferralDocuments(id);
+        setDocuments(docsRes.items || docsRes || []);
+      } catch {
+        // Documents may not exist yet, that's ok
+      }
+    } catch (err: any) {
+      if (!isPolling) {
         toast({
           title: "Error",
           description: err.message || "Failed to load referral",
           variant: "destructive",
         });
-      } finally {
-        setLoading(false);
       }
-    };
+    } finally {
+      if (!isPolling) setLoading(false);
+    }
+  };
 
-    fetchReferral();
+  useEffect(() => {
+    fetchReferralData();
   }, [id]);
+
+  // Poll every 5s while status is 'processing'
+  useEffect(() => {
+    if (referral?.status !== 'processing') return;
+    const timer = setInterval(() => fetchReferralData(true), 5000);
+    return () => clearInterval(timer);
+  }, [referral?.status, id]);
 
   if (loading) {
     return (
@@ -281,7 +290,13 @@ export default function AdminReferralReview() {
 
         {/* Right: Extracted data */}
         <div className="lg:w-1/2 overflow-y-auto p-6">
-          {data ? (
+          {referral.status === 'processing' ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
+              <p className="text-lg font-semibold text-foreground">AI is extracting referral details...</p>
+              <p className="text-sm text-muted-foreground mt-2">This takes about 30 seconds. You can safely leave this page and come back.</p>
+            </div>
+          ) : data ? (
             <Accordion type="multiple" defaultValue={["patient", "clinical", "insurance"]} className="space-y-3">
 
               {/* ── Patient Information ── */}
@@ -364,6 +379,7 @@ export default function AdminReferralReview() {
                   <div className="grid grid-cols-2 gap-3 pb-2">
                     <FieldEdit label="Collaborating Physician" value={editedData?.provider?.collaborating_physician || ""} onChange={(v) => updateField("provider", "collaborating_physician", v)} />
                     <FieldEdit label="Collaborating NPI" value={editedData?.provider?.collaborating_npi || ""} onChange={(v) => updateField("provider", "collaborating_npi", v)} />
+                    <FieldEdit label="DEA Number" value={editedData?.provider?.dea_number || ""} onChange={(v) => updateField("provider", "dea_number", v)} />
                     <FieldEdit label="Tax ID" value={editedData?.provider?.tax_id || ""} onChange={(v) => updateField("provider", "tax_id", v)} />
                     <FieldEdit label="Signature Date" value={editedData?.provider?.signature_date || ""} onChange={(v) => updateField("provider", "signature_date", v)} />
                   </div>
@@ -488,17 +504,16 @@ export default function AdminReferralReview() {
               <AccordionItem value="insurance" className="rounded-xl border border-border bg-card card-shadow px-4">
                 <AccordionTrigger className="text-sm font-semibold">
                   <div className="flex items-center justify-between w-full pr-4">
-                    <span>Insurance Information</span>
+                    <span>Insurance</span>
                     <SectionSaveButton section="insurance" />
                   </div>
                 </AccordionTrigger>
                 <AccordionContent>
                   <div className="space-y-3 pb-2">
                     <div className="flex items-center gap-2">
-                      <Checkbox checked={editedData?.insurance?.has_insurance ?? editedData?.insurance?.has_insurance_card ?? false} onCheckedChange={(checked) => updateField("insurance", "has_insurance", checked)} />
-                      <Label className="text-xs font-normal">Has Insurance</Label>
+                      <Checkbox checked={editedData?.insurance?.has_insurance_card || editedData?.insurance?.has_insurance || false} onCheckedChange={(checked) => updateField("insurance", "has_insurance_card", checked)} />
+                      <Label className="text-xs font-normal">Has Insurance Card</Label>
                     </div>
-
                     <Label className="text-xs font-semibold text-muted-foreground block">Primary Insurance</Label>
                     <div className="grid grid-cols-2 gap-3">
                       <FieldEdit label="Plan Name" value={editedData?.insurance?.primary_plan_name || editedData?.insurance?.primary_insurance_name || ""} className="col-span-2" onChange={(v) => updateField("insurance", "primary_plan_name", v)} />
@@ -588,22 +603,8 @@ export default function AdminReferralReview() {
                 </AccordionContent>
               </AccordionItem>
 
-              {/* ── Pharmacy ── */}
-              <AccordionItem value="pharmacy" className="rounded-xl border border-border bg-card card-shadow px-4">
-                <AccordionTrigger className="text-sm font-semibold">
-                  <div className="flex items-center justify-between w-full pr-4">
-                    <span>Pharmacy</span>
-                    <SectionSaveButton section="pharmacy" />
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <div className="grid grid-cols-2 gap-3 pb-2">
-                    <FieldEdit label="Preferred Pharmacy Name" value={editedData?.pharmacy?.preferred_pharmacy_name || ""} className="col-span-2" onChange={(v) => updateField("pharmacy", "preferred_pharmacy_name", v)} />
-                    <FieldEdit label="Phone" value={editedData?.pharmacy?.preferred_pharmacy_phone || ""} onChange={(v) => updateField("pharmacy", "preferred_pharmacy_phone", v)} />
-                    <FieldEdit label="Fax" value={editedData?.pharmacy?.preferred_pharmacy_fax || ""} onChange={(v) => updateField("pharmacy", "preferred_pharmacy_fax", v)} />
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
+              {/* ── PA Management Card (auto-detected) ── */}
+              <PAManagementCard referral={referral} paInfo={paInfo} />
 
               {/* ── Dermatology (conditional) ── */}
               {editedData?.dermatology && (
@@ -640,6 +641,23 @@ export default function AdminReferralReview() {
                 </AccordionItem>
               )}
 
+              {/* ── Pharmacy ── */}
+              <AccordionItem value="pharmacy" className="rounded-xl border border-border bg-card card-shadow px-4">
+                <AccordionTrigger className="text-sm font-semibold">
+                  <div className="flex items-center justify-between w-full pr-4">
+                    <span>Pharmacy</span>
+                    <SectionSaveButton section="pharmacy" />
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="grid grid-cols-2 gap-3 pb-2">
+                    <FieldEdit label="Preferred Pharmacy Name" value={editedData?.pharmacy?.preferred_pharmacy_name || ""} className="col-span-2" onChange={(v) => updateField("pharmacy", "preferred_pharmacy_name", v)} />
+                    <FieldEdit label="Phone" value={editedData?.pharmacy?.preferred_pharmacy_phone || ""} onChange={(v) => updateField("pharmacy", "preferred_pharmacy_phone", v)} />
+                    <FieldEdit label="Fax" value={editedData?.pharmacy?.preferred_pharmacy_fax || ""} onChange={(v) => updateField("pharmacy", "preferred_pharmacy_fax", v)} />
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
             </Accordion>
           ) : (
             <div className="flex items-center justify-center py-20 text-center">
@@ -649,36 +667,34 @@ export default function AdminReferralReview() {
               </div>
             </div>
           )}
-
-
-          {/* PA Management Card */}
-          <PAManagementCard referral={referral} paInfo={paInfo} />
         </div>
       </div>
 
       {/* Bottom action bar */}
-      <div className="fixed bottom-0 left-60 right-0 border-t border-border bg-card px-6 py-3 flex items-center justify-between z-10">
-        <div className="text-sm text-muted-foreground">
-          {(referral.status === 'ready_for_review' || referral.status === 'uploaded') && (
-            <span>Preview the PDF before approving</span>
-          )}
+      {referral.status !== 'processing' && (
+        <div className="fixed bottom-0 left-60 right-0 border-t border-border bg-card px-6 py-3 flex items-center justify-between z-10">
+          <div className="text-sm text-muted-foreground">
+            {(referral.status === 'ready_for_review' || referral.status === 'uploaded') && (
+              <span>Preview the PDF before approving</span>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            <Button variant="outline-primary" onClick={handlePreviewPDF}>
+              <FileText className="h-4 w-4 mr-2" />
+              Preview PDF
+            </Button>
+            {(referral.status === 'ready_for_review' || referral.status === 'uploaded') && (
+              <>
+                <Button variant="destructive" onClick={() => setRejectOpen(true)}>Reject</Button>
+                <Button variant="success" onClick={() => setApproveOpen(true)}>Approve</Button>
+              </>
+            )}
+            {referral.status === 'approved_to_send' && (
+              <Button variant="success" onClick={() => setDeliverOpen(true)}>Send to Pharmacy</Button>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline-primary" onClick={handlePreviewPDF}>
-            <FileText className="h-4 w-4 mr-2" />
-            Preview PDF
-          </Button>
-          {(referral.status === 'ready_for_review' || referral.status === 'uploaded') && (
-            <>
-              <Button variant="destructive" onClick={() => setRejectOpen(true)}>Reject</Button>
-              <Button variant="success" onClick={() => setApproveOpen(true)}>Approve</Button>
-            </>
-          )}
-          {referral.status === 'approved_to_send' && (
-            <Button variant="success" onClick={() => setDeliverOpen(true)}>Send to Pharmacy</Button>
-          )}
-        </div>
-      </div>
+      )}
 
       {/* Approve modal */}
       <ConfirmModal
