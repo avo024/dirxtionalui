@@ -4,7 +4,7 @@ import {
   ArrowLeft, Download, FileText, Clock, AlertCircle, User,
   Pill, Stethoscope, Shield, Copy, Phone, Mail, CheckCircle,
   Send, Upload, Loader2, XCircle, MessageSquare, Plus,
-  AlertTriangle, Image, RefreshCw
+  AlertTriangle, Image, RefreshCw, Sparkles, Circle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -42,22 +42,51 @@ const EVENT_LABELS: Record<string, string> = {
   referral_finalized: "Documents submitted for processing",
   document_uploaded: "Document uploaded",
   ai_extraction_completed: "AI extraction completed",
+  ai_extraction_completed_auto: "AI extraction completed",
+  validation_updated: "Document validation updated",
   referral_approved: "Referral approved by admin",
   referral_rejected: "Referral rejected",
   referral_resubmitted: "Referral resubmitted by clinic",
-  delivery_completed: "Referral sent to pharmacy",
+  pharmacy_reassigned: "Pharmacy reassigned",
+  delivery_completed: "Sent to pharmacy",
+  delivery_failed: "Pharmacy delivery failed",
   pa_submitted: "Prior authorization submitted",
   pa_approved: "Prior authorization approved",
   pa_denied: "Prior authorization denied",
+  pa_processing: "Prior authorization in processing",
+  admin_edit: "Admin updated referral details",
+  final_pdf_generated: "Referral PDF generated",
 };
+
+const HIDDEN_EVENTS = new Set(["validation_updated", "admin_edit", "final_pdf_generated"]);
+
+function getEventLabel(eventType: string): string {
+  if (EVENT_LABELS[eventType]) return EVENT_LABELS[eventType];
+  // Fallback: title-case with underscores replaced
+  return eventType.replace(/_/g, ' ').replace(/\b\w/, c => c.toUpperCase());
+}
+
+function getEventIcon(eventType: string) {
+  if (["referral_created", "referral_finalized", "referral_resubmitted"].includes(eventType)) return Send;
+  if (eventType === "document_uploaded") return FileText;
+  if (eventType === "ai_extraction_completed" || eventType === "ai_extraction_completed_auto") return Sparkles;
+  if (["referral_approved", "delivery_completed", "pa_approved"].includes(eventType)) return CheckCircle;
+  if (["referral_rejected", "delivery_failed", "pa_denied"].includes(eventType)) return XCircle;
+  if (["pa_submitted", "pa_processing"].includes(eventType)) return Clock;
+  return Circle;
+}
 
 const EVENT_COLORS: Record<string, string> = {
   referral_approved: "bg-green-500",
   ai_extraction_completed: "bg-green-500",
+  ai_extraction_completed_auto: "bg-green-500",
   delivery_completed: "bg-green-500",
   pa_approved: "bg-green-500",
   referral_rejected: "bg-destructive",
   pa_denied: "bg-destructive",
+  delivery_failed: "bg-destructive",
+  pa_submitted: "bg-warning",
+  pa_processing: "bg-warning",
 };
 
 const DEFAULT_EVENT_COLOR = "bg-primary";
@@ -241,16 +270,9 @@ export default function ReferralDetail() {
               <p className="text-sm text-foreground/80">
                 {referral.rejection_reason || "This referral was rejected. Contact our team for details."}
               </p>
-              <Button
-                className="mt-3"
-                variant="destructive"
-                size="sm"
-                onClick={handleResubmit}
-                disabled={resubmitting}
-              >
-                {resubmitting ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1.5" />}
-                Resubmit Referral
-              </Button>
+              <p className="text-sm text-muted-foreground mt-2">
+                Go to the Documents tab to upload missing information, then resubmit.
+              </p>
             </div>
           </div>
         </div>
@@ -508,38 +530,39 @@ export default function ReferralDetail() {
         {/* HISTORY TAB */}
         <TabsContent value="history" className="mt-4">
           <div className="rounded-xl border border-border bg-card p-5 card-shadow">
-            {history.length > 0 ? (
+            {history.filter(e => !HIDDEN_EVENTS.has(e.event_type)).length > 0 ? (
               <div className="space-y-0">
-                {history.map((event: any, i: number) => {
-                  const isLast = i === history.length - 1;
-                  const colorClass = EVENT_COLORS[event.event_type] || DEFAULT_EVENT_COLOR;
-                  let label = EVENT_LABELS[event.event_type] || event.event_type;
-                  // Append metadata
-                  if (event.event_type === "document_uploaded" && event.metadata?.filename) {
-                    label += `: ${event.metadata.filename}`;
-                  }
-                  if (event.event_type === "referral_rejected" && event.metadata?.reason) {
-                    label += `: ${event.metadata.reason}`;
-                  }
+                {history
+                  .filter((e: any) => !HIDDEN_EVENTS.has(e.event_type))
+                  .map((event: any, i: number, arr: any[]) => {
+                    const isLast = i === arr.length - 1;
+                    const colorClass = EVENT_COLORS[event.event_type] || DEFAULT_EVENT_COLOR;
+                    const EventIcon = getEventIcon(event.event_type);
+                    let label = getEventLabel(event.event_type);
+                    if (event.event_type === "document_uploaded" && event.metadata?.filename) {
+                      label += `: ${event.metadata.filename}`;
+                    }
 
-                  return (
-                    <div key={i} className="flex gap-4">
-                      <div className="flex flex-col items-center">
-                        <div className={cn("h-8 w-8 rounded-full flex items-center justify-center mt-0.5 shrink-0", colorClass)}>
-                          <Clock className="h-4 w-4 text-white" />
+                    return (
+                      <div key={i} className="flex gap-4">
+                        <div className="flex flex-col items-center">
+                          <div className={cn("h-8 w-8 rounded-full flex items-center justify-center mt-0.5 shrink-0", colorClass)}>
+                            <EventIcon className="h-4 w-4 text-white" />
+                          </div>
+                          {!isLast && <div className="w-px flex-1 bg-border my-1" />}
                         </div>
-                        {!isLast && <div className="w-px flex-1 bg-border my-1" />}
+                        <div className="pb-8">
+                          <p className="text-sm font-medium text-foreground">{label}</p>
+                          {event.event_type === "referral_rejected" && event.metadata?.reason && (
+                            <p className="text-sm text-destructive/80 mt-0.5">{event.metadata.reason}</p>
+                          )}
+                          <p className="text-xs text-muted-foreground mt-0.5">{formatDateTime(event.created_at)}</p>
+                        </div>
                       </div>
-                      <div className="pb-6">
-                        <p className="text-sm font-medium text-foreground">{label}</p>
-                        <p className="text-xs text-muted-foreground">{formatDateTime(event.created_at)}</p>
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
               </div>
             ) : (
-              /* Fallback: static timeline */
               <StaticTimeline referral={referral} />
             )}
           </div>

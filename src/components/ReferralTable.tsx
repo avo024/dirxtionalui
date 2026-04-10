@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Eye, Pill, ArrowUpDown } from "lucide-react";
+import { Eye, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/StatusBadge";
 import { PAStatusCell, paSortOrder } from "@/components/PAStatusCell";
@@ -123,10 +123,7 @@ export function ReferralTable({ referrals, userType, showClinic = false, paSortD
                   <TableCell className="text-sm text-muted-foreground">{ref.clinic_name}</TableCell>
                 )}
                 <TableCell>
-                  <div className="flex items-center gap-1.5">
-                    <Pill className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="text-sm">{ref.drug}</span>
-                  </div>
+                  <span className="text-sm">{ref.drug}</span>
                 </TableCell>
                 {isAdmin && paInfo && (
                   <TableCell>
