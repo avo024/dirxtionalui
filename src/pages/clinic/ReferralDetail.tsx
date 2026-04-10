@@ -530,38 +530,39 @@ export default function ReferralDetail() {
         {/* HISTORY TAB */}
         <TabsContent value="history" className="mt-4">
           <div className="rounded-xl border border-border bg-card p-5 card-shadow">
-            {history.length > 0 ? (
+            {history.filter(e => !HIDDEN_EVENTS.has(e.event_type)).length > 0 ? (
               <div className="space-y-0">
-                {history.map((event: any, i: number) => {
-                  const isLast = i === history.length - 1;
-                  const colorClass = EVENT_COLORS[event.event_type] || DEFAULT_EVENT_COLOR;
-                  let label = EVENT_LABELS[event.event_type] || event.event_type;
-                  // Append metadata
-                  if (event.event_type === "document_uploaded" && event.metadata?.filename) {
-                    label += `: ${event.metadata.filename}`;
-                  }
-                  if (event.event_type === "referral_rejected" && event.metadata?.reason) {
-                    label += `: ${event.metadata.reason}`;
-                  }
+                {history
+                  .filter((e: any) => !HIDDEN_EVENTS.has(e.event_type))
+                  .map((event: any, i: number, arr: any[]) => {
+                    const isLast = i === arr.length - 1;
+                    const colorClass = EVENT_COLORS[event.event_type] || DEFAULT_EVENT_COLOR;
+                    const EventIcon = getEventIcon(event.event_type);
+                    let label = getEventLabel(event.event_type);
+                    if (event.event_type === "document_uploaded" && event.metadata?.filename) {
+                      label += `: ${event.metadata.filename}`;
+                    }
 
-                  return (
-                    <div key={i} className="flex gap-4">
-                      <div className="flex flex-col items-center">
-                        <div className={cn("h-8 w-8 rounded-full flex items-center justify-center mt-0.5 shrink-0", colorClass)}>
-                          <Clock className="h-4 w-4 text-white" />
+                    return (
+                      <div key={i} className="flex gap-4">
+                        <div className="flex flex-col items-center">
+                          <div className={cn("h-8 w-8 rounded-full flex items-center justify-center mt-0.5 shrink-0", colorClass)}>
+                            <EventIcon className="h-4 w-4 text-white" />
+                          </div>
+                          {!isLast && <div className="w-px flex-1 bg-border my-1" />}
                         </div>
-                        {!isLast && <div className="w-px flex-1 bg-border my-1" />}
+                        <div className="pb-8">
+                          <p className="text-sm font-medium text-foreground">{label}</p>
+                          {event.event_type === "referral_rejected" && event.metadata?.reason && (
+                            <p className="text-sm text-destructive/80 mt-0.5">{event.metadata.reason}</p>
+                          )}
+                          <p className="text-xs text-muted-foreground mt-0.5">{formatDateTime(event.created_at)}</p>
+                        </div>
                       </div>
-                      <div className="pb-6">
-                        <p className="text-sm font-medium text-foreground">{label}</p>
-                        <p className="text-xs text-muted-foreground">{formatDateTime(event.created_at)}</p>
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
               </div>
             ) : (
-              /* Fallback: static timeline */
               <StaticTimeline referral={referral} />
             )}
           </div>
