@@ -1,44 +1,42 @@
 
 
-## Auto-trigger AI Extraction on Clinic Submit
+## Part 1: Reorder Sections + Part 2: Processing Loading State
 
 ### Overview
-After documents are uploaded in the clinic submit flow, call `POST /referrals/{id}/finalize` to trigger background AI extraction. Fire-and-forget — failures are logged but don't block the user.
+Two changes: (1) reorder the accordion sections so the auto-detected PA banner sits directly under the manual PA card, with Pharmacy moved to the bottom; (2) add a polling loading state when `status === 'processing'`.
 
-### Changes
+### File: `src/pages/admin/AdminReferralReview.tsx`
 
-**1. `src/lib/api.ts`** — Add `finalizeReferral` to `clinicApi`
+#### 1a. Reorder sections in the Accordion (lines 285–655)
 
-```ts
-async finalizeReferral(referralId: string): Promise<any> {
-  const response = await fetch(`${API_BASE_URL}/referrals/${referralId}/finalize`, {
-    method: 'POST',
-    headers: getHeaders(),
-  });
-  return handleResponse(response);
-},
-```
+Current order: Patient → Provider → Clinical → Insurance → Prior Auth → **Pharmacy** → **Dermatology** → *(outside accordion)* **PAManagementCard**
 
-**2. `src/pages/clinic/CreateReferral.tsx`** — Call finalize after document uploads
+New order: Patient → Provider → Clinical → Insurance → Prior Auth → **PAManagementCard** → **Dermatology** → **Pharmacy**
 
-Insert between line 256 (end of file upload loop) and line 258 (`setSubmitting(false)`):
+Move `<PAManagementCard>` (line 655) from outside the accordion to directly after the Prior Auth accordion item (after line 589). Move the Pharmacy section (lines 591–606) to after the Dermatology section (after line 641).
 
-```ts
-// Step 5: Trigger AI extraction in background (fire-and-forget)
-try {
-  await clinicApi.finalizeReferral(referral.id);
-} catch (err) {
-  console.warn('Finalize call failed (admin can retry manually):', err);
-}
-```
+#### 1b. Processing loading state on review page
 
-**3. `src/pages/clinic/CreateReferral.tsx`** — Update success message (line 299)
+Add a `useEffect` that polls `adminApi.getReferral(id)` every 5 seconds when `referral.status === 'processing'`. When status changes away from `processing`, stop polling and update state.
 
-Change from:
-> "Referral submitted successfully! Our team will review your documents and process the referral. You'll receive a notification when it's been approved."
+In the right panel (line 283), when `referral.status === 'processing'`, show a loading card instead of the accordion:
+- Patient name + documents list for context
+- `Loader2` with `animate-spin`
+- "AI is extracting referral details..."
+- "This takes about 30 seconds. You can safely leave this page and come back."
 
-To:
-> "Referral submitted successfully! Our AI is extracting the details now and our team will review within the hour."
+#### 1c. Hide bottom action bar during processing
+When status is `processing`, don't show approve/reject/deliver buttons.
+
+### File: `src/pages/admin/AdminReferralsList.tsx`
+
+#### 2. Add "Processing" status handling in list view
+
+The `StatusBadge` component already handles `processing` status with an animated spinner icon and "Needs Review" label for admin context. Update `adminStatusLabels` in the status labels source to show "Processing" instead of "Needs Review" for the `processing` status.
+
+### File: `src/data/mockData.ts` (or `src/types/index.ts`)
+
+Update `adminStatusLabels.processing` from `"Needs Review"` to `"Processing"`.
 
 ### No other files affected
 
