@@ -237,6 +237,13 @@ export const adminApi = {
     return handleResponse(response);
   },
 
+  async getReferralCounts(): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/admin/referrals/counts`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
   async getBlockedReferrals(): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/admin/referrals/blocked`, {
       headers: getHeaders(),
