@@ -42,22 +42,51 @@ const EVENT_LABELS: Record<string, string> = {
   referral_finalized: "Documents submitted for processing",
   document_uploaded: "Document uploaded",
   ai_extraction_completed: "AI extraction completed",
+  ai_extraction_completed_auto: "AI extraction completed",
+  validation_updated: "Document validation updated",
   referral_approved: "Referral approved by admin",
   referral_rejected: "Referral rejected",
   referral_resubmitted: "Referral resubmitted by clinic",
-  delivery_completed: "Referral sent to pharmacy",
+  pharmacy_reassigned: "Pharmacy reassigned",
+  delivery_completed: "Sent to pharmacy",
+  delivery_failed: "Pharmacy delivery failed",
   pa_submitted: "Prior authorization submitted",
   pa_approved: "Prior authorization approved",
   pa_denied: "Prior authorization denied",
+  pa_processing: "Prior authorization in processing",
+  admin_edit: "Admin updated referral details",
+  final_pdf_generated: "Referral PDF generated",
 };
+
+const HIDDEN_EVENTS = new Set(["validation_updated", "admin_edit", "final_pdf_generated"]);
+
+function getEventLabel(eventType: string): string {
+  if (EVENT_LABELS[eventType]) return EVENT_LABELS[eventType];
+  // Fallback: title-case with underscores replaced
+  return eventType.replace(/_/g, ' ').replace(/\b\w/, c => c.toUpperCase());
+}
+
+function getEventIcon(eventType: string) {
+  if (["referral_created", "referral_finalized", "referral_resubmitted"].includes(eventType)) return Send;
+  if (eventType === "document_uploaded") return FileText;
+  if (eventType === "ai_extraction_completed" || eventType === "ai_extraction_completed_auto") return Sparkles;
+  if (["referral_approved", "delivery_completed", "pa_approved"].includes(eventType)) return CheckCircle;
+  if (["referral_rejected", "delivery_failed", "pa_denied"].includes(eventType)) return XCircle;
+  if (["pa_submitted", "pa_processing"].includes(eventType)) return Clock;
+  return Circle;
+}
 
 const EVENT_COLORS: Record<string, string> = {
   referral_approved: "bg-green-500",
   ai_extraction_completed: "bg-green-500",
+  ai_extraction_completed_auto: "bg-green-500",
   delivery_completed: "bg-green-500",
   pa_approved: "bg-green-500",
   referral_rejected: "bg-destructive",
   pa_denied: "bg-destructive",
+  delivery_failed: "bg-destructive",
+  pa_submitted: "bg-warning",
+  pa_processing: "bg-warning",
 };
 
 const DEFAULT_EVENT_COLOR = "bg-primary";
