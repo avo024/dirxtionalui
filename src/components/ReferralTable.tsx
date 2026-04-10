@@ -117,17 +117,7 @@ export function ReferralTable({ referrals, userType, showClinic = false, paSortD
                   </Tooltip>
                 </TableCell>
                 <TableCell>
-                  {(ref as any).patient_id ? (
-                    <Link
-                      to={`/clinic/patients/${(ref as any).patient_id}`}
-                      className="text-primary hover:underline font-medium"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {ref.patient_name}
-                    </Link>
-                  ) : (
-                    <span className="font-medium text-foreground">{ref.patient_name}</span>
-                  )}
+                  <span className="font-medium text-foreground">{ref.patient_name}</span>
                 </TableCell>
                 {showClinic && (
                   <TableCell className="text-sm text-muted-foreground">{ref.clinic_name}</TableCell>
