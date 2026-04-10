@@ -58,7 +58,14 @@ export default function AdminReferralReview() {
         const docsRes = await adminApi.getReferralDocuments(id);
         setDocuments(docsRes.items || docsRes || []);
       } catch {
-        // Documents may not exist yet, that's ok
+        // Documents may not exist yet
+      }
+
+      try {
+        const notesRes = await adminApi.getReferralNotes(id);
+        setNotes(notesRes.items || []);
+      } catch {
+        // Notes may not exist yet
       }
     } catch (err: any) {
       if (!isPolling) {
