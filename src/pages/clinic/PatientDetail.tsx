@@ -457,7 +457,7 @@ export default function PatientDetail() {
             /* ── Read mode: grouped sections ── */
             <div className="space-y-4">
               {/* Section 1: Personal Information */}
-              <div className="rounded-lg border border-border/50 bg-muted/30 p-5">
+              <div className="rounded-lg border border-border/50 bg-card p-5">
                 <h3 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase mb-4">Personal Information</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <InfoField label="Full Name" value={fullName} />
@@ -507,7 +507,7 @@ export default function PatientDetail() {
               </div>
 
               {/* Section 3: Medical */}
-              <div className="rounded-lg border border-border/50 bg-muted/30 p-5">
+              <div className="rounded-lg border border-border/50 bg-card p-5">
                 <h3 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase mb-4">Medical</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <InfoField label="Height" value={patient.height || '—'} />
@@ -530,7 +530,7 @@ export default function PatientDetail() {
               )}
 
               {/* Insurance Info */}
-              <div className="rounded-lg border border-border/50 bg-muted/30 p-5">
+              <div className="rounded-lg border border-border/50 bg-card p-5">
                 <h3 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase mb-4">Insurance Information</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <InfoField label="Insurance Type" value={patient.insurance_type || '—'} />
