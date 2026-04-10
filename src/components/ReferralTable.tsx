@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Eye, Pill, ArrowUpDown } from "lucide-react";
+import { Eye, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/StatusBadge";
 import { PAStatusCell, paSortOrder } from "@/components/PAStatusCell";
