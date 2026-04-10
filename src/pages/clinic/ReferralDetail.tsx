@@ -270,16 +270,9 @@ export default function ReferralDetail() {
               <p className="text-sm text-foreground/80">
                 {referral.rejection_reason || "This referral was rejected. Contact our team for details."}
               </p>
-              <Button
-                className="mt-3"
-                variant="destructive"
-                size="sm"
-                onClick={handleResubmit}
-                disabled={resubmitting}
-              >
-                {resubmitting ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1.5" />}
-                Resubmit Referral
-              </Button>
+              <p className="text-sm text-muted-foreground mt-2">
+                Go to the Documents tab to upload missing information, then resubmit.
+              </p>
             </div>
           </div>
         </div>
