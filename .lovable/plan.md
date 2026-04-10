@@ -1,29 +1,50 @@
 
 
-## Two Fixes: PA Card Cleanup + Success Screen Routing
+## Three Changes: Create Patient Page + Edit Patient + Remove Documents Tab
 
-### Part 1: Simplify Prior Authorization card in admin review
+### Part 1: Standalone "Add New Patient" page
 
-**File: `src/pages/admin/AdminReferralReview.tsx`** (lines 564-604)
+**New file: `src/pages/clinic/CreatePatient.tsx`**
 
-Strip the Prior Authorization accordion item down to only the two toggles. Remove:
-- PA Number field (line 585)
-- Reference Number field (line 586)
-- Submission Date field (line 587)
-- Expiration Date field (line 588)
-- Status dropdown (lines 590-601)
+Card-based form with sections:
+- **Required**: Full Name
+- **Demographics**: DOB (date picker), Gender (dropdown), Phone, Alternate Phone, Email
+- **Address**: Street, City + State (side by side), Zip
+- **Medical**: Height, Weight, Allergies (textarea)
+- **Guardian (optional)**: Authorized Representative, Representative Phone
 
-Update the heading from "Prior Authorization" to "Prior Authorization (referral metadata)".
+On submit: call `clinicApi.createPatient(data)`, success toast + navigate to `/clinic/patients`, error toast on failure.
 
-The PAManagementCard below (line 607) remains unchanged.
+**`src/App.tsx`**: Add route `patients/new` before `patients/:id` inside the clinic layout.
 
-### Part 2: Fix success screen navigation
+**`src/pages/clinic/PatientsList.tsx`**: Change both "Add New Patient" links from `/clinic/referrals/new` to `/clinic/patients/new`.
 
-**File: `src/pages/clinic/CreateReferral.tsx`** (line 312)
+### Part 2: Inline edit on Patient Detail
 
-Change `navigate("/clinic")` to `navigate("/clinic/dashboard")`. There is no index route for `/clinic`, so the current path renders ClinicLayout with no child content (white screen).
+**`src/pages/clinic/PatientDetail.tsx`**:
+- Add `isEditing` state and `editData` state object
+- Add "Edit" button top-right of Patient Information tab; toggles to "Save" + "Cancel" in edit mode
+- In edit mode, replace `InfoField` displays with `Input`/`Select`/`Textarea` fields bound to `editData`
+- On Save: call `clinicApi.updatePatient(id, editData)`, success toast, refresh patient data, exit edit mode
+- On Cancel: discard changes, exit edit mode
 
-The "View Referrals" button (`/clinic/referrals`) is already correct.
+**`src/lib/api.ts`**: Add `updatePatient` to `clinicApi`:
+```ts
+async updatePatient(id: string, data: any): Promise<any> {
+  const response = await fetch(`${API_BASE_URL}/patients/${id}`, {
+    method: 'PUT', headers: getHeaders(), body: JSON.stringify(data),
+  });
+  return handleResponse(response);
+},
+```
+
+### Part 3: Remove Documents tab
+
+**`src/pages/clinic/PatientDetail.tsx`**:
+- Remove `TabsTrigger value="documents"` (line 159)
+- Remove entire `TabsContent value="documents"` block (lines 424-465)
+- Remove `allDocuments` variable (line 107)
+- Remove unused `Eye`, `Download` icon imports
 
 ### No other files affected
 
