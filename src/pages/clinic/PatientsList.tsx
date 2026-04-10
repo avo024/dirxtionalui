@@ -64,7 +64,7 @@ export default function PatientsList() {
           <p className="text-muted-foreground mt-1">Manage your patients and their referrals</p>
         </div>
         <Button asChild>
-          <Link to="/clinic/referrals/new">
+          <Link to="/clinic/patients/new">
             <Plus className="h-4 w-4 mr-2" />
             Add New Patient
           </Link>
@@ -181,7 +181,7 @@ export default function PatientsList() {
               <h3 className="text-lg font-semibold text-foreground mb-1">No patients yet</h3>
               <p className="text-sm text-muted-foreground mb-6">Add your first patient to get started</p>
               <Button asChild>
-                <Link to="/clinic/referrals/new"><Plus className="h-4 w-4 mr-2" />Add Your First Patient</Link>
+                <Link to="/clinic/patients/new"><Plus className="h-4 w-4 mr-2" />Add Your First Patient</Link>
               </Button>
             </>
           )}

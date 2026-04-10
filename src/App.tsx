@@ -18,6 +18,7 @@ import ReferralDetail from "@/pages/clinic/ReferralDetail";
 import ClinicSettings from "@/pages/clinic/ClinicSettings";
 import PatientsList from "@/pages/clinic/PatientsList";
 import PatientDetail from "@/pages/clinic/PatientDetail";
+import CreatePatient from "@/pages/clinic/CreatePatient";
 
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
@@ -45,6 +46,7 @@ const App = () => (
             {/* Clinic routes */}
             <Route path="/clinic" element={<ClinicLayout />}>
               <Route path="dashboard" element={<ClinicDashboard />} />
+              <Route path="patients/new" element={<CreatePatient />} />
               <Route path="patients/:id" element={<PatientDetail />} />
               <Route path="patients" element={<PatientsList />} />
               <Route path="referrals/new" element={<CreateReferral />} />

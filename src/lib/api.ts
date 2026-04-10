@@ -110,6 +110,15 @@ export const clinicApi = {
     return handleResponse(response);
   },
 
+  async updatePatient(id: string, data: any): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/patients/${id}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
   async finalizeReferral(referralId: string): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/referrals/${referralId}/finalize`, {
       method: 'POST',
