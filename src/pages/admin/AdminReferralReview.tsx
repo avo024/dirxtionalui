@@ -34,43 +34,52 @@ export default function AdminReferralReview() {
   const [editedData, setEditedData] = useState<any>(null);
   const [changedSections, setChangedSections] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    const fetchReferral = async () => {
-      if (!id) return;
+  const fetchReferralData = async (isPolling = false) => {
+    if (!id) return;
 
+    try {
+      if (!isPolling) setLoading(true);
+      const data = await adminApi.getReferral(id);
+
+      const mapped = {
+        ...data,
+        drug: data.drug_requested,
+        blocked: data.preferred_pharmacy_blocked,
+      };
+
+      setReferral(mapped);
+      setEditedData(mapped.extracted_data || {});
+
+      // Fetch documents
       try {
-        setLoading(true);
-        const data = await adminApi.getReferral(id);
-
-        const mapped = {
-          ...data,
-          drug: data.drug_requested,
-          blocked: data.preferred_pharmacy_blocked,
-        };
-
-        setReferral(mapped);
-        setEditedData(mapped.extracted_data || {});
-
-        // Fetch documents
-        try {
-          const docsRes = await adminApi.getReferralDocuments(id);
-          setDocuments(docsRes.items || docsRes || []);
-        } catch {
-          // Documents may not exist yet, that's ok
-        }
-      } catch (err: any) {
+        const docsRes = await adminApi.getReferralDocuments(id);
+        setDocuments(docsRes.items || docsRes || []);
+      } catch {
+        // Documents may not exist yet, that's ok
+      }
+    } catch (err: any) {
+      if (!isPolling) {
         toast({
           title: "Error",
           description: err.message || "Failed to load referral",
           variant: "destructive",
         });
-      } finally {
-        setLoading(false);
       }
-    };
+    } finally {
+      if (!isPolling) setLoading(false);
+    }
+  };
 
-    fetchReferral();
+  useEffect(() => {
+    fetchReferralData();
   }, [id]);
+
+  // Poll every 5s while status is 'processing'
+  useEffect(() => {
+    if (referral?.status !== 'processing') return;
+    const timer = setInterval(() => fetchReferralData(true), 5000);
+    return () => clearInterval(timer);
+  }, [referral?.status, id]);
 
   if (loading) {
     return (
@@ -281,7 +290,13 @@ export default function AdminReferralReview() {
 
         {/* Right: Extracted data */}
         <div className="lg:w-1/2 overflow-y-auto p-6">
-          {data ? (
+          {referral.status === 'processing' ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
+              <p className="text-lg font-semibold text-foreground">AI is extracting referral details...</p>
+              <p className="text-sm text-muted-foreground mt-2">This takes about 30 seconds. You can safely leave this page and come back.</p>
+            </div>
+          ) : data ? (
             <Accordion type="multiple" defaultValue={["patient", "clinical", "insurance"]} className="space-y-3">
 
               {/* ── Patient Information ── */}
@@ -364,296 +379,12 @@ export default function AdminReferralReview() {
                   <div className="grid grid-cols-2 gap-3 pb-2">
                     <FieldEdit label="Collaborating Physician" value={editedData?.provider?.collaborating_physician || ""} onChange={(v) => updateField("provider", "collaborating_physician", v)} />
                     <FieldEdit label="Collaborating NPI" value={editedData?.provider?.collaborating_npi || ""} onChange={(v) => updateField("provider", "collaborating_npi", v)} />
+                    <FieldEdit label="DEA Number" value={editedData?.provider?.dea_number || ""} onChange={(v) => updateField("provider", "dea_number", v)} />
                     <FieldEdit label="Tax ID" value={editedData?.provider?.tax_id || ""} onChange={(v) => updateField("provider", "tax_id", v)} />
                     <FieldEdit label="Signature Date" value={editedData?.provider?.signature_date || ""} onChange={(v) => updateField("provider", "signature_date", v)} />
                   </div>
                 </AccordionContent>
               </AccordionItem>
-
-              {/* ── Prescription / Clinical ── */}
-              <AccordionItem value="clinical" className="rounded-xl border border-border bg-card card-shadow px-4">
-                <AccordionTrigger className="text-sm font-semibold">
-                  <div className="flex items-center justify-between w-full pr-4">
-                    <span>Prescription</span>
-                    <SectionSaveButton section="clinical" />
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <div className="pb-3">
-                    <FieldEdit label="Drug Requested" value={editedData?.clinical?.drug_requested || ""} confidence={conf["clinical.drug_requested"] ?? conf.drug_requested} onChange={(v) => updateField("clinical", "drug_requested", v)} />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 pb-2">
-                    <FieldEdit label="Brand Name" value={editedData?.clinical?.brand_name || ""} onChange={(v) => updateField("clinical", "brand_name", v)} />
-                    <FieldEdit label="Generic Name" value={editedData?.clinical?.generic_name || ""} onChange={(v) => updateField("clinical", "generic_name", v)} />
-                    <FieldEdit label="Primary ICD-10" value={editedData?.clinical?.diagnosis_icd10_primary || editedData?.clinical?.diagnosis_icd10 || ""} confidence={conf["clinical.diagnosis_icd10_primary"] ?? conf.diagnosis_icd10} onChange={(v) => updateField("clinical", "diagnosis_icd10_primary", v)} />
-                    <FieldEdit label="Diagnosis Description" value={editedData?.clinical?.diagnosis_description || ""} onChange={(v) => updateField("clinical", "diagnosis_description", v)} />
-                  </div>
-                  <div className="pb-3">
-                    <TagListEditor label="All Diagnoses (ICD-10)" items={editedData?.clinical?.diagnoses || []} onChange={(items) => updateArrayField("clinical", "diagnoses", items)} placeholder="Add ICD-10 code..." />
-                  </div>
-                  <div className="pb-2">
-                    <Label className="text-xs text-muted-foreground mb-1 block">Dosing Directions</Label>
-                    <Textarea value={editedData?.clinical?.dosing_directions || editedData?.clinical?.dosing || ""} onChange={(e) => updateField("clinical", "dosing_directions", e.target.value)} className="text-sm" rows={2} />
-                  </div>
-                  <div className="grid grid-cols-3 gap-3 pb-2">
-                    <FieldEdit label="Dose Amount" value={editedData?.clinical?.dose_amount || ""} onChange={(v) => updateField("clinical", "dose_amount", v)} />
-                    <FieldEdit label="Dose Frequency" value={editedData?.clinical?.dose_frequency || editedData?.clinical?.frequency || ""} onChange={(v) => updateField("clinical", "dose_frequency", v)} />
-                    <FieldEdit label="Route" value={editedData?.clinical?.route || editedData?.clinical?.administration || ""} onChange={(v) => updateField("clinical", "route", v)} />
-                  </div>
-                  <div className="grid grid-cols-3 gap-3 pb-2">
-                    <FieldEdit label="Quantity" value={editedData?.clinical?.quantity || ""} onChange={(v) => updateField("clinical", "quantity", v)} />
-                    <FieldEdit label="Day Supply" value={editedData?.clinical?.day_supply || ""} onChange={(v) => updateField("clinical", "day_supply", v)} />
-                    <FieldEdit label="Refills" value={editedData?.clinical?.refills || editedData?.clinical?.length_of_therapy || ""} onChange={(v) => updateField("clinical", "refills", v)} />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 pb-2">
-                    <div>
-                      <Label className="text-xs text-muted-foreground mb-1 block">Device Type</Label>
-                      <Select value={editedData?.clinical?.device_type || ""} onValueChange={(v) => updateField("clinical", "device_type", v)}>
-                        <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select..." /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Pre-filled syringe">Pre-filled syringe</SelectItem>
-                          <SelectItem value="Pre-filled pen">Pre-filled pen</SelectItem>
-                          <SelectItem value="Auto-injector">Auto-injector</SelectItem>
-                          <SelectItem value="Oral">Oral</SelectItem>
-                          <SelectItem value="Other">Other</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label className="text-xs text-muted-foreground mb-1 block">Urgency</Label>
-                      <Select value={editedData?.clinical?.urgency || ""} onValueChange={(v) => updateField("clinical", "urgency", v)}>
-                        <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select..." /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="routine">Routine</SelectItem>
-                          <SelectItem value="urgent">Urgent</SelectItem>
-                          <SelectItem value="stat">Stat</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4 pb-3">
-                    <div className="flex items-center gap-2">
-                      <Checkbox checked={editedData?.clinical?.is_new_start || false} onCheckedChange={(checked) => updateField("clinical", "is_new_start", checked)} />
-                      <Label className="text-xs font-normal">New Start</Label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Checkbox checked={editedData?.clinical?.is_refill || false} onCheckedChange={(checked) => updateField("clinical", "is_refill", checked)} />
-                      <Label className="text-xs font-normal">Refill</Label>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 pb-2">
-                    <FieldEdit label="Loading Dose" value={editedData?.clinical?.loading_dose || ""} onChange={(v) => updateField("clinical", "loading_dose", v)} />
-                    <FieldEdit label="Maintenance Dose" value={editedData?.clinical?.maintenance_dose || ""} onChange={(v) => updateField("clinical", "maintenance_dose", v)} />
-                  </div>
-                  <div className="pb-2">
-                    <Label className="text-xs text-muted-foreground mb-1 block">Ship To</Label>
-                    <Select value={editedData?.clinical?.ship_to || ""} onValueChange={(v) => updateField("clinical", "ship_to", v)}>
-                      <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select..." /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Patient's Home">Patient's Home</SelectItem>
-                        <SelectItem value="Doctor's Office">Doctor's Office</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 pb-2 items-center">
-                    <div className="flex items-center gap-2">
-                      <Checkbox checked={editedData?.clinical?.loading_dose_received || false} onCheckedChange={(checked) => updateField("clinical", "loading_dose_received", checked)} />
-                      <Label className="text-xs font-normal">Loading Dose Received?</Label>
-                    </div>
-                    {editedData?.clinical?.loading_dose_received && (
-                      <FieldEdit label="Start Date" value={editedData?.clinical?.loading_dose_start_date || ""} onChange={(v) => updateField("clinical", "loading_dose_start_date", v)} />
-                    )}
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 pb-2 items-center">
-                    <div className="flex items-center gap-2">
-                      <Checkbox checked={editedData?.clinical?.tb_ruled_out || false} onCheckedChange={(checked) => updateField("clinical", "tb_ruled_out", checked)} />
-                      <Label className="text-xs font-normal">TB Ruled Out?</Label>
-                    </div>
-                    {editedData?.clinical?.tb_ruled_out && (
-                      <FieldEdit label="TB Test Date" value={editedData?.clinical?.tb_test_date || ""} onChange={(v) => updateField("clinical", "tb_test_date", v)} />
-                    )}
-                  </div>
-                  <div className="pb-3">
-                    <TagListEditor label="Prior Failed Medications" items={editedData?.clinical?.prior_failed_medications || []} onChange={(items) => updateArrayField("clinical", "prior_failed_medications", items)} placeholder="Add medication..." />
-                  </div>
-                  <div className="pb-2">
-                    <Label className="text-xs text-muted-foreground mb-1 block">Clinical Justification (for PA)</Label>
-                    <Textarea value={editedData?.clinical?.clinical_justification || ""} onChange={(e) => updateField("clinical", "clinical_justification", e.target.value)} className="text-sm" rows={3} />
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-
-              {/* ── Insurance ── */}
-              <AccordionItem value="insurance" className="rounded-xl border border-border bg-card card-shadow px-4">
-                <AccordionTrigger className="text-sm font-semibold">
-                  <div className="flex items-center justify-between w-full pr-4">
-                    <span>Insurance Information</span>
-                    <SectionSaveButton section="insurance" />
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <div className="space-y-3 pb-2">
-                    <div className="flex items-center gap-2">
-                      <Checkbox checked={editedData?.insurance?.has_insurance ?? editedData?.insurance?.has_insurance_card ?? false} onCheckedChange={(checked) => updateField("insurance", "has_insurance", checked)} />
-                      <Label className="text-xs font-normal">Has Insurance</Label>
-                    </div>
-
-                    <Label className="text-xs font-semibold text-muted-foreground block">Primary Insurance</Label>
-                    <div className="grid grid-cols-2 gap-3">
-                      <FieldEdit label="Plan Name" value={editedData?.insurance?.primary_plan_name || editedData?.insurance?.primary_insurance_name || ""} className="col-span-2" onChange={(v) => updateField("insurance", "primary_plan_name", v)} />
-                      <FieldEdit label="Member ID" value={editedData?.insurance?.primary_member_id || ""} onChange={(v) => updateField("insurance", "primary_member_id", v)} />
-                      <FieldEdit label="Group Number" value={editedData?.insurance?.primary_group_number || ""} onChange={(v) => updateField("insurance", "primary_group_number", v)} />
-                      <FieldEdit label="Policy ID" value={editedData?.insurance?.primary_policy_id || ""} onChange={(v) => updateField("insurance", "primary_policy_id", v)} />
-                      <FieldEdit label="Carrier Phone" value={editedData?.insurance?.primary_carrier_phone || ""} onChange={(v) => updateField("insurance", "primary_carrier_phone", v)} />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <FieldEdit label="RxBIN" value={editedData?.insurance?.primary_rxbin || ""} onChange={(v) => updateField("insurance", "primary_rxbin", v)} />
-                      <FieldEdit label="RxPCN" value={editedData?.insurance?.primary_rxpcn || ""} onChange={(v) => updateField("insurance", "primary_rxpcn", v)} />
-                    </div>
-
-                    {(editedData?.insurance?.secondary_plan_name || editedData?.insurance?.secondary_insurance_name || editedData?.insurance?.secondary_member_id) && (
-                      <div className="border-t border-border pt-3">
-                        <Label className="text-xs font-semibold text-muted-foreground mb-2 block">Secondary Insurance</Label>
-                        <div className="grid grid-cols-2 gap-3">
-                          <FieldEdit label="Plan Name" value={editedData?.insurance?.secondary_plan_name || editedData?.insurance?.secondary_insurance_name || ""} className="col-span-2" onChange={(v) => updateField("insurance", "secondary_plan_name", v)} />
-                          <FieldEdit label="Member ID" value={editedData?.insurance?.secondary_member_id || ""} onChange={(v) => updateField("insurance", "secondary_member_id", v)} />
-                          <FieldEdit label="Group Number" value={editedData?.insurance?.secondary_group_number || ""} onChange={(v) => updateField("insurance", "secondary_group_number", v)} />
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="grid grid-cols-2 gap-3 pt-2">
-                      <FieldEdit label="Policyholder Name" value={editedData?.insurance?.policyholder_name || ""} onChange={(v) => updateField("insurance", "policyholder_name", v)} />
-                      <FieldEdit label="Policyholder Relationship" value={editedData?.insurance?.policyholder_relationship || ""} onChange={(v) => updateField("insurance", "policyholder_relationship", v)} />
-                    </div>
-                    <div>
-                      <Label className="text-xs text-muted-foreground mb-1 block">Benefit Type</Label>
-                      <Select value={editedData?.insurance?.pharmacy_benefit_or_medical_benefit || ""} onValueChange={(v) => updateField("insurance", "pharmacy_benefit_or_medical_benefit", v)}>
-                        <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select..." /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="pharmacy">Pharmacy Benefit</SelectItem>
-                          <SelectItem value="medical">Medical Benefit</SelectItem>
-                          <SelectItem value="unknown">Unknown</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label className="text-xs text-muted-foreground mb-1 block">Notes</Label>
-                      <Textarea value={editedData?.insurance?.notes || ""} onChange={(e) => updateField("insurance", "notes", e.target.value)} className="text-sm" rows={2} />
-                    </div>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-
-              {/* ── Prior Authorization ── */}
-              <AccordionItem value="prior_auth" className="rounded-xl border border-border bg-card card-shadow px-4">
-                <AccordionTrigger className="text-sm font-semibold">
-                  <div className="flex items-center justify-between w-full pr-4">
-                    <span>Prior Authorization</span>
-                    <SectionSaveButton section="prior_auth" />
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <div className="space-y-3 pb-2">
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2">
-                        <Checkbox checked={editedData?.prior_auth?.required || false} onCheckedChange={(checked) => updateField("prior_auth", "required", checked)} />
-                        <Label className="text-xs font-normal">PA Required</Label>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Checkbox checked={editedData?.prior_auth?.handled_by_clinic ?? editedData?.prior_auth?.handled_by_us ?? false} onCheckedChange={(checked) => updateField("prior_auth", "handled_by_clinic", checked)} />
-                        <Label className="text-xs font-normal">Handled by Clinic</Label>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <FieldEdit label="PA Number" value={editedData?.prior_auth?.pa_number || ""} onChange={(v) => updateField("prior_auth", "pa_number", v)} />
-                      <FieldEdit label="Reference Number" value={editedData?.prior_auth?.reference_number || ""} onChange={(v) => updateField("prior_auth", "reference_number", v)} />
-                      <FieldEdit label="Submission Date" value={editedData?.prior_auth?.submission_date || ""} onChange={(v) => updateField("prior_auth", "submission_date", v)} />
-                      <FieldEdit label="Expiration Date" value={editedData?.prior_auth?.expiration_date || ""} onChange={(v) => updateField("prior_auth", "expiration_date", v)} />
-                    </div>
-                    <div>
-                      <Label className="text-xs text-muted-foreground mb-1 block">Status</Label>
-                      <Select value={editedData?.prior_auth?.status || ""} onValueChange={(v) => updateField("prior_auth", "status", v)}>
-                        <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select..." /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="pending">Pending</SelectItem>
-                          <SelectItem value="submitted">Submitted</SelectItem>
-                          <SelectItem value="approved">Approved</SelectItem>
-                          <SelectItem value="denied">Denied</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-
-              {/* ── Pharmacy ── */}
-              <AccordionItem value="pharmacy" className="rounded-xl border border-border bg-card card-shadow px-4">
-                <AccordionTrigger className="text-sm font-semibold">
-                  <div className="flex items-center justify-between w-full pr-4">
-                    <span>Pharmacy</span>
-                    <SectionSaveButton section="pharmacy" />
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <div className="grid grid-cols-2 gap-3 pb-2">
-                    <FieldEdit label="Preferred Pharmacy Name" value={editedData?.pharmacy?.preferred_pharmacy_name || ""} className="col-span-2" onChange={(v) => updateField("pharmacy", "preferred_pharmacy_name", v)} />
-                    <FieldEdit label="Phone" value={editedData?.pharmacy?.preferred_pharmacy_phone || ""} onChange={(v) => updateField("pharmacy", "preferred_pharmacy_phone", v)} />
-                    <FieldEdit label="Fax" value={editedData?.pharmacy?.preferred_pharmacy_fax || ""} onChange={(v) => updateField("pharmacy", "preferred_pharmacy_fax", v)} />
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-
-              {/* ── Dermatology (conditional) ── */}
-              {editedData?.dermatology && (
-                <AccordionItem value="dermatology" className="rounded-xl border border-border bg-card card-shadow px-4">
-                  <AccordionTrigger className="text-sm font-semibold">
-                    <div className="flex items-center justify-between w-full pr-4">
-                      <span>Dermatology Assessment <span className="text-xs font-normal text-muted-foreground">(for PA documentation)</span></span>
-                      <SectionSaveButton section="dermatology" />
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <div className="grid grid-cols-4 gap-3 pb-2">
-                      <FieldEdit label="BSA %" value={editedData?.dermatology?.bsa_percentage || ""} onChange={(v) => updateField("dermatology", "bsa_percentage", v)} />
-                      <FieldEdit label="IGA Score" value={editedData?.dermatology?.iga_score || ""} onChange={(v) => updateField("dermatology", "iga_score", v)} />
-                      <FieldEdit label="EASI Score" value={editedData?.dermatology?.easi_score || ""} onChange={(v) => updateField("dermatology", "easi_score", v)} />
-                      <FieldEdit label="PASI Score" value={editedData?.dermatology?.pasi_score || ""} onChange={(v) => updateField("dermatology", "pasi_score", v)} />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3 pb-2">
-                      <FieldEdit label="POEM Score" value={editedData?.dermatology?.poem_score || ""} onChange={(v) => updateField("dermatology", "poem_score", v)} />
-                      <FieldEdit label="Itch NRS Score" value={editedData?.dermatology?.itch_nrs_score || ""} onChange={(v) => updateField("dermatology", "itch_nrs_score", v)} />
-                      <FieldEdit label="Condition Severity" value={editedData?.dermatology?.condition_severity || ""} className="col-span-2" onChange={(v) => updateField("dermatology", "condition_severity", v)} />
-                    </div>
-                    <div className="space-y-3 pb-3">
-                      <TagListEditor label="Affected Body Areas" items={editedData?.dermatology?.affected_body_areas || []} onChange={(items) => updateArrayField("dermatology", "affected_body_areas", items)} placeholder="Add area..." />
-                      <TagListEditor label="Prior Topicals Tried" items={editedData?.dermatology?.prior_topicals_tried || []} onChange={(items) => updateArrayField("dermatology", "prior_topicals_tried", items)} placeholder="Add topical..." />
-                      <TagListEditor label="Prior Systemics Tried" items={editedData?.dermatology?.prior_systemics_tried || []} onChange={(items) => updateArrayField("dermatology", "prior_systemics_tried", items)} placeholder="Add systemic..." />
-                    </div>
-                    <div className="flex items-center gap-2 pb-2">
-                      <Checkbox checked={editedData?.dermatology?.phototherapy_tried || false} onCheckedChange={(checked) => updateField("dermatology", "phototherapy_tried", checked)} />
-                      <Label className="text-xs font-normal">Phototherapy Tried</Label>
-                    </div>
-                    <FieldEdit label="Date of Diagnosis" value={editedData?.dermatology?.date_of_diagnosis || ""} onChange={(v) => updateField("dermatology", "date_of_diagnosis", v)} />
-                  </AccordionContent>
-                </AccordionItem>
-              )}
-
-            </Accordion>
-          ) : (
-            <div className="flex items-center justify-center py-20 text-center">
-              <div>
-                <FileText className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground">No extracted data yet. Use "Extract with AI" to process this referral.</p>
-              </div>
-            </div>
-          )}
-
-
-          {/* PA Management Card */}
-          <PAManagementCard referral={referral} paInfo={paInfo} />
-        </div>
       </div>
 
       {/* Bottom action bar */}
