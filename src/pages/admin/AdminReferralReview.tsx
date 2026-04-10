@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, FileText, Loader2 } from "lucide-react";
+import { ArrowLeft, FileText, Loader2, MessageSquare, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,6 +33,9 @@ export default function AdminReferralReview() {
   const [rejectReason, setRejectReason] = useState("");
   const [editedData, setEditedData] = useState<any>(null);
   const [changedSections, setChangedSections] = useState<Set<string>>(new Set());
+  const [notes, setNotes] = useState<any[]>([]);
+  const [newNote, setNewNote] = useState("");
+  const [sendingNote, setSendingNote] = useState(false);
 
   const fetchReferralData = async (isPolling = false) => {
     if (!id) return;

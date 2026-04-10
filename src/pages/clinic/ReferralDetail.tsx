@@ -137,11 +137,13 @@ export default function ReferralDetail() {
       clinicApi.getReferral(id),
       clinicApi.getReferralDocuments(id).catch(() => ({ items: [] })),
       clinicApi.getReferralHistory(id).catch(() => ({ items: [] })),
+      clinicApi.getReferralNotes(id).catch(() => ({ items: [] })),
     ])
-      .then(([referralData, docsData, historyData]) => {
+      .then(([referralData, docsData, historyData, notesData]) => {
         setReferral(mapReferralFromBackend(referralData));
         setDocuments(docsData.items || []);
         setHistory(historyData.items || []);
+        setNotes(notesData.items || []);
       })
       .catch((err) => {
         console.error("Failed to load referral:", err);
