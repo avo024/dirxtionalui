@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   ArrowLeft, Plus, User, Shield, Phone, Mail, Copy,
-  FileText, Pill, ClipboardList, Loader2, Pencil, Save, X, Eye
+  FileText, ClipboardList, Loader2, Pencil, Save, X, Eye
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
