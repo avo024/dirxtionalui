@@ -1,57 +1,38 @@
 
 
-## Clinic UI Polish: Drug Icon, Resubmit Flow, Timeline Cleanup
+## Wire Up Notes Tab (Clinic + Admin)
 
-### 1. Remove drug pill icon from referral tables
+### 1. API additions (`src/lib/api.ts`)
 
-**File: `src/components/ReferralTable.tsx`** (lines 125-130)
+Add to `clinicApi`:
+- `getReferralNotes(referralId)` — GET `/referrals/{referralId}/notes`
+- `addReferralNote(referralId, content)` — POST `/referrals/{referralId}/notes`
 
-Replace the `<div>` with flex/gap/Pill icon with just `<span className="text-sm">{ref.drug}</span>`. Remove `Pill` from the lucide imports.
+Add to `adminApi`:
+- `getReferralNotes(referralId)` — GET `/admin/referrals/{referralId}/notes`
+- `addReferralNote(referralId, content)` — POST `/admin/referrals/{referralId}/notes`
 
-### 2. Fix resubmit flow — single button in Documents tab only
+### 2. Clinic Notes tab (`src/pages/clinic/ReferralDetail.tsx`)
 
-**File: `src/pages/clinic/ReferralDetail.tsx`** (lines 244-253)
+Replace the current local-only notes implementation:
+- Change `notes` state type to hold API shape: `{ id, author_type, author_name, content, created_at }`
+- Fetch notes via `clinicApi.getReferralNotes(id)` on mount (alongside other fetches)
+- Replace `addNote` to call `clinicApi.addReferralNote(id, content)`, then prepend result to list
+- Redesign note rendering as chat-style: clinic notes left-aligned (blue "Clinic" badge), admin notes right-aligned (purple "Admin" badge), author name, content, timestamp below
+- Empty state: "No notes yet. Add a note below."
+- Move input to bottom of tab (textarea + Send button), disable while sending
 
-Remove the `<Button>` for resubmit from the rejection banner. Replace with a text line: *"Go to the Documents tab to upload missing information, then resubmit."*
+### 3. Admin Notes section (`src/pages/admin/AdminReferralReview.tsx`)
 
-The resubmit button at line 496-503 in the Documents tab stays as-is.
-
-### 3. Clean up History timeline
-
-**File: `src/pages/clinic/ReferralDetail.tsx`**
-
-**A. Expand EVENT_LABELS** (lines 40-52) to include all mappings:
-- `ai_extraction_completed_auto` → "AI extraction completed"
-- `validation_updated` → "Document validation updated"
-- `pharmacy_reassigned` → "Pharmacy reassigned"
-- `delivery_failed` → "Pharmacy delivery failed"
-- `pa_processing` → "Prior authorization in processing"
-- `admin_edit` → "Admin updated referral details"
-- `final_pdf_generated` → "Referral PDF generated"
-- Update `delivery_completed` → "Sent to pharmacy"
-
-Add fallback: for unknown event types, title-case with underscores replaced by spaces.
-
-**B. Filter out noise events** — before rendering, filter history to exclude: `validation_updated`, `admin_edit`, `final_pdf_generated`.
-
-**C. Per-event icons** — replace the generic `Clock` icon with:
-- `Send` for `referral_created`, `referral_finalized`, `referral_resubmitted`
-- `FileText` for `document_uploaded`
-- `Sparkles` for `ai_extraction_completed`, `ai_extraction_completed_auto`
-- `CheckCircle` for `referral_approved`, `delivery_completed`, `pa_approved`
-- `XCircle` for `referral_rejected`, `delivery_failed`, `pa_denied`
-- `Clock` for `pa_submitted`, `pa_processing`
-- `AlertCircle` (gray) for everything else
-
-Update `EVENT_COLORS` to include:
-- Yellow/warning for `pa_submitted`, `pa_processing`
-- Red for `delivery_failed`
-
-**D. Separate rejection reason** — for `referral_rejected`, show the reason as a second line below the label (not appended with colon).
-
-**E. Visual polish** — timeline connector line stays thin (`w-px`), timestamp text is already `text-xs text-muted-foreground`, add `pb-8` instead of `pb-6` for more spacing.
+The admin page currently has no Notes tab. Add a collapsible "Notes" section (using the existing Accordion pattern) or a card below the existing content:
+- State: `notes`, `newNote`, `sendingNote`
+- Fetch via `adminApi.getReferralNotes(id)` on mount
+- Same chat-style UI as clinic side (admin notes right, clinic notes left)
+- Textarea + Send button at bottom
+- Post via `adminApi.addReferralNote(id, content)`
 
 ### Files changed
-- `src/components/ReferralTable.tsx` — remove Pill icon
-- `src/pages/clinic/ReferralDetail.tsx` — rejection banner text, timeline overhaul
+- `src/lib/api.ts` — 4 new methods
+- `src/pages/clinic/ReferralDetail.tsx` — rewrite notes tab to use API
+- `src/pages/admin/AdminReferralReview.tsx` — add notes section with API integration
 
