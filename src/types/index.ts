@@ -237,6 +237,10 @@ export interface Referral {
   pa_status: "denied" | "approved" | "sent_to_pharmacy" | "pending" | null;
   pa_required_reason: string;
   pa_expiration_date: string | null;
+  pa_number?: string;
+  pa_reference_number?: string;
+  pa_denial_reason?: string;
+  pa_submission_date?: string;
   // Admin-only fields (optional on clinic side)
   blocked?: boolean;
   dob?: string;
