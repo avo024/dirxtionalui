@@ -439,14 +439,27 @@ export default function ReferralDetail() {
                     <>
                       <div>
                         <p className="text-muted-foreground text-xs mb-1">PA Status</p>
-                        {!referral.pa_status || referral.pa_status === null ? (
-                          <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-secondary text-muted-foreground">Pending Submission</span>
+                  {!referral.pa_status || referral.pa_status === null ? (
+                          <>
+                            <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-secondary text-muted-foreground">Pending</span>
+                            <p className="text-xs text-muted-foreground mt-1">PA required — DiRxtional team will handle this</p>
+                          </>
                         ) : referral.pa_status === 'approved' ? (
                           <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-status-approved-bg text-status-approved-fg">✓ Approved</span>
                         ) : referral.pa_status === 'denied' ? (
                           <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-destructive/10 text-destructive">✗ Denied</span>
+                        ) : referral.pa_status === 'processing' ? (
+                          <>
+                            <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-blue-500/10 text-blue-600">PA In Progress</span>
+                            <p className="text-xs text-muted-foreground mt-1">DiRxtional team is working on PA</p>
+                          </>
+                        ) : referral.pa_status === 'submitted' ? (
+                          <>
+                            <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-warning/10 text-warning">PA Submitted</span>
+                            {referral.pa_submission_date && <p className="text-xs text-muted-foreground mt-1">Submitted on {formatDateShort(referral.pa_submission_date)}</p>}
+                          </>
                         ) : referral.pa_status === 'pending' ? (
-                          <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-status-processing-bg text-status-processing-fg">In Progress</span>
+                          <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-muted text-muted-foreground">PA Pending</span>
                         ) : (
                           <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-secondary text-muted-foreground">{referral.pa_status}</span>
                         )}

@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PAStatusBadge } from "@/components/PAStatusBadge";
 import { StatusBadge } from "@/components/StatusBadge";
+import { ClinicPABadge } from "@/components/ClinicPABadge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { clinicApi } from "@/lib/api";
 import { formatDateShort, getRelativeTime } from "@/lib/dateUtils";
@@ -309,6 +310,7 @@ export default function PatientDetail() {
                     <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 uppercase tracking-wider">Referral ID</th>
                     <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 uppercase tracking-wider">Drug</th>
                     <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 uppercase tracking-wider">Status</th>
+                    <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 uppercase tracking-wider">PA Status</th>
                     <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 uppercase tracking-wider">Created</th>
                     <th className="text-right text-xs font-semibold text-muted-foreground px-4 py-3 uppercase tracking-wider">Actions</th>
                   </tr>
@@ -331,6 +333,9 @@ export default function PatientDetail() {
                       </td>
                       <td className="px-4 py-3">
                         <StatusBadge status={ref.status} />
+                      </td>
+                      <td className="px-4 py-3">
+                        <ClinicPABadge status={ref.pa_status} />
                       </td>
                       <td className="px-4 py-3 text-sm text-muted-foreground">
                         {ref.created_at ? formatDateShort(ref.created_at) : '—'}

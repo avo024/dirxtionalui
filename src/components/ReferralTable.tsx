@@ -3,6 +3,7 @@ import { Eye, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/StatusBadge";
 import { PAStatusCell, paSortOrder } from "@/components/PAStatusCell";
+import { ClinicPABadge } from "@/components/ClinicPABadge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Table,
@@ -88,6 +89,7 @@ export function ReferralTable({ referrals, userType, showClinic = false, paSortD
               </TableHead>
             )}
             <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</TableHead>
+            {!isAdmin && <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">PA Status</TableHead>}
             {isAdmin && <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Pharmacy</TableHead>}
             <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Created</TableHead>
             {userType === "clinic" && <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Updated</TableHead>}
@@ -133,6 +135,11 @@ export function ReferralTable({ referrals, userType, showClinic = false, paSortD
                 <TableCell>
                   <StatusBadge status={ref.status} context={userType} />
                 </TableCell>
+                {!isAdmin && (
+                  <TableCell>
+                    <ClinicPABadge status={ref.pa_status} />
+                  </TableCell>
+                )}
                 {isAdmin && (
                   <TableCell className="text-sm text-muted-foreground">{(ref as any).pharmacy_name || "—"}</TableCell>
                 )}
