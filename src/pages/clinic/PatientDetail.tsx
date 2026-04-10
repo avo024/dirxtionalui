@@ -55,6 +55,7 @@ export default function PatientDetail() {
   const [loading, setLoading] = useState(true);
   const [medsLoading, setMedsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("history");
 
   // Inline editing state
   const [isEditing, setIsEditing] = useState(false);
