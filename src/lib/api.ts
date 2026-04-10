@@ -126,6 +126,21 @@ export const clinicApi = {
     });
     return handleResponse(response);
   },
+
+  async resubmitReferral(referralId: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/referrals/${referralId}/resubmit`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  async getReferralHistory(referralId: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/referrals/${referralId}/history`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
 };
 
 // ============================================================================
