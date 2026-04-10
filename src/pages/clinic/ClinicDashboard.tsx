@@ -41,7 +41,7 @@ export default function ClinicDashboard() {
   ).length;
 
   const sentCount = referrals.filter((r) =>
-    r.status === "approved_to_send"
+    ["approved_to_send", "sent_to_pharmacy"].includes(r.status)
   ).length;
 
   const paExpiringSoonCount = patients.filter((p) => {
@@ -87,7 +87,7 @@ export default function ClinicDashboard() {
       colorClass: "text-warning",
       bgClass: "bg-warning/10",
       subtitle: "Being reviewed",
-      link: "/clinic/referrals?filter=processing",
+      link: "/clinic/referrals?filter=in_review",
     },
     {
       label: "Sent to Pharmacy",
@@ -96,7 +96,7 @@ export default function ClinicDashboard() {
       colorClass: "text-primary",
       bgClass: "bg-primary/10",
       subtitle: "At pharmacy",
-      link: "/clinic/referrals?filter=sent",
+      link: "/clinic/referrals?filter=sent_to_pharmacy",
     },
     {
       label: "Needs Attention",

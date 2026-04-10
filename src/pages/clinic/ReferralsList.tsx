@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Search, Plus, FileSearch, ChevronLeft, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -20,15 +20,23 @@ interface FilterDef {
 
 const filters: FilterDef[] = [
   { label: "All", value: "all", color: "bg-primary text-primary-foreground" },
-  { label: "In Review", value: "processing", color: "bg-status-processing-bg text-status-processing-fg" },
+  { label: "In Review", value: "in_review", color: "bg-status-processing-bg text-status-processing-fg" },
   { label: "Needs Attention", value: "rejected", color: "bg-destructive text-destructive-foreground" },
-  { label: "Sent", value: "approved_to_send", color: "bg-status-sent-bg text-status-sent-fg" },
+  { label: "Sent", value: "sent_to_pharmacy", color: "bg-status-sent-bg text-status-sent-fg" },
 ];
+
+const filterStatusMap: Record<string, string[]> = {
+  all: [],
+  in_review: ["processing", "ready_for_review", "uploaded"],
+  rejected: ["rejected"],
+  sent_to_pharmacy: ["sent_to_pharmacy", "approved_to_send"],
+};
 
 export default function ReferralsList() {
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeFilter, setActiveFilter] = useState("all");
+  const [searchParams] = useSearchParams();
+  const [activeFilter, setActiveFilter] = useState(searchParams.get("filter") || "all");
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState("10");
@@ -56,10 +64,8 @@ export default function ReferralsList() {
 
   function getFilterCount(value: string): number {
     if (value === "all") return referrals.length;
-    if (value === "processing") return referrals.filter((r) => r.status === "processing").length;
-    if (value === "rejected") return referrals.filter((r) => r.status === "rejected").length;
-    if (value === "approved_to_send") return referrals.filter((r) => r.status === "approved_to_send").length;
-    return 0;
+    const statuses = filterStatusMap[value] || [value];
+    return referrals.filter((r) => statuses.includes(r.status)).length;
   }
 
   const filtered = useMemo(() => {
@@ -71,10 +77,8 @@ export default function ReferralsList() {
       if (!matchesSearch) return false;
 
       if (activeFilter === "all") return true;
-      if (activeFilter === "processing") return r.status === "processing";
-      if (activeFilter === "rejected") return r.status === "rejected";
-      if (activeFilter === "approved_to_send") return r.status === "approved_to_send";
-      return true;
+      const statuses = filterStatusMap[activeFilter] || [activeFilter];
+      return statuses.includes(r.status);
     });
   }, [activeFilter, search, referrals]);
 
