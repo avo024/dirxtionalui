@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, FileText, Loader2 } from "lucide-react";
+import { ArrowLeft, FileText, Loader2, MessageSquare, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,6 +33,9 @@ export default function AdminReferralReview() {
   const [rejectReason, setRejectReason] = useState("");
   const [editedData, setEditedData] = useState<any>(null);
   const [changedSections, setChangedSections] = useState<Set<string>>(new Set());
+  const [notes, setNotes] = useState<any[]>([]);
+  const [newNote, setNewNote] = useState("");
+  const [sendingNote, setSendingNote] = useState(false);
 
   const fetchReferralData = async (isPolling = false) => {
     if (!id) return;
@@ -55,7 +58,14 @@ export default function AdminReferralReview() {
         const docsRes = await adminApi.getReferralDocuments(id);
         setDocuments(docsRes.items || docsRes || []);
       } catch {
-        // Documents may not exist yet, that's ok
+        // Documents may not exist yet
+      }
+
+      try {
+        const notesRes = await adminApi.getReferralNotes(id);
+        setNotes(notesRes.items || []);
+      } catch {
+        // Notes may not exist yet
       }
     } catch (err: any) {
       if (!isPolling) {
@@ -649,6 +659,69 @@ export default function AdminReferralReview() {
               </div>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Notes Section */}
+      <div className="border border-border rounded-xl bg-card p-5 card-shadow">
+        <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+          <MessageSquare className="h-4 w-4" />
+          Notes
+        </h3>
+        <div className="space-y-3 mb-4">
+          {notes.length > 0 ? (
+            notes.map((note) => {
+              const isAdmin = note.author_type === 'admin';
+              return (
+                <div key={note.id} className={`flex ${isAdmin ? "justify-end" : "justify-start"}`}>
+                  <div className={`max-w-[75%] rounded-xl p-3 ${isAdmin ? "bg-primary/5 border border-primary/20" : "bg-card border border-border"}`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isAdmin ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"}`}>
+                        {isAdmin ? "Admin" : "Clinic"}
+                      </span>
+                      {note.author_name && <span className="text-xs text-muted-foreground">{note.author_name}</span>}
+                    </div>
+                    <p className="text-sm text-foreground">{note.content}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{new Date(note.created_at).toLocaleString()}</p>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <div className="rounded-xl border border-dashed border-border p-6 text-center">
+              <MessageSquare className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">No notes yet. Add a note below.</p>
+            </div>
+          )}
+        </div>
+        <div className="flex gap-3 items-end">
+          <Textarea
+            placeholder="Add a note about this referral..."
+            value={newNote}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setNewNote(e.target.value)}
+            rows={2}
+            className="flex-1 min-h-[60px]"
+          />
+          <Button
+            size="icon"
+            disabled={!newNote.trim() || sendingNote}
+            onClick={async () => {
+              if (!newNote.trim() || !id) return;
+              setSendingNote(true);
+              try {
+                const result = await adminApi.addReferralNote(id, newNote.trim());
+                setNotes((prev) => [...prev, { id: result.id, author_type: 'admin', author_name: 'Admin', content: newNote.trim(), created_at: new Date().toISOString(), ...result }]);
+                setNewNote("");
+                toast({ title: "Note added" });
+              } catch (err: any) {
+                toast({ title: "Error", description: err.message || "Failed to add note", variant: "destructive" });
+              } finally {
+                setSendingNote(false);
+              }
+            }}
+          >
+            {sendingNote ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+          </Button>
         </div>
       </div>
 

@@ -122,8 +122,9 @@ export default function ReferralDetail() {
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [notes, setNotes] = useState<{ text: string; date: string; author: string }[]>([]);
+  const [notes, setNotes] = useState<any[]>([]);
   const [newNote, setNewNote] = useState("");
+  const [sendingNote, setSendingNote] = useState(false);
   const [resubmitting, setResubmitting] = useState(false);
   const [newUploadsCount, setNewUploadsCount] = useState(0);
   const [uploadingCategory, setUploadingCategory] = useState<string | null>(null);
@@ -136,11 +137,13 @@ export default function ReferralDetail() {
       clinicApi.getReferral(id),
       clinicApi.getReferralDocuments(id).catch(() => ({ items: [] })),
       clinicApi.getReferralHistory(id).catch(() => ({ items: [] })),
+      clinicApi.getReferralNotes(id).catch(() => ({ items: [] })),
     ])
-      .then(([referralData, docsData, historyData]) => {
+      .then(([referralData, docsData, historyData, notesData]) => {
         setReferral(mapReferralFromBackend(referralData));
         setDocuments(docsData.items || []);
         setHistory(historyData.items || []);
+        setNotes(notesData.items || []);
       })
       .catch((err) => {
         console.error("Failed to load referral:", err);
@@ -221,14 +224,19 @@ export default function ReferralDetail() {
     toast({ title: "Copied!", description: `${label} copied to clipboard` });
   };
 
-  const addNote = () => {
-    if (!newNote.trim()) return;
-    setNotes((prev) => [
-      { text: newNote.trim(), date: new Date().toISOString(), author: "Sarah Johnson" },
-      ...prev,
-    ]);
-    setNewNote("");
-    toast({ title: "Note added" });
+  const addNote = async () => {
+    if (!newNote.trim() || !id) return;
+    setSendingNote(true);
+    try {
+      const result = await clinicApi.addReferralNote(id, newNote.trim());
+      setNotes((prev) => [...prev, { id: result.id, author_type: 'clinic', author_name: 'You', content: newNote.trim(), created_at: new Date().toISOString(), ...result }]);
+      setNewNote("");
+      toast({ title: "Note added" });
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Failed to add note", variant: "destructive" });
+    } finally {
+      setSendingNote(false);
+    }
   };
 
   return (
@@ -570,43 +578,46 @@ export default function ReferralDetail() {
 
         {/* NOTES TAB */}
         <TabsContent value="notes" className="mt-4">
-          <div className="space-y-4">
-            <div className="rounded-xl border border-border bg-card p-5 card-shadow">
-              <h3 className="text-sm font-semibold text-foreground mb-3">Add a Note</h3>
-              <Textarea
-                placeholder="Add a note about this referral..."
-                value={newNote}
-                onChange={(e) => setNewNote(e.target.value)}
-                rows={3}
-                className="mb-3"
-              />
-              <Button size="sm" onClick={addNote} disabled={!newNote.trim()}>
-                <Plus className="h-4 w-4 mr-1" />
-                Add Note
-              </Button>
-            </div>
-
+          <div className="flex flex-col gap-4">
             {notes.length > 0 ? (
               <div className="space-y-3">
-                {notes.map((note, i) => (
-                  <div key={i} className="rounded-xl border border-border bg-card p-4 card-shadow">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
-                        <MessageSquare className="h-3 w-3 text-primary" />
+                {notes.map((note) => {
+                  const isClinic = note.author_type === 'clinic';
+                  return (
+                    <div key={note.id} className={cn("flex", isClinic ? "justify-start" : "justify-end")}>
+                      <div className={cn("max-w-[75%] rounded-xl p-4 card-shadow", isClinic ? "bg-card border border-border" : "bg-primary/5 border border-primary/20")}>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={cn("text-xs font-semibold px-2 py-0.5 rounded-full", isClinic ? "bg-blue-100 text-blue-700" : "bg-purple-100 text-purple-700")}>
+                            {isClinic ? "Clinic" : "Admin"}
+                          </span>
+                          {note.author_name && <span className="text-xs text-muted-foreground">{note.author_name}</span>}
+                        </div>
+                        <p className="text-sm text-foreground">{note.content}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{formatDateTime(note.created_at)}</p>
                       </div>
-                      <span className="text-sm font-medium text-foreground">{note.author}</span>
-                      <span className="text-xs text-muted-foreground">{formatDateTime(note.date)}</span>
                     </div>
-                    <p className="text-sm text-foreground pl-8">{note.text}</p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="rounded-xl border border-dashed border-border p-8 text-center">
                 <MessageSquare className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">No notes yet</p>
+                <p className="text-sm text-muted-foreground">No notes yet. Add a note below.</p>
               </div>
             )}
+
+            <div className="rounded-xl border border-border bg-card p-4 card-shadow flex gap-3 items-end">
+              <Textarea
+                placeholder="Add a note about this referral..."
+                value={newNote}
+                onChange={(e) => setNewNote(e.target.value)}
+                rows={2}
+                className="flex-1 min-h-[60px]"
+              />
+              <Button size="icon" onClick={addNote} disabled={!newNote.trim() || sendingNote}>
+                {sendingNote ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              </Button>
+            </div>
           </div>
         </TabsContent>
       </Tabs>
