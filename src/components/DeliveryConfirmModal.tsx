@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { Check, FileText, AlertTriangle, ChevronDown, Loader2 } from "lucide-react";
+import { Check, FileText, AlertTriangle, ChevronDown, Loader2, Image } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { adminApi } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -15,6 +16,12 @@ interface DeliveryConfirmModalProps {
   referral: any;
   documents: any[];
   onDelivered: () => void;
+}
+
+const GENERATED_DOC_TYPES = ["generated_referral_pdf", "generated_referral_pdf_sent"];
+
+function isImageFile(filename: string) {
+  return /\.(jpg|jpeg|png|gif|tiff|bmp|webp)$/i.test(filename);
 }
 
 export function DeliveryConfirmModal({
@@ -32,8 +39,8 @@ export function DeliveryConfirmModal({
   const [reassigning, setReassigning] = useState(false);
   const [reassigned, setReassigned] = useState(false);
   const [delivering, setDelivering] = useState(false);
+  const [excludedDocIds, setExcludedDocIds] = useState<Set<string>>(new Set());
 
-  // Current pharmacy info (may update after reassignment)
   const [currentPharmacy, setCurrentPharmacy] = useState({
     name: referral?.pharmacy_name || "",
     email: referral?.pharmacy_email || "",
@@ -41,13 +48,17 @@ export function DeliveryConfirmModal({
     address: referral?.pharmacy_address || "",
   });
 
-  // Reset state when modal opens
+  const uploadedDocs = documents.filter(
+    (d) => !GENERATED_DOC_TYPES.includes(d.doc_type)
+  );
+
   useEffect(() => {
     if (open) {
       setChangeOpen(false);
       setPharmacies([]);
       setSelectedPharmacyId("");
       setReassigned(false);
+      setExcludedDocIds(new Set());
       setCurrentPharmacy({
         name: referral?.pharmacy_name || "",
         email: referral?.pharmacy_email || "",
@@ -74,7 +85,6 @@ export function DeliveryConfirmModal({
     setReassigning(true);
     try {
       await adminApi.reassignPharmacy(referralId, pharmacyId);
-      // Refresh referral to get updated pharmacy info
       const updated = await adminApi.getReferral(referralId);
       setCurrentPharmacy({
         name: updated.pharmacy_name || "",
@@ -91,10 +101,20 @@ export function DeliveryConfirmModal({
     }
   };
 
+  const toggleDoc = (docId: string) => {
+    setExcludedDocIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(docId)) next.delete(docId);
+      else next.add(docId);
+      return next;
+    });
+  };
+
   const handleDeliver = async () => {
     setDelivering(true);
     try {
-      await adminApi.deliverReferral(referralId);
+      const excludeArr = Array.from(excludedDocIds);
+      await adminApi.deliverReferral(referralId, excludeArr.length > 0 ? excludeArr : undefined);
       toast({
         title: "Sent to Pharmacy",
         description: `Referral sent to ${currentPharmacy.name}${currentPharmacy.email ? ` at ${currentPharmacy.email}` : ""}`,
@@ -109,7 +129,8 @@ export function DeliveryConfirmModal({
   };
 
   const hasPharmacy = !!currentPharmacy.name;
-  const docCount = documents.length;
+  const checkedCount = uploadedDocs.length - excludedDocIds.size;
+  const totalAttachments = 1 + checkedCount; // 1 for referral PDF
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -119,7 +140,7 @@ export function DeliveryConfirmModal({
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Section 1: Assigned Pharmacy */}
+          {/* Assigned Pharmacy */}
           {hasPharmacy ? (
             <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-1">
               <div className="flex items-center justify-between">
@@ -141,7 +162,7 @@ export function DeliveryConfirmModal({
             </div>
           )}
 
-          {/* Section 2: Change Pharmacy */}
+          {/* Change Pharmacy */}
           <Collapsible open={changeOpen} onOpenChange={(isOpen) => {
             setChangeOpen(isOpen);
             if (isOpen) fetchPharmacies();
@@ -181,17 +202,45 @@ export function DeliveryConfirmModal({
             </CollapsibleContent>
           </Collapsible>
 
-          {/* Section 3: What's being sent */}
+          {/* Documents to send */}
           <div className="rounded-lg border border-border/50 p-4 space-y-2">
-            <h4 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase mb-2">What's being sent</h4>
+            <h4 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase mb-2">
+              Documents to send ({totalAttachments} attachment{totalAttachments !== 1 ? "s" : ""})
+            </h4>
+
+            {/* Referral PDF — always included */}
             <div className="flex items-center gap-2 text-sm">
               <Check className="h-4 w-4 text-success shrink-0" />
+              <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
               <span>Referral PDF</span>
             </div>
-            <div className="flex items-center gap-2 text-sm">
-              <Check className="h-4 w-4 text-success shrink-0" />
-              <span>{docCount} uploaded document{docCount !== 1 ? "s" : ""}</span>
-            </div>
+
+            {/* Uploaded documents — selectable */}
+            {uploadedDocs.map((doc) => {
+              const isExcluded = excludedDocIds.has(doc.id);
+              const isImg = isImageFile(doc.original_filename || "");
+              return (
+                <label
+                  key={doc.id}
+                  className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted/40 rounded px-1 py-0.5 -mx-1"
+                >
+                  <Checkbox
+                    checked={!isExcluded}
+                    onCheckedChange={() => toggleDoc(doc.id)}
+                    className="h-3.5 w-3.5"
+                  />
+                  {isImg ? (
+                    <Image className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  ) : (
+                    <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  )}
+                  <span className={cn("truncate", isExcluded && "text-muted-foreground line-through")}>
+                    {doc.original_filename || doc.s3_key}
+                  </span>
+                </label>
+              );
+            })}
+
             <div className="text-xs text-muted-foreground pt-1">
               {referral?.patient_name} · {referral?.drug || referral?.drug_requested}
             </div>
