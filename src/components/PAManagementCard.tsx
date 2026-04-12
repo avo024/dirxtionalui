@@ -8,7 +8,7 @@ import {
   Eye,
   Download,
   Trash2,
-  CalendarIcon,
+  
   Shield,
   XCircle,
   Loader2,
@@ -19,8 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ChronoSelect } from "@/components/ui/chrono-select";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
@@ -497,31 +496,23 @@ function PAWorkflowCard({ referral, paInfo }: { referral: Referral; paInfo: Refe
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">PA Start Date</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" className={cn("w-full h-8 justify-start text-left text-sm font-normal", !startDate && "text-muted-foreground")}>
-                          <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                          {startDate ? format(startDate, "MMM d, yyyy") : "Select date"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar mode="single" captionLayout="dropdown-buttons" fromYear={2024} toYear={2030} selected={startDate} onSelect={setStartDate} initialFocus className={cn("p-3 pointer-events-auto")} />
-                      </PopoverContent>
-                    </Popover>
+                    <ChronoSelect
+                      value={startDate}
+                      onChange={setStartDate}
+                      placeholder="Select date"
+                      className="h-8 text-sm"
+                      yearRange={[2024, 2030]}
+                    />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">PA Expiration Date</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" className={cn("w-full h-8 justify-start text-left text-sm font-normal", !expirationDate && "text-muted-foreground")}>
-                          <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                          {expirationDate ? format(expirationDate, "MMM d, yyyy") : "Select date"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar mode="single" captionLayout="dropdown-buttons" fromYear={2024} toYear={2030} selected={expirationDate} onSelect={setExpirationDate} initialFocus className={cn("p-3 pointer-events-auto")} />
-                      </PopoverContent>
-                    </Popover>
+                    <ChronoSelect
+                      value={expirationDate}
+                      onChange={setExpirationDate}
+                      placeholder="Select date"
+                      className="h-8 text-sm"
+                      yearRange={[2024, 2030]}
+                    />
                   </div>
                 </div>
               </div>
