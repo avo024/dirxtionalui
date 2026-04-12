@@ -274,10 +274,11 @@ export const adminApi = {
     return handleResponse(response);
   },
 
-  async deliverReferral(id: string): Promise<any> {
+  async deliverReferral(id: string, excludeDocIds?: string[]): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/admin/referrals/${id}/deliver`, {
       method: 'POST',
       headers: getHeaders(),
+      body: JSON.stringify(excludeDocIds ? { exclude_doc_ids: excludeDocIds } : {}),
     });
     return handleResponse(response);
   },
