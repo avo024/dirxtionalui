@@ -505,7 +505,7 @@ function PAWorkflowCard({ referral, paInfo }: { referral: Referral; paInfo: Refe
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus className={cn("p-3 pointer-events-auto")} />
+                        <Calendar mode="single" captionLayout="dropdown-buttons" fromYear={2024} toYear={2030} selected={startDate} onSelect={setStartDate} initialFocus className={cn("p-3 pointer-events-auto")} />
                       </PopoverContent>
                     </Popover>
                   </div>
@@ -519,7 +519,7 @@ function PAWorkflowCard({ referral, paInfo }: { referral: Referral; paInfo: Refe
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar mode="single" selected={expirationDate} onSelect={setExpirationDate} initialFocus className={cn("p-3 pointer-events-auto")} />
+                        <Calendar mode="single" captionLayout="dropdown-buttons" fromYear={2024} toYear={2030} selected={expirationDate} onSelect={setExpirationDate} initialFocus className={cn("p-3 pointer-events-auto")} />
                       </PopoverContent>
                     </Popover>
                   </div>
