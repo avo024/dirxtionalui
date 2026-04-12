@@ -282,6 +282,13 @@ export const adminApi = {
     return handleResponse(response);
   },
 
+  async getAlternativePharmacies(id: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/admin/referrals/${id}/alternative-pharmacies`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
   async reassignPharmacy(id: string, pharmacyId: string): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/admin/referrals/${id}/reassign-pharmacy`, {
       method: 'POST',

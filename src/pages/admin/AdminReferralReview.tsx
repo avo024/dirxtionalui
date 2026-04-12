@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { ConfidenceIndicator } from "@/components/ConfidenceIndicator";
 import { DocumentViewer } from "@/components/DocumentViewer";
 import { ConfirmModal } from "@/components/ConfirmModal";
+import { DeliveryConfirmModal } from "@/components/DeliveryConfirmModal";
 import { PAManagementCard } from "@/components/PAManagementCard";
 import { TagListEditor } from "@/components/TagListEditor";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
