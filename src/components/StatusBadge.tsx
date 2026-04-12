@@ -6,7 +6,7 @@ import { Upload, Loader2, CheckCircle, Send, XCircle } from "lucide-react";
 const statusStyles: Record<string, string> = {
   uploaded: "bg-status-uploaded-bg text-status-uploaded-fg",
   processing: "bg-status-processing-bg text-status-processing-fg",
-  ready_for_review: "bg-status-processing-bg text-status-processing-fg",
+  ready_for_review: "bg-status-review-bg text-status-review-fg",
   approved: "bg-status-approved-bg text-status-approved-fg",
   approved_to_send: "bg-status-approved-bg text-status-approved-fg",
   sent_to_pharmacy: "bg-status-sent-bg text-status-sent-fg",
@@ -16,7 +16,7 @@ const statusStyles: Record<string, string> = {
 const dotStyles: Record<string, string> = {
   uploaded: "bg-status-uploaded-fg",
   processing: "bg-status-processing-fg",
-  ready_for_review: "bg-status-processing-fg",
+  ready_for_review: "bg-status-review-fg",
   approved: "bg-status-approved-fg",
   approved_to_send: "bg-status-approved-fg",
   sent_to_pharmacy: "bg-status-sent-fg",

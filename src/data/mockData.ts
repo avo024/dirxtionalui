@@ -852,22 +852,22 @@ export const mockBlockedReferrals = [
 ];
 
 export const statusLabels: Record<ReferralStatus, string> = {
-  uploaded: "Received",
-  processing: "In Review",
+  uploaded: "Uploaded",
+  processing: "Processing",
   ready_for_review: "In Review",
   approved: "Approved",
-  approved_to_send: "Sent to Pharmacy",
+  approved_to_send: "Approved",
   sent_to_pharmacy: "Sent to Pharmacy",
-  rejected: "Needs Attention",
+  rejected: "Rejected",
 };
 
 export const adminStatusLabels: Record<ReferralStatus, string> = {
-  uploaded: "Received",
+  uploaded: "Uploaded",
   processing: "Needs Review",
   ready_for_review: "Needs Review",
   approved: "Approved",
-  approved_to_send: "Approved & Sent",
-  sent_to_pharmacy: "Sent to Pharmacy",
+  approved_to_send: "Ready to Send",
+  sent_to_pharmacy: "Sent",
   rejected: "Rejected",
 };
 
