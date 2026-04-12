@@ -105,21 +105,19 @@ export function ChronoSelect({
               ))}
             </SelectContent>
           </Select>
-          <Select
-            value={month.getFullYear().toString()}
-            onValueChange={handleYearChange}
-          >
-            <SelectTrigger className="h-8 w-[90px] text-sm">
-              <SelectValue>{month.getFullYear()}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {years.map((year) => (
-                <SelectItem key={year} value={year.toString()}>
-                  {year}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <input
+            type="number"
+            value={month.getFullYear()}
+            onChange={(e) => {
+              const val = parseInt(e.target.value)
+              if (!isNaN(val) && val >= yearRange[0] && val <= yearRange[1]) {
+                handleYearChange(e.target.value)
+              }
+            }}
+            min={yearRange[0]}
+            max={yearRange[1]}
+            className="h-8 w-[80px] rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          />
         </div>
         <Calendar
           mode="single"
