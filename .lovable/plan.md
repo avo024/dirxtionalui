@@ -1,28 +1,39 @@
 
 
-## Better Date Pickers in PA Management
+## Delivery Confirmation Modal with Pharmacy Selection
 
-### Change
-Add `captionLayout="dropdown-buttons"`, `fromYear={2024}`, and `toYear={2030}` props to all three `<Calendar>` instances in `src/components/PAManagementCard.tsx`. This enables built-in month/year dropdown selectors in react-day-picker, eliminating the need to click arrows month-by-month.
+### Summary
+Replace the simple "Send to Pharmacy" confirm dialog with a rich modal that shows the assigned pharmacy, allows changing it, displays what's being sent, and confirms delivery. Also update the bottom action bar to hide Reject/Approve once approved.
+
+### Changes
+
+**File 1: `src/components/DeliveryConfirmModal.tsx`** (new)
+
+A new modal component with four sections:
+
+1. **Assigned Pharmacy card** — reads `referral.pharmacy_name`, `referral.pharmacy_email`, `referral.pharmacy_phone`, `referral.pharmacy_address` from referral data. If none assigned, show yellow warning.
+
+2. **Change Pharmacy** — a collapsible section. On expand, fetches `GET /admin/referrals/:id/alternative-pharmacies`. Shows a dropdown of results. On selection, calls `POST /admin/referrals/:id/reassign-pharmacy` with `{ pharmacy_id }`, then refreshes the displayed pharmacy info and shows a green checkmark "Pharmacy updated".
+
+3. **What's being sent** — static checklist: referral PDF (always), uploaded documents with count from `documents` prop, patient name and drug name.
+
+4. **Footer** — Cancel button and "Confirm & Send" primary button. Confirm calls `POST /admin/referrals/:id/deliver`. On success: close modal, show toast with pharmacy name/email, call `onDelivered()` callback to refresh parent.
+
+Props: `open`, `onOpenChange`, `referralId`, `referral` (current referral data), `documents` (document list), `onDelivered` (callback).
+
+**File 2: `src/lib/api.ts`**
+
+Add to `adminApi`:
+- `getAlternativePharmacies(id: string)` — `GET /admin/referrals/${id}/alternative-pharmacies`
+
+**File 3: `src/pages/admin/AdminReferralReview.tsx`**
+
+- Replace the simple `ConfirmModal` for delivery (lines 920-940) with the new `<DeliveryConfirmModal>`.
+- Pass `referral`, `documents`, and an `onDelivered` callback that refreshes referral data.
+- Bottom action bar already correctly shows "Send to Pharmacy" only for `approved_to_send` and hides Reject/Approve — no change needed there.
 
 ### Files changed
-- `src/components/PAManagementCard.tsx` — Update 2 Calendar components (lines 508 and 522) to include dropdown props
-
-### Technical detail
-The shadcn Calendar wraps react-day-picker, which natively supports `captionLayout="dropdown-buttons"`. Adding three props to each Calendar instance is all that's needed:
-
-```tsx
-<Calendar
-  mode="single"
-  captionLayout="dropdown-buttons"
-  fromYear={2024}
-  toYear={2030}
-  selected={date}
-  onSelect={setDate}
-  initialFocus
-  className={cn("p-3 pointer-events-auto")}
-/>
-```
-
-No date format changes — dates still serialize as `YYYY-MM-DD` via `.toISOString().split('T')[0]`.
+- `src/components/DeliveryConfirmModal.tsx` (new)
+- `src/lib/api.ts` (add 1 method)
+- `src/pages/admin/AdminReferralReview.tsx` (swap modal, ~10 lines)
 
