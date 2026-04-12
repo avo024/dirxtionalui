@@ -918,25 +918,17 @@ export default function AdminReferralReview() {
       />
 
       {/* Deliver modal */}
-      <ConfirmModal
+      <DeliveryConfirmModal
         open={deliverOpen}
         onOpenChange={setDeliverOpen}
-        title="Send to Pharmacy"
-        description={`Send ${referral.patient_name}'s referral to the pharmacy?`}
-        confirmLabel="Send"
-        variant="success"
-        onConfirm={async () => {
-          try {
-            await adminApi.deliverReferral(id!);
-            toast({ title: "Sent to Pharmacy", description: "Referral has been sent to the pharmacy." });
-            setDeliverOpen(false);
-            const data = await adminApi.getReferral(id!);
-            const mapped = { ...data, drug: data.drug_requested, blocked: data.preferred_pharmacy_blocked };
-            setReferral(mapped);
-            setEditedData(mapped.extracted_data || {});
-          } catch (err: any) {
-            toast({ title: "Error", description: err.message || "Failed to send", variant: "destructive" });
-          }
+        referralId={id!}
+        referral={referral}
+        documents={documents}
+        onDelivered={async () => {
+          const data = await adminApi.getReferral(id!);
+          const mapped = { ...data, drug: data.drug_requested, blocked: data.preferred_pharmacy_blocked };
+          setReferral(mapped);
+          setEditedData(mapped.extracted_data || {});
         }}
       />
 
