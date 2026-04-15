@@ -1103,22 +1103,94 @@ export default function CreateReferral() {
       </div>
 
       {/* Bridge Program Modal */}
-      <Dialog open={showBridgeModal} onOpenChange={setShowBridgeModal}>
+      <Dialog open={showBridgeModal} onOpenChange={(open) => {
+        if (!open) {
+          // Cancel/close resets bridge state
+          setBridgeStep('ask');
+          if (bridgeStep === 'pick') {
+            // They were picking a pharmacy but closed — reset
+            setIsBridgeProgram(false);
+            setBridgePharmacyId("");
+            setBridgePharmacyName("");
+          }
+          setShowBridgeModal(false);
+        }
+      }}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Bridge Program Referral?</DialogTitle>
-            <DialogDescription>
-              This patient has no insurance. Is this a Bridge Program referral?
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex gap-3 justify-end pt-4">
-            <Button variant="outline" onClick={() => { setIsBridgeProgram(false); setShowBridgeModal(false); }}>
-              No
-            </Button>
-            <Button className="bg-purple-600 hover:bg-purple-700 text-white" onClick={() => { setIsBridgeProgram(true); setShowBridgeModal(false); }}>
-              Yes, Bridge Program
-            </Button>
-          </div>
+          {bridgeStep === 'ask' ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>Bridge Program Referral?</DialogTitle>
+                <DialogDescription>
+                  This patient has no insurance. Is this a Bridge Program referral?
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex gap-3 justify-end pt-4">
+                <Button variant="outline" onClick={() => { setIsBridgeProgram(false); setShowBridgeModal(false); setBridgeStep('ask'); }}>
+                  No
+                </Button>
+                <Button className="bg-purple-600 hover:bg-purple-700 text-white" onClick={() => {
+                  setBridgeStep('pick');
+                  if (pharmacies.length === 0) {
+                    setLoadingPharmacies(true);
+                    pharmacyApi.getPharmacies()
+                      .then((data) => setPharmacies(data.items || data || []))
+                      .catch(() => toast({ title: "Error", description: "Failed to load pharmacies", variant: "destructive" }))
+                      .finally(() => setLoadingPharmacies(false));
+                  }
+                }}>
+                  Yes, Bridge Program
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle>Select Bridge Pharmacy</DialogTitle>
+                <DialogDescription>
+                  Which pharmacy is handling the Bridge Program for this drug?
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 pt-2">
+                {loadingPharmacies ? (
+                  <div className="flex items-center justify-center py-6">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : (
+                  <Select value={bridgePharmacyId} onValueChange={(v) => {
+                    setBridgePharmacyId(v);
+                    const ph = pharmacies.find((p: any) => p.id === v);
+                    setBridgePharmacyName(ph?.name || "");
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a pharmacy..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {pharmacies.map((ph: any) => (
+                        <SelectItem key={ph.id} value={ph.id}>{ph.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+                <div className="flex gap-3 justify-between">
+                  <Button variant="ghost" size="sm" onClick={() => { setBridgeStep('ask'); setBridgePharmacyId(""); setBridgePharmacyName(""); }}>
+                    <ArrowLeft className="h-3.5 w-3.5 mr-1" /> Back
+                  </Button>
+                  <Button
+                    className="bg-purple-600 hover:bg-purple-700 text-white"
+                    disabled={!bridgePharmacyId}
+                    onClick={() => {
+                      setIsBridgeProgram(true);
+                      setShowBridgeModal(false);
+                      setBridgeStep('ask');
+                    }}
+                  >
+                    Confirm
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>
