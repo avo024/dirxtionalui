@@ -384,19 +384,33 @@ export default function AdminReferralReview() {
                 </div>
 
                 {/* Card 2: Insurance */}
-                <div className="rounded-lg border border-border/50 p-4">
-                  <h4 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase mb-2">Insurance</h4>
-                  {insurance.insurance_not_provided && (
-                    <div className="flex items-center gap-2 rounded-md bg-warning/10 border border-warning/30 px-3 py-2 mb-3">
-                      <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
-                      <span className="text-sm text-warning">No insurance provided — patient requests cash pricing</span>
+                <div className={cn("rounded-lg border p-4", referral.insurance_expired ? "border-orange-300 bg-orange-50/50" : "border-border/50")}>
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">Insurance</h4>
+                    {referral.insurance_expired && (
+                      <Badge className="bg-orange-100 text-orange-700 border-orange-200 hover:bg-orange-100 text-[10px]">EXPIRED</Badge>
+                    )}
+                  </div>
+                  {referral.is_bridge_program ? (
+                    <div className="flex items-center gap-2 rounded-md bg-purple-50 border border-purple-200 px-3 py-2">
+                      <Shield className="h-4 w-4 text-purple-600 shrink-0" />
+                      <span className="text-sm font-medium text-purple-700">Bridge Program</span>
                     </div>
+                  ) : (
+                    <>
+                      {insurance.insurance_not_provided && (
+                        <div className="flex items-center gap-2 rounded-md bg-warning/10 border border-warning/30 px-3 py-2 mb-3">
+                          <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
+                          <span className="text-sm text-warning">No insurance provided — patient requests cash pricing</span>
+                        </div>
+                      )}
+                      <SummaryField label="Plan" value={insurance.primary_plan_name || insurance.primary_insurance_name} />
+                      <SummaryField label="Member ID" value={insurance.primary_member_id} isCritical />
+                      <SummaryField label="Group #" value={insurance.primary_group_number} />
+                      <SummaryField label="RxBIN" value={insurance.primary_rxbin} />
+                      <SummaryField label="RxPCN" value={insurance.primary_rxpcn} />
+                    </>
                   )}
-                  <SummaryField label="Plan" value={insurance.primary_plan_name || insurance.primary_insurance_name} />
-                  <SummaryField label="Member ID" value={insurance.primary_member_id} isCritical />
-                  <SummaryField label="Group #" value={insurance.primary_group_number} />
-                  <SummaryField label="RxBIN" value={insurance.primary_rxbin} />
-                  <SummaryField label="RxPCN" value={insurance.primary_rxpcn} />
                 </div>
 
                 {/* Card 3: Medication */}

@@ -428,11 +428,25 @@ export default function ReferralDetail() {
               {/* Insurance & PA Card */}
               <InfoCard icon={Shield} title="Insurance & PA">
                 <div className="space-y-3">
-                  <Field label="Has Insurance" value={insurance.has_insurance_card ? 'Yes' : 'No'} />
-                  {insurance.primary_insurance_name && <Field label="Primary Insurance" value={insurance.primary_insurance_name} />}
-                  {insurance.primary_member_id && <Field label="Member ID" value={insurance.primary_member_id} />}
-                  {insurance.secondary_insurance_name && <Field label="Secondary Insurance" value={insurance.secondary_insurance_name} />}
-                  {insurance.notes && <Field label="Insurance Notes" value={insurance.notes} />}
+                  {/* Bridge Program display */}
+                  {referral.is_bridge_program ? (
+                    <div className="flex items-center gap-2 rounded-md bg-purple-50 border border-purple-200 px-3 py-2">
+                      <Shield className="h-4 w-4 text-purple-600 shrink-0" />
+                      <span className="text-sm font-medium text-purple-700">Bridge Program</span>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Expired Insurance Warning */}
+                      {referral.insurance_expired && (
+                        <ExpiredInsuranceBanner referralId={id!} onUpdated={loadData} />
+                      )}
+                      <Field label="Has Insurance" value={insurance.has_insurance_card ? 'Yes' : 'No'} />
+                      {insurance.primary_insurance_name && <Field label="Primary Insurance" value={insurance.primary_insurance_name} />}
+                      {insurance.primary_member_id && <Field label="Member ID" value={insurance.primary_member_id} />}
+                      {insurance.secondary_insurance_name && <Field label="Secondary Insurance" value={insurance.secondary_insurance_name} />}
+                      {insurance.notes && <Field label="Insurance Notes" value={insurance.notes} />}
+                    </>
+                  )}
                   <div className="border-t border-border pt-3" />
                   <Field label="PA Required" value={referral.pa_required ? 'Yes' : 'No'} />
                   {referral.pa_required && (
