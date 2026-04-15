@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, FileText, Loader2, MessageSquare, Send, RefreshCw, AlertTriangle, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { ConfidenceIndicator } from "@/components/ConfidenceIndicator";
 import { DocumentViewer } from "@/components/DocumentViewer";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { DeliveryConfirmModal } from "@/components/DeliveryConfirmModal";
-import { PAManagementCard } from "@/components/PAManagementCard";
+import { PAManagementCard, type PALetterInfo } from "@/components/PAManagementCard";
 import { TagListEditor } from "@/components/TagListEditor";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -81,6 +81,11 @@ export default function AdminReferralReview() {
   const [notes, setNotes] = useState<any[]>([]);
   const [newNote, setNewNote] = useState("");
   const [sendingNote, setSendingNote] = useState(false);
+  const [paLetterInfo, setPaLetterInfo] = useState<PALetterInfo | null>(null);
+
+  const handlePALetterChange = useCallback((info: PALetterInfo) => {
+    setPaLetterInfo(info);
+  }, []);
 
   const fetchReferralData = async (isPolling = false) => {
     if (!id) return;
@@ -435,7 +440,7 @@ export default function AdminReferralReview() {
                 </div>
 
                 {/* Card 4: PA Management */}
-                <PAManagementCard referral={referral} paInfo={paInfo} />
+                <PAManagementCard referral={referral} paInfo={paInfo} referralId={id!} onPALetterChange={handlePALetterChange} />
 
                 {/* Card 5: Diagnosis & Clinical */}
                 <div className="rounded-lg border border-border/50 p-4">
@@ -938,7 +943,21 @@ export default function AdminReferralReview() {
               </>
             )}
             {referral.status === 'approved_to_send' && (
-              <Button variant="success" onClick={() => setDeliverOpen(true)}>Send to Pharmacy</Button>
+              (() => {
+                const blocked = paLetterInfo?.drug_requires_pa && !paLetterInfo?.has_letter;
+                return (
+                  <div className="relative group">
+                    <Button variant="success" onClick={() => setDeliverOpen(true)} disabled={blocked}>
+                      Send to Pharmacy
+                    </Button>
+                    {blocked && (
+                      <div className="absolute bottom-full mb-2 right-0 bg-popover text-popover-foreground text-xs rounded-md border px-3 py-2 shadow-md w-64 hidden group-hover:block z-50">
+                        PA letter required before sending to pharmacy. Upload one in the PA Management section.
+                      </div>
+                    )}
+                  </div>
+                );
+              })()
             )}
           </div>
         </div>

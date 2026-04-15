@@ -8,12 +8,13 @@ import {
   Eye,
   Download,
   Trash2,
-  
   Shield,
   XCircle,
   Loader2,
   Send,
   Pencil,
+  AlertTriangle,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,9 +30,18 @@ import type { Referral, ReferralPAInfo } from "@/data/mockData";
 
 export type PADecisionStatus = "not_started" | "processing" | "approved" | "denied";
 
+export interface PALetterInfo {
+  has_letter: boolean;
+  drug_requires_pa: boolean;
+  is_fallback: boolean;
+  letter: { id: string; filename: string; uploaded_at: string; from_referral_id: string } | null;
+}
+
 interface PAManagementCardProps {
   referral: Referral;
   paInfo: ReferralPAInfo;
+  referralId: string;
+  onPALetterChange?: (info: PALetterInfo) => void;
 }
 
 interface UploadedFile {
@@ -39,14 +49,14 @@ interface UploadedFile {
   uploadedAt: Date;
 }
 
-export function PAManagementCard({ referral, paInfo }: PAManagementCardProps) {
+export function PAManagementCard({ referral, paInfo, referralId, onPALetterChange }: PAManagementCardProps) {
   const isNoPA = paInfo.status === "not_required";
 
   if (isNoPA) {
     return <PANotRequiredCard paInfo={paInfo} />;
   }
 
-  return <PAWorkflowCard referral={referral} paInfo={paInfo} />;
+  return <PAWorkflowCard referral={referral} paInfo={paInfo} referralId={referralId} onPALetterChange={onPALetterChange} />;
 }
 
 function PANotRequiredCard({ paInfo }: { paInfo: ReferralPAInfo }) {
@@ -67,7 +77,164 @@ function PANotRequiredCard({ paInfo }: { paInfo: ReferralPAInfo }) {
   );
 }
 
-function PAWorkflowCard({ referral, paInfo }: { referral: Referral; paInfo: ReferralPAInfo }) {
+// ── PA Letter Section ──
+function PALetterSection({ referralId, onPALetterChange }: { referralId: string; onPALetterChange?: (info: PALetterInfo) => void }) {
+  const [paLetterInfo, setPaLetterInfo] = useState<PALetterInfo | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const fetchLetterInfo = async () => {
+    try {
+      const info = await adminApi.getPALetterInfo(referralId);
+      setPaLetterInfo(info);
+      onPALetterChange?.(info);
+    } catch {
+      // Endpoint may not exist yet
+      setPaLetterInfo(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLetterInfo();
+  }, [referralId]);
+
+  const handleUpload = async (file: File) => {
+    const validTypes = ["application/pdf", "image/jpeg", "image/png", "image/tiff"];
+    if (!validTypes.includes(file.type)) {
+      toast({ title: "Invalid file type", description: "Please upload a PDF, JPG, PNG, or TIFF file.", variant: "destructive" });
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Maximum file size is 10 MB", variant: "destructive" });
+      return;
+    }
+    setUploading(true);
+    try {
+      await adminApi.uploadPALetter(referralId, file);
+      toast({ title: "PA letter uploaded", description: `${file.name} has been uploaded.` });
+      await fetchLetterInfo();
+    } catch (err: any) {
+      toast({ title: "Upload failed", description: err.message || "Failed to upload PA letter", variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handleUpload(file);
+    e.target.value = "";
+  };
+
+  if (loading) return null;
+  if (!paLetterInfo || !paLetterInfo.drug_requires_pa) return null; // Case D
+
+  const { has_letter, is_fallback, letter } = paLetterInfo;
+
+  // Case A: No letter, needs upload
+  if (!has_letter) {
+    return (
+      <div className="rounded-lg border border-warning/40 bg-warning/5 p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <AlertTriangle className="h-4 w-4 text-warning" />
+          <span className="text-sm font-medium text-foreground">No PA letter on file</span>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Pharmacies require a PA approval letter before processing this referral. Upload one to enable delivery.
+        </p>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+        >
+          {uploading ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Upload className="h-3.5 w-3.5 mr-1.5" />}
+          Upload PA Letter
+        </Button>
+        <input ref={fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif" className="hidden" onChange={handleFileChange} />
+      </div>
+    );
+  }
+
+  // Case C: Continuation/fallback
+  if (is_fallback && letter) {
+    return (
+      <div className="rounded-lg border border-success/40 bg-success/5 p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <CheckCircle className="h-4 w-4 text-success" />
+          <span className="text-sm font-medium text-foreground">Using PA letter from previous approved referral (continuation)</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <FileText className="h-4 w-4 text-muted-foreground" />
+          <div>
+            <p className="text-sm font-medium text-foreground">{letter.filename}</p>
+            <p className="text-xs text-muted-foreground">
+              From referral{" "}
+              <a href={`/admin/referrals/${letter.from_referral_id}`} className="text-primary hover:underline inline-flex items-center gap-0.5">
+                {letter.from_referral_id.slice(0, 8)}…
+                <ExternalLink className="h-3 w-3" />
+              </a>
+              {" · "}No new upload needed.
+            </p>
+          </div>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+        >
+          {uploading ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Upload className="h-3.5 w-3.5 mr-1.5" />}
+          Upload New Letter
+        </Button>
+        <input ref={fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif" className="hidden" onChange={handleFileChange} />
+      </div>
+    );
+  }
+
+  // Case B: Own letter
+  if (letter) {
+    return (
+      <div className="rounded-lg border border-success/40 bg-success/5 p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <CheckCircle className="h-4 w-4 text-success" />
+          <span className="text-sm font-medium text-foreground">PA letter on file</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <FileText className="h-4 w-4 text-muted-foreground" />
+          <div>
+            <p className="text-sm font-medium text-foreground">{letter.filename}</p>
+            <p className="text-xs text-muted-foreground">
+              Uploaded {format(new Date(letter.uploaded_at), "MMM d, yyyy")}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+          >
+            {uploading ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Upload className="h-3.5 w-3.5 mr-1.5" />}
+            Replace
+          </Button>
+          <Button variant="ghost" size="sm">
+            <Eye className="h-3.5 w-3.5 mr-1.5" /> View
+          </Button>
+        </div>
+        <input ref={fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif" className="hidden" onChange={handleFileChange} />
+      </div>
+    );
+  }
+
+  return null;
+}
+
+function PAWorkflowCard({ referral, paInfo, referralId, onPALetterChange }: { referral: Referral; paInfo: ReferralPAInfo; referralId: string; onPALetterChange?: (info: PALetterInfo) => void }) {
   const { extracted_data: data } = referral;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -84,7 +251,6 @@ function PAWorkflowCard({ referral, paInfo }: { referral: Referral; paInfo: Refe
   const [isEditMode, setIsEditMode] = useState(false);
 
   useEffect(() => {
-    // Load existing PA status into local state
     if (referral.pa_status === 'approved' || referral.pa_status === 'denied') {
       setPaDecisionStatus(referral.pa_status as PADecisionStatus);
       setIsEditMode(false);
@@ -98,7 +264,6 @@ function PAWorkflowCard({ referral, paInfo }: { referral: Referral; paInfo: Refe
       setPaDecisionStatus('processing');
       setIsEditMode(!referral.pa_expiration_date);
     }
-    // Load existing PA data fields from referral.pa_data
     const paData = (referral as any).pa_data || {};
     if (paData.pa_number) setPaNumber(paData.pa_number);
     if (paData.reference_number || paData.ref_number) setRefNumber(paData.reference_number || paData.ref_number);
@@ -177,9 +342,8 @@ function PAWorkflowCard({ referral, paInfo }: { referral: Referral; paInfo: Refe
         setIsEditMode(false);
         setTimeout(() => window.location.reload(), 1000);
       } else {
-        // processing — just save submission date (default to today if none selected)
-        const submissionDate = startDate 
-          ? startDate.toISOString().split('T')[0] 
+        const submissionDate = startDate
+          ? startDate.toISOString().split('T')[0]
           : new Date().toISOString().split('T')[0];
         await adminApi.submitPA(referral.id, submissionDate);
         if (!startDate) setStartDate(new Date());
@@ -289,14 +453,12 @@ function PAWorkflowCard({ referral, paInfo }: { referral: Referral; paInfo: Refe
         </div>
       )}
 
-      {/* Status display */}
       <div className="flex items-center gap-3">
         <span className="text-xs text-muted-foreground">PA Status:</span>
         {paStatusBadge()}
         <span className="text-xs text-muted-foreground">— {paInfo.reason}</span>
       </div>
 
-      {/* Read-only fields */}
       <div className="grid grid-cols-2 gap-3 pb-2">
         <div>
           <Label className="text-xs text-muted-foreground">PA Number</Label>
@@ -320,7 +482,6 @@ function PAWorkflowCard({ referral, paInfo }: { referral: Referral; paInfo: Refe
         </div>
       </div>
 
-      {/* Uploaded file display */}
       {uploadedFile && (
         <div className="flex items-center gap-2 rounded-lg border border-border bg-card p-3">
           <FileText className="h-4 w-4 text-success" />
@@ -333,7 +494,6 @@ function PAWorkflowCard({ referral, paInfo }: { referral: Referral; paInfo: Refe
         </div>
       )}
 
-      {/* PA Notes display */}
       {paNotes && (
         <div>
           <Label className="text-xs text-muted-foreground">Notes</Label>
@@ -341,7 +501,6 @@ function PAWorkflowCard({ referral, paInfo }: { referral: Referral; paInfo: Refe
         </div>
       )}
 
-      {/* Denial reason display */}
       {paDecisionStatus === "denied" && denialReason && (
         <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3">
           <div className="flex items-center gap-2 mb-1">
@@ -372,6 +531,9 @@ function PAWorkflowCard({ referral, paInfo }: { referral: Referral; paInfo: Refe
         <ClipboardList className="h-4 w-4 text-primary" />
         <h3 className="text-sm font-semibold text-foreground">Prior Authorization Management</h3>
       </div>
+
+      {/* PA Letter Section — rendered first */}
+      <PALetterSection referralId={referralId} onPALetterChange={onPALetterChange} />
 
       {/* Insurance info for PA */}
       <div className="rounded-lg border border-border bg-card p-3 space-y-1.5">
@@ -417,71 +579,6 @@ function PAWorkflowCard({ referral, paInfo }: { referral: Referral; paInfo: Refe
           {/* APPROVED state */}
           {paDecisionStatus === "approved" && (
             <>
-              {/* File upload */}
-              <div className="space-y-3">
-                <p className="text-xs font-medium text-muted-foreground">PA Approval Documentation</p>
-                {!uploadedFile ? (
-                  <>
-                    <p className="text-xs text-muted-foreground">Upload PA Approval Letter:</p>
-                    <div
-                      className={cn(
-                        "border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors",
-                        isDragging
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:border-primary/50 hover:bg-muted/50"
-                      )}
-                      onClick={() => fileInputRef.current?.click()}
-                      onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-                      onDragLeave={() => setIsDragging(false)}
-                      onDrop={handleDrop}
-                    >
-                      <Upload className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
-                      <p className="text-sm text-foreground font-medium">Choose File or Drag & Drop</p>
-                      <p className="text-xs text-muted-foreground mt-1">Accepted: PDF, JPG, PNG</p>
-                    </div>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleFileSelect(file);
-                      }}
-                    />
-                  </>
-                ) : (
-                  <div className="flex items-center justify-between rounded-lg border border-border bg-card p-3">
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-success" />
-                      <div>
-                        <p className="text-sm font-medium text-foreground">{uploadedFile.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Uploaded on {format(uploadedFile.uploadedAt, "MMM d, yyyy")}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="sm" className="h-7 px-2 text-xs">
-                        <Eye className="h-3 w-3 mr-1" /> View
-                      </Button>
-                      <Button variant="ghost" size="sm" className="h-7 px-2 text-xs">
-                        <Download className="h-3 w-3 mr-1" /> Download
-                      </Button>
-                      <Button
-                        variant="ghost" size="sm"
-                        className="h-7 px-2 text-xs text-destructive hover:text-destructive"
-                        onClick={handleDeleteFile}
-                      >
-                        <Trash2 className="h-3 w-3 mr-1" /> Delete
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <Separator />
-
               {/* PA Approval Details */}
               <div className="space-y-3">
                 <p className="text-xs font-medium text-muted-foreground">PA Approval Details</p>

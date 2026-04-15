@@ -332,6 +332,29 @@ export const adminApi = {
     });
     return handleResponse(response);
   },
+
+  async getPALetterInfo(referralId: string): Promise<{
+    has_letter: boolean;
+    drug_requires_pa: boolean;
+    is_fallback: boolean;
+    letter: { id: string; filename: string; uploaded_at: string; from_referral_id: string } | null;
+  }> {
+    const response = await fetch(`${API_BASE_URL}/admin/referrals/${referralId}/pa/letter`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  async uploadPALetter(referralId: string, file: File): Promise<{ id: string; doc_type: string; filename: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await fetch(`${API_BASE_URL}/admin/referrals/${referralId}/pa/upload`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: formData,
+    });
+    return handleResponse(response);
+  },
 };
 
 // ============================================================================
