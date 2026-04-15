@@ -920,11 +920,16 @@ export default function CreateReferral() {
                     <div className="flex items-center gap-3 h-10">
                       <Switch checked={manualData.hasInsurance} onCheckedChange={(v) => {
                         setManualData((d) => ({ ...d, hasInsurance: v }));
-                        if (!v) setShowBridgeModal(true);
-                        if (v) setIsBridgeProgram(false);
+                        if (!v) { setShowBridgeModal(true); setBridgeStep('ask'); }
+                        if (v) { setIsBridgeProgram(false); setBridgePharmacyId(""); setBridgePharmacyName(""); }
                       }} />
                       <span className="text-sm text-muted-foreground">{manualData.hasInsurance ? "Yes" : "No"}</span>
                     </div>
+                    {isBridgeProgram && bridgePharmacyName && !manualData.hasInsurance && (
+                      <Badge className="mt-2 bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-100">
+                        Bridge Program — {bridgePharmacyName}
+                      </Badge>
+                    )}
                   </FormField>
                   {manualData.hasInsurance && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
