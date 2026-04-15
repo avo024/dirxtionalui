@@ -216,6 +216,7 @@ export default function CreateReferral() {
         is_bridge_program: isBridgeProgram,
         insurance_not_provided: referralMethod === 'upload' ? !uploadHasInsurance : !manualData.hasInsurance,
         ...(isBridgeProgram && bridgePharmacyId ? { target_pharmacy_id: bridgePharmacyId } : {}),
+      };
 
       // Build patient section from actual patient data
       const patientSection = patientMode === "new" ? {
