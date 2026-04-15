@@ -52,8 +52,6 @@ interface UploadedFile {
   zone: "required" | "insurance" | "additional";
   file?: File;
 }
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
 
 export default function CreateReferral() {
   const [searchParams] = useSearchParams();
