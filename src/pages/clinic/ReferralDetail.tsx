@@ -735,6 +735,91 @@ function UploadZone({ label, uploading, onUpload }: { label: string; uploading: 
 }
 
 /* ---- Helper components ---- */
+function ExpiredInsuranceBanner({ referralId, onUpdated }: { referralId: string; onUpdated: () => void }) {
+  const [mode, setMode] = useState<null | "upload" | "manual">(null);
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [form, setForm] = useState({
+    primary_plan_name: "", primary_member_id: "", primary_group_number: "",
+    primary_rxbin: "", primary_rxpcn: "", policyholder_name: "",
+    secondary_plan_name: "", secondary_member_id: "",
+  });
+
+  const handleUpload = async (file: File) => {
+    setUploading(true);
+    try {
+      await clinicApi.uploadDocument(referralId, file, "insurance");
+      await clinicApi.finalizeReferral(referralId);
+      toast({ title: "Insurance card uploaded", description: "Re-extracting data..." });
+      onUpdated();
+    } catch (err: any) {
+      toast({ title: "Upload failed", description: err.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleManualSave = async () => {
+    setSaving(true);
+    try {
+      await clinicApi.updateReferralInsurance(referralId, form);
+      toast({ title: "Insurance updated" });
+      onUpdated();
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="rounded-lg border border-orange-300 bg-orange-50 p-4 space-y-3">
+      <div className="flex items-start gap-2">
+        <AlertTriangle className="h-4 w-4 text-orange-600 mt-0.5 shrink-0" />
+        <div>
+          <p className="text-sm font-medium text-orange-800">DiRxtional Team flagged this patient's insurance as expired.</p>
+          <p className="text-xs text-orange-600 mt-0.5">Update the insurance below to continue.</p>
+        </div>
+      </div>
+      {!mode && (
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()}>
+            <Upload className="h-3.5 w-3.5 mr-1" />Upload New Insurance Card
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => setMode("manual")}>Enter Manually</Button>
+          <input ref={fileRef} type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); e.target.value = ""; }} />
+        </div>
+      )}
+      {uploading && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" /> Uploading and re-extracting...
+        </div>
+      )}
+      {mode === "manual" && (
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label className="text-xs">Primary Plan Name</Label><Input className="h-8 text-sm mt-1" value={form.primary_plan_name} onChange={(e) => setForm(f => ({ ...f, primary_plan_name: e.target.value }))} /></div>
+            <div><Label className="text-xs">Primary Member ID</Label><Input className="h-8 text-sm mt-1" value={form.primary_member_id} onChange={(e) => setForm(f => ({ ...f, primary_member_id: e.target.value }))} /></div>
+            <div><Label className="text-xs">Group Number</Label><Input className="h-8 text-sm mt-1" value={form.primary_group_number} onChange={(e) => setForm(f => ({ ...f, primary_group_number: e.target.value }))} /></div>
+            <div><Label className="text-xs">RxBIN</Label><Input className="h-8 text-sm mt-1" value={form.primary_rxbin} onChange={(e) => setForm(f => ({ ...f, primary_rxbin: e.target.value }))} /></div>
+            <div><Label className="text-xs">RxPCN</Label><Input className="h-8 text-sm mt-1" value={form.primary_rxpcn} onChange={(e) => setForm(f => ({ ...f, primary_rxpcn: e.target.value }))} /></div>
+            <div><Label className="text-xs">Policyholder Name</Label><Input className="h-8 text-sm mt-1" value={form.policyholder_name} onChange={(e) => setForm(f => ({ ...f, policyholder_name: e.target.value }))} /></div>
+            <div><Label className="text-xs">Secondary Plan Name</Label><Input className="h-8 text-sm mt-1" value={form.secondary_plan_name} onChange={(e) => setForm(f => ({ ...f, secondary_plan_name: e.target.value }))} /></div>
+            <div><Label className="text-xs">Secondary Member ID</Label><Input className="h-8 text-sm mt-1" value={form.secondary_member_id} onChange={(e) => setForm(f => ({ ...f, secondary_member_id: e.target.value }))} /></div>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" onClick={handleManualSave} disabled={saving}>
+              {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null}Save Insurance
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setMode(null)}>Cancel</Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function InfoCard({ icon: Icon, title, children }: { icon: React.ElementType; title: string; children: React.ReactNode }) {
   return (
     <div className="rounded-xl border border-border bg-card p-5 card-shadow">
