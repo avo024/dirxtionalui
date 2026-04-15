@@ -1,61 +1,61 @@
 
 
-## Bridge Program Flow + Expired Insurance Flow
+## Bridge Program: Upload Flow Toggle + Pharmacy Picker
 
-### Overview
-Two connected features: (1) Bridge Program modal when clinic selects "no insurance", (2) admin can mark insurance as expired, clinic can update it.
+### Summary
+Add a "Patient has no insurance" toggle inside the Insurance Cards upload zone, and convert the Bridge Program modal into a two-step flow where the user must select a pharmacy before confirming.
 
----
+### Changes
 
-### Feature 1: Bridge Program
+**File 1: `src/pages/clinic/CreateReferral.tsx`**
 
-**1A. CreateReferral.tsx — Bridge Program modal**
-- Add `isBridgeProgram` state (boolean, default false)
-- When `manualData.hasInsurance` is toggled OFF (manual entry mode), show a Dialog asking "Is this a Bridge Program referral?" with Yes/No buttons
-- For upload mode: add a similar "No Insurance" switch above the insurance upload zone; when toggled on, show the same Bridge Program modal
-- Store result in `isBridgeProgram` state
-- In `handleSubmit`, add `is_bridge_program: isBridgeProgram` to the referral payload
+**1A. New state**
+- `uploadHasInsurance` (boolean, default true) — controls the toggle in the upload flow
+- `bridgePharmacyId` (string, default "") — selected pharmacy for bridge program
+- `bridgePharmacyName` (string, default "") — display name
+- `pharmacies` (array) — fetched pharmacy list
+- `loadingPharmacies` (boolean) — loading state
+- `bridgeStep` ("ask" | "pick") — which step the modal is on
 
-**1B. ReferralTable.tsx — Bridge Program badge**
-- In the Drug column cell, after the drug name, render a purple "Bridge" badge when `ref.is_bridge_program === true`
+**1B. Insurance toggle inside the Insurance Cards upload zone (lines 651-658)**
 
-**1C. Clinic ReferralDetail.tsx — Insurance section**
-- When `referral.is_bridge_program === true`, replace the insurance fields in the Insurance & PA card with a purple "Bridge Program" label instead of showing insurance data
+Replace the simple `<UploadZone>` for insurance with a custom container that includes:
+- A toggle row at the top: "Patient has no insurance [switch]"
+- When toggle ON: set `uploadHasInsurance = false`, trigger `setShowBridgeModal(true)`, dim the upload dropzone below
+- When toggle OFF: reset `uploadHasInsurance = true`, `isBridgeProgram = false`, re-enable dropzone
+- Show a purple "Bridge Program — [pharmacy name]" badge below the toggle when bridge is confirmed
+- The upload dropzone renders below, disabled/dimmed when `uploadHasInsurance === false`
 
-**1D. Admin AdminReferralReview.tsx — Summary insurance card**
-- When `referral.is_bridge_program === true`, show a purple "Bridge Program" banner in the insurance summary card instead of the "no insurance" warning
+**1C. Bridge Program modal becomes two-step (lines 1024-1042)**
 
----
+Step 1 ("ask"): Current Yes/No question — unchanged layout
+- "No" → close modal, `isBridgeProgram = false`
+- "Yes, Bridge Program" → transition to step 2 (set `bridgeStep = "pick"`), fetch `pharmacyApi.getPharmacies()` if not already loaded
 
-### Feature 2: Expired Insurance
+Step 2 ("pick"): "Which pharmacy is handling the Bridge Program?"
+- Dropdown of all active pharmacies from `pharmacyApi.getPharmacies()`
+- "Confirm" button — disabled until a pharmacy is selected
+- "Back" link to return to step 1
+- On confirm: set `isBridgeProgram = true`, `bridgePharmacyId`, `bridgePharmacyName`, close modal
 
-**2A. API — src/lib/api.ts**
-- Add `adminApi.markInsuranceExpired(referralId, expired)` — POST to `/admin/referrals/:id/mark-insurance-expired`
-- Add `clinicApi.updateReferralInsurance(referralId, insurance)` — PUT to `/referrals/:id/insurance`
+On modal close/cancel: reset `bridgeStep = "ask"`, `isBridgeProgram = false`
 
-**2B. Admin AdminReferralReview.tsx — Insurance Expired checkbox**
-- In the Insurance accordion section (All Fields tab, line ~673), add a checkbox "Insurance Expired" at the top
-- Initialize from `referral.insurance_expired`
-- On change, call `adminApi.markInsuranceExpired()`, update local state, show toast
-- When expired: wrap the Insurance accordion item in a red/orange border, add "EXPIRED" badge at top-right of the trigger
-- Also update the Summary tab Insurance card (line ~387) with a red "EXPIRED" banner when `referral.insurance_expired === true`
+**1D. Submit payload (line 208)**
 
-**2C. ReferralTable.tsx — Expired Insurance badge**
-- In the Status column cell, after the StatusBadge, render a red/orange "Insurance Expired" badge when `ref.insurance_expired === true`
+Add `target_pharmacy_id: bridgePharmacyId || undefined` to the referral payload when `isBridgeProgram` is true.
 
-**2D. Clinic ReferralDetail.tsx — Expired insurance warning + update flow**
-- When `referral.insurance_expired === true`, show a warning banner in the Insurance & PA card:
-  - "DiRxtional Team flagged this patient's insurance as expired."
-  - Two buttons: "Upload New Insurance Card" and "Enter Manually"
-- **Upload path**: opens file picker, uploads via `clinicApi.uploadDocument(id, file, 'insurance')`, then calls `clinicApi.finalizeReferral(id)`, refreshes referral data
-- **Manual path**: shows inline form with fields (Primary Plan Name, Member ID, Group Number, RxBIN, RxPCN, Policyholder Name, Secondary Plan Name, Secondary Member ID). On save calls `clinicApi.updateReferralInsurance(id, data)`. On success: refresh referral, banner disappears
+**1E. Upload flow validation (line 301)**
 
----
+When `uploadHasInsurance === false` and `isBridgeProgram === false` (they said No to bridge), still allow proceeding — just no insurance files needed. When `isBridgeProgram === true`, also allow proceeding (bridge pharmacy selected).
+
+**1F. Both toggles sync**
+
+The manual entry "Has insurance card?" switch (line 847) and the upload flow toggle should both drive the same `isBridgeProgram` / `bridgePharmacyId` state. The modal is shared.
+
+**File 2: `src/pages/clinic/CreateReferral.tsx` — UploadZone component**
+
+No changes to the UploadZone component itself. The insurance zone will be replaced inline with a custom block that wraps an UploadZone with the toggle above it.
 
 ### Files changed
-- `src/lib/api.ts` — add 2 new API methods
-- `src/pages/clinic/CreateReferral.tsx` — bridge program modal + state + payload
-- `src/components/ReferralTable.tsx` — bridge program badge + expired insurance badge
-- `src/pages/clinic/ReferralDetail.tsx` — bridge program display + expired insurance warning/update flow
-- `src/pages/admin/AdminReferralReview.tsx` — expired insurance checkbox + visual states + bridge program display
+- `src/pages/clinic/CreateReferral.tsx` — all changes in one file (new state, insurance toggle in upload zone, two-step modal, payload update)
 
