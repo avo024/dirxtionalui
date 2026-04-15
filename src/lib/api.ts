@@ -157,6 +157,15 @@ export const clinicApi = {
     });
     return handleResponse(response);
   },
+
+  async updateReferralInsurance(referralId: string, insurance: any): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/referrals/${referralId}/insurance`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify({ insurance }),
+    });
+    return handleResponse(response);
+  },
 };
 
 // ============================================================================
@@ -311,6 +320,15 @@ export const adminApi = {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify({ content }),
+    });
+    return handleResponse(response);
+  },
+
+  async markInsuranceExpired(referralId: string, expired: boolean): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/admin/referrals/${referralId}/mark-insurance-expired`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ expired }),
     });
     return handleResponse(response);
   },

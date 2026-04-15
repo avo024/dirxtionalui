@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, FileText, Loader2, MessageSquare, Send, RefreshCw, AlertTriangle } from "lucide-react";
+import { ArrowLeft, FileText, Loader2, MessageSquare, Send, RefreshCw, AlertTriangle, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getReferralPAInfo } from "@/data/mockData";
+import { cn } from "@/lib/utils";
 import { adminApi } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -384,19 +385,33 @@ export default function AdminReferralReview() {
                 </div>
 
                 {/* Card 2: Insurance */}
-                <div className="rounded-lg border border-border/50 p-4">
-                  <h4 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase mb-2">Insurance</h4>
-                  {insurance.insurance_not_provided && (
-                    <div className="flex items-center gap-2 rounded-md bg-warning/10 border border-warning/30 px-3 py-2 mb-3">
-                      <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
-                      <span className="text-sm text-warning">No insurance provided — patient requests cash pricing</span>
+                <div className={cn("rounded-lg border p-4", referral.insurance_expired ? "border-orange-300 bg-orange-50/50" : "border-border/50")}>
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">Insurance</h4>
+                    {referral.insurance_expired && (
+                      <Badge className="bg-orange-100 text-orange-700 border-orange-200 hover:bg-orange-100 text-[10px]">EXPIRED</Badge>
+                    )}
+                  </div>
+                  {referral.is_bridge_program ? (
+                    <div className="flex items-center gap-2 rounded-md bg-purple-50 border border-purple-200 px-3 py-2">
+                      <Shield className="h-4 w-4 text-purple-600 shrink-0" />
+                      <span className="text-sm font-medium text-purple-700">Bridge Program</span>
                     </div>
+                  ) : (
+                    <>
+                      {insurance.insurance_not_provided && (
+                        <div className="flex items-center gap-2 rounded-md bg-warning/10 border border-warning/30 px-3 py-2 mb-3">
+                          <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
+                          <span className="text-sm text-warning">No insurance provided — patient requests cash pricing</span>
+                        </div>
+                      )}
+                      <SummaryField label="Plan" value={insurance.primary_plan_name || insurance.primary_insurance_name} />
+                      <SummaryField label="Member ID" value={insurance.primary_member_id} isCritical />
+                      <SummaryField label="Group #" value={insurance.primary_group_number} />
+                      <SummaryField label="RxBIN" value={insurance.primary_rxbin} />
+                      <SummaryField label="RxPCN" value={insurance.primary_rxpcn} />
+                    </>
                   )}
-                  <SummaryField label="Plan" value={insurance.primary_plan_name || insurance.primary_insurance_name} />
-                  <SummaryField label="Member ID" value={insurance.primary_member_id} isCritical />
-                  <SummaryField label="Group #" value={insurance.primary_group_number} />
-                  <SummaryField label="RxBIN" value={insurance.primary_rxbin} />
-                  <SummaryField label="RxPCN" value={insurance.primary_rxpcn} />
                 </div>
 
                 {/* Card 3: Medication */}
@@ -671,15 +686,38 @@ export default function AdminReferralReview() {
                   </AccordionItem>
 
                   {/* ── Insurance ── */}
-                  <AccordionItem value="insurance" className="rounded-xl border border-border bg-card card-shadow px-4">
+                  <AccordionItem value="insurance" className={cn("rounded-xl border bg-card card-shadow px-4", referral.insurance_expired ? "border-orange-300" : "border-border")}>
                     <AccordionTrigger className="text-sm font-semibold">
                       <div className="flex items-center justify-between w-full pr-4">
                         <span>Insurance</span>
-                        <SectionSaveButton section="insurance" />
+                        <div className="flex items-center gap-2">
+                          {referral.insurance_expired && (
+                            <Badge className="bg-orange-100 text-orange-700 border-orange-200 hover:bg-orange-100 text-[10px]">EXPIRED</Badge>
+                          )}
+                          <SectionSaveButton section="insurance" />
+                        </div>
                       </div>
                     </AccordionTrigger>
                     <AccordionContent>
                       <div className="space-y-3 pb-2">
+                        <div className="flex items-center gap-2 pb-2 border-b border-border">
+                          <Checkbox
+                            checked={referral.insurance_expired || false}
+                            onCheckedChange={async (checked) => {
+                              try {
+                                await adminApi.markInsuranceExpired(id!, !!checked);
+                                setReferral((prev: any) => ({ ...prev, insurance_expired: !!checked }));
+                                toast({
+                                  title: checked ? "Insurance marked as expired" : "Insurance expiration cleared",
+                                  description: checked ? "The clinic has been notified." : "Expiration flag removed.",
+                                });
+                              } catch (err: any) {
+                                toast({ title: "Error", description: err.message, variant: "destructive" });
+                              }
+                            }}
+                          />
+                          <Label className="text-xs font-normal text-orange-700">Insurance Expired</Label>
+                        </div>
                         <div className="flex items-center gap-2">
                           <Checkbox checked={editedData?.insurance?.has_insurance_card || editedData?.insurance?.has_insurance || false} onCheckedChange={(checked) => updateField("insurance", "has_insurance_card", checked)} />
                           <Label className="text-xs font-normal">Has Insurance Card</Label>

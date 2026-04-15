@@ -7,6 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { PAStatusBadge } from "@/components/PAStatusBadge";
@@ -50,7 +52,6 @@ interface UploadedFile {
   zone: "required" | "insurance" | "additional";
   file?: File;
 }
-
 
 export default function CreateReferral() {
   const [searchParams] = useSearchParams();
@@ -99,6 +100,10 @@ export default function CreateReferral() {
     primaryInsuranceName: "", primaryMemberId: "",
     secondaryInsuranceName: "", secondaryMemberId: "",
   });
+
+  // Bridge Program state
+  const [isBridgeProgram, setIsBridgeProgram] = useState(false);
+  const [showBridgeModal, setShowBridgeModal] = useState(false);
 
   // Submission state
   const [extracting, setExtracting] = useState(false);
@@ -200,6 +205,7 @@ export default function CreateReferral() {
         patient_id: patientId,
         referral_method: referralMethod,
         urgency: "routine",
+        is_bridge_program: isBridgeProgram,
       };
 
       // Build patient section from actual patient data
@@ -838,7 +844,11 @@ export default function CreateReferral() {
                 <AccordionContent className="space-y-4 pt-2">
                   <FormField label="Has insurance card?">
                     <div className="flex items-center gap-3 h-10">
-                      <Switch checked={manualData.hasInsurance} onCheckedChange={(v) => setManualData((d) => ({ ...d, hasInsurance: v }))} />
+                      <Switch checked={manualData.hasInsurance} onCheckedChange={(v) => {
+                        setManualData((d) => ({ ...d, hasInsurance: v }));
+                        if (!v) setShowBridgeModal(true);
+                        if (v) setIsBridgeProgram(false);
+                      }} />
                       <span className="text-sm text-muted-foreground">{manualData.hasInsurance ? "Yes" : "No"}</span>
                     </div>
                   </FormField>
@@ -1010,6 +1020,26 @@ export default function CreateReferral() {
           </Button>
         )}
       </div>
+
+      {/* Bridge Program Modal */}
+      <Dialog open={showBridgeModal} onOpenChange={setShowBridgeModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Bridge Program Referral?</DialogTitle>
+            <DialogDescription>
+              This patient has no insurance. Is this a Bridge Program referral?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-3 justify-end pt-4">
+            <Button variant="outline" onClick={() => { setIsBridgeProgram(false); setShowBridgeModal(false); }}>
+              No
+            </Button>
+            <Button className="bg-purple-600 hover:bg-purple-700 text-white" onClick={() => { setIsBridgeProgram(true); setShowBridgeModal(false); }}>
+              Yes, Bridge Program
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
