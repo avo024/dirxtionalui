@@ -308,7 +308,9 @@ export default function CreateReferral() {
     newPatient.state.trim() !== "" &&
     newPatient.zip.trim() !== ""
   );
-  const canProceedStep2 = referralMethod === "upload" ? uploadedFiles.length > 0 : (manualData.diagnosisCode && manualData.drugRequested);
+  const canProceedStep2 = referralMethod === "upload"
+    ? uploadedFiles.filter(f => f.zone === "required").length > 0
+    : (manualData.diagnosisCode && manualData.drugRequested);
 
   // SUCCESS STATE
   if (submitted) {
