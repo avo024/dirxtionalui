@@ -104,6 +104,14 @@ export default function CreateReferral() {
   // Bridge Program state
   const [isBridgeProgram, setIsBridgeProgram] = useState(false);
   const [showBridgeModal, setShowBridgeModal] = useState(false);
+  const [bridgeStep, setBridgeStep] = useState<'ask' | 'pick'>('ask');
+  const [bridgePharmacyId, setBridgePharmacyId] = useState("");
+  const [bridgePharmacyName, setBridgePharmacyName] = useState("");
+  const [uploadHasInsurance, setUploadHasInsurance] = useState(true);
+
+  // Pharmacy list for bridge program picker
+  const [pharmacies, setPharmacies] = useState<any[]>([]);
+  const [loadingPharmacies, setLoadingPharmacies] = useState(false);
 
   // Submission state
   const [extracting, setExtracting] = useState(false);
