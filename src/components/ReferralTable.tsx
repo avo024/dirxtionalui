@@ -1,6 +1,7 @@
 import { useNavigate, Link } from "react-router-dom";
 import { Eye, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/StatusBadge";
 import { PAStatusCell, paSortOrder } from "@/components/PAStatusCell";
 import { ClinicPABadge } from "@/components/ClinicPABadge";
@@ -125,7 +126,12 @@ export function ReferralTable({ referrals, userType, showClinic = false, paSortD
                   <TableCell className="text-sm text-muted-foreground">{ref.clinic_name}</TableCell>
                 )}
                 <TableCell>
-                  <span className="text-sm">{ref.drug}</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm">{ref.drug}</span>
+                    {(ref as any).is_bridge_program && (
+                      <Badge className="bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-100 text-[10px] px-1.5 py-0">Bridge</Badge>
+                    )}
+                  </div>
                 </TableCell>
                 {isAdmin && paInfo && (
                   <TableCell>
@@ -133,7 +139,12 @@ export function ReferralTable({ referrals, userType, showClinic = false, paSortD
                   </TableCell>
                 )}
                 <TableCell>
-                  <StatusBadge status={ref.status} context={userType} />
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <StatusBadge status={ref.status} context={userType} />
+                    {(ref as any).insurance_expired && (
+                      <Badge className="bg-orange-100 text-orange-700 border-orange-200 hover:bg-orange-100 text-[10px] px-1.5 py-0">Insurance Expired</Badge>
+                    )}
+                  </div>
                 </TableCell>
                 {!isAdmin && (
                   <TableCell>
