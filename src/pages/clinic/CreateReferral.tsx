@@ -20,7 +20,7 @@ import {
   CheckCircle, Loader2, AlertTriangle, Search, X, Sparkles
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { clinicApi } from "@/lib/api";
+import { clinicApi, pharmacyApi } from "@/lib/api";
 import { mapManualFormToBackend } from "@/lib/dataMapper";
 // Drug/ICD10 options removed — fields are now free text
 import { formatDateShort } from "@/lib/dateUtils";
@@ -104,6 +104,14 @@ export default function CreateReferral() {
   // Bridge Program state
   const [isBridgeProgram, setIsBridgeProgram] = useState(false);
   const [showBridgeModal, setShowBridgeModal] = useState(false);
+  const [bridgeStep, setBridgeStep] = useState<'ask' | 'pick'>('ask');
+  const [bridgePharmacyId, setBridgePharmacyId] = useState("");
+  const [bridgePharmacyName, setBridgePharmacyName] = useState("");
+  const [uploadHasInsurance, setUploadHasInsurance] = useState(true);
+
+  // Pharmacy list for bridge program picker
+  const [pharmacies, setPharmacies] = useState<any[]>([]);
+  const [loadingPharmacies, setLoadingPharmacies] = useState(false);
 
   // Submission state
   const [extracting, setExtracting] = useState(false);
@@ -206,6 +214,8 @@ export default function CreateReferral() {
         referral_method: referralMethod,
         urgency: "routine",
         is_bridge_program: isBridgeProgram,
+        insurance_not_provided: referralMethod === 'upload' ? !uploadHasInsurance : !manualData.hasInsurance,
+        ...(isBridgeProgram && bridgePharmacyId ? { target_pharmacy_id: bridgePharmacyId } : {}),
       };
 
       // Build patient section from actual patient data
@@ -298,7 +308,9 @@ export default function CreateReferral() {
     newPatient.state.trim() !== "" &&
     newPatient.zip.trim() !== ""
   );
-  const canProceedStep2 = referralMethod === "upload" ? uploadedFiles.length > 0 : (manualData.diagnosisCode && manualData.drugRequested);
+  const canProceedStep2 = referralMethod === "upload"
+    ? uploadedFiles.filter(f => f.zone === "required").length > 0
+    : (manualData.diagnosisCode && manualData.drugRequested);
 
   // SUCCESS STATE
   if (submitted) {
@@ -648,14 +660,78 @@ export default function CreateReferral() {
                 onUpload={() => document.getElementById('upload-required')?.click()}
                 onRemove={removeFile}
               />
-              <UploadZone
-                label="Insurance Cards"
-                subtitle="Front & back — Upload both as separate files"
-                icon={Shield}
-                files={uploadedFiles.filter((f) => f.zone === "insurance")}
-                onUpload={() => document.getElementById('upload-insurance')?.click()}
-                onRemove={removeFile}
-              />
+              {/* Insurance Cards — custom container with no-insurance toggle */}
+              <div className={cn(
+                "rounded-xl border-2 border-dashed p-5 transition-all duration-200",
+                uploadedFiles.filter(f => f.zone === "insurance").length > 0 ? "border-success/40 bg-success/[0.02]" : "border-border hover:border-primary/40 hover:bg-primary/[0.02]"
+              )}>
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Insurance Cards</p>
+                      <p className="text-xs text-muted-foreground">Front & back — Upload both as separate files</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* No Insurance toggle */}
+                <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-secondary/50 mb-3">
+                  <span className="text-sm text-foreground">Patient has no insurance</span>
+                  <Switch
+                    checked={!uploadHasInsurance}
+                    onCheckedChange={(checked) => {
+                      setUploadHasInsurance(!checked);
+                      if (checked) {
+                        setShowBridgeModal(true);
+                        setBridgeStep('ask');
+                      } else {
+                        setIsBridgeProgram(false);
+                        setBridgePharmacyId("");
+                        setBridgePharmacyName("");
+                      }
+                    }}
+                  />
+                </div>
+
+                {/* Bridge Program badge */}
+                {isBridgeProgram && bridgePharmacyName && !uploadHasInsurance && (
+                  <div className="mb-3">
+                    <Badge className="bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-100">
+                      Bridge Program — {bridgePharmacyName}
+                    </Badge>
+                  </div>
+                )}
+                {!uploadHasInsurance && !isBridgeProgram && (
+                  <div className="mb-3">
+                    <Badge variant="secondary" className="text-muted-foreground">No insurance — cash referral</Badge>
+                  </div>
+                )}
+
+                {/* Upload dropzone — dimmed when no insurance */}
+                <div className={cn(!uploadHasInsurance && "opacity-40 pointer-events-none")}>
+                  {uploadedFiles.filter(f => f.zone === "insurance").length > 0 && (
+                    <div className="space-y-2 mb-3">
+                      {uploadedFiles.filter(f => f.zone === "insurance").map((f) => (
+                        <div key={f.id} className="flex items-center justify-between bg-secondary/50 rounded-lg px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="h-3.5 w-3.5 text-success" />
+                            <span className="text-sm text-foreground">{f.name}</span>
+                            <span className="text-xs text-muted-foreground">{f.size}</span>
+                          </div>
+                          <button onClick={() => removeFile(f.id)} className="text-muted-foreground hover:text-destructive transition-colors">
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <Button variant="outline" size="sm" onClick={() => document.getElementById('upload-insurance')?.click()} className="w-full text-xs">
+                    <Upload className="h-3.5 w-3.5 mr-1" />
+                    {uploadedFiles.filter(f => f.zone === "insurance").length > 0 ? "Upload Another File" : "Choose File or Drag & Drop"}
+                  </Button>
+                </div>
+              </div>
               <UploadZone
                 label="Chart Notes, Lab Results, Other"
                 subtitle="Optional — Any additional supporting documents"
@@ -846,11 +922,16 @@ export default function CreateReferral() {
                     <div className="flex items-center gap-3 h-10">
                       <Switch checked={manualData.hasInsurance} onCheckedChange={(v) => {
                         setManualData((d) => ({ ...d, hasInsurance: v }));
-                        if (!v) setShowBridgeModal(true);
-                        if (v) setIsBridgeProgram(false);
+                        if (!v) { setShowBridgeModal(true); setBridgeStep('ask'); }
+                        if (v) { setIsBridgeProgram(false); setBridgePharmacyId(""); setBridgePharmacyName(""); }
                       }} />
                       <span className="text-sm text-muted-foreground">{manualData.hasInsurance ? "Yes" : "No"}</span>
                     </div>
+                    {isBridgeProgram && bridgePharmacyName && !manualData.hasInsurance && (
+                      <Badge className="mt-2 bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-100">
+                        Bridge Program — {bridgePharmacyName}
+                      </Badge>
+                    )}
                   </FormField>
                   {manualData.hasInsurance && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1022,22 +1103,94 @@ export default function CreateReferral() {
       </div>
 
       {/* Bridge Program Modal */}
-      <Dialog open={showBridgeModal} onOpenChange={setShowBridgeModal}>
+      <Dialog open={showBridgeModal} onOpenChange={(open) => {
+        if (!open) {
+          // Cancel/close resets bridge state
+          setBridgeStep('ask');
+          if (bridgeStep === 'pick') {
+            // They were picking a pharmacy but closed — reset
+            setIsBridgeProgram(false);
+            setBridgePharmacyId("");
+            setBridgePharmacyName("");
+          }
+          setShowBridgeModal(false);
+        }
+      }}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Bridge Program Referral?</DialogTitle>
-            <DialogDescription>
-              This patient has no insurance. Is this a Bridge Program referral?
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex gap-3 justify-end pt-4">
-            <Button variant="outline" onClick={() => { setIsBridgeProgram(false); setShowBridgeModal(false); }}>
-              No
-            </Button>
-            <Button className="bg-purple-600 hover:bg-purple-700 text-white" onClick={() => { setIsBridgeProgram(true); setShowBridgeModal(false); }}>
-              Yes, Bridge Program
-            </Button>
-          </div>
+          {bridgeStep === 'ask' ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>Bridge Program Referral?</DialogTitle>
+                <DialogDescription>
+                  This patient has no insurance. Is this a Bridge Program referral?
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex gap-3 justify-end pt-4">
+                <Button variant="outline" onClick={() => { setIsBridgeProgram(false); setShowBridgeModal(false); setBridgeStep('ask'); }}>
+                  No
+                </Button>
+                <Button className="bg-purple-600 hover:bg-purple-700 text-white" onClick={() => {
+                  setBridgeStep('pick');
+                  if (pharmacies.length === 0) {
+                    setLoadingPharmacies(true);
+                    pharmacyApi.getPharmacies()
+                      .then((data) => setPharmacies(data.items || data || []))
+                      .catch(() => toast({ title: "Error", description: "Failed to load pharmacies", variant: "destructive" }))
+                      .finally(() => setLoadingPharmacies(false));
+                  }
+                }}>
+                  Yes, Bridge Program
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle>Select Bridge Pharmacy</DialogTitle>
+                <DialogDescription>
+                  Which pharmacy is handling the Bridge Program for this drug?
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 pt-2">
+                {loadingPharmacies ? (
+                  <div className="flex items-center justify-center py-6">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : (
+                  <Select value={bridgePharmacyId} onValueChange={(v) => {
+                    setBridgePharmacyId(v);
+                    const ph = pharmacies.find((p: any) => p.id === v);
+                    setBridgePharmacyName(ph?.name || "");
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a pharmacy..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {pharmacies.map((ph: any) => (
+                        <SelectItem key={ph.id} value={ph.id}>{ph.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+                <div className="flex gap-3 justify-between">
+                  <Button variant="ghost" size="sm" onClick={() => { setBridgeStep('ask'); setBridgePharmacyId(""); setBridgePharmacyName(""); }}>
+                    <ArrowLeft className="h-3.5 w-3.5 mr-1" /> Back
+                  </Button>
+                  <Button
+                    className="bg-purple-600 hover:bg-purple-700 text-white"
+                    disabled={!bridgePharmacyId}
+                    onClick={() => {
+                      setIsBridgeProgram(true);
+                      setShowBridgeModal(false);
+                      setBridgeStep('ask');
+                    }}
+                  >
+                    Confirm
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>
