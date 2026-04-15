@@ -686,15 +686,38 @@ export default function AdminReferralReview() {
                   </AccordionItem>
 
                   {/* ── Insurance ── */}
-                  <AccordionItem value="insurance" className="rounded-xl border border-border bg-card card-shadow px-4">
+                  <AccordionItem value="insurance" className={cn("rounded-xl border bg-card card-shadow px-4", referral.insurance_expired ? "border-orange-300" : "border-border")}>
                     <AccordionTrigger className="text-sm font-semibold">
                       <div className="flex items-center justify-between w-full pr-4">
                         <span>Insurance</span>
-                        <SectionSaveButton section="insurance" />
+                        <div className="flex items-center gap-2">
+                          {referral.insurance_expired && (
+                            <Badge className="bg-orange-100 text-orange-700 border-orange-200 hover:bg-orange-100 text-[10px]">EXPIRED</Badge>
+                          )}
+                          <SectionSaveButton section="insurance" />
+                        </div>
                       </div>
                     </AccordionTrigger>
                     <AccordionContent>
                       <div className="space-y-3 pb-2">
+                        <div className="flex items-center gap-2 pb-2 border-b border-border">
+                          <Checkbox
+                            checked={referral.insurance_expired || false}
+                            onCheckedChange={async (checked) => {
+                              try {
+                                await adminApi.markInsuranceExpired(id!, !!checked);
+                                setReferral((prev: any) => ({ ...prev, insurance_expired: !!checked }));
+                                toast({
+                                  title: checked ? "Insurance marked as expired" : "Insurance expiration cleared",
+                                  description: checked ? "The clinic has been notified." : "Expiration flag removed.",
+                                });
+                              } catch (err: any) {
+                                toast({ title: "Error", description: err.message, variant: "destructive" });
+                              }
+                            }}
+                          />
+                          <Label className="text-xs font-normal text-orange-700">Insurance Expired</Label>
+                        </div>
                         <div className="flex items-center gap-2">
                           <Checkbox checked={editedData?.insurance?.has_insurance_card || editedData?.insurance?.has_insurance || false} onCheckedChange={(checked) => updateField("insurance", "has_insurance_card", checked)} />
                           <Label className="text-xs font-normal">Has Insurance Card</Label>
