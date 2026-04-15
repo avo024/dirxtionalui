@@ -100,6 +100,10 @@ export default function CreateReferral() {
     secondaryInsuranceName: "", secondaryMemberId: "",
   });
 
+  // Bridge Program state
+  const [isBridgeProgram, setIsBridgeProgram] = useState(false);
+  const [showBridgeModal, setShowBridgeModal] = useState(false);
+
   // Submission state
   const [extracting, setExtracting] = useState(false);
   const [extracted, setExtracted] = useState(false);
@@ -200,6 +204,7 @@ export default function CreateReferral() {
         patient_id: patientId,
         referral_method: referralMethod,
         urgency: "routine",
+        is_bridge_program: isBridgeProgram,
       };
 
       // Build patient section from actual patient data
@@ -838,7 +843,11 @@ export default function CreateReferral() {
                 <AccordionContent className="space-y-4 pt-2">
                   <FormField label="Has insurance card?">
                     <div className="flex items-center gap-3 h-10">
-                      <Switch checked={manualData.hasInsurance} onCheckedChange={(v) => setManualData((d) => ({ ...d, hasInsurance: v }))} />
+                      <Switch checked={manualData.hasInsurance} onCheckedChange={(v) => {
+                        setManualData((d) => ({ ...d, hasInsurance: v }));
+                        if (!v) setShowBridgeModal(true);
+                        if (v) setIsBridgeProgram(false);
+                      }} />
                       <span className="text-sm text-muted-foreground">{manualData.hasInsurance ? "Yes" : "No"}</span>
                     </div>
                   </FormField>
