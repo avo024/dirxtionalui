@@ -1020,6 +1020,26 @@ export default function CreateReferral() {
           </Button>
         )}
       </div>
+
+      {/* Bridge Program Modal */}
+      <Dialog open={showBridgeModal} onOpenChange={setShowBridgeModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Bridge Program Referral?</DialogTitle>
+            <DialogDescription>
+              This patient has no insurance. Is this a Bridge Program referral?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-3 justify-end pt-4">
+            <Button variant="outline" onClick={() => { setIsBridgeProgram(false); setShowBridgeModal(false); }}>
+              No
+            </Button>
+            <Button className="bg-purple-600 hover:bg-purple-700 text-white" onClick={() => { setIsBridgeProgram(true); setShowBridgeModal(false); }}>
+              Yes, Bridge Program
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
