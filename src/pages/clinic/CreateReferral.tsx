@@ -658,14 +658,78 @@ export default function CreateReferral() {
                 onUpload={() => document.getElementById('upload-required')?.click()}
                 onRemove={removeFile}
               />
-              <UploadZone
-                label="Insurance Cards"
-                subtitle="Front & back — Upload both as separate files"
-                icon={Shield}
-                files={uploadedFiles.filter((f) => f.zone === "insurance")}
-                onUpload={() => document.getElementById('upload-insurance')?.click()}
-                onRemove={removeFile}
-              />
+              {/* Insurance Cards — custom container with no-insurance toggle */}
+              <div className={cn(
+                "rounded-xl border-2 border-dashed p-5 transition-all duration-200",
+                uploadedFiles.filter(f => f.zone === "insurance").length > 0 ? "border-success/40 bg-success/[0.02]" : "border-border hover:border-primary/40 hover:bg-primary/[0.02]"
+              )}>
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Insurance Cards</p>
+                      <p className="text-xs text-muted-foreground">Front & back — Upload both as separate files</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* No Insurance toggle */}
+                <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-secondary/50 mb-3">
+                  <span className="text-sm text-foreground">Patient has no insurance</span>
+                  <Switch
+                    checked={!uploadHasInsurance}
+                    onCheckedChange={(checked) => {
+                      setUploadHasInsurance(!checked);
+                      if (checked) {
+                        setShowBridgeModal(true);
+                        setBridgeStep('ask');
+                      } else {
+                        setIsBridgeProgram(false);
+                        setBridgePharmacyId("");
+                        setBridgePharmacyName("");
+                      }
+                    }}
+                  />
+                </div>
+
+                {/* Bridge Program badge */}
+                {isBridgeProgram && bridgePharmacyName && !uploadHasInsurance && (
+                  <div className="mb-3">
+                    <Badge className="bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-100">
+                      Bridge Program — {bridgePharmacyName}
+                    </Badge>
+                  </div>
+                )}
+                {!uploadHasInsurance && !isBridgeProgram && (
+                  <div className="mb-3">
+                    <Badge variant="secondary" className="text-muted-foreground">No insurance — cash referral</Badge>
+                  </div>
+                )}
+
+                {/* Upload dropzone — dimmed when no insurance */}
+                <div className={cn(!uploadHasInsurance && "opacity-40 pointer-events-none")}>
+                  {uploadedFiles.filter(f => f.zone === "insurance").length > 0 && (
+                    <div className="space-y-2 mb-3">
+                      {uploadedFiles.filter(f => f.zone === "insurance").map((f) => (
+                        <div key={f.id} className="flex items-center justify-between bg-secondary/50 rounded-lg px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="h-3.5 w-3.5 text-success" />
+                            <span className="text-sm text-foreground">{f.name}</span>
+                            <span className="text-xs text-muted-foreground">{f.size}</span>
+                          </div>
+                          <button onClick={() => removeFile(f.id)} className="text-muted-foreground hover:text-destructive transition-colors">
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <Button variant="outline" size="sm" onClick={() => document.getElementById('upload-insurance')?.click()} className="w-full text-xs">
+                    <Upload className="h-3.5 w-3.5 mr-1" />
+                    {uploadedFiles.filter(f => f.zone === "insurance").length > 0 ? "Upload Another File" : "Choose File or Drag & Drop"}
+                  </Button>
+                </div>
+              </div>
               <UploadZone
                 label="Chart Notes, Lab Results, Other"
                 subtitle="Optional — Any additional supporting documents"
