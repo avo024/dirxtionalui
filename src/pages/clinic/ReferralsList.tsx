@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams, useLocation } from "react-router-dom";
 import { Search, Plus, FileSearch, ChevronLeft, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -41,6 +41,7 @@ export default function ReferralsList() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState("10");
   const { toast } = useToast();
+  const location = useLocation();
 
   useEffect(() => {
     async function fetchReferrals() {
@@ -60,7 +61,11 @@ export default function ReferralsList() {
       }
     }
     fetchReferrals();
-  }, [toast]);
+
+    const handleFocus = () => fetchReferrals();
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [toast, location.key]);
 
   function getFilterCount(value: string): number {
     if (value === "all") return referrals.length;
