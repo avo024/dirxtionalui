@@ -120,7 +120,26 @@ export function ReferralTable({ referrals, userType, showClinic = false, paSortD
                   </Tooltip>
                 </TableCell>
                 <TableCell>
-                  <span className="font-medium text-foreground">{ref.patient_name}</span>
+                  {(() => {
+                    const lastViewed = localStorage.getItem(`notes_last_viewed_${ref.id}`);
+                    const noteTs = userType === 'clinic'
+                      ? (ref as any).latest_admin_note_at
+                      : (ref as any).latest_clinic_note_at;
+                    const hasUnreadNote = !!noteTs && (!lastViewed || new Date(noteTs) > new Date(lastViewed));
+                    return (
+                      <div className="flex items-center gap-2">
+                        {hasUnreadNote && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-block h-2 w-2 rounded-full bg-purple-500 shrink-0" />
+                            </TooltipTrigger>
+                            <TooltipContent>New note</TooltipContent>
+                          </Tooltip>
+                        )}
+                        <span className="font-medium text-foreground">{ref.patient_name}</span>
+                      </div>
+                    );
+                  })()}
                 </TableCell>
                 {showClinic && (
                   <TableCell className="text-sm text-muted-foreground">{ref.clinic_name}</TableCell>

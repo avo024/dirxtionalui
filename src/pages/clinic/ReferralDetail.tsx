@@ -134,6 +134,7 @@ export default function ReferralDetail() {
   const [resubmitting, setResubmitting] = useState(false);
   const [newUploadsCount, setNewUploadsCount] = useState(0);
   const [uploadingCategory, setUploadingCategory] = useState<string | null>(null);
+  const notesEndRef = useRef<HTMLDivElement>(null);
 
   const loadData = () => {
     if (!id) return;
@@ -238,6 +239,8 @@ export default function ReferralDetail() {
       setNotes((prev) => [...prev, { id: result.id, author_type: 'clinic', author_name: 'You', content: newNote.trim(), created_at: new Date().toISOString(), ...result }]);
       setNewNote("");
       toast({ title: "Note added" });
+      localStorage.setItem(`notes_last_viewed_${id}`, new Date().toISOString());
+      setTimeout(() => notesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
     } catch (err: any) {
       toast({ title: "Error", description: err.message || "Failed to add note", variant: "destructive" });
     } finally {
@@ -323,7 +326,14 @@ export default function ReferralDetail() {
       )}
 
       {/* Tabs */}
-      <Tabs defaultValue="overview">
+      <Tabs
+        defaultValue="overview"
+        onValueChange={(v) => {
+          if (v === "notes" && id) {
+            localStorage.setItem(`notes_last_viewed_${id}`, new Date().toISOString());
+          }
+        }}
+      >
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
@@ -612,30 +622,30 @@ export default function ReferralDetail() {
         {/* NOTES TAB */}
         <TabsContent value="notes" className="mt-4">
           <div className="flex flex-col gap-4">
-            {notes.length > 0 ? (
+            {notes.length > 0 && (
               <div className="space-y-3">
                 {notes.map((note) => {
-                  const isClinic = note.author_type === 'clinic';
+                  const isAdmin = note.author_type === 'admin';
+                  const authorName = isAdmin
+                    ? "DiRxtional Team"
+                    : (referral.clinic_name || "Your Clinic");
                   return (
-                    <div key={note.id} className={cn("flex", isClinic ? "justify-start" : "justify-end")}>
-                      <div className={cn("max-w-[75%] rounded-xl p-4 card-shadow", isClinic ? "bg-card border border-border" : "bg-primary/5 border border-primary/20")}>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className={cn("text-xs font-semibold px-2 py-0.5 rounded-full", isClinic ? "bg-blue-100 text-blue-700" : "bg-purple-100 text-purple-700")}>
-                            {isClinic ? "Clinic" : "Admin"}
-                          </span>
-                          {note.author_name && <span className="text-xs text-muted-foreground">{note.author_name}</span>}
-                        </div>
-                        <p className="text-sm text-foreground">{note.content}</p>
-                        <p className="text-xs text-muted-foreground mt-1">{formatDateTime(note.created_at)}</p>
+                    <div
+                      key={note.id}
+                      className={cn(
+                        "rounded-lg border border-border/50 bg-card p-4 border-l-4",
+                        isAdmin ? "border-l-purple-500" : "border-l-primary"
+                      )}
+                    >
+                      <div className="flex items-baseline justify-between mb-2 gap-3">
+                        <span className="font-semibold text-sm text-foreground">{authorName}</span>
+                        <span className="text-xs text-muted-foreground shrink-0">{formatDateTime(note.created_at)}</span>
                       </div>
+                      <p className="text-sm text-foreground whitespace-pre-wrap">{note.content}</p>
                     </div>
                   );
                 })}
-              </div>
-            ) : (
-              <div className="rounded-xl border border-dashed border-border p-8 text-center">
-                <MessageSquare className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">No notes yet. Add a note below.</p>
+                <div ref={notesEndRef} />
               </div>
             )}
 

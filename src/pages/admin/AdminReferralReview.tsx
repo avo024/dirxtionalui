@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, FileText, Loader2, MessageSquare, Send, RefreshCw, AlertTriangle, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -82,6 +82,7 @@ export default function AdminReferralReview() {
   const [newNote, setNewNote] = useState("");
   const [sendingNote, setSendingNote] = useState(false);
   const [paLetterInfo, setPaLetterInfo] = useState<PALetterInfo | null>(null);
+  const notesEndRef = useRef<HTMLDivElement>(null);
 
   const handlePALetterChange = useCallback((info: PALetterInfo) => {
     setPaLetterInfo(info);
@@ -371,7 +372,15 @@ export default function AdminReferralReview() {
               <p className="text-sm text-muted-foreground mt-2">This takes about 30 seconds. You can safely leave this page and come back.</p>
             </div>
           ) : data ? (
-            <Tabs defaultValue="summary" className="w-full">
+            <Tabs
+              defaultValue="summary"
+              className="w-full"
+              onValueChange={(v) => {
+                if (v === "notes" && id) {
+                  localStorage.setItem(`notes_last_viewed_${id}`, new Date().toISOString());
+                }
+              }}
+            >
               <TabsList className="w-full mb-4">
                 <TabsTrigger value="summary" className="flex-1">Summary</TabsTrigger>
                 <TabsTrigger value="all-fields" className="flex-1">All Fields</TabsTrigger>
@@ -855,32 +864,32 @@ export default function AdminReferralReview() {
 
               {/* ── Tab 3: Notes ── */}
               <TabsContent value="notes">
-                <div className="space-y-3 mb-4">
-                  {notes.length > 0 ? (
-                    notes.map((note) => {
+                {notes.length > 0 && (
+                  <div className="space-y-3 mb-4">
+                    {notes.map((note) => {
                       const isAdmin = note.author_type === 'admin';
+                      const authorName = isAdmin
+                        ? "DiRxtional Team"
+                        : (referral.clinic_name || "Clinic");
                       return (
-                        <div key={note.id} className={`flex ${isAdmin ? "justify-end" : "justify-start"}`}>
-                          <div className={`max-w-[75%] rounded-xl p-3 ${isAdmin ? "bg-primary/5 border border-primary/20" : "bg-card border border-border"}`}>
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isAdmin ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"}`}>
-                                {isAdmin ? "Admin" : "Clinic"}
-                              </span>
-                              {note.author_name && <span className="text-xs text-muted-foreground">{note.author_name}</span>}
-                            </div>
-                            <p className="text-sm text-foreground">{note.content}</p>
-                            <p className="text-xs text-muted-foreground mt-1">{new Date(note.created_at).toLocaleString()}</p>
+                        <div
+                          key={note.id}
+                          className={cn(
+                            "rounded-lg border border-border/50 bg-card p-4 border-l-4",
+                            isAdmin ? "border-l-purple-500" : "border-l-primary"
+                          )}
+                        >
+                          <div className="flex items-baseline justify-between mb-2 gap-3">
+                            <span className="font-semibold text-sm text-foreground">{authorName}</span>
+                            <span className="text-xs text-muted-foreground shrink-0">{new Date(note.created_at).toLocaleString()}</span>
                           </div>
+                          <p className="text-sm text-foreground whitespace-pre-wrap">{note.content}</p>
                         </div>
                       );
-                    })
-                  ) : (
-                    <div className="rounded-xl border border-dashed border-border p-6 text-center">
-                      <MessageSquare className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
-                      <p className="text-sm text-muted-foreground">No notes yet. Add a note below.</p>
-                    </div>
-                  )}
-                </div>
+                    })}
+                    <div ref={notesEndRef} />
+                  </div>
+                )}
                 <div className="flex gap-3 items-end">
                   <Textarea
                     placeholder="Add a note about this referral..."
@@ -900,6 +909,8 @@ export default function AdminReferralReview() {
                         setNotes((prev) => [...prev, { id: result.id, author_type: 'admin', author_name: 'Admin', content: newNote.trim(), created_at: new Date().toISOString(), ...result }]);
                         setNewNote("");
                         toast({ title: "Note added" });
+                        localStorage.setItem(`notes_last_viewed_${id}`, new Date().toISOString());
+                        setTimeout(() => notesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
                       } catch (err: any) {
                         toast({ title: "Error", description: err.message || "Failed to add note", variant: "destructive" });
                       } finally {
