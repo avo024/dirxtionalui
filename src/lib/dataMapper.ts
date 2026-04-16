@@ -32,6 +32,8 @@ export function mapReferralFromBackend(raw: Record<string, any>): Referral {
     blocked: preferred_pharmacy_blocked ?? rest.blocked ?? false,
     dob: patient_dob ?? rest.dob ?? "",
     patient_dob: patient_dob ?? rest.patient_dob ?? "",
+    latest_admin_note_at: raw.latest_admin_note_at ?? null,
+    latest_clinic_note_at: raw.latest_clinic_note_at ?? null,
   } as Referral;
 }
 
