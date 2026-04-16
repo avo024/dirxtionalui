@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import {
   Clock, XCircle, Plus,
@@ -18,19 +18,27 @@ export default function ClinicDashboard() {
   const [referrals, setReferrals] = useState<any[]>([]);
   const [patients, setPatients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const location = useLocation();
 
   useEffect(() => {
-    Promise.all([
-      clinicApi.getReferrals(),
-      clinicApi.getPatients(),
-    ])
-      .then(([refData, patData]) => {
-        setReferrals(mapReferralsFromBackend(refData.items || []));
-        setPatients(patData.items || []);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, []);
+    const fetchData = () => {
+      Promise.all([
+        clinicApi.getReferrals(),
+        clinicApi.getPatients(),
+      ])
+        .then(([refData, patData]) => {
+          setReferrals(mapReferralsFromBackend(refData.items || []));
+          setPatients(patData.items || []);
+        })
+        .catch(console.error)
+        .finally(() => setLoading(false));
+    };
+    fetchData();
+
+    const handleFocus = () => fetchData();
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [location.key]);
 
   const processingCount = referrals.filter((r) =>
     ["processing", "ready_for_review", "uploaded"].includes(r.status)

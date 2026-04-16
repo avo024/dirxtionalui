@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { FileText, Clock, CheckCircle, XCircle, Send, Loader2 } from "lucide-react";
 import { ReferralTable } from "@/components/ReferralTable";
 import { adminApi } from "@/lib/api";
@@ -9,6 +10,7 @@ import { format, parseISO, subDays } from "date-fns";
 export default function AdminDashboard() {
   const [referrals, setReferrals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const location = useLocation();
 
   useEffect(() => {
     const fetchReferrals = async () => {
@@ -33,7 +35,11 @@ export default function AdminDashboard() {
       }
     };
     fetchReferrals();
-  }, []);
+
+    const handleFocus = () => fetchReferrals();
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [location.key]);
 
   if (loading) {
     return (

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { Search, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ export default function AdminReferralsList() {
   const [paSortDirection, setPASortDirection] = useState<"asc" | "desc" | null>(null);
   const [referrals, setReferrals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const location = useLocation();
 
   useEffect(() => {
     const fetchReferrals = async () => {
@@ -50,7 +52,11 @@ export default function AdminReferralsList() {
     };
 
     fetchReferrals();
-  }, []);
+
+    const handleFocus = () => fetchReferrals();
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [location.key]);
 
   const handlePASortToggle = () => {
     setPASortDirection((prev) => {
