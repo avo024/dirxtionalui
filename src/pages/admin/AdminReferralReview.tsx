@@ -981,6 +981,9 @@ export default function AdminReferralReview() {
         referralId={id!}
         referral={referral}
         documents={documents}
+        paLetterInfo={paLetterInfo}
+        patientName={referral?.patient_name}
+        drugName={referral?.drug || referral?.drug_requested}
         onDelivered={async () => {
           const data = await adminApi.getReferral(id!);
           const mapped = { ...data, drug: data.drug_requested, blocked: data.preferred_pharmacy_blocked };

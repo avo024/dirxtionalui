@@ -222,9 +222,6 @@ function PALetterSection({ referralId, onPALetterChange }: { referralId: string;
             {uploading ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Upload className="h-3.5 w-3.5 mr-1.5" />}
             Replace
           </Button>
-          <Button variant="ghost" size="sm">
-            <Eye className="h-3.5 w-3.5 mr-1.5" /> View
-          </Button>
         </div>
         <input ref={fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif" className="hidden" onChange={handleFileChange} />
       </div>

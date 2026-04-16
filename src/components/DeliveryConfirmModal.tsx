@@ -8,6 +8,7 @@ import { adminApi } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
+import type { PALetterInfo } from "@/components/PAManagementCard";
 
 interface DeliveryConfirmModalProps {
   open: boolean;
@@ -16,6 +17,9 @@ interface DeliveryConfirmModalProps {
   referral: any;
   documents: any[];
   onDelivered: () => void;
+  paLetterInfo?: PALetterInfo | null;
+  patientName?: string;
+  drugName?: string;
 }
 
 const GENERATED_DOC_TYPES = ["generated_referral_pdf", "generated_referral_pdf_sent"];
@@ -31,6 +35,9 @@ export function DeliveryConfirmModal({
   referral,
   documents,
   onDelivered,
+  paLetterInfo,
+  patientName,
+  drugName,
 }: DeliveryConfirmModalProps) {
   const [changeOpen, setChangeOpen] = useState(false);
   const [pharmacies, setPharmacies] = useState<any[]>([]);
@@ -39,7 +46,8 @@ export function DeliveryConfirmModal({
   const [reassigning, setReassigning] = useState(false);
   const [reassigned, setReassigned] = useState(false);
   const [delivering, setDelivering] = useState(false);
-  const [excludedDocIds, setExcludedDocIds] = useState<Set<string>>(new Set());
+  const [includedDocIds, setIncludedDocIds] = useState<Set<string>>(new Set());
+  const [addlDocsOpen, setAddlDocsOpen] = useState(false);
 
   const [currentPharmacy, setCurrentPharmacy] = useState({
     name: referral?.pharmacy_name || "",
@@ -58,7 +66,8 @@ export function DeliveryConfirmModal({
       setPharmacies([]);
       setSelectedPharmacyId("");
       setReassigned(false);
-      setExcludedDocIds(new Set());
+      setIncludedDocIds(new Set());
+      setAddlDocsOpen(false);
       setCurrentPharmacy({
         name: referral?.pharmacy_name || "",
         email: referral?.pharmacy_email || "",
@@ -102,7 +111,7 @@ export function DeliveryConfirmModal({
   };
 
   const toggleDoc = (docId: string) => {
-    setExcludedDocIds((prev) => {
+    setIncludedDocIds((prev) => {
       const next = new Set(prev);
       if (next.has(docId)) next.delete(docId);
       else next.add(docId);
@@ -113,8 +122,8 @@ export function DeliveryConfirmModal({
   const handleDeliver = async () => {
     setDelivering(true);
     try {
-      const excludeArr = Array.from(excludedDocIds);
-      await adminApi.deliverReferral(referralId, excludeArr.length > 0 ? excludeArr : undefined);
+      const includeArr = Array.from(includedDocIds);
+      await adminApi.deliverReferral(referralId, includeArr.length > 0 ? includeArr : undefined);
       toast({
         title: "Sent to Pharmacy",
         description: `Referral sent to ${currentPharmacy.name}${currentPharmacy.email ? ` at ${currentPharmacy.email}` : ""}`,
@@ -129,8 +138,14 @@ export function DeliveryConfirmModal({
   };
 
   const hasPharmacy = !!currentPharmacy.name;
-  const checkedCount = uploadedDocs.length - excludedDocIds.size;
-  const totalAttachments = 1 + checkedCount; // 1 for referral PDF
+  const hasPALetter = paLetterInfo?.has_letter ?? false;
+  const paRequired = paLetterInfo?.drug_requires_pa ?? false;
+  const paMissing = paRequired && !hasPALetter;
+  const alwaysIncludedCount = 1 + (hasPALetter ? 1 : 0);
+  const totalAttachments = alwaysIncludedCount + includedDocIds.size;
+
+  const displayPatient = patientName || referral?.patient_name;
+  const displayDrug = drugName || referral?.drug || referral?.drug_requested;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -159,6 +174,15 @@ export function DeliveryConfirmModal({
             <div className="flex items-center gap-2 rounded-md bg-warning/10 border border-warning/30 px-3 py-3">
               <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
               <span className="text-sm text-warning">No pharmacy assigned — select one below</span>
+            </div>
+          )}
+
+          {/* Patient + Drug info */}
+          {(displayPatient || displayDrug) && (
+            <div className="text-sm text-muted-foreground">
+              {displayPatient && <span>Patient: <span className="text-foreground font-medium">{displayPatient}</span></span>}
+              {displayPatient && displayDrug && <span> · </span>}
+              {displayDrug && <span>Drug: <span className="text-foreground font-medium">{displayDrug}</span></span>}
             </div>
           )}
 
@@ -208,48 +232,73 @@ export function DeliveryConfirmModal({
               Documents to send ({totalAttachments} attachment{totalAttachments !== 1 ? "s" : ""})
             </h4>
 
-            {/* Referral PDF — always included */}
+            {/* Always included — Referral PDF */}
             <div className="flex items-center gap-2 text-sm">
               <Check className="h-4 w-4 text-success shrink-0" />
               <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
               <span>Referral PDF</span>
             </div>
 
-            {/* Uploaded documents — selectable */}
-            {uploadedDocs.map((doc) => {
-              const isExcluded = excludedDocIds.has(doc.id);
-              const isImg = isImageFile(doc.original_filename || "");
-              return (
-                <label
-                  key={doc.id}
-                  className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted/40 rounded px-1 py-0.5 -mx-1"
-                >
-                  <Checkbox
-                    checked={!isExcluded}
-                    onCheckedChange={() => toggleDoc(doc.id)}
-                    className="h-3.5 w-3.5"
-                  />
-                  {isImg ? (
-                    <Image className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                  ) : (
-                    <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                  )}
-                  <span className={cn("truncate", isExcluded && "text-muted-foreground line-through")}>
-                    {doc.original_filename || doc.s3_key}
-                  </span>
-                </label>
-              );
-            })}
+            {/* Always included — PA Letter (if exists) */}
+            {hasPALetter && (
+              <div className="flex items-center gap-2 text-sm">
+                <Check className="h-4 w-4 text-success shrink-0" />
+                <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <span>PA Approval Letter</span>
+              </div>
+            )}
 
-            <div className="text-xs text-muted-foreground pt-1">
-              {referral?.patient_name} · {referral?.drug || referral?.drug_requested}
-            </div>
+            {/* PA letter missing warning */}
+            {paMissing && (
+              <div className="flex items-center gap-2 rounded-md bg-destructive/10 border border-destructive/30 px-3 py-2 mt-1">
+                <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
+                <span className="text-xs text-destructive">PA letter missing — upload one in the PA Management section before sending.</span>
+              </div>
+            )}
+
+            {/* Additional documents — collapsible, unchecked by default */}
+            {uploadedDocs.length > 0 && (
+              <Collapsible open={addlDocsOpen} onOpenChange={setAddlDocsOpen}>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="sm" className="text-muted-foreground px-0 h-auto font-normal text-xs mt-1">
+                    <ChevronDown className={cn("h-3.5 w-3.5 mr-1 transition-transform", addlDocsOpen && "rotate-180")} />
+                    Add additional documents (optional)
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-1 space-y-1">
+                  {uploadedDocs.map((doc) => {
+                    const isIncluded = includedDocIds.has(doc.id);
+                    const isImg = isImageFile(doc.original_filename || "");
+                    return (
+                      <label
+                        key={doc.id}
+                        className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted/40 rounded px-1 py-0.5 -mx-1"
+                      >
+                        <Checkbox
+                          checked={isIncluded}
+                          onCheckedChange={() => toggleDoc(doc.id)}
+                          className="h-3.5 w-3.5"
+                        />
+                        {isImg ? (
+                          <Image className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        ) : (
+                          <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        )}
+                        <span className={cn("truncate", !isIncluded && "text-muted-foreground")}>
+                          {doc.original_filename || doc.s3_key}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </CollapsibleContent>
+              </Collapsible>
+            )}
           </div>
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleDeliver} disabled={delivering}>
+          <Button onClick={handleDeliver} disabled={delivering || paMissing}>
             {delivering ? <><Loader2 className="h-4 w-4 animate-spin mr-1" /> Sending...</> : "Confirm & Send"}
           </Button>
         </DialogFooter>
