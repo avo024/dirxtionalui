@@ -1,43 +1,28 @@
 
 
-## PA Letter Upload + Continuation Status
-
-### Summary
-Wire the PA letter upload to the real backend, fetch and display PA letter status (own, continuation/fallback, missing), and block "Send to Pharmacy" when the letter is missing.
+## Admin Fixes: PA View Button, Delivery Modal Docs, Patient Info
 
 ### Changes
 
-**File 1: `src/lib/api.ts`**
+**File 1: `src/components/PAManagementCard.tsx`**
+- Remove the "View" button from Case B (lines 225-227). Keep only the "Replace" button.
 
-Add two methods to `adminApi`:
-- `getPALetterInfo(referralId)` — GET `/admin/referrals/:id/pa/letter`
-- `uploadPALetter(referralId, file)` — POST `/admin/referrals/:id/pa/upload` (FormData, uses `getAuthHeaders()`)
-
-**File 2: `src/components/PAManagementCard.tsx`**
-
-Major rework of the PA letter handling:
-
-- **New props**: Add `referralId` prop (currently only receives `referral` object, but need the ID for API calls). Also add `onPALetterChange?: (info: PALetterInfo) => void` callback so the parent can update delivery button state.
-- **New state**: `paLetterInfo` (fetched from `getPALetterInfo` on mount), `uploadingLetter` (loading state)
-- **Fetch on mount**: Call `adminApi.getPALetterInfo(referralId)` and store result
-- **Replace `handleFileSelect`**: Instead of just setting local state, call `adminApi.uploadPALetter(referralId, file)`, then re-fetch `getPALetterInfo`, call `onPALetterChange` callback
-- **New PA Letter section** rendered FIRST (above the insurance info card), with four cases:
-  - Case D (`drug_requires_pa = false`): hide section entirely
-  - Case A (`has_letter = false`): warning card with upload button
-  - Case B (`has_letter = true, is_fallback = false`): success card showing filename, date, Replace/View buttons
-  - Case C (`has_letter = true, is_fallback = true`): success card showing continuation info, link to source referral, optional "Upload New Letter" button
-- **Remove** the existing upload dropzone from the "Approved" edit mode section (lines 421-481) — the PA Letter section above handles all upload now
-- **Keep** the PA Approval Details fields (PA Number, dates, etc.) in the edit mode
+**File 2: `src/components/DeliveryConfirmModal.tsx`**
+- Add `paLetterInfo` prop (type `PALetterInfo | null`) to receive PA letter status from parent
+- **Always-included section** at top:
+  - ✅ Referral PDF (non-removable checkmark)
+  - ✅ PA Letter (non-removable checkmark, shown only if `paLetterInfo?.has_letter`)
+  - If `paLetterInfo?.drug_requires_pa && !paLetterInfo?.has_letter`: show red warning "PA letter missing" and disable Confirm & Send
+- **Patient + drug info line** below the pharmacy card: "Patient: {name} · Drug: {drug}"
+- **Additional documents** section: collapsible, collapsed by default, only shown if `uploadedDocs.length > 0`. Documents start UNCHECKED (flip current logic — use `includedDocIds` Set instead of `excludedDocIds`)
+- **Payload**: send `include_doc_ids` array of checked additional doc IDs (instead of `exclude_doc_ids`)
+- Update attachment count to reflect: always-included (1 or 2) + checked additional docs
 
 **File 3: `src/pages/admin/AdminReferralReview.tsx`**
-
-- **New state**: `paLetterInfo` — fetched alongside referral data
-- **Fetch in `fetchReferralData`**: Add `adminApi.getPALetterInfo(id)` call, store result
-- **Pass to PAManagementCard**: `onPALetterChange` callback that updates `paLetterInfo` state
-- **Bottom action bar** (line 940-942): When `referral.status === 'approved_to_send'`, disable "Send to Pharmacy" button if `paLetterInfo?.drug_requires_pa === true && paLetterInfo?.has_letter === false`. Add tooltip explaining "PA letter required before sending to pharmacy."
+- Pass `paLetterInfo` prop to `DeliveryConfirmModal`
 
 ### Files changed
-- `src/lib/api.ts` — 2 new methods
-- `src/components/PAManagementCard.tsx` — PA letter section, real upload, remove old dropzone
-- `src/pages/admin/AdminReferralReview.tsx` — fetch PA letter info, pass callback, disable Send button
+- `src/components/PAManagementCard.tsx` — remove View button
+- `src/components/DeliveryConfirmModal.tsx` — PA letter status, collapsed additional docs, patient/drug info
+- `src/pages/admin/AdminReferralReview.tsx` — pass paLetterInfo to delivery modal
 
