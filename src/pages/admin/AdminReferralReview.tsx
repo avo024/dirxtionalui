@@ -631,7 +631,7 @@ export default function AdminReferralReview() {
                         <Label className="text-xs text-muted-foreground mb-1 flex items-center gap-2">
                           Drug Requested
                           {(conf["clinical.drug_requested"] ?? conf.drug_requested) !== undefined && (
-                            <ConfidenceIndicator score={conf["clinical.drug_requested"] ?? conf.drug_requested} />
+                            <ConfidenceIndicator confidence={conf["clinical.drug_requested"] ?? conf.drug_requested} />
                           )}
                         </Label>
                         <DrugCombobox

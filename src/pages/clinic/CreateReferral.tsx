@@ -24,6 +24,7 @@ import { clinicApi, pharmacyApi } from "@/lib/api";
 import { mapManualFormToBackend } from "@/lib/dataMapper";
 // Drug/ICD10 options removed — fields are now free text
 import { formatDateShort } from "@/lib/dateUtils";
+import { DrugCombobox } from "@/components/DrugCombobox";
 
 type Patient = {
   id: string;
