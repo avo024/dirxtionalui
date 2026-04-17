@@ -1,85 +1,80 @@
 
 
-## Drug Typeahead Combobox + Emoji Cleanup
+## Auth0 SDK Integration - Full Implementation
 
-### File 1: `src/lib/api.ts`
-Add to `clinicApi`:
-```ts
-async getFormularyDrugs(search?: string): Promise<{ items: any[] }> {
-  const q = search ? `?q=${encodeURIComponent(search)}` : '';
-  const response = await fetch(`${API_BASE_URL}/referrals/drugs${q}`, { headers: getHeaders() });
-  return handleResponse(response);
-},
-```
+This is a large, multi-file refactor. I'll execute it in one pass once approved.
 
-Add to `adminApi`:
-```ts
-async getFormularyDrugs(search?: string): Promise<{ items: any[] }> {
-  const q = search ? `?q=${encodeURIComponent(search)}` : '';
-  const response = await fetch(`${API_BASE_URL}/admin/drugs${q}`, { headers: getHeaders() });
-  return handleResponse(response);
-},
-```
+### Discovery notes
+- Current auth: mock `AuthContext` with `localStorage` + role picker on `Login.tsx`
+- `api.ts` has ~40 functions split across `clinicApi`, `adminApi`, `pharmacyApi`, `patientApi` — all use `getHeaders()` / `getAuthHeaders()` (FormData uploads)
+- Layouts (`AdminLayout`, `ClinicLayout`) and many pages call `useAuth()` for `user.role`
+- `AuthContext` decides role; Auth0 will replace `isAuthenticated`, but **role still needs to come from somewhere** (Auth0 token claim, or temporary fallback)
 
-### File 2: New `src/components/DrugCombobox.tsx`
-Reusable searchable combobox using shadcn `Popover` + `Command` (already installed):
+### Plan
 
-- Props: `value: string`, `onChange: (drugName: string) => void`, `fetchDrugs: (q?: string) => Promise<{ items: any[] }>`, `placeholder?: string`, `className?: string`
-- Internal state: `open`, `inputText`, `items`, `loading`
-- Debounced 300ms effect calls `fetchDrugs(inputText)` on input change
-- Renders each item as `CommandItem` showing `Drug Name (generic_name)` + small "PA Required" `Badge` when `requires_pa`
-- Free-text fallback via `CommandEmpty` content: shows `Use "{inputText}"` row that calls `onChange(inputText)` and closes
-- Selecting an item → `onChange(item.drug_name)` and closes
-- Trigger button shows current `value` or placeholder; typing happens in `CommandInput` inside popover
+**1. Install dependency**
+- `bun add @auth0/auth0-react@^2`
 
-The `fetchDrugs` prop lets clinic and admin pass different endpoints (clinic-filtered vs all-drugs).
+**2. `src/main.tsx`** — wrap `<App />` in `<Auth0Provider>` reading env vars, with `onRedirectCallback` restoring history.
 
-### File 3: `src/pages/clinic/CreateReferral.tsx`
-Replace the Drug Requested `<Input>` (lines 779-785) with:
+**3. `src/hooks/useApi.ts`** (new) — exports `useApi()` returning `{ getToken }` that calls `getAccessTokenSilently` when authenticated, swallows errors → undefined.
+
+**4. `src/lib/api.ts`** — refactor:
+- `getHeaders(token?)`: adds `Authorization: Bearer ${token}` if present; keeps `X-DEV-ADMIN: 1` only when `import.meta.env.DEV`
+- `getAuthHeaders(token?)`: same Bearer logic for FormData uploads
+- Every method in `clinicApi`, `adminApi`, `pharmacyApi`, `patientApi` gets `token?: string` as **first parameter**, passes to `getHeaders(token)`
+
+**5. `src/pages/Login.tsx`** — full rewrite:
+- Centered card, logo, tagline, single "Log In" primary button → `loginWithRedirect()`
+- `isLoading` → spinner; `isAuthenticated` → `<Navigate to="/" replace />`
+- Removes all role-picker / mock text
+
+**6. `src/contexts/AuthContext.tsx`** — refactor to bridge Auth0 → existing app:
+- Replace mock state with `useAuth0()` underneath
+- Derive `isAuthenticated` from Auth0
+- Derive `role` from Auth0 token custom claim (e.g. `https://dirxctional.com/role`); fallback `clinic_user` if missing — keeps existing layout guards working
+- `logout()` calls Auth0 `logout({ logoutParams: { returnTo: window.location.origin } })`
+- Removes mock `login()` (no longer used; Login page calls `loginWithRedirect` directly)
+
+**7. Update API callers (priority pass)** — thread `getToken()` through:
+- `src/pages/admin/AdminDashboard.tsx`
+- `src/pages/clinic/ClinicDashboard.tsx`
+- `src/components/layout/AdminSidebar.tsx` (badge counts)
+- `src/pages/admin/AdminReferralsList.tsx`, `AdminReferralReview.tsx`
+- `src/pages/clinic/ReferralsList.tsx`, `ReferralDetail.tsx`, `CreateReferral.tsx`, `PatientsList.tsx`, `PatientDetail.tsx`, `CreatePatient.tsx`
+- `src/pages/admin/PharmaciesList.tsx`, `PharmacyDetail.tsx`, `BlockedReferrals.tsx`
+- Remaining less-critical callers: `// TODO: thread token` comment
+
+Pattern at each site:
 ```tsx
-<DrugCombobox
-  value={manualData.drugRequested}
-  onChange={(v) => setManualData(d => ({ ...d, drugRequested: v }))}
-  fetchDrugs={clinicApi.getFormularyDrugs}
-  placeholder="Search drug..."
-/>
+const { getToken } = useApi();
+// inside async fn:
+const token = await getToken();
+const data = await adminApi.getReferrals(token, { status: 'needs_review' });
 ```
 
-### File 4: `src/pages/admin/AdminReferralReview.tsx`
-Replace the Drug Requested `FieldEdit` (~line 630) with a labeled DrugCombobox preserving the confidence indicator:
-```tsx
-<div>
-  <Label className="text-xs text-muted-foreground mb-1 flex items-center gap-2">
-    Drug Requested
-    {(conf["clinical.drug_requested"] ?? conf.drug_requested) !== undefined && (
-      <ConfidenceIndicator score={conf["clinical.drug_requested"] ?? conf.drug_requested} />
-    )}
-  </Label>
-  <DrugCombobox
-    value={editedData?.clinical?.drug_requested || ""}
-    onChange={(v) => updateField("clinical", "drug_requested", v)}
-    fetchDrugs={adminApi.getFormularyDrugs}
-  />
-</div>
+**8. Logout button** — add to `AdminLayout.tsx` and `ClinicLayout.tsx` top-right header strip (small button with `LogOut` icon + user name from `useAuth0().user`). Calls Auth0 `logout`.
+
+**9. Verification (run after edits)**
+```bash
+grep -l "Auth0Provider" src/main.tsx
+grep -rl "useAuth0\|@auth0/auth0-react" src/
+grep -rl "Mock authentication" src/   # must be empty
+grep -l "loginWithRedirect" src/pages/Login.tsx
 ```
 
-### File 5: Emoji removal (4 spots, scoped to confirmed locations)
+### Risks / notes
+- **Role claim**: Auth0 won't include a `role` claim by default. Until Auth0 Action is configured to inject one, all logged-in users will fall back to `clinic_user`, and admins won't reach `/admin/*`. I'll add a clear `// TODO` and `console.warn` when no role claim is found. The dev-bypass header keeps backend working in dev.
+- **InviteAcceptPage** uses `X-DEV-ADMIN` directly — I'll leave it (public flow, pre-auth) and mark with TODO.
+- **`AuthContext` shape preserved** so existing `useAuth()` consumers keep compiling (`user`, `isAuthenticated`, `logout`); the now-unused `login(role)` becomes a no-op with deprecation warning to avoid breaking imports.
 
-**`src/pages/clinic/PatientDetail.tsx`**
-- Line 302: `⚠️ PA for...` → `<AlertTriangle className="h-4 w-4 inline mr-1.5 text-warning" />PA for...`
-- Line 309: `❌ PA for...` → `<AlertTriangle className="h-4 w-4 inline mr-1.5 text-destructive" />PA for...`
-
-**`src/pages/clinic/ReferralDetail.tsx`**
-- Line 486: `✓ Approved` → `Approved`
-- Line 488: `✗ Denied` → `Denied`
-
-(I'll do a final src-wide grep at implementation time to catch any others, but these 4 are the only matches found.)
-
-### Files changed
-- `src/lib/api.ts` — add `getFormularyDrugs` to both `clinicApi` and `adminApi`
-- `src/components/DrugCombobox.tsx` — new reusable searchable combobox with debounce + free-text fallback + PA badge, accepts `fetchDrugs` prop
-- `src/pages/clinic/CreateReferral.tsx` — swap Drug Requested Input → DrugCombobox (clinic endpoint)
-- `src/pages/admin/AdminReferralReview.tsx` — swap Drug Requested FieldEdit → DrugCombobox (admin endpoint, preserves label + confidence)
-- `src/pages/clinic/PatientDetail.tsx` — replace ⚠️/❌ with `AlertTriangle` icon
-- `src/pages/clinic/ReferralDetail.tsx` — remove ✓/✗ from PA badges
+### Files touched
+- `package.json` (+ lockfile) — add `@auth0/auth0-react`
+- `src/main.tsx` — Auth0Provider wrap
+- `src/hooks/useApi.ts` — new
+- `src/lib/api.ts` — token-aware headers + every method signature
+- `src/pages/Login.tsx` — full rewrite
+- `src/contexts/AuthContext.tsx` — bridge to Auth0
+- `src/components/layout/AdminLayout.tsx`, `ClinicLayout.tsx` — logout button
+- ~12 page/component files — thread `getToken()` into API calls
 
