@@ -354,10 +354,15 @@ export default function AdminReferralReview() {
         </div>
         <div className="flex items-center gap-2">
           {(referral.status === 'uploaded' || referral.status === 'ready_for_review') && (
-            <Button onClick={handleProcessWithAI} variant="ghost" size="sm" className="text-muted-foreground">
-              <RefreshCw className="h-4 w-4 mr-1" />
-              Re-extract
-            </Button>
+            <div className="flex flex-col items-end">
+              <Button onClick={handleProcessWithAI} variant="ghost" size="sm" className="text-muted-foreground" disabled={isReExtracting}>
+                <RefreshCw className="h-4 w-4 mr-1" />
+                Re-extract
+              </Button>
+              {extractError && (
+                <p className="text-xs text-destructive mt-1">{extractError}</p>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -371,7 +376,7 @@ export default function AdminReferralReview() {
 
         {/* Right: Tabbed panel */}
         <div className="lg:w-1/2 overflow-y-auto p-6">
-          {referral.status === 'processing' ? (
+          {referral.status === 'processing' || isReExtracting ? (
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
               <p className="text-lg font-semibold text-foreground">AI is extracting referral details...</p>
@@ -952,7 +957,7 @@ export default function AdminReferralReview() {
       </div>
 
       {/* Bottom action bar */}
-      {referral.status !== 'processing' && (
+      {referral.status !== 'processing' && !isReExtracting && (
         <div className="fixed bottom-0 left-60 right-0 border-t border-border bg-card px-6 py-3 flex items-center justify-between z-10">
           <div className="text-sm text-muted-foreground">
             {(referral.status === 'ready_for_review' || referral.status === 'uploaded') && (
