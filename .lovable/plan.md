@@ -1,58 +1,85 @@
 
 
-## Bridge Program PA display + Wire View PA Details
+## Drug Typeahead Combobox + Emoji Cleanup
 
-### File 1: `src/pages/clinic/ReferralDetail.tsx` (lines 462-504)
-
-Wrap the PA section so when `referral.is_bridge_program === true`, it overrides everything and shows a fixed bridge display:
-
-```tsx
-<div className="border-t border-border pt-3" />
-{referral.is_bridge_program ? (
-  <>
-    <Field label="PA Required" value="No" />
-    <div>
-      <p className="text-muted-foreground text-xs mb-1">PA Status</p>
-      <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-purple-100 text-purple-700">
-        Bridge Program — PA not required
-      </span>
-    </div>
-    {/* No "PA Handled By" field */}
-  </>
-) : (
-  <>
-    <Field label="PA Required" value={referral.pa_required ? 'Yes' : 'No'} />
-    {referral.pa_required && (/* existing block lines 464-504 unchanged */)}
-  </>
-)}
+### File 1: `src/lib/api.ts`
+Add to `clinicApi`:
+```ts
+async getFormularyDrugs(search?: string): Promise<{ items: any[] }> {
+  const q = search ? `?q=${encodeURIComponent(search)}` : '';
+  const response = await fetch(`${API_BASE_URL}/referrals/drugs${q}`, { headers: getHeaders() });
+  return handleResponse(response);
+},
 ```
 
-Bridge check wins regardless of stale `pa_required` data.
-
-### File 2: `src/pages/clinic/PatientDetail.tsx` (line ~617-620)
-
-Wire the View PA Details button to navigate. `useNavigate` is likely already imported (we'll verify and add if missing).
-
-```tsx
-<Button
-  variant="outline"
-  size="sm"
-  className="w-full text-xs"
-  onClick={() => drug.last_referral_id && navigate(`/clinic/referrals/${drug.last_referral_id}`)}
-  disabled={!drug.last_referral_id}
-  title={!drug.last_referral_id ? "No referral linked to this medication." : undefined}
->
-  <Eye className="h-3.5 w-3.5 mr-1" />
-  View PA Details
-</Button>
+Add to `adminApi`:
+```ts
+async getFormularyDrugs(search?: string): Promise<{ items: any[] }> {
+  const q = search ? `?q=${encodeURIComponent(search)}` : '';
+  const response = await fetch(`${API_BASE_URL}/admin/drugs${q}`, { headers: getHeaders() });
+  return handleResponse(response);
+},
 ```
 
-For a proper tooltip (instead of native `title`), wrap the button in `Tooltip`/`TooltipTrigger`/`TooltipContent` from `@/components/ui/tooltip` only when disabled. Note: disabled buttons don't fire pointer events, so tooltip trigger needs `asChild` on a wrapping `span`.
+### File 2: New `src/components/DrugCombobox.tsx`
+Reusable searchable combobox using shadcn `Popover` + `Command` (already installed):
 
-**Note on `last_referral_id`**: This field needs to be present on the `PatientDrug` type returned by the medications endpoint. If the backend already returns it, no further change. If not, we'll add it to the `PatientDrug` interface in `src/types/index.ts` as an optional `last_referral_id?: string` so TypeScript accepts the access. (Will verify the type at implementation time.)
+- Props: `value: string`, `onChange: (drugName: string) => void`, `fetchDrugs: (q?: string) => Promise<{ items: any[] }>`, `placeholder?: string`, `className?: string`
+- Internal state: `open`, `inputText`, `items`, `loading`
+- Debounced 300ms effect calls `fetchDrugs(inputText)` on input change
+- Renders each item as `CommandItem` showing `Drug Name (generic_name)` + small "PA Required" `Badge` when `requires_pa`
+- Free-text fallback via `CommandEmpty` content: shows `Use "{inputText}"` row that calls `onChange(inputText)` and closes
+- Selecting an item → `onChange(item.drug_name)` and closes
+- Trigger button shows current `value` or placeholder; typing happens in `CommandInput` inside popover
+
+The `fetchDrugs` prop lets clinic and admin pass different endpoints (clinic-filtered vs all-drugs).
+
+### File 3: `src/pages/clinic/CreateReferral.tsx`
+Replace the Drug Requested `<Input>` (lines 779-785) with:
+```tsx
+<DrugCombobox
+  value={manualData.drugRequested}
+  onChange={(v) => setManualData(d => ({ ...d, drugRequested: v }))}
+  fetchDrugs={clinicApi.getFormularyDrugs}
+  placeholder="Search drug..."
+/>
+```
+
+### File 4: `src/pages/admin/AdminReferralReview.tsx`
+Replace the Drug Requested `FieldEdit` (~line 630) with a labeled DrugCombobox preserving the confidence indicator:
+```tsx
+<div>
+  <Label className="text-xs text-muted-foreground mb-1 flex items-center gap-2">
+    Drug Requested
+    {(conf["clinical.drug_requested"] ?? conf.drug_requested) !== undefined && (
+      <ConfidenceIndicator score={conf["clinical.drug_requested"] ?? conf.drug_requested} />
+    )}
+  </Label>
+  <DrugCombobox
+    value={editedData?.clinical?.drug_requested || ""}
+    onChange={(v) => updateField("clinical", "drug_requested", v)}
+    fetchDrugs={adminApi.getFormularyDrugs}
+  />
+</div>
+```
+
+### File 5: Emoji removal (4 spots, scoped to confirmed locations)
+
+**`src/pages/clinic/PatientDetail.tsx`**
+- Line 302: `⚠️ PA for...` → `<AlertTriangle className="h-4 w-4 inline mr-1.5 text-warning" />PA for...`
+- Line 309: `❌ PA for...` → `<AlertTriangle className="h-4 w-4 inline mr-1.5 text-destructive" />PA for...`
+
+**`src/pages/clinic/ReferralDetail.tsx`**
+- Line 486: `✓ Approved` → `Approved`
+- Line 488: `✗ Denied` → `Denied`
+
+(I'll do a final src-wide grep at implementation time to catch any others, but these 4 are the only matches found.)
 
 ### Files changed
-- `src/pages/clinic/ReferralDetail.tsx` — Bridge program overrides PA Required / PA Status / hides PA Handled By
-- `src/pages/clinic/PatientDetail.tsx` — Wire navigate on View PA Details + disabled state with tooltip
-- `src/types/index.ts` — Add `last_referral_id?: string` to `PatientDrug` if missing
+- `src/lib/api.ts` — add `getFormularyDrugs` to both `clinicApi` and `adminApi`
+- `src/components/DrugCombobox.tsx` — new reusable searchable combobox with debounce + free-text fallback + PA badge, accepts `fetchDrugs` prop
+- `src/pages/clinic/CreateReferral.tsx` — swap Drug Requested Input → DrugCombobox (clinic endpoint)
+- `src/pages/admin/AdminReferralReview.tsx` — swap Drug Requested FieldEdit → DrugCombobox (admin endpoint, preserves label + confidence)
+- `src/pages/clinic/PatientDetail.tsx` — replace ⚠️/❌ with `AlertTriangle` icon
+- `src/pages/clinic/ReferralDetail.tsx` — remove ✓/✗ from PA badges
 
