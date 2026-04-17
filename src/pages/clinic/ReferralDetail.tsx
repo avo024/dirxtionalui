@@ -460,6 +460,18 @@ export default function ReferralDetail() {
                     </>
                   )}
                   <div className="border-t border-border pt-3" />
+                  {referral.is_bridge_program ? (
+                    <>
+                      <Field label="PA Required" value="No" />
+                      <div>
+                        <p className="text-muted-foreground text-xs mb-1">PA Status</p>
+                        <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-purple-100 text-purple-700">
+                          Bridge Program — PA not required
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                  <>
                   <Field label="PA Required" value={referral.pa_required ? 'Yes' : 'No'} />
                   {referral.pa_required && (
                     <>
