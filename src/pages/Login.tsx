@@ -1,23 +1,23 @@
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import { Building2, Shield } from "lucide-react";
-import { useEffect } from "react";
+import { useAuth0 } from "@auth0/auth0-react";
+import { Navigate } from "react-router-dom";
+import { Loader2, LogIn } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import logo from "@/assets/logo.png";
 
 export default function Login() {
-  const { login, isAuthenticated, user } = useAuth();
-  const navigate = useNavigate();
+  const { isAuthenticated, isLoading, loginWithRedirect } = useAuth0();
 
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      navigate(user.role === "clinic_user" ? "/clinic/dashboard" : "/admin/dashboard", { replace: true });
-    }
-  }, [isAuthenticated, user, navigate]);
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
-  const handleLogin = (role: "clinic_user" | "internal_admin") => {
-    login(role);
-    navigate(role === "clinic_user" ? "/clinic/dashboard" : "/admin/dashboard");
-  };
+  if (isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -28,39 +28,31 @@ export default function Login() {
           <p className="text-muted-foreground mt-1">Clinical Referral Automation Platform</p>
         </div>
 
-        {/* Role cards */}
-        <div className="space-y-3">
-          <p className="text-sm font-medium text-center text-muted-foreground">Select your role to continue</p>
+        {/* Login card */}
+        <div className="rounded-xl border border-border bg-card p-8 card-shadow space-y-6">
+          <div className="text-center space-y-2">
+            <h1 className="text-xl font-semibold text-foreground">Welcome back</h1>
+            <p className="text-sm text-muted-foreground">
+              Sign in to access your DiRxctional account
+            </p>
+          </div>
 
-          <button
-            onClick={() => handleLogin("clinic_user")}
-            className="w-full group flex items-center gap-4 p-5 rounded-xl border border-border bg-card card-shadow hover:card-shadow-md hover:border-primary/30 transition-all text-left"
+          <Button
+            size="lg"
+            className="w-full"
+            onClick={() =>
+              loginWithRedirect({
+                appState: { returnTo: "/" },
+              })
+            }
           >
-            <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-              <Building2 className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <p className="font-semibold text-foreground">Clinic Portal</p>
-              <p className="text-sm text-muted-foreground">Manage referrals for your clinic</p>
-            </div>
-          </button>
-
-          <button
-            onClick={() => handleLogin("internal_admin")}
-            className="w-full group flex items-center gap-4 p-5 rounded-xl border border-border bg-card card-shadow hover:card-shadow-md hover:border-accent/30 transition-all text-left"
-          >
-            <div className="h-12 w-12 rounded-xl bg-accent/10 flex items-center justify-center group-hover:bg-accent/20 transition-colors">
-              <Shield className="h-6 w-6 text-accent" />
-            </div>
-            <div>
-              <p className="font-semibold text-foreground">Admin Dashboard</p>
-              <p className="text-sm text-muted-foreground">Review and manage all referrals</p>
-            </div>
-          </button>
+            <LogIn className="h-4 w-4 mr-2" />
+            Log In
+          </Button>
         </div>
 
         <p className="text-xs text-center text-muted-foreground">
-          Mock authentication — no real credentials required
+          Secure authentication powered by Auth0
         </p>
       </div>
     </div>
