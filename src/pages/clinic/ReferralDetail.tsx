@@ -514,6 +514,8 @@ export default function ReferralDetail() {
                       <Field label="PA Handled By" value={priorAuth.handled_by_us ? 'DiRxtional' : 'Clinic'} />
                     </>
                   )}
+                  </>
+                  )}
                 </div>
               </InfoCard>
             </div>
