@@ -34,14 +34,23 @@ const formatDateForInput = (dateStr: string | null | undefined): string => {
 
 function getDrugPABadge(drug: any) {
   const today = new Date();
-  if (!drug.pa_status || drug.pa_status === "pending") {
-    return { label: "No PA", className: "bg-muted text-muted-foreground" };
+  if (drug.is_active === false) {
+    return { label: "Discontinued", className: "bg-muted text-muted-foreground" };
+  }
+  if (drug.pa_status === "denied") {
+    return { label: "PA Denied", className: "bg-destructive/10 text-destructive" };
+  }
+  if (drug.pa_status === "pending" || drug.pa_status === "submitted" || drug.pa_status === "processing") {
+    return { label: "PA Pending", className: "bg-warning/10 text-warning" };
   }
   if (drug.pa_status === "approved" && drug.pa_expiration_date) {
     const expDate = new Date(drug.pa_expiration_date);
     if (expDate < today) return { label: "PA Expired", className: "bg-destructive/10 text-destructive" };
     const daysUntil = Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
     if (daysUntil <= 30) return { label: "PA Expiring Soon", className: "bg-warning/10 text-warning" };
+    return { label: "PA Active", className: "bg-success/10 text-success" };
+  }
+  if (drug.pa_status === "approved") {
     return { label: "PA Active", className: "bg-success/10 text-success" };
   }
   return { label: "No PA", className: "bg-muted text-muted-foreground" };
@@ -216,23 +225,31 @@ export default function PatientDetail() {
         <TabsList>
           <TabsTrigger value="history">Referral History</TabsTrigger>
           <TabsTrigger value="info">Patient Information</TabsTrigger>
-          <TabsTrigger value="medications">Medications</TabsTrigger>
+          <TabsTrigger value="medications">Prior Authorizations</TabsTrigger>
         </TabsList>
 
         {/* REFERRAL HISTORY TAB */}
         <TabsContent value="history" className="mt-4 space-y-4">
           {/* PA Status Card */}
           <div className="rounded-xl border border-border bg-card p-5 card-shadow">
-            <div className="flex items-center gap-2 mb-3">
-              <Shield className="h-4 w-4 text-primary" />
-              <h3 className="font-semibold text-foreground text-sm">Prior Authorization Status</h3>
+            <div className="flex items-start gap-2 mb-3">
+              <Shield className="h-4 w-4 text-primary mt-0.5" />
+              <div>
+                <h3 className="font-semibold text-foreground text-sm">Prior Authorization Status</h3>
+                <p className="text-xs text-muted-foreground">Most recent active medication</p>
+              </div>
             </div>
             {medsLoading ? (
               <div className="flex items-center justify-center py-4">
                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
               </div>
             ) : (() => {
-              const activeDrugs = medications.filter(m => m.is_active);
+              const allActive = medications.filter(m => m.is_active);
+              const activeDrugs = [...allActive].sort((a, b) => {
+                const aDate = new Date(a.last_filled || a.created_at || 0).getTime();
+                const bDate = new Date(b.last_filled || b.created_at || 0).getTime();
+                return bDate - aDate;
+              }).slice(0, 1);
               if (activeDrugs.length === 0) {
                 return (
                   <p className="text-sm text-muted-foreground py-2">
@@ -566,8 +583,8 @@ export default function PatientDetail() {
                   <div
                     key={drug.id}
                     className={cn(
-                      "rounded-xl border border-border bg-card p-4 card-shadow transition-all duration-200 hover:shadow-md",
-                      !drug.is_active && "opacity-60"
+                      "rounded-xl border border-border p-4 card-shadow transition-all duration-200 hover:shadow-md",
+                      drug.is_active === false ? "bg-muted/30" : "bg-card"
                     )}
                   >
                     <div className="flex items-start justify-between mb-2">
@@ -577,9 +594,6 @@ export default function PatientDetail() {
                         </div>
                         <div>
                           <p className="text-sm font-semibold text-foreground">{drug.drug_name}</p>
-                          {!drug.is_active && (
-                            <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Discontinued</span>
-                          )}
                         </div>
                       </div>
                       <span className={cn("text-[11px] font-medium px-2 py-0.5 rounded-full whitespace-nowrap", badge.className)}>
