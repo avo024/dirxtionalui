@@ -614,7 +614,14 @@ export default function PatientDetail() {
                       </span>
                     </div>
 
-                    <Button variant="outline" size="sm" className="w-full text-xs">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full text-xs"
+                      onClick={() => drug.last_referral_id && navigate(`/clinic/referrals/${drug.last_referral_id}`)}
+                      disabled={!drug.last_referral_id}
+                      title={!drug.last_referral_id ? "No referral linked to this medication." : undefined}
+                    >
                       <Eye className="h-3.5 w-3.5 mr-1" />
                       View PA Details
                     </Button>
