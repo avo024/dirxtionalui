@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { adminApi } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DrugCombobox } from "@/components/DrugCombobox";
 
 // Critical fields that should be flagged when missing
 const CRITICAL_FIELDS = [
@@ -627,7 +628,17 @@ export default function AdminReferralReview() {
                     </AccordionTrigger>
                     <AccordionContent>
                       <div className="pb-3">
-                        <FieldEdit label="Drug Requested" value={editedData?.clinical?.drug_requested || ""} confidence={conf["clinical.drug_requested"] ?? conf.drug_requested} onChange={(v) => updateField("clinical", "drug_requested", v)} />
+                        <Label className="text-xs text-muted-foreground mb-1 flex items-center gap-2">
+                          Drug Requested
+                          {(conf["clinical.drug_requested"] ?? conf.drug_requested) !== undefined && (
+                            <ConfidenceIndicator confidence={conf["clinical.drug_requested"] ?? conf.drug_requested} />
+                          )}
+                        </Label>
+                        <DrugCombobox
+                          value={editedData?.clinical?.drug_requested || ""}
+                          onChange={(v) => updateField("clinical", "drug_requested", v)}
+                          fetchDrugs={adminApi.getFormularyDrugs}
+                        />
                       </div>
                       <div className="grid grid-cols-2 gap-3 pb-2">
                         <FieldEdit label="Brand Name" value={editedData?.clinical?.brand_name || ""} onChange={(v) => updateField("clinical", "brand_name", v)} />

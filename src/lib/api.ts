@@ -166,6 +166,14 @@ export const clinicApi = {
     });
     return handleResponse(response);
   },
+
+  async getFormularyDrugs(search?: string): Promise<{ items: any[] }> {
+    const q = search ? `?q=${encodeURIComponent(search)}` : '';
+    const response = await fetch(`${API_BASE_URL}/referrals/drugs${q}`, {
+      headers: getHeaders(),
+    });
+    return handleResponse<{ items: any[] }>(response);
+  },
 };
 
 // ============================================================================
@@ -354,6 +362,14 @@ export const adminApi = {
       body: formData,
     });
     return handleResponse(response);
+  },
+
+  async getFormularyDrugs(search?: string): Promise<{ items: any[] }> {
+    const q = search ? `?q=${encodeURIComponent(search)}` : '';
+    const response = await fetch(`${API_BASE_URL}/admin/drugs${q}`, {
+      headers: getHeaders(),
+    });
+    return handleResponse<{ items: any[] }>(response);
   },
 };
 

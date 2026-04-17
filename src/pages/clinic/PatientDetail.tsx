@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   ArrowLeft, Plus, User, Shield, Phone, Mail, Copy,
-  FileText, Pill, ClipboardList, Loader2, Pencil, Save, X, Eye
+  FileText, Pill, ClipboardList, Loader2, Pencil, Save, X, Eye, AlertTriangle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -299,14 +299,16 @@ export default function PatientDetail() {
                         {isExpiringSoon && (
                           <Alert className="mt-2 border-warning/30 bg-warning/5">
                             <AlertDescription className="text-sm text-foreground">
-                              ⚠️ PA for {drug.drug_name} expires on {formatDateShort(drug.pa_expiration_date)}. Consider creating a new referral.
+                              <AlertTriangle className="h-4 w-4 inline mr-1.5 text-warning" />
+                              PA for {drug.drug_name} expires on {formatDateShort(drug.pa_expiration_date)}. Consider creating a new referral.
                             </AlertDescription>
                           </Alert>
                         )}
                         {isExpired && (
                           <Alert className="mt-2 border-destructive/30 bg-destructive/5">
                             <AlertDescription className="text-sm text-foreground">
-                              ❌ PA for {drug.drug_name} expired on {formatDateShort(drug.pa_expiration_date)}. A new referral with PA is required.
+                              <AlertTriangle className="h-4 w-4 inline mr-1.5 text-destructive" />
+                              PA for {drug.drug_name} expired on {formatDateShort(drug.pa_expiration_date)}. A new referral with PA is required.
                             </AlertDescription>
                           </Alert>
                         )}
