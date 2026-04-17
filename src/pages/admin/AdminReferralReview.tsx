@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { adminApi } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DrugCombobox } from "@/components/DrugCombobox";
 
 // Critical fields that should be flagged when missing
 const CRITICAL_FIELDS = [
