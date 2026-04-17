@@ -1,75 +1,53 @@
 
 
-## Redesign Notes UI + New-Note Indicator Dot
+## Patient Detail UI Polish + Bridge Program PA Bypass (Admin)
+
+### File 1: `src/pages/clinic/PatientDetail.tsx`
+
+**1A. PA Status card subtitle (line ~226-229)**
+- Change card header to keep title "Prior Authorization Status" + add subtitle below: `<p className="text-xs text-muted-foreground">Most recent active medication</p>`
+- Also update `activeDrugs` rendering: instead of `.map(allActive)`, take only the **most recent** active drug (sort by `last_filled` or `created_at` desc, take first one) so the subtitle is truthful. Currently it shows ALL active drugs.
+
+**1B. Rename "Medications" tab to "Prior Authorizations" (line 219)**
+- Change `<TabsTrigger value="medications">Medications</TabsTrigger>` → `Prior Authorizations`. Keep the `value="medications"` key unchanged (no need to refactor state).
+
+**1C. Drug card status tags (lines ~563-608)**
+- Extend `getDrugPABadge` to handle all states:
+  - `is_active === false` → "Discontinued" gray tag
+  - `pa_status === 'denied'` → "PA Denied" red
+  - `pa_status === 'pending' || 'submitted' || 'processing'` → "PA Pending" yellow
+  - `pa_status === 'approved'` + expiration logic (already handled)
+  - null/empty → "No PA" gray
+- Remove `opacity-60` on inactive cards. Replace with `bg-muted/30` background. Remove the small "Discontinued" subtext under drug name (the badge in the corner now handles it).
+
+### File 2: `src/pages/admin/AdminReferralReview.tsx`
+
+**2A. PA auto-detection card — bridge program (line ~439-447)**
+Wrap the existing badge logic so that if `referral.is_bridge_program === true`, render a purple badge instead:
+```tsx
+{referral.is_bridge_program ? (
+  <Badge className="bg-purple-100 text-purple-700 border-purple-200">
+    Bridge Program — PA not required
+  </Badge>
+) : referral.pa_required ? (...) : (...)}
+```
+
+**2B. PA Management card — hide for bridge program (line ~452)**
+Wrap render: only show `<PAManagementCard>` when `!referral.is_bridge_program`. Otherwise render a simple card: "PA not required for Bridge Program referrals" (purple-tinted, matching style).
+
+**2C. Send to Pharmacy button — skip PA letter check (line ~957-972)**
+Update `blocked` calc: `const blocked = !referral.is_bridge_program && paLetterInfo?.drug_requires_pa && !paLetterInfo?.has_letter;`
+
+### File 3: `src/components/DeliveryConfirmModal.tsx`
+
+**3A. Hide PA Letter from "Always included" + skip block when bridge program**
+- Add `isBridgeProgram` from `referral.is_bridge_program` (already passed via `referral` prop).
+- Override:
+  - `hasPALetter` → force false if `isBridgeProgram` (so the PA Letter line disappears)
+  - `paMissing` → force false if `isBridgeProgram` (so Confirm & Send is enabled)
 
 ### Files changed
-1. `src/pages/clinic/ReferralDetail.tsx` — Notes tab redesign + mark-as-viewed on tab open
-2. `src/pages/admin/AdminReferralReview.tsx` — Notes tab redesign + mark-as-viewed on tab open
-3. `src/components/ReferralTable.tsx` — Add purple dot indicator on rows with new other-party notes
-4. `src/lib/dataMapper.ts` (lookup) — Ensure `latest_admin_note_at` / `latest_clinic_note_at` pass through to mapped referrals (currently no mapper strips them since they're new fields — verify pass-through)
-
-### 1. Notes tab redesign (both clinic + admin)
-
-Replace the chat-bubble layout with a stacked full-width comment list.
-
-**Each note card structure:**
-```
-<div class="rounded-lg border border-border/50 bg-card border-l-4 [accent] p-4">
-  <div class="flex items-baseline justify-between mb-2">
-    <span class="font-semibold text-sm">{authorName}</span>
-    <span class="text-xs text-muted-foreground">{formatDateTime(created_at)}</span>
-  </div>
-  <p class="text-sm text-foreground whitespace-pre-wrap">{note.content}</p>
-</div>
-```
-
-**Author name resolution:**
-- Clinic side: admin notes → `"DiRxtional Team"`, own notes → `referral.clinic_name` (fallback `"Your Clinic"`)
-- Admin side: admin notes → `"DiRxtional Team"`, clinic notes → `referral.clinic_name`
-
-**Left-border accent:**
-- Admin author → `border-l-purple-500`
-- Clinic author → `border-l-primary`
-
-**Remove:**
-- All "Admin"/"Clinic" pill badges
-- The "No notes yet" empty state card (just render the input)
-- `justify-end` / `max-w-[75%]` chat bubble styling
-
-**Container:** stacked list `space-y-3`, full width, with the input area below.
-
-**After sending a note:** append to list, then scroll the newest note into view via `ref.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })` on a sentinel div at the bottom.
-
-### 2. Mark-as-viewed on tab open
-
-In each detail page, watch the active Tabs `value`. When it becomes `"notes"`, write to localStorage:
-```ts
-localStorage.setItem(`notes_last_viewed_${id}`, new Date().toISOString());
-```
-Use Tabs' `onValueChange` to detect this. Also call once on mount if the user lands directly on notes via deep link.
-
-### 3. New-note indicator dot on referral list
-
-**In `ReferralTable.tsx`:**
-- Read `userType` (already passed in) to know which timestamp field to check:
-  - `userType === "clinic"` → check `ref.latest_admin_note_at`
-  - `userType === "admin"` → check `ref.latest_clinic_note_at`
-- For each row, compute `hasUnreadNote`:
-  ```ts
-  const lastViewed = localStorage.getItem(`notes_last_viewed_${ref.id}`);
-  const noteTs = userType === 'clinic' ? ref.latest_admin_note_at : ref.latest_clinic_note_at;
-  const hasUnreadNote = !!noteTs && (!lastViewed || new Date(noteTs) > new Date(lastViewed));
-  ```
-- Render a small purple dot (`h-2 w-2 rounded-full bg-purple-500`) inside the **Patient Name** cell, immediately to the left of the name, with a tooltip "New note".
-
-No new column added (keeps table clean). The dot disappears on next list render after the user opens the Notes tab on that referral.
-
-### 4. Data pass-through
-
-The clinic list maps via `mapReferralsFromBackend`; the admin list spreads `...r`. As long as the mapper preserves unknown fields (or we explicitly add `latest_admin_note_at`/`latest_clinic_note_at` pass-through), the dot logic works. Implementation step: open `dataMapper.ts`, ensure both timestamps are forwarded in the mapped object (add if missing).
-
-### Notes
-- No backend or API changes needed.
-- No new dependencies.
-- localStorage is per-browser; that's acceptable per spec.
+- `src/pages/clinic/PatientDetail.tsx` — PA card subtitle + most-recent slice, tab rename, drug card status tags, remove gray-out
+- `src/pages/admin/AdminReferralReview.tsx` — Bridge Program PA detection badge, hide PAManagementCard, skip PA letter block on Send button
+- `src/components/DeliveryConfirmModal.tsx` — Bridge Program: hide PA Letter line, skip PA-missing block
 
