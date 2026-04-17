@@ -275,6 +275,7 @@ export interface PatientDrug {
   pa_expiration_date: string | null;
   created_at: string;
   last_filled: string | null;
+  last_referral_id?: string;
 }
 
 export interface Pharmacy {
