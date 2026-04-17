@@ -776,11 +776,12 @@ export default function CreateReferral() {
                 </AccordionTrigger>
                 <AccordionContent className="space-y-4 pt-2">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField label="Drug Requested" required helper="Enter medication name">
-                      <Input
+                    <FormField label="Drug Requested" required helper="Search formulary or type custom">
+                      <DrugCombobox
                         value={manualData.drugRequested}
-                        onChange={(e) => setManualData((d) => ({ ...d, drugRequested: e.target.value }))}
-                        placeholder="e.g., Dupixent, Skyrizi, Taltz"
+                        onChange={(v) => setManualData((d) => ({ ...d, drugRequested: v }))}
+                        fetchDrugs={clinicApi.getFormularyDrugs}
+                        placeholder="Search drug..."
                       />
                     </FormField>
                     <FormField label="Diagnosis ICD-10" required helper="Enter ICD-10 code and description">

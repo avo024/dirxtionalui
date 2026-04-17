@@ -483,9 +483,9 @@ export default function ReferralDetail() {
                             <p className="text-xs text-muted-foreground mt-1">PA required — DiRxtional team will handle this</p>
                           </>
                         ) : referral.pa_status === 'approved' ? (
-                          <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-status-approved-bg text-status-approved-fg">✓ Approved</span>
+                          <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-status-approved-bg text-status-approved-fg">Approved</span>
                         ) : referral.pa_status === 'denied' ? (
-                          <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-destructive/10 text-destructive">✗ Denied</span>
+                          <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-destructive/10 text-destructive">Denied</span>
                         ) : referral.pa_status === 'processing' ? (
                           <>
                             <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-blue-500/10 text-blue-600">PA In Progress</span>
