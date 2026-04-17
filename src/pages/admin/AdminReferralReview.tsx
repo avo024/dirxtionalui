@@ -436,7 +436,11 @@ export default function AdminReferralReview() {
                   <SummaryField label="Frequency" value={clinical.dose_frequency || clinical.frequency} />
                   <SummaryField label="Route" value={clinical.route || clinical.administration} />
                   <div className="mt-2">
-                    {referral.pa_required ? (
+                    {referral.is_bridge_program ? (
+                      <Badge className="bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-100">
+                        Bridge Program — PA not required
+                      </Badge>
+                    ) : referral.pa_required ? (
                       <Badge className="bg-warning/15 text-warning border-warning/30 hover:bg-warning/20">
                         PA Required{referral.pa_required_reason ? `: ${referral.pa_required_reason}` : ""}
                       </Badge>
@@ -449,7 +453,14 @@ export default function AdminReferralReview() {
                 </div>
 
                 {/* Card 4: PA Management */}
-                <PAManagementCard referral={referral} paInfo={paInfo} referralId={id!} onPALetterChange={handlePALetterChange} />
+                {referral.is_bridge_program ? (
+                  <div className="rounded-lg border border-purple-200 bg-purple-50 p-4">
+                    <h4 className="text-xs font-semibold tracking-wider text-purple-700 uppercase mb-1">Prior Authorization</h4>
+                    <p className="text-sm text-purple-700">PA not required for Bridge Program referrals</p>
+                  </div>
+                ) : (
+                  <PAManagementCard referral={referral} paInfo={paInfo} referralId={id!} onPALetterChange={handlePALetterChange} />
+                )}
 
                 {/* Card 5: Diagnosis & Clinical */}
                 <div className="rounded-lg border border-border/50 p-4">
@@ -955,7 +966,7 @@ export default function AdminReferralReview() {
             )}
             {referral.status === 'approved_to_send' && (
               (() => {
-                const blocked = paLetterInfo?.drug_requires_pa && !paLetterInfo?.has_letter;
+                const blocked = !referral.is_bridge_program && paLetterInfo?.drug_requires_pa && !paLetterInfo?.has_letter;
                 return (
                   <div className="relative group">
                     <Button variant="success" onClick={() => setDeliverOpen(true)} disabled={blocked}>

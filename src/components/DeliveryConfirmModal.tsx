@@ -138,8 +138,9 @@ export function DeliveryConfirmModal({
   };
 
   const hasPharmacy = !!currentPharmacy.name;
-  const hasPALetter = paLetterInfo?.has_letter ?? false;
-  const paRequired = paLetterInfo?.drug_requires_pa ?? false;
+  const isBridgeProgram = !!referral?.is_bridge_program;
+  const hasPALetter = !isBridgeProgram && (paLetterInfo?.has_letter ?? false);
+  const paRequired = !isBridgeProgram && (paLetterInfo?.drug_requires_pa ?? false);
   const paMissing = paRequired && !hasPALetter;
   const alwaysIncludedCount = 1 + (hasPALetter ? 1 : 0);
   const totalAttachments = alwaysIncludedCount + includedDocIds.size;
