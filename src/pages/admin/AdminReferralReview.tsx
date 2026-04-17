@@ -144,10 +144,20 @@ export default function AdminReferralReview() {
     return () => clearInterval(timer);
   }, [referral?.status, id, isReExtracting]);
 
-  // Exit re-extract loading when status flips to ready_for_review (or away from processing)
+  // Exit re-extract loading only after we've seen the backend flip to 'processing'
+  // and then back out (to ready_for_review). Otherwise the initial poll sees the
+  // pre-flip status and exits immediately.
+  const sawProcessingRef = useRef(false);
   useEffect(() => {
-    if (isReExtracting && referral?.status && referral.status !== 'processing' && referral.status !== 'uploaded') {
+    if (!isReExtracting) {
+      sawProcessingRef.current = false;
+      return;
+    }
+    if (referral?.status === 'processing') {
+      sawProcessingRef.current = true;
+    } else if (sawProcessingRef.current && referral?.status && referral.status !== 'processing') {
       setIsReExtracting(false);
+      sawProcessingRef.current = false;
     }
   }, [referral?.status, isReExtracting]);
 
