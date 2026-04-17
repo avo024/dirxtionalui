@@ -82,6 +82,8 @@ export default function AdminReferralReview() {
   const [newNote, setNewNote] = useState("");
   const [sendingNote, setSendingNote] = useState(false);
   const [paLetterInfo, setPaLetterInfo] = useState<PALetterInfo | null>(null);
+  const [isReExtracting, setIsReExtracting] = useState(false);
+  const [extractError, setExtractError] = useState<string | null>(null);
   const notesEndRef = useRef<HTMLDivElement>(null);
 
   const handlePALetterChange = useCallback((info: PALetterInfo) => {
@@ -135,10 +137,19 @@ export default function AdminReferralReview() {
   }, [id]);
 
   useEffect(() => {
-    if (referral?.status !== 'processing') return;
-    const timer = setInterval(() => fetchReferralData(true), 5000);
+    if (referral?.status !== 'processing' && !isReExtracting) return;
+    const timer = setInterval(async () => {
+      await fetchReferralData(true);
+    }, 5000);
     return () => clearInterval(timer);
-  }, [referral?.status, id]);
+  }, [referral?.status, id, isReExtracting]);
+
+  // Exit re-extract loading when status flips to ready_for_review (or away from processing)
+  useEffect(() => {
+    if (isReExtracting && referral?.status && referral.status !== 'processing' && referral.status !== 'uploaded') {
+      setIsReExtracting(false);
+    }
+  }, [referral?.status, isReExtracting]);
 
   if (loading) {
     return (
@@ -274,19 +285,14 @@ export default function AdminReferralReview() {
   };
 
   const handleProcessWithAI = async () => {
+    setExtractError(null);
+    setIsReExtracting(true);
     try {
       await adminApi.processReferral(id!);
-      toast({
-        title: "Processing Started",
-        description: "AI extraction in progress...",
-      });
-      setTimeout(() => window.location.reload(), 30000);
+      // Polling effect will pick up new data and exit loading state
     } catch (err: any) {
-      toast({
-        title: "Error",
-        description: err.message || "Failed to process referral",
-        variant: "destructive",
-      });
+      setIsReExtracting(false);
+      setExtractError(err.message || "Extraction failed — try again");
     }
   };
 
