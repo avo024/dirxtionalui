@@ -1,9 +1,32 @@
 /**
- * API Service Layer - DiRxtional Platform
+ * API Service Layer - DiRxctional Platform
  * All backend API calls go through here
+ *
+ * Auth: a token provider is registered by `useApi()` (src/hooks/useApi.ts).
+ * When a user is authenticated, requests automatically include
+ * `Authorization: Bearer <token>`. The legacy `X-DEV-ADMIN: 1` header
+ * is sent only in development to keep local backend access working
+ * until the backend fully accepts Auth0 JWTs.
  */
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+// ---- Token provider registration ------------------------------------------
+type TokenProvider = () => Promise<string | undefined>;
+let tokenProvider: TokenProvider | null = null;
+
+export function setAuthTokenProvider(provider: TokenProvider | null) {
+  tokenProvider = provider;
+}
+
+async function currentToken(): Promise<string | undefined> {
+  if (!tokenProvider) return undefined;
+  try {
+    return await tokenProvider();
+  } catch {
+    return undefined;
+  }
+}
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
@@ -13,17 +36,22 @@ async function handleResponse<T>(response: Response): Promise<T> {
   return response.json();
 }
 
-function getHeaders(): HeadersInit {
-  return {
+async function getHeaders(): Promise<HeadersInit> {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    'X-DEV-ADMIN': '1',
   };
+  const token = await currentToken();
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (import.meta.env.DEV) headers['X-DEV-ADMIN'] = '1';
+  return headers;
 }
 
-function getAuthHeaders(): HeadersInit {
-  return {
-    'X-DEV-ADMIN': '1',
-  };
+async function getAuthHeaders(): Promise<HeadersInit> {
+  const headers: Record<string, string> = {};
+  const token = await currentToken();
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (import.meta.env.DEV) headers['X-DEV-ADMIN'] = '1';
+  return headers;
 }
 
 // ============================================================================
@@ -34,21 +62,21 @@ export const clinicApi = {
   async getPatients(search?: string): Promise<any> {
     const params = search ? `?search=${encodeURIComponent(search)}` : '';
     const response = await fetch(`${API_BASE_URL}/patients${params}`, {
-      headers: getHeaders(),
+      headers: await getHeaders(),
     });
     return handleResponse(response);
   },
 
   async getReferrals(): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/referrals`, {
-      headers: getHeaders(),
+      headers: await getHeaders(),
     });
     return handleResponse(response);
   },
 
   async getReferral(id: string): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/referrals/${id}`, {
-      headers: getHeaders(),
+      headers: await getHeaders(),
     });
     return handleResponse(response);
   },
@@ -56,7 +84,7 @@ export const clinicApi = {
   async createReferral(data: any): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/referrals`, {
       method: 'POST',
-      headers: getHeaders(),
+      headers: await getHeaders(),
       body: JSON.stringify(data),
     });
     return handleResponse(response);
@@ -64,7 +92,7 @@ export const clinicApi = {
 
   async getReferralDocuments(id: string): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/referrals/${id}/documents`, {
-      headers: getHeaders(),
+      headers: await getHeaders(),
     });
     return handleResponse(response);
   },
@@ -81,7 +109,7 @@ export const clinicApi = {
 
     const response = await fetch(`${API_BASE_URL}/referrals/${referralId}/documents`, {
       method: 'POST',
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
       body: formData,
     });
     return handleResponse(response);
@@ -89,14 +117,14 @@ export const clinicApi = {
 
   async getPatient(id: string): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/patients/${id}`, {
-      headers: getHeaders(),
+      headers: await getHeaders(),
     });
     return handleResponse(response);
   },
 
   async getPatientDrugs(id: string): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/patients/${id}/drugs`, {
-      headers: getHeaders(),
+      headers: await getHeaders(),
     });
     return handleResponse(response);
   },
@@ -104,7 +132,7 @@ export const clinicApi = {
   async createPatient(data: any): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/patients`, {
       method: 'POST',
-      headers: getHeaders(),
+      headers: await getHeaders(),
       body: JSON.stringify(data),
     });
     return handleResponse(response);
@@ -113,7 +141,7 @@ export const clinicApi = {
   async updatePatient(id: string, data: any): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/patients/${id}`, {
       method: 'PUT',
-      headers: getHeaders(),
+      headers: await getHeaders(),
       body: JSON.stringify(data),
     });
     return handleResponse(response);
@@ -122,7 +150,7 @@ export const clinicApi = {
   async finalizeReferral(referralId: string): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/referrals/${referralId}/finalize`, {
       method: 'POST',
-      headers: getHeaders(),
+      headers: await getHeaders(),
     });
     return handleResponse(response);
   },
@@ -130,21 +158,21 @@ export const clinicApi = {
   async resubmitReferral(referralId: string): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/referrals/${referralId}/resubmit`, {
       method: 'POST',
-      headers: getHeaders(),
+      headers: await getHeaders(),
     });
     return handleResponse(response);
   },
 
   async getReferralHistory(referralId: string): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/referrals/${referralId}/history`, {
-      headers: getHeaders(),
+      headers: await getHeaders(),
     });
     return handleResponse(response);
   },
 
   async getReferralNotes(referralId: string): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/referrals/${referralId}/notes`, {
-      headers: getHeaders(),
+      headers: await getHeaders(),
     });
     return handleResponse<{ items: any[] }>(response);
   },
@@ -152,7 +180,7 @@ export const clinicApi = {
   async addReferralNote(referralId: string, content: string): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/referrals/${referralId}/notes`, {
       method: 'POST',
-      headers: getHeaders(),
+      headers: await getHeaders(),
       body: JSON.stringify({ content }),
     });
     return handleResponse(response);
@@ -161,7 +189,7 @@ export const clinicApi = {
   async updateReferralInsurance(referralId: string, insurance: any): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/referrals/${referralId}/insurance`, {
       method: 'PUT',
-      headers: getHeaders(),
+      headers: await getHeaders(),
       body: JSON.stringify({ insurance }),
     });
     return handleResponse(response);
@@ -170,7 +198,7 @@ export const clinicApi = {
   async getFormularyDrugs(search?: string): Promise<{ items: any[] }> {
     const q = search ? `?q=${encodeURIComponent(search)}` : '';
     const response = await fetch(`${API_BASE_URL}/referrals/drugs${q}`, {
-      headers: getHeaders(),
+      headers: await getHeaders(),
     });
     return handleResponse<{ items: any[] }>(response);
   },
@@ -187,14 +215,14 @@ export const adminApi = {
 
     const url = `${API_BASE_URL}/admin/referrals${params.toString() ? '?' + params : ''}`;
     const response = await fetch(url, {
-      headers: getHeaders(),
+      headers: await getHeaders(),
     });
     return handleResponse(response);
   },
 
   async getReferral(id: string): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/admin/referrals/${id}`, {
-      headers: getHeaders(),
+      headers: await getHeaders(),
     });
     return handleResponse(response);
   },
@@ -202,7 +230,7 @@ export const adminApi = {
   async processReferral(id: string): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/admin/referrals/${id}/process`, {
       method: 'POST',
-      headers: getHeaders(),
+      headers: await getHeaders(),
     });
     return handleResponse(response);
   },
@@ -210,7 +238,7 @@ export const adminApi = {
   async makeDecision(id: string, decision: 'approve' | 'reject', reason?: string): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/admin/referrals/${id}/decision`, {
       method: 'POST',
-      headers: getHeaders(),
+      headers: await getHeaders(),
       body: JSON.stringify({ decision, reason }),
     });
     return handleResponse(response);
@@ -222,7 +250,7 @@ export const adminApi = {
 
     const response = await fetch(
       `${API_BASE_URL}/admin/referrals/${id}/pdf?${params}`,
-      { headers: getHeaders() }
+      { headers: await getHeaders() }
     );
     if (!response.ok) throw new Error('Failed to get PDF');
     return response.blob();
@@ -231,7 +259,7 @@ export const adminApi = {
   async submitPA(id: string, submittedDate: string): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/admin/referrals/${id}/pa/submit`, {
       method: 'POST',
-      headers: getHeaders(),
+      headers: await getHeaders(),
       body: JSON.stringify({ submitted_date: submittedDate }),
     });
     return handleResponse(response);
@@ -248,7 +276,7 @@ export const adminApi = {
   }): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/admin/referrals/${id}/pa/decision`, {
       method: 'POST',
-      headers: getHeaders(),
+      headers: await getHeaders(),
       body: JSON.stringify(data),
     });
     return handleResponse(response);
@@ -256,14 +284,14 @@ export const adminApi = {
 
   async getReferralCounts(): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/admin/referrals/counts`, {
-      headers: getHeaders(),
+      headers: await getHeaders(),
     });
     return handleResponse(response);
   },
 
   async getBlockedReferrals(): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/admin/referrals/blocked`, {
-      headers: getHeaders(),
+      headers: await getHeaders(),
     });
     return handleResponse(response);
   },
@@ -271,7 +299,7 @@ export const adminApi = {
   async updateExtractedData(id: string, extractedData: any): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/admin/referrals/${id}/extracted-data`, {
       method: 'PUT',
-      headers: getHeaders(),
+      headers: await getHeaders(),
       body: JSON.stringify({ extracted_data: extractedData }),
     });
     return handleResponse(response);
@@ -279,14 +307,14 @@ export const adminApi = {
 
   async getReferralDocuments(id: string): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/admin/referrals/${id}/documents`, {
-      headers: getHeaders(),
+      headers: await getHeaders(),
     });
     return handleResponse(response);
   },
 
   async getDocumentUrl(docId: string): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/admin/documents/${docId}/url`, {
-      headers: getHeaders(),
+      headers: await getHeaders(),
     });
     return handleResponse(response);
   },
@@ -294,7 +322,7 @@ export const adminApi = {
   async deliverReferral(id: string, excludeDocIds?: string[]): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/admin/referrals/${id}/deliver`, {
       method: 'POST',
-      headers: getHeaders(),
+      headers: await getHeaders(),
       body: JSON.stringify(excludeDocIds ? { exclude_doc_ids: excludeDocIds } : {}),
     });
     return handleResponse(response);
@@ -302,7 +330,7 @@ export const adminApi = {
 
   async getAlternativePharmacies(id: string): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/admin/referrals/${id}/alternative-pharmacies`, {
-      headers: getHeaders(),
+      headers: await getHeaders(),
     });
     return handleResponse(response);
   },
@@ -310,7 +338,7 @@ export const adminApi = {
   async reassignPharmacy(id: string, pharmacyId: string): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/admin/referrals/${id}/reassign-pharmacy`, {
       method: 'POST',
-      headers: getHeaders(),
+      headers: await getHeaders(),
       body: JSON.stringify({ new_pharmacy_id: pharmacyId }),
     });
     return handleResponse(response);
@@ -318,7 +346,7 @@ export const adminApi = {
 
   async getReferralNotes(referralId: string): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/admin/referrals/${referralId}/notes`, {
-      headers: getHeaders(),
+      headers: await getHeaders(),
     });
     return handleResponse<{ items: any[] }>(response);
   },
@@ -326,7 +354,7 @@ export const adminApi = {
   async addReferralNote(referralId: string, content: string): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/admin/referrals/${referralId}/notes`, {
       method: 'POST',
-      headers: getHeaders(),
+      headers: await getHeaders(),
       body: JSON.stringify({ content }),
     });
     return handleResponse(response);
@@ -335,7 +363,7 @@ export const adminApi = {
   async markInsuranceExpired(referralId: string, expired: boolean): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/admin/referrals/${referralId}/mark-insurance-expired`, {
       method: 'POST',
-      headers: getHeaders(),
+      headers: await getHeaders(),
       body: JSON.stringify({ expired }),
     });
     return handleResponse(response);
@@ -348,7 +376,7 @@ export const adminApi = {
     letter: { id: string; filename: string; uploaded_at: string; from_referral_id: string } | null;
   }> {
     const response = await fetch(`${API_BASE_URL}/admin/referrals/${referralId}/pa/letter`, {
-      headers: getHeaders(),
+      headers: await getHeaders(),
     });
     return handleResponse(response);
   },
@@ -358,7 +386,7 @@ export const adminApi = {
     formData.append('file', file);
     const response = await fetch(`${API_BASE_URL}/admin/referrals/${referralId}/pa/upload`, {
       method: 'POST',
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
       body: formData,
     });
     return handleResponse(response);
@@ -367,7 +395,7 @@ export const adminApi = {
   async getFormularyDrugs(search?: string): Promise<{ items: any[] }> {
     const q = search ? `?q=${encodeURIComponent(search)}` : '';
     const response = await fetch(`${API_BASE_URL}/admin/drugs${q}`, {
-      headers: getHeaders(),
+      headers: await getHeaders(),
     });
     return handleResponse<{ items: any[] }>(response);
   },
@@ -380,14 +408,14 @@ export const adminApi = {
 export const pharmacyApi = {
   async getPharmacies(): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/pharmacies`, {
-      headers: getHeaders(),
+      headers: await getHeaders(),
     });
     return handleResponse(response);
   },
 
   async getPharmacy(id: string): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/pharmacies/${id}`, {
-      headers: getHeaders(),
+      headers: await getHeaders(),
     });
     return handleResponse(response);
   },
@@ -395,7 +423,7 @@ export const pharmacyApi = {
   async createPharmacy(data: any): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/pharmacies`, {
       method: 'POST',
-      headers: getHeaders(),
+      headers: await getHeaders(),
       body: JSON.stringify(data),
     });
     return handleResponse(response);
@@ -404,7 +432,7 @@ export const pharmacyApi = {
   async updatePharmacy(id: string, data: any): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/pharmacies/${id}`, {
       method: 'PUT',
-      headers: getHeaders(),
+      headers: await getHeaders(),
       body: JSON.stringify(data),
     });
     return handleResponse(response);
@@ -418,14 +446,14 @@ export const pharmacyApi = {
 export const patientApi = {
   async getPatients(): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/patients`, {
-      headers: getHeaders(),
+      headers: await getHeaders(),
     });
     return handleResponse(response);
   },
 
   async getPatient(id: string): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/patients/${id}`, {
-      headers: getHeaders(),
+      headers: await getHeaders(),
     });
     return handleResponse(response);
   },
