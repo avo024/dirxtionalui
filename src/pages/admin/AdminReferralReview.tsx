@@ -638,6 +638,12 @@ export default function AdminReferralReview() {
                           value={editedData?.clinical?.drug_requested || ""}
                           onChange={(v) => updateField("clinical", "drug_requested", v)}
                           fetchDrugs={adminApi.getFormularyDrugs}
+                          onSelectItem={(item) => {
+                            updateField("clinical", "brand_name", item.drug_name);
+                            if (item.generic_name) {
+                              updateField("clinical", "generic_name", item.generic_name);
+                            }
+                          }}
                         />
                       </div>
                       <div className="grid grid-cols-2 gap-3 pb-2">

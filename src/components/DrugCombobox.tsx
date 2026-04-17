@@ -23,6 +23,7 @@ interface DrugComboboxProps {
   value: string;
   onChange: (drugName: string) => void;
   fetchDrugs: (q?: string) => Promise<{ items: DrugItem[] }>;
+  onSelectItem?: (item: DrugItem) => void;
   placeholder?: string;
   className?: string;
 }
@@ -31,6 +32,7 @@ export function DrugCombobox({
   value,
   onChange,
   fetchDrugs,
+  onSelectItem,
   placeholder = "Search drug...",
   className,
 }: DrugComboboxProps) {
@@ -63,8 +65,9 @@ export function DrugCombobox({
     };
   }, [inputText, open, fetchDrugs]);
 
-  const handleSelect = (drugName: string) => {
+  const handleSelect = (drugName: string, item?: DrugItem) => {
     onChange(drugName);
+    if (item) onSelectItem?.(item);
     setOpen(false);
     setInputText("");
   };
@@ -114,7 +117,7 @@ export function DrugCombobox({
                   <CommandItem
                     key={`${item.drug_name}-${item.generic_name ?? ""}`}
                     value={item.drug_name}
-                    onSelect={() => handleSelect(item.drug_name)}
+                    onSelect={() => handleSelect(item.drug_name, item)}
                     className="flex items-center justify-between gap-2"
                   >
                     <div className="flex items-center gap-2 min-w-0">
