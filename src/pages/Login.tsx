@@ -42,6 +42,7 @@ export default function Login() {
             className="w-full"
             onClick={() =>
               loginWithRedirect({
+                authorizationParams: { screen_hint: "login" },
                 appState: { returnTo: "/" },
               })
             }
