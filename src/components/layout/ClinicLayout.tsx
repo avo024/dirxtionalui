@@ -21,6 +21,8 @@ export function ClinicLayout() {
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (user?.role !== "clinic_user") return <Navigate to="/admin/dashboard" replace />;
 
+  const showProfileModal = profile && profile.profile_complete === false;
+
   return (
     <div className="flex min-h-screen w-full">
       <ClinicSidebar />
@@ -32,6 +34,7 @@ export function ClinicLayout() {
           <Outlet />
         </div>
       </main>
+      {showProfileModal && <CompleteProfileModal />}
     </div>
   );
 }
