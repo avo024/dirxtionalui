@@ -53,6 +53,32 @@ export default function AdminDashboard() {
   }
 
   const needsReview = referrals.filter((r) => r.status === "ready_for_review");
+
+  // Broaden dashboard table: include any referral with an unread clinic note
+  // regardless of status, using the same localStorage key pattern as ReferralTable.
+  const hasUnreadClinicNote = (r: any): boolean => {
+    const noteTs = r.latest_clinic_note_at;
+    if (!noteTs) return false;
+    const lastViewed = localStorage.getItem(`notes_last_viewed_${r.id}`);
+    return !lastViewed || new Date(noteTs) > new Date(lastViewed);
+  };
+  const needsAttention = (() => {
+    const seen = new Set<string>();
+    const out: any[] = [];
+    // Unread-note rows first
+    for (const r of referrals) {
+      if (hasUnreadClinicNote(r) && !seen.has(r.id)) {
+        seen.add(r.id);
+        out.push(r);
+      }
+    }
+    // Then ready_for_review by created_at desc
+    const review = needsReview
+      .filter((r) => !seen.has(r.id))
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    return [...out, ...review];
+  })();
+
   const today = new Date().toDateString();
   const approvedToday = referrals.filter((r) => r.status === "approved_to_send" && r.updated_at && new Date(r.updated_at).toDateString() === today).length;
   const rejectedToday = referrals.filter((r) => r.status === "rejected" && r.updated_at && new Date(r.updated_at).toDateString() === today).length;
