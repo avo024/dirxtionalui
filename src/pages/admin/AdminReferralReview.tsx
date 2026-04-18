@@ -25,6 +25,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { DrugCombobox } from "@/components/DrugCombobox";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { getDisplayAuthor, getAuthorInitials } from "@/lib/noteAuthor";
+import { useAdminProfile } from "@/hooks/useAdminProfile";
 
 // Critical fields that should be flagged when missing
 const CRITICAL_FIELDS = [
@@ -88,6 +89,7 @@ export default function AdminReferralReview() {
   const [isReExtracting, setIsReExtracting] = useState(false);
   const [extractError, setExtractError] = useState<string | null>(null);
   const notesEndRef = useRef<HTMLDivElement>(null);
+  const { data: adminProfile } = useAdminProfile();
 
   const handlePALetterChange = useCallback((info: PALetterInfo) => {
     setPaLetterInfo(info);
@@ -388,7 +390,7 @@ export default function AdminReferralReview() {
         </div>
 
         {/* Right: Tabbed panel */}
-        <div className="lg:w-1/2 overflow-y-auto p-6">
+        <div className="lg:w-1/2 overflow-y-auto p-6 pb-28">
           {referral.status === 'processing' || isReExtracting ? (
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
@@ -966,7 +968,10 @@ export default function AdminReferralReview() {
                       setSendingNote(true);
                       try {
                         const result = await adminApi.addReferralNote(id, newNote.trim());
-                        setNotes((prev) => [...prev, { id: result.id, author_type: 'admin', author_name: 'Admin', content: newNote.trim(), created_at: new Date().toISOString(), ...result }]);
+                        const fallbackName = adminProfile && (adminProfile.first_name || adminProfile.last_name)
+                          ? `${adminProfile.first_name || ''} ${adminProfile.last_name || ''}`.trim()
+                          : 'Admin';
+                        setNotes((prev) => [...prev, { id: result.id, author_type: 'admin', author_name: fallbackName, content: newNote.trim(), created_at: new Date().toISOString(), ...result }]);
                         setNewNote("");
                         toast({ title: "Note added" });
                         localStorage.setItem(`notes_last_viewed_${id}`, new Date().toISOString());
