@@ -171,12 +171,12 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Referrals needing review */}
+      {/* Needs Attention: ready_for_review + unread clinic notes (any status) */}
       <div>
         <h2 className="text-lg font-semibold text-foreground mb-4">
-          Referrals Needing Review {needsReview.length > 0 && <span className="text-warning">({needsReview.length})</span>}
+          Needs Attention {needsAttention.length > 0 && <span className="text-warning">({needsAttention.length})</span>}
         </h2>
-        <ReferralTable referrals={needsReview} userType="admin" showClinic />
+        <ReferralTable referrals={needsAttention} userType="admin" showClinic />
       </div>
     </div>
   );
