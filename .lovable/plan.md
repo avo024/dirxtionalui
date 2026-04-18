@@ -1,68 +1,39 @@
 
 
-## Invite Acceptance Flow + Hide Signup on Main Login
+## Fix API token regression after invite flow
 
-### Discovery
-- `src/pages/InviteAcceptPage.tsx` already exists with old mock-auth flow (uses deprecated `login()` from AuthContext + `X-DEV-ADMIN`). It's wired to `/invite/:token` in `App.tsx`. Will replace contents to match new spec and rename concept to `AcceptInvite` (keep file or rename — see below).
-- `src/main.tsx` has `onRedirectCallback` that just does `history.replaceState` — needs sessionStorage write for `inviteToken`.
-- `src/pages/Login.tsx` calls `loginWithRedirect({ appState: { returnTo: "/" } })` with no `screen_hint` — Auth0 Universal Login currently shows signup link.
-- `src/App.tsx` already imports `InviteAcceptPage` for `/invite/:token` (route is OUTSIDE layout guards — already public ✓).
-- `useToast` is available at `@/hooks/use-toast` for the welcome toast.
-- `VITE_API_URL` is read in existing `InviteAcceptPage` via `import.meta.env.VITE_API_URL || "http://localhost:5000"` — will reuse same fallback.
+### Root cause
+The token-provider wiring is actually **intact and correct**:
+- `src/hooks/useApi.ts` registers the token getter via `setAuthTokenProvider(getToken)` inside a `useEffect` ✓
+- `src/lib/api.ts` `getHeaders()` / `getAuthHeaders()` are `async`, await `currentToken()`, and attach `Authorization: Bearer <token>` ✓
+- `src/contexts/AuthContext.tsx` calls `useApi()` at the top of `AuthProvider`, which mounts on app boot inside `<BrowserRouter>` ✓
 
-### Plan
+The 401s are caused by **the wrong API base URL**, not missing headers. `.env` currently contains only the three Auth0 variables — `VITE_API_URL` is **missing entirely**, so `api.ts` falls back to `http://localhost:5000`. From the deployed preview that resolves to nothing useful, and any request that does land on the real backend would hit a wrong path if `/api` was previously appended.
 
-**1. Replace `src/pages/InviteAcceptPage.tsx` → rename file to `AcceptInvite.tsx`**
-- Delete `InviteAcceptPage.tsx`, create `src/pages/AcceptInvite.tsx`
-- On mount: `GET ${VITE_API_URL}/invites/${token}` with NO auth header
-- Three states: `404` → "Invite not found" card, `410` → "expired/used" card, `200` → invite card
-- `200` card:
-  - Heading: "You're invited to DiRxctional"
-  - Subtitle: "Join {clinic_name} to manage specialty referrals"
-  - "This invite is for: {email}" (read-only)
-  - Primary "Create Account" → `loginWithRedirect({ authorizationParams: { screen_hint: 'signup', login_hint: email }, appState: { inviteToken: token, returnTo: '/' } })`
-  - Secondary "Already have an account? Log in" → same but `screen_hint: 'login'`
-- Loading spinner while fetching
-- Error/404/410 cards include "Go to Login" button → `/login`
-- No auth guard, no `useAuth()` calls — purely public
+### Changes
 
-**2. `src/App.tsx`**
-- Update import: `InviteAcceptPage` → `AcceptInvite` from `./pages/AcceptInvite`
-- Route stays: `<Route path="/invite/:token" element={<AcceptInvite />} />` (already outside guards)
+**1. `.env`** — add the missing `VITE_API_URL` pointing at the real backend root (no `/api` suffix, since routes live at `/admin/*`, `/clinics/*`, `/invites/*`):
+```
+VITE_API_URL=https://app.dirxctional.com
+```
+(Keep the three existing Auth0 vars untouched.)
 
-**3. `src/main.tsx`**
-- Update `onRedirectCallback` to write `sessionStorage.setItem('pendingInviteToken', appState.inviteToken)` when present, before `history.replaceState`
+**2. Sanity-verify token wiring is still intact** — no code changes expected, but I'll re-confirm:
+- `useApi()` invoked once in `AuthProvider` (mounts on boot, not behind a route guard)
+- `setAuthTokenProvider` / `currentToken` round-trip in `api.ts`
+- Every fetch in `clinicApi`, `adminApi`, `pharmacyApi`, `patientApi` calls `await getHeaders()` (it does)
 
-**4. New component `src/components/InviteAccepter.tsx`**
-- Renders nothing (returns `null`)
-- Uses `useAuth0()` for `isAuthenticated` + `getAccessTokenSilently`
-- Uses `useToast()` from `@/hooks/use-toast`
-- `useEffect` (with ref guard so it runs once per mount/login):
-  - When `isAuthenticated` becomes true, read `sessionStorage.getItem('pendingInviteToken')`
-  - If present: get bearer token, `POST ${VITE_API_URL}/invites/${token}/accept` with `Authorization: Bearer ...`
-  - On success: parse `clinic_name` from response, show toast `"Welcome to {clinic_name}"`, remove sessionStorage key
-  - On error: log + remove key (don't trap user in retry loop)
-
-**5. Mount `<InviteAccepter />`**
-- Inside `<App />`, just below `<AuthProvider>` opening tag (so it has access to Auth0 context which `main.tsx` provides, and renders alongside `<Routes>`)
-
-**6. `src/pages/Login.tsx`**
-- Update the "Log In" button:
-  ```tsx
-  loginWithRedirect({ authorizationParams: { screen_hint: 'login' }, appState: { returnTo: '/' } })
-  ```
+If the regression turns out to be more than the env var (e.g. a stale build referencing `/api`), I'll grep for any hardcoded `/api/` path in `src/` and strip it.
 
 ### Files touched
-- `src/pages/AcceptInvite.tsx` — new (replaces `InviteAcceptPage.tsx`)
-- `src/pages/InviteAcceptPage.tsx` — delete
-- `src/components/InviteAccepter.tsx` — new
-- `src/App.tsx` — swap import + mount `<InviteAccepter />`
-- `src/main.tsx` — sessionStorage write in `onRedirectCallback`
-- `src/pages/Login.tsx` — add `screen_hint: 'login'`
+- `.env` — add `VITE_API_URL`
 
-### Risks / notes
-- The `InviteAccepter` runs inside `<BrowserRouter>` + `<AuthProvider>`; Auth0 context comes from `main.tsx` so it's available. Toast requires `<Toaster />` already mounted — confirmed in `App.tsx`.
-- Ref guard prevents double-POST in React StrictMode dev mode.
-- Backend is expected to return `clinic_name` in the accept response; if not, toast falls back to "Welcome!".
-- The existing `AcceptInvite` page does NOT call accept itself — acceptance is deferred to post-Auth0-redirect (per spec).
+### Verification (after restart)
+- DevTools Network → reload `/admin/dashboard`
+- Request URL should be `https://app.dirxctional.com/admin/referrals/counts` (no `/api`)
+- Request Headers should include `authorization: Bearer eyJ…`
+- Response: `200` JSON, not `401`
+
+### Risk note
+If the correct backend host is different (e.g. `https://api.dirxctional.com` to match the Auth0 audience), tell me before I commit and I'll use that instead. The audience `https://api.dirxctional.com` is just the JWT audience claim — it does not have to equal the API host.
 
