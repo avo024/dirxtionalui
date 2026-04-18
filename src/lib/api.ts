@@ -12,14 +12,23 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 // ---- Token provider registration ------------------------------------------
+// Race-safe: requests await `tokenReady` so they block until `useApi()` has
+// registered a provider on app boot. The promise resolves once and stays
+// resolved for the app's lifetime (re-registration on logout/login is fine).
 type TokenProvider = () => Promise<string | undefined>;
 let tokenProvider: TokenProvider | null = null;
+let resolveTokenReady: () => void;
+const tokenReady: Promise<void> = new Promise((resolve) => {
+  resolveTokenReady = resolve;
+});
 
 export function setAuthTokenProvider(provider: TokenProvider | null) {
   tokenProvider = provider;
+  if (provider) resolveTokenReady();
 }
 
 async function currentToken(): Promise<string | undefined> {
+  await tokenReady;
   if (!tokenProvider) return undefined;
   try {
     return await tokenProvider();
@@ -103,6 +112,38 @@ export async function updateMyProfile(data: {
     body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error('Failed to update profile');
+  return res.json();
+}
+
+// ---- Admin profile --------------------------------------------------------
+export interface AdminProfile {
+  first_name: string | null;
+  last_name: string | null;
+  phone: string | null;
+  profile_complete: boolean;
+  email?: string;
+  [key: string]: any;
+}
+
+export async function getMyAdminProfile(): Promise<AdminProfile> {
+  const res = await fetch(`${API_BASE_URL}/admin/me/profile`, {
+    headers: await getHeaders(),
+  });
+  if (!res.ok) throw new Error('Failed to load admin profile');
+  return res.json();
+}
+
+export async function updateMyAdminProfile(data: {
+  first_name: string;
+  last_name: string;
+  phone: string;
+}): Promise<AdminProfile> {
+  const res = await fetch(`${API_BASE_URL}/admin/me/profile`, {
+    method: 'PATCH',
+    headers: await getHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Failed to update admin profile');
   return res.json();
 }
 

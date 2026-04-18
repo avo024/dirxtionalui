@@ -1,11 +1,14 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAdminProfile } from "@/hooks/useAdminProfile";
+import { CompleteAdminProfileModal } from "@/components/CompleteAdminProfileModal";
 import { AdminSidebar } from "./AdminSidebar";
 import { UserMenu } from "./UserMenu";
 
 export function AdminLayout() {
   const { user, isAuthenticated, isLoading } = useAuth();
+  const { data: profile } = useAdminProfile();
 
   if (isLoading) {
     return (
@@ -18,6 +21,8 @@ export function AdminLayout() {
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (user?.role !== "internal_admin") return <Navigate to="/clinic/dashboard" replace />;
 
+  const showProfileModal = profile && profile.profile_complete === false;
+
   return (
     <div className="flex min-h-screen w-full">
       <AdminSidebar />
@@ -29,6 +34,7 @@ export function AdminLayout() {
           <Outlet />
         </div>
       </main>
+      {showProfileModal && <CompleteAdminProfileModal />}
     </div>
   );
 }
