@@ -19,6 +19,8 @@ import { mapReferralFromBackend } from "@/lib/dataMapper";
 import { formatDateTime, formatDateShort } from "@/lib/dateUtils";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { getDisplayAuthor, getAuthorInitials } from "@/lib/noteAuthor";
 
 type ReferralStatus = "uploaded" | "processing" | "approved_to_send" | "rejected" | "sent_to_pharmacy";
 
@@ -640,22 +642,31 @@ export default function ReferralDetail() {
               <div className="space-y-3">
                 {notes.map((note) => {
                   const isAdmin = note.author_type === 'admin';
-                  const authorName = isAdmin
-                    ? "DiRxtional Team"
-                    : (referral.clinic_name || "Your Clinic");
+                  const authorName = getDisplayAuthor(note, 'clinic');
+                  const initials = getAuthorInitials(note, 'clinic');
                   return (
                     <div
                       key={note.id}
                       className={cn(
-                        "rounded-lg border border-border/50 bg-card p-4 border-l-4",
+                        "rounded-lg border border-border/50 bg-card p-4 border-l-4 flex gap-3",
                         isAdmin ? "border-l-purple-500" : "border-l-primary"
                       )}
                     >
-                      <div className="flex items-baseline justify-between mb-2 gap-3">
-                        <span className="font-semibold text-sm text-foreground">{authorName}</span>
-                        <span className="text-xs text-muted-foreground shrink-0">{formatDateTime(note.created_at)}</span>
+                      <Avatar className="h-8 w-8 shrink-0">
+                        <AvatarFallback className={cn(
+                          "text-xs font-semibold",
+                          isAdmin ? "bg-purple-100 text-purple-700" : "bg-primary/10 text-primary"
+                        )}>
+                          {initials}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-baseline justify-between mb-1 gap-3">
+                          <span className="font-semibold text-sm text-foreground truncate">{authorName}</span>
+                          <span className="text-xs text-muted-foreground shrink-0">{formatDateTime(note.created_at)}</span>
+                        </div>
+                        <p className="text-sm text-foreground whitespace-pre-wrap">{note.content}</p>
                       </div>
-                      <p className="text-sm text-foreground whitespace-pre-wrap">{note.content}</p>
                     </div>
                   );
                 })}
