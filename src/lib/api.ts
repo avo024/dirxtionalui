@@ -72,6 +72,40 @@ export async function getMyClinic(): Promise<{
   return res.json();
 }
 
+export interface MyProfile {
+  first_name: string | null;
+  last_name: string | null;
+  phone: string | null;
+  npi: string | null;
+  profile_complete: boolean;
+  email?: string;
+  clinic_id?: string;
+  [key: string]: any;
+}
+
+export async function getMyProfile(): Promise<MyProfile> {
+  const res = await fetch(`${API_BASE_URL}/clinics/me/profile`, {
+    headers: await getHeaders(),
+  });
+  if (!res.ok) throw new Error('Failed to load profile');
+  return res.json();
+}
+
+export async function updateMyProfile(data: {
+  first_name: string;
+  last_name: string;
+  phone: string;
+  npi?: string;
+}): Promise<MyProfile> {
+  const res = await fetch(`${API_BASE_URL}/clinics/me/profile`, {
+    method: 'PATCH',
+    headers: await getHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Failed to update profile');
+  return res.json();
+}
+
 // ============================================================================
 // CLINIC ENDPOINTS
 // ============================================================================

@@ -1,11 +1,14 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useProfile } from "@/hooks/useProfile";
 import { ClinicSidebar } from "./ClinicSidebar";
 import { UserMenu } from "./UserMenu";
+import { CompleteProfileModal } from "@/components/CompleteProfileModal";
 
 export function ClinicLayout() {
   const { user, isAuthenticated, isLoading } = useAuth();
+  const { data: profile } = useProfile();
 
   if (isLoading) {
     return (
@@ -18,6 +21,8 @@ export function ClinicLayout() {
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (user?.role !== "clinic_user") return <Navigate to="/admin/dashboard" replace />;
 
+  const showProfileModal = profile && profile.profile_complete === false;
+
   return (
     <div className="flex min-h-screen w-full">
       <ClinicSidebar />
@@ -29,6 +34,7 @@ export function ClinicLayout() {
           <Outlet />
         </div>
       </main>
+      {showProfileModal && <CompleteProfileModal />}
     </div>
   );
 }
