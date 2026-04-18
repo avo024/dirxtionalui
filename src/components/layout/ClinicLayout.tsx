@@ -1,11 +1,14 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useProfile } from "@/hooks/useProfile";
 import { ClinicSidebar } from "./ClinicSidebar";
 import { UserMenu } from "./UserMenu";
+import { CompleteProfileModal } from "@/components/CompleteProfileModal";
 
 export function ClinicLayout() {
   const { user, isAuthenticated, isLoading } = useAuth();
+  const { data: profile } = useProfile();
 
   if (isLoading) {
     return (
