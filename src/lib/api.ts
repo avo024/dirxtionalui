@@ -55,6 +55,24 @@ async function getAuthHeaders(): Promise<HeadersInit> {
 }
 
 // ============================================================================
+// CURRENT USER / CLINIC
+// ============================================================================
+
+export async function getMyClinic(): Promise<{
+  id: string;
+  name: string;
+  specialty?: string;
+  email?: string;
+  default_pharmacy_id?: string;
+}> {
+  const res = await fetch(`${API_BASE_URL}/clinics/me`, {
+    headers: await getHeaders(),
+  });
+  if (!res.ok) throw new Error('Failed to load clinic');
+  return res.json();
+}
+
+// ============================================================================
 // CLINIC ENDPOINTS
 // ============================================================================
 

@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useMemo, useCallback, useEffect } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
+import { useQuery } from "@tanstack/react-query";
 import { useApi } from "@/hooks/useApi";
+import { getMyClinic } from "@/lib/api";
 
 export type UserRole = "clinic_user" | "internal_admin";
 
@@ -8,6 +10,8 @@ interface User {
   role: UserRole;
   name: string;
   clinic_name?: string;
+  clinic_specialty?: string;
+  clinic_id?: string;
   email?: string;
   picture?: string;
 }
@@ -38,28 +42,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Bridge Auth0 access tokens into the API layer.
   useApi();
 
-  const user = useMemo<User | null>(() => {
-    if (!isAuthenticated || !auth0User) return null;
+  const claimedRole = auth0User?.[ROLE_CLAIM] as UserRole | undefined;
+  const role: UserRole | null = !isAuthenticated || !auth0User
+    ? null
+    : claimedRole === "internal_admin"
+      ? "internal_admin"
+      : "clinic_user";
 
-    const claimedRole = auth0User[ROLE_CLAIM] as UserRole | undefined;
-    const role: UserRole = claimedRole === "internal_admin" ? "internal_admin" : "clinic_user";
+  // Fetch real clinic info for clinic_users (cached). Falls back to claim if it fails.
+  const { data: clinic } = useQuery({
+    queryKey: ["clinic", "me"],
+    queryFn: getMyClinic,
+    enabled: isAuthenticated && role === "clinic_user",
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+  });
+
+  const user = useMemo<User | null>(() => {
+    if (!isAuthenticated || !auth0User || !role) return null;
 
     if (!claimedRole) {
       // TODO: configure Auth0 Action to inject role claim at ROLE_CLAIM.
-      // Until then, every authenticated user defaults to clinic_user.
       console.warn(
         `[Auth] No role claim "${ROLE_CLAIM}" found on Auth0 user — defaulting to clinic_user.`,
       );
     }
+
+    const fallbackClinicName = (auth0User[CLINIC_CLAIM] as string) || "Your Clinic";
 
     return {
       role,
       name: auth0User.name || auth0User.email || "User",
       email: auth0User.email,
       picture: auth0User.picture,
-      clinic_name: (auth0User[CLINIC_CLAIM] as string) || "Your Clinic",
+      clinic_id: clinic?.id,
+      clinic_name: clinic?.name || fallbackClinicName,
+      clinic_specialty: clinic?.specialty,
     };
-  }, [auth0User, isAuthenticated]);
+  }, [auth0User, isAuthenticated, role, claimedRole, clinic]);
 
   const login = useCallback((_role: UserRole) => {
     console.warn(
