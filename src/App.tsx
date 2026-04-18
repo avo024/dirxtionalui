@@ -7,7 +7,8 @@ import { AuthProvider } from "@/contexts/AuthContext";
 
 import Index from "./pages/Index";
 import Login from "./pages/Login";
-import InviteAcceptPage from "./pages/InviteAcceptPage";
+import AcceptInvite from "./pages/AcceptInvite";
+import InviteAccepter from "./components/InviteAccepter";
 import NotFound from "./pages/NotFound";
 
 import { ClinicLayout } from "@/components/layout/ClinicLayout";
@@ -38,10 +39,11 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <InviteAccepter />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/invite/:token" element={<InviteAcceptPage />} />
+            <Route path="/invite/:token" element={<AcceptInvite />} />
 
             {/* Clinic routes */}
             <Route path="/clinic" element={<ClinicLayout />}>

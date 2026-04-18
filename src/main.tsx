@@ -12,6 +12,9 @@ createRoot(document.getElementById("root")!).render(
       audience: import.meta.env.VITE_AUTH0_AUDIENCE,
     }}
     onRedirectCallback={(appState) => {
+      if (appState?.inviteToken) {
+        sessionStorage.setItem("pendingInviteToken", appState.inviteToken);
+      }
       window.history.replaceState(
         {},
         document.title,
