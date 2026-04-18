@@ -12,30 +12,33 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
+import { useAdminProfile } from "@/hooks/useAdminProfile";
 
 export function UserMenu() {
   const { user: auth0User, logout } = useAuth0();
   const { user } = useAuth();
-  const { data: profile } = useProfile();
+  const { data: clinicProfile } = useProfile();
+  const { data: adminProfile } = useAdminProfile();
 
   if (!auth0User) return null;
 
   const isClinicUser = user?.role === "clinic_user";
+  const isAdmin = user?.role === "internal_admin";
+
+  // Pick the right profile based on role; each hook only fires for its role.
+  const activeProfile = isClinicUser ? clinicProfile : isAdmin ? adminProfile : null;
   const fullName =
-    isClinicUser && profile?.first_name && profile?.last_name
-      ? `${profile.first_name} ${profile.last_name}`
+    activeProfile?.first_name && activeProfile?.last_name
+      ? `${activeProfile.first_name} ${activeProfile.last_name}`
       : null;
 
-  // Display label: clinic user → full name (or email placeholder while loading);
-  // admin → email.
-  const displayLabel = isClinicUser
-    ? fullName ?? auth0User.email ?? "Account"
-    : auth0User.email ?? auth0User.name ?? "Account";
+  // Display label: name when available; email placeholder while loading.
+  const displayLabel = fullName ?? auth0User.email ?? auth0User.name ?? "Account";
 
-  // Avatar initials: clinic with profile → first+last; otherwise email/name fallback
+  // Avatar initials: profile first+last; otherwise email/name fallback
   const initials =
-    isClinicUser && profile?.first_name && profile?.last_name
-      ? `${profile.first_name[0]}${profile.last_name[0]}`.toUpperCase()
+    activeProfile?.first_name && activeProfile?.last_name
+      ? `${activeProfile.first_name[0]}${activeProfile.last_name[0]}`.toUpperCase()
       : (auth0User.name || auth0User.email || "U")
           .split(" ")
           .map((s) => s[0])

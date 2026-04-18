@@ -20,9 +20,10 @@ export function useApi() {
   }, [getAccessTokenSilently, isAuthenticated]);
 
   // Register the provider so api.ts can pull a fresh token on every request.
+  // Do NOT clear on unmount — clearing briefly nulls the provider during
+  // re-renders and re-triggers the tokenReady wait, causing 401s.
   useEffect(() => {
     setAuthTokenProvider(getToken);
-    return () => setAuthTokenProvider(null);
   }, [getToken]);
 
   return { getToken };
