@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Plus, FileText, Settings, LogOut, Users } from "lucide-react";
+import { LayoutDashboard, Plus, FileText, LogOut, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import logo from "@/assets/logo.png";
@@ -9,7 +9,6 @@ const navItems = [
   { label: "Patients", icon: Users, path: "/clinic/patients" },
   { label: "New Referral", icon: Plus, path: "/clinic/referrals/new" },
   { label: "My Referrals", icon: FileText, path: "/clinic/referrals" },
-  { label: "Settings", icon: Settings, path: "/clinic/settings" },
 ];
 
 export function ClinicSidebar() {
