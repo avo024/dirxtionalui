@@ -364,6 +364,7 @@ export default function CreateReferral() {
             setUploadedFiles([]);
             setExtracted(false);
             setConfirmAccuracy(false);
+            setSelectedPharmacyId(defaultPharmacyId);
             setCurrentStep(0);
             setSubmitted(false);
           }}>
