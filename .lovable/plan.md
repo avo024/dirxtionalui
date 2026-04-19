@@ -1,69 +1,37 @@
 
-## Admin UI Cleanup Plan
+## Pass invite_token to Auth0 signup via authorizationParams
 
-### 1. Remove Settings (sidebar + route + page)
-- `src/components/layout/AdminSidebar.tsx`: drop the `Settings` nav item (and `Settings` icon import).
-- `src/App.tsx`: remove the `AdminSettings` import and `<Route path="settings" />`.
-- Delete `src/pages/admin/AdminSettings.tsx`.
+### Change
+In `src/pages/AcceptInvite.tsx`, add `invite_token: token` to the `authorizationParams` in the `handleCreateAccount` function (signup flow only).
 
-### 2. Remove Blocked Referrals (sidebar + route + page + dead code)
-- `src/components/layout/AdminSidebar.tsx`: drop the `Blocked Referrals` nav item, `AlertOctagon` import, and the now-unneeded `blocked` exclusion in the active-route check.
-- `src/App.tsx`: remove `BlockedReferrals` import and `<Route path="referrals/blocked" />`.
-- Delete `src/pages/admin/BlockedReferrals.tsx`.
-- Delete `src/components/ReassignPharmacyModal.tsx` (only consumer was BlockedReferrals; uses mock data).
-- `src/lib/api.ts`: remove `adminApi.getBlockedReferrals`.
-- `src/data/mockData.ts`: remove `mockBlockedReferrals` export.
+**Current (line 45-50):**
+```typescript
+const handleCreateAccount = () => {
+  loginWithRedirect({
+    authorizationParams: { screen_hint: "signup", login_hint: email },
+    appState: { inviteToken: token, returnTo: "/" },
+  });
+};
+```
 
-### 3. Wire Pharmacies to real backend
+**New:**
+```typescript
+const handleCreateAccount = () => {
+  loginWithRedirect({
+    authorizationParams: { screen_hint: "signup", login_hint: email, invite_token: token },
+    appState: { inviteToken: token, returnTo: "/" },
+  });
+};
+```
 
-**API layer (`src/lib/api.ts`)**
-- Add `Pharmacy` interface matching the documented response shape.
-- Update `pharmacyApi`:
-  - `getPharmacies()` (already correct, returns `{ items: [] }`)
-  - `getPharmacy(id)` (already correct)
-  - `createPharmacy(data)` / `updatePharmacy(id, data)` (already correct)
-  - Add `deletePharmacy(id)` → `DELETE /pharmacies/:id`
+### Do not touch
+- `handleLogIn` function (login flow doesn't need invite_token)
+- `InviteAccepter.tsx` (works correctly, reads token from sessionStorage)
+- Any other files
 
-**Pharmacies list (`src/pages/admin/PharmaciesList.tsx`) — full rewrite**
-- React Query (`['pharmacies']`) calling `pharmacyApi.getPharmacies()`.
-- Header: "Pharmacies" + subtitle showing `${count} active pharmacies` + right-aligned "+ Add Pharmacy" button (opens create modal).
-- Search input filters client-side by name.
-- Table columns: Name (bold) · Phone (formatted `(XXX) XXX-XXXX`) · Fax (formatted) · Alt Phone/Fax · Email · Location (`city, state`) · Actions (Edit pencil + Deactivate power icon).
-- Row click → navigate to detail page.
-- Loading: shadcn `Skeleton` rows.
-- Error: inline retry message + toast.
-- Empty (post-fetch, zero items): centered "No pharmacies yet" + prominent "+ Add Pharmacy".
-- Phone formatter helper (`formatPhone(str)` → `(214) 555-1234`, falls back to raw).
+### File to edit
+- `src/pages/AcceptInvite.tsx` (1 line change in `handleCreateAccount`)
 
-**Pharmacy edit/create modal (new `src/components/PharmacyFormModal.tsx`)**
-- shadcn `Dialog` with form fields:
-  - Name* · Email · Phone · Fax · Alt Phone/Fax
-  - Address · City · State (2 char, uppercase) · Zip
-  - Contact Email · Contact Phone
-  - Notes (Textarea)
-  - Accepts No Insurance (Checkbox)
-  - Blocked Medications (TagListEditor — already exists in repo for tag inputs)
-  - Active toggle (Switch, maps to `is_active`)
-- Submits via `createPharmacy` or `updatePharmacy`; on success: toast, close, invalidate `['pharmacies']`.
-- Validation: name required, state must be 2 letters if present.
-
-**Delete flow**
-- "Deactivate" icon → `ConfirmModal` ("Deactivate {name}? They won't appear in new referrals.") → `deletePharmacy(id)` → invalidate list.
-
-**Pharmacy detail (`src/pages/admin/PharmacyDetail.tsx`) — refactor**
-- Replace `mockPharmacies.find` with React Query `pharmacyApi.getPharmacy(id)`.
-- Render real fields (full address from `address, city, state, zip`, phone, fax, email, contact email/phone, notes, accepts_no_insurance badge, blocked_medications as tags, is_active badge).
-- Edit button opens `PharmacyFormModal` prefilled.
-- Deactivate uses same confirm flow as list.
-- Loading skeleton + not-found state preserved.
-
-### Files touched
-- Edit: `src/App.tsx`, `src/components/layout/AdminSidebar.tsx`, `src/lib/api.ts`, `src/data/mockData.ts`, `src/pages/admin/PharmaciesList.tsx`, `src/pages/admin/PharmacyDetail.tsx`
-- New: `src/components/PharmacyFormModal.tsx`
-- Delete: `src/pages/admin/AdminSettings.tsx`, `src/pages/admin/BlockedReferrals.tsx`, `src/components/ReassignPharmacyModal.tsx`
-
-### Notes / risks
-- `mockPharmacies` itself stays in `mockData.ts` (still imported by detail page until rewrite — but rewrite removes it; if no other consumer, can be dropped too — will check during impl and remove if orphaned).
-- `Pharmacy` mock type may still be referenced by the new interface name; new typed interface in `api.ts` will be the source of truth going forward.
-- TagListEditor reuse keeps blocked_medications consistent with existing patterns (diagnoses, etc.).
-- Phone formatter is permissive — only formats clean 10-digit strings, otherwise renders as-is so existing data isn't mangled.
+### Testing verification
+1. Random signup without invite_token → blocked by Auth0 Action
+2. Invited user clicks "Create Account" → invite_token passed in query params → Auth0 allows signup
