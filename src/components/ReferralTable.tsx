@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/table";
 import type { Referral } from "@/data/mockData";
 import { getReferralPAInfo } from "@/data/mockData";
-import { getRelativeTime, formatDateTime } from "@/lib/dateUtils";
+import { formatDateForTable, formatFullDateTime } from "@/lib/dateUtils";
 import { toast } from "@/hooks/use-toast";
 import { CreatedByAvatar } from "@/components/CreatedByAvatar";
 
@@ -178,18 +178,18 @@ export function ReferralTable({ referrals, userType, showClinic = false, paSortD
                 <TableCell>
                   <Tooltip>
                     <TooltipTrigger className="text-sm text-muted-foreground">
-                      {getRelativeTime(ref.created_at)}
+                      {formatDateForTable(ref.created_at)}
                     </TooltipTrigger>
-                    <TooltipContent>{formatDateTime(ref.created_at)}</TooltipContent>
+                    <TooltipContent>{formatFullDateTime(ref.created_at)}</TooltipContent>
                   </Tooltip>
                 </TableCell>
                 {userType === "clinic" && (
                   <TableCell>
                     <Tooltip>
                       <TooltipTrigger className="text-sm text-muted-foreground">
-                        {getRelativeTime(ref.updated_at)}
+                        {formatDateForTable(ref.updated_at)}
                       </TooltipTrigger>
-                      <TooltipContent>{formatDateTime(ref.updated_at)}</TooltipContent>
+                      <TooltipContent>{formatFullDateTime(ref.updated_at)}</TooltipContent>
                     </Tooltip>
                   </TableCell>
                 )}

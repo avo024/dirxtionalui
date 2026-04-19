@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PAStatusBadge } from "@/components/PAStatusBadge";
 import { clinicApi } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
-import { getRelativeTime, formatDateShort } from "@/lib/dateUtils";
+import { formatDateShort, formatDateForTable, formatFullDateTime } from "@/lib/dateUtils";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 export default function PatientsList() {
@@ -146,7 +147,14 @@ export default function PatientsList() {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-sm text-muted-foreground">
-                    {patient.created_at ? getRelativeTime(patient.created_at) : '—'}
+                    {patient.created_at ? (
+                      <Tooltip>
+                        <TooltipTrigger className="text-sm text-muted-foreground">
+                          {formatDateForTable(patient.created_at)}
+                        </TooltipTrigger>
+                        <TooltipContent>{formatFullDateTime(patient.created_at)}</TooltipContent>
+                      </Tooltip>
+                    ) : '—'}
                   </td>
                   <td className="px-4 py-3">
                     <PAStatusBadge status={patient.pa_status || 'none'} expirationDate={patient.pa_expiration_date} />
