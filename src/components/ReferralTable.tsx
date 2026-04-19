@@ -18,6 +18,7 @@ import type { Referral } from "@/data/mockData";
 import { getReferralPAInfo } from "@/data/mockData";
 import { getRelativeTime, formatDateTime } from "@/lib/dateUtils";
 import { toast } from "@/hooks/use-toast";
+import { CreatedByAvatar } from "@/components/CreatedByAvatar";
 
 interface ReferralTableProps {
   referrals: Referral[];
