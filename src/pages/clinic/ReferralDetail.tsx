@@ -271,7 +271,9 @@ export default function ReferralDetail() {
             {referral.drug || '—'} · Created {formatDateShort(referral.created_at)}
             {(referral as any).created_by_name && (
               <span className="ml-1 inline-flex items-center gap-1">
-                <User className="h-3 w-3" /> by {(referral as any).created_by_name}
+                <User className="h-3 w-3" />
+                <span className="text-muted-foreground">by </span>
+                <span className="font-bold text-primary">{(referral as any).created_by_name}</span>
               </span>
             )}
           </p>
