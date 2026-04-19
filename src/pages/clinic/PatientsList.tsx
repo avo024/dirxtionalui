@@ -138,8 +138,12 @@ export default function PatientsList() {
                     {patient.dob ? `${formatDateShort(patient.dob)} (${getAge(patient.dob)})` : '—'}
                   </td>
                   <td className="px-4 py-3">
-                    <span className="text-sm text-foreground">{patient.last_drug || '—'}</span>
-                    <span className="text-xs text-muted-foreground">{patient.last_dosage || ''}</span>
+                    <div className="flex flex-col">
+                      <span className="text-sm text-foreground">{patient.last_drug || '—'}</span>
+                      {patient.last_dosage && (
+                        <span className="text-xs text-muted-foreground">{patient.last_dosage}</span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-sm text-muted-foreground">
                     {patient.created_at ? getRelativeTime(patient.created_at) : '—'}

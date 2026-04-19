@@ -367,16 +367,6 @@ export default function AdminReferralReview() {
             </div>
             <p className="text-sm text-muted-foreground">
               {referral.drug} · {referral.clinic_name} · {referral.id}
-              {referral.created_by_name && (
-                <span className="ml-2">
-                  <span className="text-muted-foreground">· Created by </span>
-                  <span className="font-bold text-primary">
-                    {referral.created_by_name}
-                    {referral.clinic_name && ` — ${referral.clinic_name}`}
-                  </span>
-                  <span className="text-muted-foreground"> — {formatDateShort(referral.created_at)}</span>
-                </span>
-              )}
             </p>
           </div>
         </div>
