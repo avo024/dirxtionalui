@@ -380,7 +380,7 @@ export default function CreateReferral() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-foreground">New Referral</h1>
-        <p className="text-muted-foreground mt-1">Quick 3-step process to submit a referral</p>
+        <p className="text-muted-foreground mt-1">Quick {steps.length}-step process to submit a referral</p>
       </div>
 
       {/* Progress */}
