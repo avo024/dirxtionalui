@@ -401,181 +401,95 @@ export default function CreateReferral() {
 
       {/* Form content */}
       <div className="rounded-xl border border-border bg-card p-6 md:p-8 card-shadow">
-        {/* STEP 1: SELECT PATIENT */}
         {currentStep === 0 && (
           <div className="space-y-6">
             <div className="mb-2">
               <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-1">Step 1 of 3</p>
               <h2 className="text-lg font-semibold text-foreground">Select Patient</h2>
-              <p className="text-sm text-muted-foreground">Choose an existing patient or add a new one</p>
+              <p className="text-sm text-muted-foreground">Search for an existing patient or add a new one</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Existing Patient Card */}
-              <div
-                onClick={() => { setPatientMode("existing"); setNewPatient({ firstName: "", lastName: "", dob: "", phone: "", email: "", gender: "", address: "", city: "", state: "", zip: "", mi: "", height: "", weight: "", allergies: "", authorizedRepresentative: "", authorizedRepresentativePhone: "" }); }}
-                className={cn(
-                  "rounded-xl border-2 p-5 cursor-pointer transition-all duration-200",
-                  patientMode === "existing" ? "border-primary bg-primary/[0.02]" : "border-border hover:border-primary/40"
-                )}
-              >
-                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
-                  <Users className="h-5 w-5 text-primary" />
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by name, DOB, or phone..."
+                    value={patientSearch}
+                    onChange={(e) => setPatientSearch(e.target.value)}
+                    className="pl-9"
+                  />
                 </div>
-                <h3 className="font-semibold text-foreground mb-1">Existing Patient</h3>
-                <p className="text-sm text-muted-foreground mb-4">Select from your patient records</p>
-
-                {patientMode === "existing" && (
-                  <div className="space-y-3">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Search by name, DOB, or phone..."
-                        value={patientSearch}
-                        onChange={(e) => setPatientSearch(e.target.value)}
-                        className="pl-9"
-                      />
-                    </div>
-                    {filteredPatients.length > 0 && (
-                      <div className="border border-border rounded-lg overflow-hidden max-h-60 overflow-y-auto">
-                        {filteredPatients.map((p) => (
-                          <button
-                            key={p.id}
-                            onClick={(e) => { e.stopPropagation(); setSelectedPatient(p); setPatientSearch(""); if (p.last_drug) { setManualData((prev) => ({ ...prev, drugRequested: p.last_drug || "" })); } }}
-                            className={cn(
-                              "w-full text-left px-3 py-2.5 border-b border-border last:border-0 hover:bg-secondary/50 transition-colors",
-                              selectedPatient?.id === p.id && "bg-primary/5"
-                            )}
-                          >
-                            <p className="text-sm font-medium text-foreground">{getPatientName(p)}</p>
-                            <p className="text-xs text-muted-foreground">DOB: {formatDateShort(p.dob || '')} · Last: {p.last_drug || '—'}</p>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    {selectedPatient && (
-                      <div className="rounded-lg bg-secondary/50 p-3 space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <p className="text-sm font-semibold text-foreground">{getPatientName(selectedPatient)}</p>
-                          <button onClick={(e) => { e.stopPropagation(); setSelectedPatient(null); }} className="text-muted-foreground hover:text-foreground">
-                            <X className="h-4 w-4" />
-                          </button>
-                        </div>
-                        <p className="text-xs text-muted-foreground">DOB: {formatDateShort(selectedPatient.dob || '')} · Phone: {getPatientPhone(selectedPatient)}</p>
-                        <div className="flex items-center gap-2">
-                          <Pill className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-xs text-muted-foreground">Last drug: {selectedPatient.last_drug || '—'} {selectedPatient.last_dosage || ''}</span>
-                        </div>
-                        <PAStatusBadge status={(selectedPatient.pa_status as any) || 'none'} expirationDate={selectedPatient.pa_expiration_date} />
-                      </div>
-                    )}
-                  </div>
-                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowNewPatientModal(true)}
+                  className="shrink-0"
+                >
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Add New Patient
+                </Button>
               </div>
 
-              {/* New Patient Card */}
-              <div
-                onClick={() => { setPatientMode("new"); setSelectedPatient(null); }}
-                className={cn(
-                  "rounded-xl border-2 p-5 cursor-pointer transition-all duration-200",
-                  patientMode === "new" ? "border-primary bg-primary/[0.02]" : "border-border hover:border-primary/40"
-                )}
-              >
-                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
-                  <UserPlus className="h-5 w-5 text-primary" />
+              {filteredPatients.length > 0 && (
+                <div className="border border-border rounded-lg overflow-hidden max-h-72 overflow-y-auto">
+                  {filteredPatients.map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedPatient(p);
+                        setPatientMode("existing");
+                        setPatientSearch("");
+                        if (p.last_drug) {
+                          setManualData((prev) => ({ ...prev, drugRequested: p.last_drug || "" }));
+                        }
+                      }}
+                      className={cn(
+                        "w-full text-left px-3 py-2.5 border-b border-border last:border-0 hover:bg-secondary/50 transition-colors",
+                        selectedPatient?.id === p.id && "bg-primary/5"
+                      )}
+                    >
+                      <p className="text-sm font-medium text-foreground">{getPatientName(p)}</p>
+                      <p className="text-xs text-muted-foreground">DOB: {formatDateShort(p.dob || '')} · Last: {p.last_drug || '—'}</p>
+                    </button>
+                  ))}
                 </div>
-                <h3 className="font-semibold text-foreground mb-1">New Patient</h3>
-                <p className="text-sm text-muted-foreground mb-4">Add a new patient to your records</p>
+              )}
 
-                {patientMode === "new" && (
-                  <div className="space-y-3" onClick={(e) => e.stopPropagation()}>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <Label className="text-xs">First Name <span className="text-destructive">*</span></Label>
-                        <Input value={newPatient.firstName} onChange={(e) => setNewPatient((p) => ({ ...p, firstName: e.target.value }))} placeholder="John" className="mt-1" />
+              {selectedPatient && (
+                <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Users className="h-4 w-4 text-primary" />
                       </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">Last Name <span className="text-destructive">*</span></Label>
-                        <Input value={newPatient.lastName} onChange={(e) => setNewPatient((p) => ({ ...p, lastName: e.target.value }))} placeholder="Doe" className="mt-1" />
-                      </div>
+                      <p className="text-sm font-semibold text-foreground">{getPatientName(selectedPatient)}</p>
                     </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Date of Birth <span className="text-destructive">*</span></Label>
-                      <Input type="date" value={newPatient.dob} onChange={(e) => setNewPatient((p) => ({ ...p, dob: e.target.value }))} className="mt-1" />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Gender <span className="text-destructive">*</span></Label>
-                      <Select value={newPatient.gender} onValueChange={(v) => setNewPatient((p) => ({ ...p, gender: v }))}>
-                        <SelectTrigger className="mt-1">
-                          <SelectValue placeholder="Select gender" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Male">Male</SelectItem>
-                          <SelectItem value="Female">Female</SelectItem>
-                          <SelectItem value="Other">Other</SelectItem>
-                          <SelectItem value="Prefer not to say">Prefer not to say</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Phone <span className="text-destructive">*</span></Label>
-                      <Input value={newPatient.phone} onChange={(e) => setNewPatient((p) => ({ ...p, phone: e.target.value }))} placeholder="(555) 123-4567" className="mt-1" />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Email</Label>
-                      <Input type="email" value={newPatient.email || ""} onChange={(e) => setNewPatient((p) => ({ ...p, email: e.target.value }))} placeholder="patient@email.com" className="mt-1" />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Address <span className="text-destructive">*</span></Label>
-                      <Input value={newPatient.address} onChange={(e) => setNewPatient((p) => ({ ...p, address: e.target.value }))} placeholder="123 Main St" className="mt-1" />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">City <span className="text-destructive">*</span></Label>
-                      <Input value={newPatient.city} onChange={(e) => setNewPatient((p) => ({ ...p, city: e.target.value }))} placeholder="Springfield" className="mt-1" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <Label className="text-xs">State <span className="text-destructive">*</span></Label>
-                        <Input value={newPatient.state} onChange={(e) => setNewPatient((p) => ({ ...p, state: e.target.value.toUpperCase() }))} placeholder="IL" maxLength={2} className="mt-1" />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">Zip <span className="text-destructive">*</span></Label>
-                        <Input value={newPatient.zip} onChange={(e) => setNewPatient((p) => ({ ...p, zip: e.target.value }))} placeholder="62701" className="mt-1" />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-3 gap-3">
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Middle Initial</Label>
-                        <Input placeholder="M" maxLength={1} value={newPatient.mi || ""} onChange={(e) => setNewPatient((p) => ({ ...p, mi: e.target.value }))} className="mt-1" />
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Height</Label>
-                        <Input placeholder='e.g. 5&apos;6"' value={newPatient.height || ""} onChange={(e) => setNewPatient((p) => ({ ...p, height: e.target.value }))} className="mt-1" />
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Weight</Label>
-                        <Input placeholder="e.g. 145 lbs" value={newPatient.weight || ""} onChange={(e) => setNewPatient((p) => ({ ...p, weight: e.target.value }))} className="mt-1" />
-                      </div>
-                    </div>
-                    <div className="col-span-2">
-                      <Label className="text-xs text-muted-foreground">Allergies</Label>
-                      <Input placeholder="e.g. Penicillin, Sulfa" value={newPatient.allergies || ""} onChange={(e) => setNewPatient((p) => ({ ...p, allergies: e.target.value }))} className="mt-1" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Authorized Representative</Label>
-                        <Input placeholder="Name (if applicable)" value={newPatient.authorizedRepresentative || ""} onChange={(e) => setNewPatient((p) => ({ ...p, authorizedRepresentative: e.target.value }))} className="mt-1" />
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Representative Phone</Label>
-                        <Input placeholder="Phone (if applicable)" value={newPatient.authorizedRepresentativePhone || ""} onChange={(e) => setNewPatient((p) => ({ ...p, authorizedRepresentativePhone: e.target.value }))} className="mt-1" />
-                      </div>
-                    </div>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setSelectedPatient(null); }}
+                      className="text-muted-foreground hover:text-foreground"
+                      aria-label="Clear selected patient"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
                   </div>
-                )}
-              </div>
+                  <p className="text-xs text-muted-foreground">DOB: {formatDateShort(selectedPatient.dob || '')} · Phone: {getPatientPhone(selectedPatient)}</p>
+                  <div className="flex items-center gap-2">
+                    <Pill className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">Last drug: {selectedPatient.last_drug || '—'} {selectedPatient.last_dosage || ''}</span>
+                  </div>
+                  <PAStatusBadge status={(selectedPatient.pa_status as any) || 'none'} expirationDate={selectedPatient.pa_expiration_date} />
+                </div>
+              )}
+
+              {!selectedPatient && !patientSearch && (
+                <div className="rounded-lg border border-dashed border-border p-8 text-center">
+                  <Users className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">Search above or add a new patient to continue</p>
+                </div>
+              )}
             </div>
-
           </div>
         )}
 
