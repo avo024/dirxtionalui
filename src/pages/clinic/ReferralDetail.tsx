@@ -272,8 +272,9 @@ export default function ReferralDetail() {
             {(referral as any).created_by_name && (
               <span className="ml-1 inline-flex items-center gap-1">
                 <User className="h-3 w-3" />
-                <span className="text-muted-foreground">by </span>
+                <span className="text-muted-foreground">Created by </span>
                 <span className="font-bold text-primary">{(referral as any).created_by_name}</span>
+                <span className="text-muted-foreground"> — {formatDateShort(referral.created_at)}</span>
               </span>
             )}
           </p>

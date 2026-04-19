@@ -21,6 +21,7 @@ import { getReferralPAInfo } from "@/data/mockData";
 import { cn } from "@/lib/utils";
 import { adminApi } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
+import { formatDateShort } from "@/lib/dateUtils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DrugCombobox } from "@/components/DrugCombobox";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -373,6 +374,7 @@ export default function AdminReferralReview() {
                     {referral.created_by_name}
                     {referral.clinic_name && ` — ${referral.clinic_name}`}
                   </span>
+                  <span className="text-muted-foreground"> — {formatDateShort(referral.created_at)}</span>
                 </span>
               )}
             </p>
