@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  ArrowLeft, Download, FileText, Clock, AlertCircle, User,
+  ArrowLeft, FileText, Clock, AlertCircle, User,
   Pill, Stethoscope, Shield, Copy, Phone, Mail, CheckCircle,
   Send, Upload, Loader2, XCircle, MessageSquare, Plus,
   AlertTriangle, Image, RefreshCw, Sparkles, Circle
