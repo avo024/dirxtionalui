@@ -138,7 +138,11 @@ export default function ReferralDetail() {
   const [resubmitting, setResubmitting] = useState(false);
   const [newUploadsCount, setNewUploadsCount] = useState(0);
   const [uploadingCategory, setUploadingCategory] = useState<string | null>(null);
+  const [viewerDocId, setViewerDocId] = useState<string | null>(null);
   const notesEndRef = useRef<HTMLDivElement>(null);
+
+  const fetchClinicDocUrl = (docId: string) =>
+    clinicApi.getReferralDocumentUrl(id!, docId).then((r) => ({ url: r.url }));
 
   const loadData = () => {
     if (!id) return;
