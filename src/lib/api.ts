@@ -498,37 +498,69 @@ export const adminApi = {
 // PHARMACY ENDPOINTS
 // ============================================================================
 
+export interface Pharmacy {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  fax: string | null;
+  alt_phone_fax: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  zip: string | null;
+  accepts_no_insurance: boolean;
+  blocked_medications: string[];
+  contact_email: string | null;
+  contact_phone: string | null;
+  notes: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
 export const pharmacyApi = {
-  async getPharmacies(): Promise<any> {
+  async getPharmacies(): Promise<{ items: Pharmacy[] }> {
     const response = await fetch(`${API_BASE_URL}/pharmacies`, {
       headers: await getHeaders(),
     });
-    return handleResponse(response);
+    return handleResponse<{ items: Pharmacy[] }>(response);
   },
 
-  async getPharmacy(id: string): Promise<any> {
+  async getPharmacy(id: string): Promise<Pharmacy> {
     const response = await fetch(`${API_BASE_URL}/pharmacies/${id}`, {
       headers: await getHeaders(),
     });
-    return handleResponse(response);
+    return handleResponse<Pharmacy>(response);
   },
 
-  async createPharmacy(data: any): Promise<any> {
+  async createPharmacy(data: Partial<Pharmacy>): Promise<Pharmacy> {
     const response = await fetch(`${API_BASE_URL}/pharmacies`, {
       method: 'POST',
       headers: await getHeaders(),
       body: JSON.stringify(data),
     });
-    return handleResponse(response);
+    return handleResponse<Pharmacy>(response);
   },
 
-  async updatePharmacy(id: string, data: any): Promise<any> {
+  async updatePharmacy(id: string, data: Partial<Pharmacy>): Promise<Pharmacy> {
     const response = await fetch(`${API_BASE_URL}/pharmacies/${id}`, {
       method: 'PUT',
       headers: await getHeaders(),
       body: JSON.stringify(data),
     });
-    return handleResponse(response);
+    return handleResponse<Pharmacy>(response);
+  },
+
+  async deletePharmacy(id: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/pharmacies/${id}`, {
+      method: 'DELETE',
+      headers: await getHeaders(),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Network error' }));
+      throw new Error(error.error || `HTTP ${response.status}`);
+    }
+    return response.status === 204 ? null : response.json().catch(() => null);
   },
 };
 
