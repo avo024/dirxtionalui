@@ -269,6 +269,11 @@ export default function ReferralDetail() {
           <p className="text-muted-foreground text-sm">
             <span className="font-mono bg-secondary px-1.5 py-0.5 rounded text-xs mr-2">{referral.id.toUpperCase()}</span>
             {referral.drug || '—'} · Created {formatDateShort(referral.created_at)}
+            {(referral as any).created_by_name && (
+              <span className="ml-1 inline-flex items-center gap-1">
+                <User className="h-3 w-3" /> by {(referral as any).created_by_name}
+              </span>
+            )}
           </p>
         </div>
         {referral.status === "sent_to_pharmacy" && (
