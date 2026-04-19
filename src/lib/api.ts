@@ -509,6 +509,24 @@ export const adminApi = {
     return data;
   },
 
+  async createClinic(data: Partial<AdminClinic>): Promise<AdminClinic> {
+    const response = await fetch(`${API_BASE_URL}/admin/clinics`, {
+      method: 'POST',
+      headers: await getHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse<AdminClinic>(response);
+  },
+
+  async updateClinic(id: string, data: Partial<AdminClinic>): Promise<AdminClinic> {
+    const response = await fetch(`${API_BASE_URL}/admin/clinics/${id}`, {
+      method: 'PATCH',
+      headers: await getHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse<AdminClinic>(response);
+  },
+
   // ---- Invites ----
   async listInvites(): Promise<{ items: AdminInvite[] }> {
     const response = await fetch(`${API_BASE_URL}/admin/invites`, {
@@ -554,6 +572,11 @@ export interface AdminClinic {
   name: string;
   specialty?: string | null;
   email?: string | null;
+  phone?: string | null;
+  fax?: string | null;
+  address?: string | null;
+  npi?: string | null;
+  default_pharmacy_id?: string | null;
 }
 
 export interface AdminInvite {
