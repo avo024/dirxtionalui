@@ -21,6 +21,8 @@ import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { getDisplayAuthor, getAuthorInitials } from "@/lib/noteAuthor";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DocumentViewer } from "@/components/DocumentViewer";
 
 type ReferralStatus = "uploaded" | "processing" | "approved_to_send" | "rejected" | "sent_to_pharmacy";
 
