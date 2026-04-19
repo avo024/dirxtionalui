@@ -301,17 +301,7 @@ export default function CreateReferral() {
   const getPatientPhone = (patient: Patient) =>
     patient.phone_primary || patient.phone || '—';
 
-  const canProceedStep1 = patientMode === "existing" ? !!selectedPatient : !!(
-    newPatient.firstName.trim() !== "" &&
-    newPatient.lastName.trim() !== "" &&
-    newPatient.dob !== "" &&
-    newPatient.phone.trim() !== "" &&
-    newPatient.gender !== "" &&
-    newPatient.address.trim() !== "" &&
-    newPatient.city.trim() !== "" &&
-    newPatient.state.trim() !== "" &&
-    newPatient.zip.trim() !== ""
-  );
+  const canProceedStep1 = !!selectedPatient;
   const canProceedStep2 = referralMethod === "upload"
     ? uploadedFiles.filter(f => f.zone === "required").length > 0
     : (manualData.diagnosisCode && manualData.drugRequested);
