@@ -96,7 +96,7 @@ export function ReferralTable({ referrals, userType, showClinic = false, paSortD
             <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Created</TableHead>
             {userType === "clinic" && <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Updated</TableHead>}
             <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-right">Actions</TableHead>
-            <TableHead className="w-[56px]"><span className="sr-only">Created By</span></TableHead>
+            {!isAdmin && <TableHead className="w-[56px]"><span className="sr-only">Created By</span></TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -204,12 +204,14 @@ export function ReferralTable({ referrals, userType, showClinic = false, paSortD
                     {isAdmin ? "Review" : "View"}
                   </Button>
                 </TableCell>
-                <TableCell className="w-[56px]" onClick={(e) => e.stopPropagation()}>
-                  <CreatedByAvatar
-                    name={(ref as any).created_by_name}
-                    clinicName={isAdmin ? (ref as any).clinic_name : undefined}
-                  />
-                </TableCell>
+                {!isAdmin && (
+                  <TableCell className="w-[56px]" onClick={(e) => e.stopPropagation()}>
+                    <CreatedByAvatar
+                      name={(ref as any).created_by_name}
+                      clinicName={undefined}
+                    />
+                  </TableCell>
+                )}
               </TableRow>
             );
           })}
