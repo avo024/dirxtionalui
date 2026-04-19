@@ -26,6 +26,7 @@ import { mapManualFormToBackend } from "@/lib/dataMapper";
 import { formatDateShort } from "@/lib/dateUtils";
 import { DrugCombobox } from "@/components/DrugCombobox";
 import { NewPatientModal, type CreatedPatient } from "@/components/NewPatientModal";
+import { PharmacyPicker } from "@/components/PharmacyPicker";
 
 type Patient = {
   id: string;
@@ -380,7 +381,7 @@ export default function CreateReferral() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-foreground">New Referral</h1>
-        <p className="text-muted-foreground mt-1">Quick 3-step process to submit a referral</p>
+        <p className="text-muted-foreground mt-1">Quick {steps.length}-step process to submit a referral</p>
       </div>
 
       {/* Progress */}
@@ -950,59 +951,12 @@ export default function CreateReferral() {
                 <p className="text-sm text-muted-foreground">No pharmacies available. Contact your administrator.</p>
               </div>
             ) : (
-              <div className="space-y-3" role="radiogroup" aria-label="Select pharmacy">
-                {pharmacies.map((ph: any) => {
-                  const isSelected = selectedPharmacyId === ph.id;
-                  const isDefault = defaultPharmacyId === ph.id;
-                  const cityState = [ph.city, ph.state].filter(Boolean).join(", ");
-                  return (
-                    <button
-                      key={ph.id}
-                      type="button"
-                      role="radio"
-                      aria-checked={isSelected}
-                      onClick={() => setSelectedPharmacyId(ph.id)}
-                      className={cn(
-                        "w-full text-left rounded-xl border-2 p-4 transition-all duration-200",
-                        isSelected
-                          ? "border-primary bg-primary/[0.04] ring-2 ring-primary/20"
-                          : "border-border hover:border-primary/40 hover:bg-primary/[0.02]"
-                      )}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-3 min-w-0">
-                          <div
-                            className={cn(
-                              "h-5 w-5 rounded-full border-2 shrink-0 mt-0.5 flex items-center justify-center transition-colors",
-                              isSelected ? "border-primary bg-primary" : "border-muted-foreground/40"
-                            )}
-                          >
-                            {isSelected && <div className="h-2 w-2 rounded-full bg-primary-foreground" />}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <p className="font-semibold text-foreground">{ph.name}</p>
-                              {isDefault && (
-                                <Badge variant="secondary" className="text-xs">Default</Badge>
-                              )}
-                              {ph.accepts_no_insurance && (
-                                <Badge variant="outline" className="text-xs">Accepts bridge programs</Badge>
-                              )}
-                            </div>
-                            {cityState && (
-                              <p className="text-xs text-muted-foreground mt-0.5">{cityState}</p>
-                            )}
-                            <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
-                              {ph.phone && <span>Phone: {ph.phone}</span>}
-                              {ph.fax && <span>Fax: {ph.fax}</span>}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+              <PharmacyPicker
+                pharmacies={pharmacies}
+                selectedId={selectedPharmacyId}
+                defaultId={defaultPharmacyId}
+                onSelect={setSelectedPharmacyId}
+              />
             )}
           </div>
         )}
