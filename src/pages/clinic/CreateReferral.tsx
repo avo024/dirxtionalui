@@ -61,10 +61,12 @@ export default function CreateReferral() {
 
   const [currentStep, setCurrentStep] = useState(preselectedPatientId ? 1 : 0);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
-  const [patientMode, setPatientMode] = useState<"existing" | "new" | null>(preselectedPatientId ? "existing" : null);
+  // patientMode is retained for downstream code; with the modal flow we always end up "existing".
+  const [patientMode, setPatientMode] = useState<"existing" | "new" | null>(preselectedPatientId ? "existing" : "existing");
   const [patientSearch, setPatientSearch] = useState("");
-  const [newPatient, setNewPatient] = useState({ 
-    firstName: "", lastName: "", dob: "", phone: "", 
+  const [showNewPatientModal, setShowNewPatientModal] = useState(false);
+  const [newPatient, setNewPatient] = useState({
+    firstName: "", lastName: "", dob: "", phone: "",
     email: "", gender: "", address: "", city: "", state: "", zip: "",
     mi: "", height: "", weight: "", allergies: "",
     authorizedRepresentative: "", authorizedRepresentativePhone: "",
