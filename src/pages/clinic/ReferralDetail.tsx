@@ -21,6 +21,8 @@ import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { getDisplayAuthor, getAuthorInitials } from "@/lib/noteAuthor";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DocumentViewer } from "@/components/DocumentViewer";
 
 type ReferralStatus = "uploaded" | "processing" | "approved_to_send" | "rejected" | "sent_to_pharmacy";
 
@@ -136,7 +138,11 @@ export default function ReferralDetail() {
   const [resubmitting, setResubmitting] = useState(false);
   const [newUploadsCount, setNewUploadsCount] = useState(0);
   const [uploadingCategory, setUploadingCategory] = useState<string | null>(null);
+  const [viewerDocId, setViewerDocId] = useState<string | null>(null);
   const notesEndRef = useRef<HTMLDivElement>(null);
+
+  const fetchClinicDocUrl = (docId: string) =>
+    clinicApi.getReferralDocumentUrl(id!, docId).then((r) => ({ url: r.url }));
 
   const loadData = () => {
     if (!id) return;
@@ -549,7 +555,12 @@ export default function ReferralDetail() {
                     {catDocs.map((doc: any) => {
                       const DocIcon = getDocIcon(doc.original_filename || doc.file_name || '');
                       return (
-                        <div key={doc.id} className="rounded-lg border border-border bg-card p-4 card-shadow group hover:card-shadow-md transition-all duration-200">
+                        <button
+                          key={doc.id}
+                          type="button"
+                          onClick={() => setViewerDocId(doc.id)}
+                          className="text-left rounded-lg border border-border bg-card p-4 card-shadow group hover:card-shadow-md hover:border-primary/40 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-ring"
+                        >
                           <div className="flex items-start gap-3">
                             <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                               <DocIcon className="h-4 w-4 text-primary" />
@@ -563,7 +574,7 @@ export default function ReferralDetail() {
                               </p>
                             </div>
                           </div>
-                        </div>
+                        </button>
                       );
                     })}
                   </div>
@@ -697,6 +708,24 @@ export default function ReferralDetail() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Document viewer modal */}
+      <Dialog open={!!viewerDocId} onOpenChange={(open) => !open && setViewerDocId(null)}>
+        <DialogContent className="max-w-5xl w-[95vw] h-[85vh] p-0 gap-0 flex flex-col overflow-hidden">
+          <DialogHeader className="px-4 py-3 border-b border-border shrink-0">
+            <DialogTitle className="text-base">Document Viewer</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0">
+            {viewerDocId && (
+              <DocumentViewer
+                documents={documents}
+                fetchUrl={fetchClinicDocUrl}
+                initialDocId={viewerDocId}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

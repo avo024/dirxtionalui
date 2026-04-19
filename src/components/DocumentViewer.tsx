@@ -17,6 +17,10 @@ interface BackendDocument {
 interface DocumentViewerProps {
   documents: BackendDocument[];
   className?: string;
+  /** Optional override for fetching a presigned URL. Defaults to admin endpoint. */
+  fetchUrl?: (docId: string) => Promise<{ url: string }>;
+  /** If provided, controls which document tab is active. */
+  initialDocId?: string;
 }
 
 interface CachedUrl {
@@ -34,8 +38,8 @@ function isPdfType(fileType: string): boolean {
   return fileType === "application/pdf";
 }
 
-export function DocumentViewer({ documents, className }: DocumentViewerProps) {
-  const [activeDocId, setActiveDocId] = useState<string>("");
+export function DocumentViewer({ documents, className, fetchUrl: fetchUrlProp, initialDocId }: DocumentViewerProps) {
+  const [activeDocId, setActiveDocId] = useState<string>(initialDocId ?? "");
   const [urlCache, setUrlCache] = useState<Record<string, CachedUrl>>({});
   const [loadingUrl, setLoadingUrl] = useState(false);
   const [urlError, setUrlError] = useState(false);
@@ -44,9 +48,9 @@ export function DocumentViewer({ documents, className }: DocumentViewerProps) {
   // Set initial active doc
   useEffect(() => {
     if (documents.length > 0 && !activeDocId) {
-      setActiveDocId(documents[0].id);
+      setActiveDocId(initialDocId ?? documents[0].id);
     }
-  }, [documents, activeDocId]);
+  }, [documents, activeDocId, initialDocId]);
 
   const activeDoc = documents.find((d) => d.id === activeDocId);
   const cachedEntry = activeDocId ? urlCache[activeDocId] : undefined;
@@ -57,7 +61,9 @@ export function DocumentViewer({ documents, className }: DocumentViewerProps) {
     setLoadingUrl(true);
     setUrlError(false);
     try {
-      const data = await adminApi.getDocumentUrl(docId);
+      const data = fetchUrlProp
+        ? await fetchUrlProp(docId)
+        : await adminApi.getDocumentUrl(docId);
       setUrlCache((prev) => ({
         ...prev,
         [docId]: { url: data.url, fetchedAt: Date.now() },
@@ -67,7 +73,7 @@ export function DocumentViewer({ documents, className }: DocumentViewerProps) {
     } finally {
       setLoadingUrl(false);
     }
-  }, []);
+  }, [fetchUrlProp]);
 
   // Fetch URL when active doc changes or is expired
   useEffect(() => {
