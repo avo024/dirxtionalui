@@ -334,6 +334,11 @@ export default function CreateReferral() {
   const canProceedStep2 = referralMethod === "upload"
     ? uploadedFiles.filter(f => f.zone === "required").length > 0
     : (manualData.diagnosisCode && manualData.drugRequested);
+  const canProceedStep3 = !!selectedPharmacyId;
+  const selectedPharmacy = useMemo(
+    () => pharmacies.find((p: any) => p.id === selectedPharmacyId) || null,
+    [pharmacies, selectedPharmacyId],
+  );
 
   // SUCCESS STATE
   if (submitted) {
@@ -915,8 +920,94 @@ export default function CreateReferral() {
           </div>
         )}
 
-        {/* STEP 3: REVIEW & SUBMIT */}
+        {/* STEP 3: CHOOSE PHARMACY */}
         {currentStep === 2 && (
+          <div className="space-y-6">
+            <div className="mb-2">
+              <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-1">Step 3 of 4</p>
+              <h2 className="text-lg font-semibold text-foreground">Select pharmacy for this referral</h2>
+              <p className="text-sm text-muted-foreground">
+                Defaults to your clinic's preferred pharmacy. Change if this referral needs a different one.
+              </p>
+            </div>
+
+            {!loadingPharmacies && !defaultPharmacyId && (
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-warning/10 border border-warning/30">
+                <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
+                <p className="text-sm text-foreground">
+                  Your clinic doesn't have a default pharmacy set. Pick one for this referral.
+                </p>
+              </div>
+            )}
+
+            {loadingPharmacies ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : pharmacies.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-border p-8 text-center">
+                <p className="text-sm text-muted-foreground">No pharmacies available. Contact your administrator.</p>
+              </div>
+            ) : (
+              <div className="space-y-3" role="radiogroup" aria-label="Select pharmacy">
+                {pharmacies.map((ph: any) => {
+                  const isSelected = selectedPharmacyId === ph.id;
+                  const isDefault = defaultPharmacyId === ph.id;
+                  const cityState = [ph.city, ph.state].filter(Boolean).join(", ");
+                  return (
+                    <button
+                      key={ph.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={isSelected}
+                      onClick={() => setSelectedPharmacyId(ph.id)}
+                      className={cn(
+                        "w-full text-left rounded-xl border-2 p-4 transition-all duration-200",
+                        isSelected
+                          ? "border-primary bg-primary/[0.04] ring-2 ring-primary/20"
+                          : "border-border hover:border-primary/40 hover:bg-primary/[0.02]"
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-3 min-w-0">
+                          <div
+                            className={cn(
+                              "h-5 w-5 rounded-full border-2 shrink-0 mt-0.5 flex items-center justify-center transition-colors",
+                              isSelected ? "border-primary bg-primary" : "border-muted-foreground/40"
+                            )}
+                          >
+                            {isSelected && <div className="h-2 w-2 rounded-full bg-primary-foreground" />}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="font-semibold text-foreground">{ph.name}</p>
+                              {isDefault && (
+                                <Badge variant="secondary" className="text-xs">Default</Badge>
+                              )}
+                              {ph.accepts_no_insurance && (
+                                <Badge variant="outline" className="text-xs">Accepts bridge programs</Badge>
+                              )}
+                            </div>
+                            {cityState && (
+                              <p className="text-xs text-muted-foreground mt-0.5">{cityState}</p>
+                            )}
+                            <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
+                              {ph.phone && <span>Phone: {ph.phone}</span>}
+                              {ph.fax && <span>Fax: {ph.fax}</span>}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* STEP 4: REVIEW & SUBMIT */}
+        {currentStep === 3 && (
           <div className="space-y-6">
             <div className="mb-2">
               <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-1">Step 4 of 4</p>
@@ -935,6 +1026,25 @@ export default function CreateReferral() {
                       ? formatDateShort(selectedPatient.dob)
                       : "—"
                 } />
+              </div>
+            </ReviewCard>
+
+            {/* Pharmacy */}
+            <ReviewCard icon={Pill} title="Pharmacy">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    {selectedPharmacy?.name || (isBridgeProgram && bridgePharmacyName) || "—"}
+                  </p>
+                  {selectedPharmacy && (
+                    <p className="text-xs text-muted-foreground">
+                      {[selectedPharmacy.city, selectedPharmacy.state].filter(Boolean).join(", ") || "—"}
+                    </p>
+                  )}
+                </div>
+                {defaultPharmacyId && selectedPharmacyId === defaultPharmacyId && (
+                  <Badge variant="secondary" className="text-xs">Default</Badge>
+                )}
               </div>
             </ReviewCard>
 
@@ -1012,20 +1122,25 @@ export default function CreateReferral() {
 
         {currentStep === 1 && referralMethod && (
           <Button
-            onClick={() => {
-              setCurrentStep(2);
-              if (referralMethod === "upload") {
-                // Will need extraction on step 3
-              }
-            }}
+            onClick={() => setCurrentStep(2)}
             disabled={!canProceedStep2}
+          >
+            Next: Choose Pharmacy
+            <ArrowRight className="h-4 w-4 ml-2" />
+          </Button>
+        )}
+
+        {currentStep === 2 && (
+          <Button
+            onClick={() => setCurrentStep(3)}
+            disabled={!canProceedStep3}
           >
             Continue to Review
             <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
         )}
 
-        {currentStep === 2 && (
+        {currentStep === 3 && (
           <Button
             onClick={handleSubmit}
             disabled={!confirmAccuracy || submitting}
