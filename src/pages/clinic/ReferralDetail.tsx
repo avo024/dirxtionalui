@@ -708,6 +708,24 @@ export default function ReferralDetail() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Document viewer modal */}
+      <Dialog open={!!viewerDocId} onOpenChange={(open) => !open && setViewerDocId(null)}>
+        <DialogContent className="max-w-5xl w-[95vw] h-[85vh] p-0 gap-0 flex flex-col overflow-hidden">
+          <DialogHeader className="px-4 py-3 border-b border-border shrink-0">
+            <DialogTitle className="text-base">Document Viewer</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0">
+            {viewerDocId && (
+              <DocumentViewer
+                documents={documents}
+                fetchUrl={fetchClinicDocUrl}
+                initialDocId={viewerDocId}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
