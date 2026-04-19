@@ -44,7 +44,7 @@ export default function AcceptInvite() {
 
   const handleCreateAccount = () => {
     loginWithRedirect({
-      authorizationParams: { screen_hint: "signup", login_hint: email },
+      authorizationParams: { screen_hint: "signup", login_hint: email, invite_token: token },
       appState: { inviteToken: token, returnTo: "/" },
     });
   };
