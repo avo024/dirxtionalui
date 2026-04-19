@@ -20,7 +20,7 @@ import {
   CheckCircle, Loader2, AlertTriangle, Search, X, Sparkles
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { clinicApi, pharmacyApi } from "@/lib/api";
+import { clinicApi, pharmacyApi, getMyClinic } from "@/lib/api";
 import { mapManualFormToBackend } from "@/lib/dataMapper";
 // Drug/ICD10 options removed — fields are now free text
 import { formatDateShort } from "@/lib/dateUtils";
