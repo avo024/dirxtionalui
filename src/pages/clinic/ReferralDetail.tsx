@@ -285,12 +285,6 @@ export default function ReferralDetail() {
             )}
           </p>
         </div>
-        {referral.status === "sent_to_pharmacy" && (
-          <Button>
-            <Download className="h-4 w-4 mr-2" />
-            Download Final PDF
-          </Button>
-        )}
       </div>
 
       {/* Rejection banner */}
