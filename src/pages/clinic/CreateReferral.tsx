@@ -433,7 +433,7 @@ export default function CreateReferral() {
         {currentStep === 0 && (
           <div className="space-y-6">
             <div className="mb-2">
-              <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-1">Step 1 of 3</p>
+              <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-1">Step 1 of 4</p>
               <h2 className="text-lg font-semibold text-foreground">Select Patient</h2>
               <p className="text-sm text-muted-foreground">Search for an existing patient or add a new one</p>
             </div>
@@ -526,7 +526,7 @@ export default function CreateReferral() {
         {currentStep === 1 && !referralMethod && (
           <div className="space-y-6">
             <div className="mb-2">
-              <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-1">Step 2 of 3</p>
+              <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-1">Step 2 of 4</p>
               <h2 className="text-lg font-semibold text-foreground">How would you like to create this referral?</h2>
               <p className="text-sm text-muted-foreground">Choose your preferred method</p>
             </div>
@@ -578,7 +578,7 @@ export default function CreateReferral() {
         {currentStep === 1 && referralMethod === "upload" && (
           <div className="space-y-6">
             <div className="mb-2">
-              <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-1">Step 2 of 3</p>
+              <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-1">Step 2 of 4</p>
               <h2 className="text-lg font-semibold text-foreground">Upload Documents</h2>
               <p className="text-sm text-muted-foreground">Upload all relevant documents for this referral</p>
             </div>
@@ -700,7 +700,7 @@ export default function CreateReferral() {
         {currentStep === 1 && referralMethod === "manual" && (
           <div className="space-y-6">
             <div className="mb-2">
-              <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-1">Step 2 of 3</p>
+              <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-1">Step 2 of 4</p>
               <h2 className="text-lg font-semibold text-foreground">Enter Referral Information</h2>
               <p className="text-sm text-muted-foreground">Fill in the details below</p>
             </div>
@@ -919,7 +919,7 @@ export default function CreateReferral() {
         {currentStep === 2 && (
           <div className="space-y-6">
             <div className="mb-2">
-              <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-1">Step 3 of 3</p>
+              <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-1">Step 4 of 4</p>
               <h2 className="text-lg font-semibold text-foreground">Submit Referral</h2>
               <p className="text-sm text-muted-foreground">Confirm and submit your referral for processing</p>
             </div>
