@@ -73,6 +73,7 @@ export async function getMyClinic(): Promise<{
   specialty?: string;
   email?: string;
   default_pharmacy_id?: string;
+  default_pharmacy_name?: string;
 }> {
   const res = await fetch(`${API_BASE_URL}/clinics/me`, {
     headers: await getHeaders(),
