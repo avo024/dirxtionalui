@@ -26,6 +26,7 @@ import { mapManualFormToBackend } from "@/lib/dataMapper";
 import { formatDateShort } from "@/lib/dateUtils";
 import { DrugCombobox } from "@/components/DrugCombobox";
 import { NewPatientModal, type CreatedPatient } from "@/components/NewPatientModal";
+import { PharmacyPicker } from "@/components/PharmacyPicker";
 
 type Patient = {
   id: string;
