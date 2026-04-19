@@ -1,68 +1,69 @@
 
+## Admin UI Cleanup Plan
 
-## Admin Profile + Race Fix + Dashboard Note Indicator
+### 1. Remove Settings (sidebar + route + page)
+- `src/components/layout/AdminSidebar.tsx`: drop the `Settings` nav item (and `Settings` icon import).
+- `src/App.tsx`: remove the `AdminSettings` import and `<Route path="settings" />`.
+- Delete `src/pages/admin/AdminSettings.tsx`.
 
-### 1. Token-attachment race fix (`src/lib/api.ts`, `src/hooks/useApi.ts`)
+### 2. Remove Blocked Referrals (sidebar + route + page + dead code)
+- `src/components/layout/AdminSidebar.tsx`: drop the `Blocked Referrals` nav item, `AlertOctagon` import, and the now-unneeded `blocked` exclusion in the active-route check.
+- `src/App.tsx`: remove `BlockedReferrals` import and `<Route path="referrals/blocked" />`.
+- Delete `src/pages/admin/BlockedReferrals.tsx`.
+- Delete `src/components/ReassignPharmacyModal.tsx` (only consumer was BlockedReferrals; uses mock data).
+- `src/lib/api.ts`: remove `adminApi.getBlockedReferrals`.
+- `src/data/mockData.ts`: remove `mockBlockedReferrals` export.
 
-Currently `currentToken()` returns `undefined` immediately if `tokenProvider` isn't registered yet → causes 401s on hard refresh when fetches fire before `useApi()`'s `useEffect` runs.
+### 3. Wire Pharmacies to real backend
 
-**Change `src/lib/api.ts`:**
-- Add a module-level `tokenReady` Promise that resolves the first time `setAuthTokenProvider` is called with a non-null provider.
-- `getHeaders()` / `getAuthHeaders()` `await tokenReady` before reading the token.
-- Keep null-clearing in unmount cleanup but DO NOT reset the promise (once registered, stays ready).
+**API layer (`src/lib/api.ts`)**
+- Add `Pharmacy` interface matching the documented response shape.
+- Update `pharmacyApi`:
+  - `getPharmacies()` (already correct, returns `{ items: [] }`)
+  - `getPharmacy(id)` (already correct)
+  - `createPharmacy(data)` / `updatePharmacy(id, data)` (already correct)
+  - Add `deletePharmacy(id)` → `DELETE /pharmacies/:id`
 
-**Change `src/hooks/useApi.ts`:**
-- Remove the `return () => setAuthTokenProvider(null)` cleanup — it can briefly null the provider during re-renders and re-trigger the wait. Provider should stay registered for the app's lifetime.
+**Pharmacies list (`src/pages/admin/PharmaciesList.tsx`) — full rewrite**
+- React Query (`['pharmacies']`) calling `pharmacyApi.getPharmacies()`.
+- Header: "Pharmacies" + subtitle showing `${count} active pharmacies` + right-aligned "+ Add Pharmacy" button (opens create modal).
+- Search input filters client-side by name.
+- Table columns: Name (bold) · Phone (formatted `(XXX) XXX-XXXX`) · Fax (formatted) · Alt Phone/Fax · Email · Location (`city, state`) · Actions (Edit pencil + Deactivate power icon).
+- Row click → navigate to detail page.
+- Loading: shadcn `Skeleton` rows.
+- Error: inline retry message + toast.
+- Empty (post-fetch, zero items): centered "No pharmacies yet" + prominent "+ Add Pharmacy".
+- Phone formatter helper (`formatPhone(str)` → `(214) 555-1234`, falls back to raw).
 
-`useApi()` is already invoked once in `AuthProvider` (top of React tree) — no consolidation needed.
+**Pharmacy edit/create modal (new `src/components/PharmacyFormModal.tsx`)**
+- shadcn `Dialog` with form fields:
+  - Name* · Email · Phone · Fax · Alt Phone/Fax
+  - Address · City · State (2 char, uppercase) · Zip
+  - Contact Email · Contact Phone
+  - Notes (Textarea)
+  - Accepts No Insurance (Checkbox)
+  - Blocked Medications (TagListEditor — already exists in repo for tag inputs)
+  - Active toggle (Switch, maps to `is_active`)
+- Submits via `createPharmacy` or `updatePharmacy`; on success: toast, close, invalidate `['pharmacies']`.
+- Validation: name required, state must be 2 letters if present.
 
-### 2. Admin profile API + hook (`src/lib/api.ts`, new `src/hooks/useAdminProfile.ts`)
+**Delete flow**
+- "Deactivate" icon → `ConfirmModal` ("Deactivate {name}? They won't appear in new referrals.") → `deletePharmacy(id)` → invalidate list.
 
-In `api.ts`, add:
-- `AdminProfile` interface (no `npi`, no `clinic_id`)
-- `getMyAdminProfile()` → GET `/admin/me/profile`
-- `updateMyAdminProfile({ first_name, last_name, phone })` → PATCH
-
-New `src/hooks/useAdminProfile.ts` — mirrors `useProfile.ts`, enabled only when `role === 'internal_admin'`. Exports `ADMIN_PROFILE_QUERY_KEY`.
-
-### 3. Admin profile completion modal (new `src/components/CompleteAdminProfileModal.tsx`)
-
-Copy `CompleteProfileModal.tsx`, drop the NPI field, swap mutation to `updateMyAdminProfile`, invalidate `ADMIN_PROFILE_QUERY_KEY`. Keeps the same blocking overlay UX and copy ("Welcome to DiRxctional" / "…teammates see who you are.").
-
-### 4. Mount modal in `AdminLayout` (`src/components/layout/AdminLayout.tsx`)
-
-After auth/role guards: read `useAdminProfile()`. If `profile.profile_complete === false`, render `<CompleteAdminProfileModal />` as blocking overlay (same pattern as ClinicLayout).
-
-### 5. UserMenu name display for admins (`src/components/layout/UserMenu.tsx`)
-
-Currently only clinic users get name display. Update logic:
-- For admins, also call `useAdminProfile()` (only fires when role matches via the hook's `enabled`).
-- Build `fullName` from admin profile when available; fallback to email.
-- Avatar initials from first+last when present.
-
-This means `UserMenu` reads both hooks; React Query's `enabled` flag ensures only the right one fires per role.
-
-### 6. Dashboard note indicator (`src/pages/admin/AdminDashboard.tsx`)
-
-Audit confirms: `ReferralTable` already renders the unread-note dot using `latest_clinic_note_at` from `(ref as any)`. AdminDashboard's mapping preserves all fields via `...r`, so the data is there. The visible bug is that the dashboard's table is filtered to **only** `ready_for_review` referrals, hiding any unread-note referrals in other statuses (e.g., `approved_to_send`, `sent_to_pharmacy`).
-
-Fix: change the dashboard's "Referrals Needing Review" section so it also includes referrals with an unread clinic note (regardless of status). Section header becomes "Needs Attention" with a count combining both. Sort: unread-note rows first, then ready_for_review by created_at desc. Same `ReferralTable` component, no new logic.
-
-The "unread" check uses the same `localStorage.getItem('notes_last_viewed_<id>')` pattern as `ReferralTable` so behavior is consistent.
-
-Clinic side: spot-check `ClinicDashboard` — if it uses `ReferralTable`, same indicator already works. No change unless we find a missing field.
+**Pharmacy detail (`src/pages/admin/PharmacyDetail.tsx`) — refactor**
+- Replace `mockPharmacies.find` with React Query `pharmacyApi.getPharmacy(id)`.
+- Render real fields (full address from `address, city, state, zip`, phone, fax, email, contact email/phone, notes, accepts_no_insurance badge, blocked_medications as tags, is_active badge).
+- Edit button opens `PharmacyFormModal` prefilled.
+- Deactivate uses same confirm flow as list.
+- Loading skeleton + not-found state preserved.
 
 ### Files touched
-- `src/lib/api.ts` — race-safe `tokenReady` promise + admin profile fns
-- `src/hooks/useApi.ts` — drop unmount null-out
-- `src/hooks/useAdminProfile.ts` — new
-- `src/components/CompleteAdminProfileModal.tsx` — new (NPI removed)
-- `src/components/layout/AdminLayout.tsx` — mount modal
-- `src/components/layout/UserMenu.tsx` — admin name/initials
-- `src/pages/admin/AdminDashboard.tsx` — broaden "needs attention" to include unread-note referrals
+- Edit: `src/App.tsx`, `src/components/layout/AdminSidebar.tsx`, `src/lib/api.ts`, `src/data/mockData.ts`, `src/pages/admin/PharmaciesList.tsx`, `src/pages/admin/PharmacyDetail.tsx`
+- New: `src/components/PharmacyFormModal.tsx`
+- Delete: `src/pages/admin/AdminSettings.tsx`, `src/pages/admin/BlockedReferrals.tsx`, `src/components/ReassignPharmacyModal.tsx`
 
-### Risks / notes
-- Note display on admin side already uses `author_name` from API (verified earlier in `noteAuthor.ts`); no extra change needed for admin-side note attribution.
-- `tokenReady` resolves once and stays resolved, so post-logout/re-login the provider just gets reassigned — no second wait.
-- If backend returns `latest_clinic_note_at` only on certain endpoints, the dashboard fix still works since both pages use the same `adminApi.getReferrals()`.
-
+### Notes / risks
+- `mockPharmacies` itself stays in `mockData.ts` (still imported by detail page until rewrite — but rewrite removes it; if no other consumer, can be dropped too — will check during impl and remove if orphaned).
+- `Pharmacy` mock type may still be referenced by the new interface name; new typed interface in `api.ts` will be the source of truth going forward.
+- TagListEditor reuse keeps blocked_medications consistent with existing patterns (diagnoses, etc.).
+- Phone formatter is permissive — only formats clean 10-digit strings, otherwise renders as-is so existing data isn't mangled.
