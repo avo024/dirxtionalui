@@ -1011,6 +1011,17 @@ export default function CreateReferral() {
         )}
       </div>
 
+      {/* New Patient Modal */}
+      <NewPatientModal
+        open={showNewPatientModal}
+        onOpenChange={setShowNewPatientModal}
+        onCreated={(patient) => {
+          setSelectedPatient(patient);
+          setPatientMode("existing");
+          setPatientSearch("");
+        }}
+      />
+
       {/* Bridge Program Modal */}
       <Dialog open={showBridgeModal} onOpenChange={(open) => {
         if (!open) {
