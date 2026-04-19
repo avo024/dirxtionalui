@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, FileText, Building2, LogOut } from "lucide-react";
+import { LayoutDashboard, FileText, Building2, Mail, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { adminApi } from "@/lib/api";
@@ -10,6 +10,7 @@ const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
   { label: "All Referrals", icon: FileText, path: "/admin/referrals" },
   { label: "Pharmacies", icon: Building2, path: "/admin/pharmacies" },
+  { label: "Invites", icon: Mail, path: "/admin/invites" },
 ];
 
 export function AdminSidebar() {

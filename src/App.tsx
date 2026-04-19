@@ -27,6 +27,7 @@ import AdminReferralsList from "@/pages/admin/AdminReferralsList";
 import AdminReferralReview from "@/pages/admin/AdminReferralReview";
 import PharmaciesList from "@/pages/admin/PharmaciesList";
 import PharmacyDetail from "@/pages/admin/PharmacyDetail";
+import AdminInvites from "@/pages/admin/AdminInvites";
 
 const queryClient = new QueryClient();
 
@@ -61,6 +62,7 @@ const App = () => (
               <Route path="referrals" element={<AdminReferralsList />} />
               <Route path="pharmacies/:id" element={<PharmacyDetail />} />
               <Route path="pharmacies" element={<PharmaciesList />} />
+              <Route path="invites" element={<AdminInvites />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />
