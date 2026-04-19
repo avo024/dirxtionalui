@@ -238,13 +238,17 @@ export default function CreateReferral() {
       }
 
       // Step 2: Build referral payload
+      // Bridge program pharmacy takes priority; otherwise use the per-referral selection
+      const targetPharmacyId = (isBridgeProgram && bridgePharmacyId)
+        ? bridgePharmacyId
+        : selectedPharmacyId;
       const referralPayload: any = {
         patient_id: patientId,
         referral_method: referralMethod,
         urgency: "routine",
         is_bridge_program: isBridgeProgram,
         insurance_not_provided: referralMethod === 'upload' ? !uploadHasInsurance : !manualData.hasInsurance,
-        ...(isBridgeProgram && bridgePharmacyId ? { target_pharmacy_id: bridgePharmacyId } : {}),
+        ...(targetPharmacyId ? { target_pharmacy_id: targetPharmacyId } : {}),
       };
 
       // Build patient section from actual patient data
