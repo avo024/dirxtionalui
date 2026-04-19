@@ -555,7 +555,12 @@ export default function ReferralDetail() {
                     {catDocs.map((doc: any) => {
                       const DocIcon = getDocIcon(doc.original_filename || doc.file_name || '');
                       return (
-                        <div key={doc.id} className="rounded-lg border border-border bg-card p-4 card-shadow group hover:card-shadow-md transition-all duration-200">
+                        <button
+                          key={doc.id}
+                          type="button"
+                          onClick={() => setViewerDocId(doc.id)}
+                          className="text-left rounded-lg border border-border bg-card p-4 card-shadow group hover:card-shadow-md hover:border-primary/40 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-ring"
+                        >
                           <div className="flex items-start gap-3">
                             <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                               <DocIcon className="h-4 w-4 text-primary" />
@@ -569,7 +574,7 @@ export default function ReferralDetail() {
                               </p>
                             </div>
                           </div>
-                        </div>
+                        </button>
                       );
                     })}
                   </div>
