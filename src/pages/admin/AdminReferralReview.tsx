@@ -364,7 +364,12 @@ export default function AdminReferralReview() {
                 <Badge variant="secondary" className="text-xs">{documents.length} doc{documents.length !== 1 ? 's' : ''}</Badge>
               )}
             </div>
-            <p className="text-sm text-muted-foreground">{referral.drug} · {referral.clinic_name} · {referral.id}</p>
+            <p className="text-sm text-muted-foreground">
+              {referral.drug} · {referral.clinic_name} · {referral.id}
+              {referral.created_by_name && (
+                <span className="ml-2">· Created by {referral.created_by_name}{referral.clinic_name ? ` — ${referral.clinic_name}` : ''}</span>
+              )}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
