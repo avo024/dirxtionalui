@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
-import { LogOut } from "lucide-react";
+import { LogOut, UserCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -13,12 +14,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
 import { useAdminProfile } from "@/hooks/useAdminProfile";
+import { EditProfileModal } from "@/components/EditProfileModal";
 
 export function UserMenu() {
   const { user: auth0User, logout } = useAuth0();
   const { user } = useAuth();
   const { data: clinicProfile } = useProfile();
   const { data: adminProfile } = useAdminProfile();
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
 
   if (!auth0User) return null;
 
@@ -48,38 +51,56 @@ export function UserMenu() {
           .toUpperCase();
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="gap-2 h-9 px-2">
-          <Avatar className="h-7 w-7">
-            {auth0User.picture && <AvatarImage src={auth0User.picture} alt={displayLabel} />}
-            <AvatarFallback className="text-xs">{initials}</AvatarFallback>
-          </Avatar>
-          <span className="text-sm font-medium hidden sm:inline">
-            {displayLabel}
-          </span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel className="flex flex-col gap-0.5">
-          <span className="text-sm font-medium">{displayLabel}</span>
-          {auth0User.email && displayLabel !== auth0User.email && (
-            <span className="text-xs text-muted-foreground font-normal">
-              {auth0User.email}
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="gap-2 h-9 px-2">
+            <Avatar className="h-7 w-7">
+              {auth0User.picture && <AvatarImage src={auth0User.picture} alt={displayLabel} />}
+              <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+            </Avatar>
+            <span className="text-sm font-medium hidden sm:inline">
+              {displayLabel}
             </span>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuLabel className="flex flex-col gap-0.5">
+            <span className="text-sm font-medium">{displayLabel}</span>
+            {auth0User.email && displayLabel !== auth0User.email && (
+              <span className="text-xs text-muted-foreground font-normal">
+                {auth0User.email}
+              </span>
+            )}
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {isClinicUser && (
+            <>
+              <DropdownMenuItem
+                onClick={() => setEditProfileOpen(true)}
+                className="cursor-pointer"
+              >
+                <UserCog className="h-4 w-4 mr-2" />
+                Edit Profile
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+            </>
           )}
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={() =>
-            logout({ logoutParams: { returnTo: window.location.origin } })
-          }
-          className="cursor-pointer"
-        >
-          <LogOut className="h-4 w-4 mr-2" />
-          Sign Out
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+          <DropdownMenuItem
+            onClick={() =>
+              logout({ logoutParams: { returnTo: window.location.origin } })
+            }
+            className="cursor-pointer"
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Sign Out
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {isClinicUser && (
+        <EditProfileModal open={editProfileOpen} onOpenChange={setEditProfileOpen} />
+      )}
+    </>
   );
 }

@@ -16,7 +16,7 @@ import ClinicDashboard from "@/pages/clinic/ClinicDashboard";
 import CreateReferral from "@/pages/clinic/CreateReferral";
 import ReferralsList from "@/pages/clinic/ReferralsList";
 import ReferralDetail from "@/pages/clinic/ReferralDetail";
-import ClinicSettings from "@/pages/clinic/ClinicSettings";
+
 import PatientsList from "@/pages/clinic/PatientsList";
 import PatientDetail from "@/pages/clinic/PatientDetail";
 import CreatePatient from "@/pages/clinic/CreatePatient";
@@ -52,7 +52,6 @@ const App = () => (
               <Route path="referrals/new" element={<CreateReferral />} />
               <Route path="referrals/:id" element={<ReferralDetail />} />
               <Route path="referrals" element={<ReferralsList />} />
-              <Route path="settings" element={<ClinicSettings />} />
             </Route>
 
             {/* Admin routes */}
