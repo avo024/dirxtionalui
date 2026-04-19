@@ -23,6 +23,7 @@ export default function AdminReferralsList() {
   const [clinicFilter, setClinicFilter] = useState("all");
   const [paSortDirection, setPASortDirection] = useState<"asc" | "desc" | null>(null);
   const [referrals, setReferrals] = useState<any[]>([]);
+  const [counts, setCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const location = useLocation();
 
@@ -30,7 +31,10 @@ export default function AdminReferralsList() {
     const fetchReferrals = async () => {
       try {
         setLoading(true);
-        const response = await adminApi.getReferrals();
+        const [response, countsRes] = await Promise.all([
+          adminApi.getReferrals(),
+          adminApi.getReferralCounts().catch(() => ({})),
+        ]);
 
         const mapped = (response.items || []).map((r: any) => ({
           ...r,
@@ -40,6 +44,7 @@ export default function AdminReferralsList() {
         }));
 
         setReferrals(mapped);
+        setCounts(countsRes || {});
       } catch (err: any) {
         toast({
           title: "Error",
@@ -101,20 +106,36 @@ export default function AdminReferralsList() {
       {/* Filters & Search */}
       <div className="flex flex-col gap-3">
         <div className="flex gap-1 bg-secondary rounded-lg p-1 w-fit">
-          {filters.map((f) => (
-            <button
-              key={f.value}
-              onClick={() => setActiveFilter(f.value)}
-              className={cn(
-                "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
-                activeFilter === f.value
-                  ? "bg-card text-foreground card-shadow"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {f.label}
-            </button>
-          ))}
+          {filters.map((f) => {
+            const count = counts[f.value];
+            const hasCount = typeof count === "number";
+            const isActive = activeFilter === f.value;
+            return (
+              <button
+                key={f.value}
+                onClick={() => setActiveFilter(f.value)}
+                className={cn(
+                  "px-3 py-1.5 rounded-md text-sm font-medium transition-colors inline-flex items-center gap-1.5",
+                  isActive
+                    ? "bg-card text-foreground card-shadow"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {f.label}
+                {hasCount && (
+                  <span
+                    className={cn(
+                      "text-xs font-medium",
+                      count === 0 ? "opacity-50" : "",
+                      isActive ? "text-muted-foreground" : "text-muted-foreground/70"
+                    )}
+                  >
+                    ({count})
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
         <div className="flex items-center gap-3">
           <div className="relative flex-1 max-w-xs">
