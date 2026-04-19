@@ -44,6 +44,7 @@ type Patient = {
 const steps = [
   { label: "Select Patient", icon: Users },
   { label: "Referral Method", icon: Upload },
+  { label: "Choose Pharmacy", icon: Pill },
   { label: "Review & Submit", icon: CheckCircle },
 ];
 
@@ -113,9 +114,33 @@ export default function CreateReferral() {
   const [bridgePharmacyName, setBridgePharmacyName] = useState("");
   const [uploadHasInsurance, setUploadHasInsurance] = useState(true);
 
-  // Pharmacy list for bridge program picker
+  // Pharmacy list (used by both bridge program picker and pharmacy step)
   const [pharmacies, setPharmacies] = useState<any[]>([]);
   const [loadingPharmacies, setLoadingPharmacies] = useState(false);
+
+  // Selected target pharmacy for this referral (Step 3 — Choose Pharmacy)
+  const [defaultPharmacyId, setDefaultPharmacyId] = useState<string | null>(null);
+  const [defaultPharmacyName, setDefaultPharmacyName] = useState<string | null>(null);
+  const [selectedPharmacyId, setSelectedPharmacyId] = useState<string | null>(null);
+
+  // Load pharmacies + clinic default once on mount
+  useEffect(() => {
+    setLoadingPharmacies(true);
+    Promise.all([
+      pharmacyApi.getPharmacies().catch(() => ({ items: [] as any[] })),
+      getMyClinic().catch(() => null),
+    ])
+      .then(([phRes, clinic]) => {
+        const items = (phRes as any)?.items || (phRes as any) || [];
+        setPharmacies(items);
+        if (clinic?.default_pharmacy_id) {
+          setDefaultPharmacyId(clinic.default_pharmacy_id);
+          setDefaultPharmacyName(clinic.default_pharmacy_name || null);
+          setSelectedPharmacyId((prev) => prev ?? clinic.default_pharmacy_id ?? null);
+        }
+      })
+      .finally(() => setLoadingPharmacies(false));
+  }, []);
 
   // Submission state
   const [extracting, setExtracting] = useState(false);
