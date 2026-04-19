@@ -25,10 +25,8 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminReferralsList from "@/pages/admin/AdminReferralsList";
 import AdminReferralReview from "@/pages/admin/AdminReferralReview";
-import BlockedReferrals from "@/pages/admin/BlockedReferrals";
 import PharmaciesList from "@/pages/admin/PharmaciesList";
 import PharmacyDetail from "@/pages/admin/PharmacyDetail";
-import AdminSettings from "@/pages/admin/AdminSettings";
 
 const queryClient = new QueryClient();
 
@@ -60,12 +58,10 @@ const App = () => (
             {/* Admin routes */}
             <Route path="/admin" element={<AdminLayout />}>
               <Route path="dashboard" element={<AdminDashboard />} />
-              <Route path="referrals/blocked" element={<BlockedReferrals />} />
               <Route path="referrals/:id" element={<AdminReferralReview />} />
               <Route path="referrals" element={<AdminReferralsList />} />
               <Route path="pharmacies/:id" element={<PharmacyDetail />} />
               <Route path="pharmacies" element={<PharmaciesList />} />
-              <Route path="settings" element={<AdminSettings />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />

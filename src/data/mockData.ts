@@ -846,10 +846,6 @@ export const mockPharmacies: Pharmacy[] = [
   },
 ];
 
-export const mockBlockedReferrals = [
-  { id: "ref-b01", patient_name: "Carlos Ruiz", clinic_name: "Dallas Dermatology Clinic", drug: "Humira", pharmacy: "HealthMart Specialty Rx", reason: "Pharmacy license expired in TX", date: "2026-02-04" },
-  { id: "ref-b02", patient_name: "Anna Lee", clinic_name: "Fort Worth Allergy Center", drug: "Dupixent", pharmacy: "HealthMart Specialty Rx", reason: "Insurance not accepted at this location", date: "2026-02-06" },
-];
 
 export const statusLabels: Record<ReferralStatus, string> = {
   uploaded: "Uploaded",

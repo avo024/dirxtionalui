@@ -1136,7 +1136,7 @@ export default function CreateReferral() {
                   if (pharmacies.length === 0) {
                     setLoadingPharmacies(true);
                     pharmacyApi.getPharmacies()
-                      .then((data) => setPharmacies(data.items || data || []))
+                      .then((data: any) => setPharmacies(data.items || data || []))
                       .catch(() => toast({ title: "Error", description: "Failed to load pharmacies", variant: "destructive" }))
                       .finally(() => setLoadingPharmacies(false));
                   }

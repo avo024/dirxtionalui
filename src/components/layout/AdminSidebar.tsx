@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, FileText, AlertOctagon, Building2, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, FileText, Building2, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { adminApi } from "@/lib/api";
@@ -9,9 +9,7 @@ import logo from "@/assets/logo.png";
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
   { label: "All Referrals", icon: FileText, path: "/admin/referrals" },
-  { label: "Blocked Referrals", icon: AlertOctagon, path: "/admin/referrals/blocked" },
   { label: "Pharmacies", icon: Building2, path: "/admin/pharmacies" },
-  { label: "Settings", icon: Settings, path: "/admin/settings" },
 ];
 
 export function AdminSidebar() {
@@ -46,7 +44,7 @@ export function AdminSidebar() {
       <nav className="flex-1 px-3 py-4 space-y-1">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path ||
-            (item.path === "/admin/referrals" && location.pathname.startsWith("/admin/referrals/") && !location.pathname.includes("blocked"));
+            (item.path === "/admin/referrals" && location.pathname.startsWith("/admin/referrals/"));
           return (
             <Link
               key={item.path}
