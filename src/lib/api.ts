@@ -382,12 +382,6 @@ export const adminApi = {
     return handleResponse(response);
   },
 
-  async getBlockedReferrals(): Promise<any> {
-    const response = await fetch(`${API_BASE_URL}/admin/referrals/blocked`, {
-      headers: await getHeaders(),
-    });
-    return handleResponse(response);
-  },
 
   async updateExtractedData(id: string, extractedData: any): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/admin/referrals/${id}/extracted-data`, {
