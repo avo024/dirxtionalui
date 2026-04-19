@@ -497,7 +497,75 @@ export const adminApi = {
     });
     return handleResponse<{ items: any[] }>(response);
   },
+
+  // ---- Clinics (admin) ----
+  async getClinics(): Promise<{ items: AdminClinic[] }> {
+    const response = await fetch(`${API_BASE_URL}/admin/clinics`, {
+      headers: await getHeaders(),
+    });
+    // Backend may return either { items: [...] } or a bare array — normalize.
+    const data = await handleResponse<any>(response);
+    if (Array.isArray(data)) return { items: data };
+    return data;
+  },
+
+  // ---- Invites ----
+  async listInvites(): Promise<{ items: AdminInvite[] }> {
+    const response = await fetch(`${API_BASE_URL}/admin/invites`, {
+      headers: await getHeaders(),
+    });
+    const data = await handleResponse<any>(response);
+    if (Array.isArray(data)) return { items: data };
+    return data;
+  },
+
+  async createInvite(data: { clinic_id: string; email: string }): Promise<AdminInvite> {
+    const response = await fetch(`${API_BASE_URL}/admin/invites`, {
+      method: 'POST',
+      headers: await getHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse<AdminInvite>(response);
+  },
+
+  async resendInvite(token: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/admin/invites/${token}/resend`, {
+      method: 'POST',
+      headers: await getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  async revokeInvite(token: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/admin/invites/${token}`, {
+      method: 'DELETE',
+      headers: await getHeaders(),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Network error' }));
+      throw new Error(error.error || `HTTP ${response.status}`);
+    }
+    return response.status === 204 ? null : response.json().catch(() => null);
+  },
 };
+
+export interface AdminClinic {
+  id: string;
+  name: string;
+  specialty?: string | null;
+  email?: string | null;
+}
+
+export interface AdminInvite {
+  token: string;
+  email: string;
+  clinic_id: string;
+  clinic_name?: string;
+  created_at: string;
+  expires_at: string;
+  used_at?: string | null;
+  revoked_at?: string | null;
+}
 
 // ============================================================================
 // PHARMACY ENDPOINTS
