@@ -17,6 +17,10 @@ interface BackendDocument {
 interface DocumentViewerProps {
   documents: BackendDocument[];
   className?: string;
+  /** Optional override for fetching a presigned URL. Defaults to admin endpoint. */
+  fetchUrl?: (docId: string) => Promise<{ url: string }>;
+  /** If provided, controls which document tab is active. */
+  initialDocId?: string;
 }
 
 interface CachedUrl {

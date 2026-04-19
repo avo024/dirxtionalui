@@ -295,6 +295,17 @@ export const clinicApi = {
     });
     return handleResponse<{ items: any[] }>(response);
   },
+
+  async getReferralDocumentUrl(
+    referralId: string,
+    docId: string,
+  ): Promise<{ url: string; filename?: string; expires_in?: number }> {
+    const response = await fetch(
+      `${API_BASE_URL}/referrals/${referralId}/documents/${docId}/url`,
+      { headers: await getHeaders() },
+    );
+    return handleResponse(response);
+  },
 };
 
 // ============================================================================
