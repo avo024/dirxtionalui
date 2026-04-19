@@ -18,6 +18,7 @@ import type { Referral } from "@/data/mockData";
 import { getReferralPAInfo } from "@/data/mockData";
 import { getRelativeTime, formatDateTime } from "@/lib/dateUtils";
 import { toast } from "@/hooks/use-toast";
+import { CreatedByAvatar } from "@/components/CreatedByAvatar";
 
 interface ReferralTableProps {
   referrals: Referral[];
@@ -95,6 +96,7 @@ export function ReferralTable({ referrals, userType, showClinic = false, paSortD
             <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Created</TableHead>
             {userType === "clinic" && <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Updated</TableHead>}
             <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-right">Actions</TableHead>
+            <TableHead className="w-[56px]"><span className="sr-only">Created By</span></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -201,6 +203,12 @@ export function ReferralTable({ referrals, userType, showClinic = false, paSortD
                     <Eye className="h-3.5 w-3.5 mr-1" />
                     {isAdmin ? "Review" : "View"}
                   </Button>
+                </TableCell>
+                <TableCell className="w-[56px]" onClick={(e) => e.stopPropagation()}>
+                  <CreatedByAvatar
+                    name={(ref as any).created_by_name}
+                    clinicName={isAdmin ? (ref as any).clinic_name : undefined}
+                  />
                 </TableCell>
               </TableRow>
             );
