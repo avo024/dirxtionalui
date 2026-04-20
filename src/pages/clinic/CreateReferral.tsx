@@ -11,6 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Badge } from "@/components/ui/badge";
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
 import { PAStatusBadge } from "@/components/PAStatusBadge";
 import { ConfidenceIndicator } from "@/components/ConfidenceIndicator";
 import { toast } from "@/hooks/use-toast";
@@ -90,7 +92,8 @@ export default function CreateReferral() {
 
   // Upload state
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
-  
+  // Upload mode: explicit acknowledgement that no documents are available
+  const [noDocsConfirmed, setNoDocsConfirmed] = useState(false);
 
   // Manual entry state
   const [manualData, setManualData] = useState({
@@ -107,13 +110,14 @@ export default function CreateReferral() {
     secondaryInsuranceName: "", secondaryMemberId: "",
   });
 
-  // Bridge Program state
-  const [isBridgeProgram, setIsBridgeProgram] = useState(false);
-  const [showBridgeModal, setShowBridgeModal] = useState(false);
-  const [bridgeStep, setBridgeStep] = useState<'ask' | 'pick'>('ask');
-  const [bridgePharmacyId, setBridgePharmacyId] = useState("");
-  const [bridgePharmacyName, setBridgePharmacyName] = useState("");
-  const [uploadHasInsurance, setUploadHasInsurance] = useState(true);
+  // Insurance choice — forced selection (applies to both upload + manual)
+  // null = not yet chosen, "has" = patient has insurance, "bridge" = no insurance, use bridge program
+  const [insuranceChoice, setInsuranceChoice] = useState<"has" | "bridge" | null>(null);
+
+  // Bridge program is implied by insuranceChoice === "bridge"
+  const isBridgeProgram = insuranceChoice === "bridge";
+  // Step 4 submit-attempt validation errors
+  const [showSubmitErrors, setShowSubmitErrors] = useState(false);
 
   // Pharmacy list (used by both bridge program picker and pharmacy step)
   const [pharmacies, setPharmacies] = useState<any[]>([]);
@@ -239,17 +243,13 @@ export default function CreateReferral() {
       }
 
       // Step 2: Build referral payload
-      // Bridge program pharmacy takes priority; otherwise use the per-referral selection
-      const targetPharmacyId = (isBridgeProgram && bridgePharmacyId)
-        ? bridgePharmacyId
-        : selectedPharmacyId;
       const referralPayload: any = {
         patient_id: patientId,
         referral_method: referralMethod,
         urgency: "routine",
         is_bridge_program: isBridgeProgram,
-        insurance_not_provided: referralMethod === 'upload' ? !uploadHasInsurance : !manualData.hasInsurance,
-        ...(targetPharmacyId ? { target_pharmacy_id: targetPharmacyId } : {}),
+        insurance_not_provided: insuranceChoice === "bridge",
+        ...(selectedPharmacyId ? { target_pharmacy_id: selectedPharmacyId } : {}),
       };
 
       // Build patient section from actual patient data
@@ -332,9 +332,40 @@ export default function CreateReferral() {
     patient.phone_primary || patient.phone || '—';
 
   const canProceedStep1 = !!selectedPatient;
-  const canProceedStep2 = referralMethod === "upload"
-    ? uploadedFiles.filter(f => f.zone === "required").length > 0
-    : (manualData.diagnosisCode && manualData.drugRequested);
+  // Insurance section validity (used by Step 2)
+  const insuranceSectionValid = (() => {
+    if (insuranceChoice === null) return false;
+    if (insuranceChoice === "bridge") return true;
+    // "has" requires payer + member ID
+    return !!manualData.primaryInsuranceName.trim() && !!manualData.primaryMemberId.trim();
+  })();
+
+  const canProceedStep2 = (() => {
+    if (!insuranceSectionValid) return false;
+    if (referralMethod === "upload") {
+      const hasDocs = uploadedFiles.length > 0;
+      return hasDocs || noDocsConfirmed;
+    }
+    return !!manualData.diagnosisCode && !!manualData.drugRequested;
+  })();
+
+  // Pharmacies available in step 3 — filter to bridge-eligible when bridge chosen
+  const availablePharmacies = useMemo(() => {
+    if (insuranceChoice === "bridge") {
+      return pharmacies.filter((p: any) => p.accepts_no_insurance);
+    }
+    return pharmacies;
+  }, [pharmacies, insuranceChoice]);
+
+  // If bridge selected and current selection isn't eligible, clear it
+  useEffect(() => {
+    if (insuranceChoice !== "bridge") return;
+    const current = pharmacies.find((p: any) => p.id === selectedPharmacyId);
+    if (current && !current.accepts_no_insurance) {
+      setSelectedPharmacyId(null);
+    }
+  }, [insuranceChoice, pharmacies, selectedPharmacyId]);
+
   const canProceedStep3 = !!selectedPharmacyId;
   const selectedPharmacy = useMemo(
     () => pharmacies.find((p: any) => p.id === selectedPharmacyId) || null,
@@ -597,85 +628,20 @@ export default function CreateReferral() {
             <div className="space-y-4">
               <UploadZone
                 label="Referral Form / Prescription"
-                subtitle="PDF, JPG, PNG — Required"
+                subtitle="PDF, JPG, PNG"
                 icon={FileText}
-                required
                 files={uploadedFiles.filter((f) => f.zone === "required")}
                 onUpload={() => document.getElementById('upload-required')?.click()}
                 onRemove={removeFile}
               />
-              {/* Insurance Cards — custom container with no-insurance toggle */}
-              <div className={cn(
-                "rounded-xl border-2 border-dashed p-5 transition-all duration-200",
-                uploadedFiles.filter(f => f.zone === "insurance").length > 0 ? "border-success/40 bg-success/[0.02]" : "border-border hover:border-primary/40 hover:bg-primary/[0.02]"
-              )}>
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <Shield className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm font-medium text-foreground">Insurance Cards</p>
-                      <p className="text-xs text-muted-foreground">Front & back — Upload both as separate files</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* No Insurance toggle */}
-                <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-secondary/50 mb-3">
-                  <span className="text-sm text-foreground">Patient has no insurance</span>
-                  <Switch
-                    checked={!uploadHasInsurance}
-                    onCheckedChange={(checked) => {
-                      setUploadHasInsurance(!checked);
-                      if (checked) {
-                        setShowBridgeModal(true);
-                        setBridgeStep('ask');
-                      } else {
-                        setIsBridgeProgram(false);
-                        setBridgePharmacyId("");
-                        setBridgePharmacyName("");
-                      }
-                    }}
-                  />
-                </div>
-
-                {/* Bridge Program badge */}
-                {isBridgeProgram && bridgePharmacyName && !uploadHasInsurance && (
-                  <div className="mb-3">
-                    <Badge className="bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-100">
-                      Bridge Program — {bridgePharmacyName}
-                    </Badge>
-                  </div>
-                )}
-                {!uploadHasInsurance && !isBridgeProgram && (
-                  <div className="mb-3">
-                    <Badge variant="secondary" className="text-muted-foreground">No insurance — cash referral</Badge>
-                  </div>
-                )}
-
-                {/* Upload dropzone — dimmed when no insurance */}
-                <div className={cn(!uploadHasInsurance && "opacity-40 pointer-events-none")}>
-                  {uploadedFiles.filter(f => f.zone === "insurance").length > 0 && (
-                    <div className="space-y-2 mb-3">
-                      {uploadedFiles.filter(f => f.zone === "insurance").map((f) => (
-                        <div key={f.id} className="flex items-center justify-between bg-secondary/50 rounded-lg px-3 py-2">
-                          <div className="flex items-center gap-2">
-                            <CheckCircle className="h-3.5 w-3.5 text-success" />
-                            <span className="text-sm text-foreground">{f.name}</span>
-                            <span className="text-xs text-muted-foreground">{f.size}</span>
-                          </div>
-                          <button onClick={() => removeFile(f.id)} className="text-muted-foreground hover:text-destructive transition-colors">
-                            <X className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  <Button variant="outline" size="sm" onClick={() => document.getElementById('upload-insurance')?.click()} className="w-full text-xs">
-                    <Upload className="h-3.5 w-3.5 mr-1" />
-                    {uploadedFiles.filter(f => f.zone === "insurance").length > 0 ? "Upload Another File" : "Choose File or Drag & Drop"}
-                  </Button>
-                </div>
-              </div>
+              <UploadZone
+                label="Insurance Cards"
+                subtitle="Front & back — Upload both as separate files (optional if no insurance)"
+                icon={Shield}
+                files={uploadedFiles.filter((f) => f.zone === "insurance")}
+                onUpload={() => document.getElementById('upload-insurance')?.click()}
+                onRemove={removeFile}
+              />
               <UploadZone
                 label="Chart Notes, Lab Results, Other"
                 subtitle="Optional — Any additional supporting documents"
@@ -685,6 +651,49 @@ export default function CreateReferral() {
                 onRemove={removeFile}
               />
             </div>
+
+            {/* No-documents acknowledgement */}
+            {uploadedFiles.length === 0 && (
+              <label
+                className={cn(
+                  "flex items-start gap-3 rounded-lg border p-3 cursor-pointer transition-colors",
+                  noDocsConfirmed
+                    ? "border-primary/40 bg-primary/[0.04]"
+                    : "border-border hover:bg-secondary/50",
+                )}
+              >
+                <Checkbox
+                  checked={noDocsConfirmed}
+                  onCheckedChange={(v) => setNoDocsConfirmed(!!v)}
+                  className="mt-0.5"
+                />
+                <span className="text-sm text-foreground">
+                  Manual entry only — no documents available for this referral
+                </span>
+              </label>
+            )}
+
+            {/* Insurance choice */}
+            <InsuranceChoiceSection
+              choice={insuranceChoice}
+              onChoiceChange={setInsuranceChoice}
+              hasInsuranceData={{
+                payer: manualData.primaryInsuranceName,
+                memberId: manualData.primaryMemberId,
+                groupId: manualData.insuranceNotes,
+                subscriberName: manualData.secondaryInsuranceName,
+              }}
+              onHasInsuranceFieldChange={(field, value) => {
+                setManualData((d) => ({
+                  ...d,
+                  ...(field === "payer" ? { primaryInsuranceName: value } : {}),
+                  ...(field === "memberId" ? { primaryMemberId: value } : {}),
+                  ...(field === "groupId" ? { insuranceNotes: value } : {}),
+                  ...(field === "subscriberName" ? { secondaryInsuranceName: value } : {}),
+                }));
+              }}
+              showErrors={showSubmitErrors}
+            />
 
             <div className="flex gap-3 p-4 rounded-lg bg-primary/5 border border-primary/10">
               <Sparkles className="h-5 w-5 text-primary shrink-0 mt-0.5" />
@@ -860,34 +869,36 @@ export default function CreateReferral() {
               {/* Insurance */}
               <AccordionItem value="insurance">
                 <AccordionTrigger className="text-sm font-semibold">
-                  <span className="flex items-center gap-2"><Shield className="h-4 w-4 text-primary" /> Insurance Information</span>
+                  <span className="flex items-center gap-2"><Shield className="h-4 w-4 text-primary" /> Insurance Information <span className="text-destructive">*</span></span>
                 </AccordionTrigger>
                 <AccordionContent className="space-y-4 pt-2">
-                  <FormField label="Has insurance card?">
-                    <div className="flex items-center gap-3 h-10">
-                      <Switch checked={manualData.hasInsurance} onCheckedChange={(v) => {
-                        setManualData((d) => ({ ...d, hasInsurance: v }));
-                        if (!v) { setShowBridgeModal(true); setBridgeStep('ask'); }
-                        if (v) { setIsBridgeProgram(false); setBridgePharmacyId(""); setBridgePharmacyName(""); }
-                      }} />
-                      <span className="text-sm text-muted-foreground">{manualData.hasInsurance ? "Yes" : "No"}</span>
-                    </div>
-                    {isBridgeProgram && bridgePharmacyName && !manualData.hasInsurance && (
-                      <Badge className="mt-2 bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-100">
-                        Bridge Program — {bridgePharmacyName}
-                      </Badge>
-                    )}
-                  </FormField>
-                  {manualData.hasInsurance && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField label="Primary Insurance Name">
-                        <Input value={manualData.primaryInsuranceName} onChange={(e) => setManualData((d) => ({ ...d, primaryInsuranceName: e.target.value }))} placeholder="e.g., Blue Cross Blue Shield" />
-                      </FormField>
-                      <FormField label="Patient ID Number">
-                        <Input value={manualData.primaryMemberId} onChange={(e) => setManualData((d) => ({ ...d, primaryMemberId: e.target.value }))} placeholder="Member/Patient ID" />
-                      </FormField>
+                  <InsuranceChoiceSection
+                    choice={insuranceChoice}
+                    onChoiceChange={(c) => {
+                      setInsuranceChoice(c);
+                      setManualData((d) => ({ ...d, hasInsurance: c === "has" }));
+                    }}
+                    hasInsuranceData={{
+                      payer: manualData.primaryInsuranceName,
+                      memberId: manualData.primaryMemberId,
+                      groupId: manualData.insuranceNotes,
+                      subscriberName: manualData.secondaryInsuranceName,
+                    }}
+                    onHasInsuranceFieldChange={(field, value) => {
+                      setManualData((d) => ({
+                        ...d,
+                        ...(field === "payer" ? { primaryInsuranceName: value } : {}),
+                        ...(field === "memberId" ? { primaryMemberId: value } : {}),
+                        ...(field === "groupId" ? { insuranceNotes: value } : {}),
+                        ...(field === "subscriberName" ? { secondaryInsuranceName: value } : {}),
+                      }));
+                    }}
+                    showErrors={showSubmitErrors}
+                  />
+                  {insuranceChoice === "has" && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-border">
                       <FormField label="Secondary Insurance Name">
-                        <Input value={manualData.secondaryInsuranceName} onChange={(e) => setManualData((d) => ({ ...d, secondaryInsuranceName: e.target.value }))} placeholder="Optional" />
+                        <Input value={manualData.secondaryMemberId ? manualData.secondaryInsuranceName : manualData.secondaryInsuranceName} onChange={(e) => setManualData((d) => ({ ...d, secondaryInsuranceName: e.target.value }))} placeholder="Optional" />
                       </FormField>
                       <FormField label="Secondary Patient ID Number">
                         <Input value={manualData.secondaryMemberId} onChange={(e) => setManualData((d) => ({ ...d, secondaryMemberId: e.target.value }))} placeholder="Optional" />
@@ -902,9 +913,6 @@ export default function CreateReferral() {
                             <SelectItem value="other">Other</SelectItem>
                           </SelectContent>
                         </Select>
-                      </FormField>
-                      <FormField label="Insurance Notes">
-                        <Textarea value={manualData.insuranceNotes} onChange={(e) => setManualData((d) => ({ ...d, insuranceNotes: e.target.value }))} placeholder="Plan name, group number, etc." rows={2} />
                       </FormField>
                     </div>
                   )}
@@ -929,11 +937,13 @@ export default function CreateReferral() {
               <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-1">Step 3 of 4</p>
               <h2 className="text-lg font-semibold text-foreground">Select pharmacy for this referral</h2>
               <p className="text-sm text-muted-foreground">
-                Defaults to your clinic's preferred pharmacy. Change if this referral needs a different one.
+                {insuranceChoice === "bridge"
+                  ? "Showing only pharmacies that support bridge programs."
+                  : "Defaults to your clinic's preferred pharmacy. Change if this referral needs a different one."}
               </p>
             </div>
 
-            {!loadingPharmacies && !defaultPharmacyId && (
+            {!loadingPharmacies && !defaultPharmacyId && insuranceChoice !== "bridge" && (
               <div className="flex items-start gap-3 p-4 rounded-lg bg-warning/10 border border-warning/30">
                 <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
                 <p className="text-sm text-foreground">
@@ -946,15 +956,25 @@ export default function CreateReferral() {
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
-            ) : pharmacies.length === 0 ? (
+            ) : availablePharmacies.length === 0 ? (
               <div className="rounded-lg border border-dashed border-border p-8 text-center">
-                <p className="text-sm text-muted-foreground">No pharmacies available. Contact your administrator.</p>
+                <p className="text-sm text-muted-foreground">
+                  {insuranceChoice === "bridge"
+                    ? "No bridge-program pharmacies available — contact DiRxctional support."
+                    : "No pharmacies available. Contact your administrator."}
+                </p>
               </div>
             ) : (
               <PharmacyPicker
-                pharmacies={pharmacies}
+                pharmacies={availablePharmacies}
                 selectedId={selectedPharmacyId}
-                defaultId={defaultPharmacyId}
+                defaultId={
+                  insuranceChoice === "bridge" &&
+                  defaultPharmacyId &&
+                  !availablePharmacies.some((p: any) => p.id === defaultPharmacyId)
+                    ? null
+                    : defaultPharmacyId
+                }
                 onSelect={setSelectedPharmacyId}
               />
             )}
@@ -989,7 +1009,7 @@ export default function CreateReferral() {
               <div className="flex items-center justify-between gap-2">
                 <div>
                   <p className="text-sm font-medium text-foreground">
-                    {selectedPharmacy?.name || (isBridgeProgram && bridgePharmacyName) || "—"}
+                    {selectedPharmacy?.name || "—"}
                   </p>
                   {selectedPharmacy && (
                     <p className="text-xs text-muted-foreground">
@@ -1077,8 +1097,15 @@ export default function CreateReferral() {
 
         {currentStep === 1 && referralMethod && (
           <Button
-            onClick={() => setCurrentStep(2)}
+            onClick={() => {
+              if (!canProceedStep2) {
+                setShowSubmitErrors(true);
+                return;
+              }
+              setCurrentStep(2);
+            }}
             disabled={!canProceedStep2}
+            title={!canProceedStep2 ? "Complete required fields" : undefined}
           >
             Next: Choose Pharmacy
             <ArrowRight className="h-4 w-4 ml-2" />
@@ -1121,97 +1148,6 @@ export default function CreateReferral() {
         }}
       />
 
-      {/* Bridge Program Modal */}
-      <Dialog open={showBridgeModal} onOpenChange={(open) => {
-        if (!open) {
-          // Cancel/close resets bridge state
-          setBridgeStep('ask');
-          if (bridgeStep === 'pick') {
-            // They were picking a pharmacy but closed — reset
-            setIsBridgeProgram(false);
-            setBridgePharmacyId("");
-            setBridgePharmacyName("");
-          }
-          setShowBridgeModal(false);
-        }
-      }}>
-        <DialogContent className="sm:max-w-md">
-          {bridgeStep === 'ask' ? (
-            <>
-              <DialogHeader>
-                <DialogTitle>Bridge Program Referral?</DialogTitle>
-                <DialogDescription>
-                  This patient has no insurance. Is this a Bridge Program referral?
-                </DialogDescription>
-              </DialogHeader>
-              <div className="flex gap-3 justify-end pt-4">
-                <Button variant="outline" onClick={() => { setIsBridgeProgram(false); setShowBridgeModal(false); setBridgeStep('ask'); }}>
-                  No
-                </Button>
-                <Button className="bg-purple-600 hover:bg-purple-700 text-white" onClick={() => {
-                  setBridgeStep('pick');
-                  if (pharmacies.length === 0) {
-                    setLoadingPharmacies(true);
-                    pharmacyApi.getPharmacies()
-                      .then((data: any) => setPharmacies(data.items || data || []))
-                      .catch(() => toast({ title: "Error", description: "Failed to load pharmacies", variant: "destructive" }))
-                      .finally(() => setLoadingPharmacies(false));
-                  }
-                }}>
-                  Yes, Bridge Program
-                </Button>
-              </div>
-            </>
-          ) : (
-            <>
-              <DialogHeader>
-                <DialogTitle>Select Bridge Pharmacy</DialogTitle>
-                <DialogDescription>
-                  Which pharmacy is handling the Bridge Program for this drug?
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 pt-2">
-                {loadingPharmacies ? (
-                  <div className="flex items-center justify-center py-6">
-                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                  </div>
-                ) : (
-                  <Select value={bridgePharmacyId} onValueChange={(v) => {
-                    setBridgePharmacyId(v);
-                    const ph = pharmacies.find((p: any) => p.id === v);
-                    setBridgePharmacyName(ph?.name || "");
-                  }}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a pharmacy..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {pharmacies.map((ph: any) => (
-                        <SelectItem key={ph.id} value={ph.id}>{ph.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-                <div className="flex gap-3 justify-between">
-                  <Button variant="ghost" size="sm" onClick={() => { setBridgeStep('ask'); setBridgePharmacyId(""); setBridgePharmacyName(""); }}>
-                    <ArrowLeft className="h-3.5 w-3.5 mr-1" /> Back
-                  </Button>
-                  <Button
-                    className="bg-purple-600 hover:bg-purple-700 text-white"
-                    disabled={!bridgePharmacyId}
-                    onClick={() => {
-                      setIsBridgeProgram(true);
-                      setShowBridgeModal(false);
-                      setBridgeStep('ask');
-                    }}
-                  >
-                    Confirm
-                  </Button>
-                </div>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
@@ -1302,6 +1238,126 @@ function ReviewField({ label, value, confidence }: { label: string; value: strin
         <p className="text-sm font-medium text-foreground">{value}</p>
         {confidence !== undefined && <ConfidenceIndicator confidence={confidence} />}
       </div>
+    </div>
+  );
+}
+
+/* Insurance choice (forced selection) — used in upload + manual modes */
+function InsuranceChoiceSection({
+  choice,
+  onChoiceChange,
+  hasInsuranceData,
+  onHasInsuranceFieldChange,
+  showErrors,
+}: {
+  choice: "has" | "bridge" | null;
+  onChoiceChange: (c: "has" | "bridge") => void;
+  hasInsuranceData: { payer: string; memberId: string; groupId: string; subscriberName: string };
+  onHasInsuranceFieldChange: (field: "payer" | "memberId" | "groupId" | "subscriberName", value: string) => void;
+  showErrors: boolean;
+}) {
+  const choiceMissing = showErrors && choice === null;
+  const payerMissing = showErrors && choice === "has" && !hasInsuranceData.payer.trim();
+  const memberMissing = showErrors && choice === "has" && !hasInsuranceData.memberId.trim();
+
+  return (
+    <div className="rounded-xl border border-border p-4 space-y-4">
+      <div className="flex items-center gap-2">
+        <Shield className="h-4 w-4 text-primary" />
+        <h3 className="text-sm font-semibold text-foreground">
+          Insurance <span className="text-destructive">*</span>
+        </h3>
+      </div>
+
+      <RadioGroup
+        value={choice ?? ""}
+        onValueChange={(v) => onChoiceChange(v as "has" | "bridge")}
+        className="grid grid-cols-1 sm:grid-cols-2 gap-2"
+      >
+        <label
+          className={cn(
+            "flex items-start gap-3 rounded-lg border p-3 cursor-pointer transition-colors",
+            choice === "has" ? "border-primary/40 bg-primary/[0.04]" : "border-border hover:bg-secondary/50",
+          )}
+        >
+          <RadioGroupItem value="has" className="mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-foreground">Patient has insurance</p>
+            <p className="text-xs text-muted-foreground">Enter payer details below</p>
+          </div>
+        </label>
+        <label
+          className={cn(
+            "flex items-start gap-3 rounded-lg border p-3 cursor-pointer transition-colors",
+            choice === "bridge" ? "border-primary/40 bg-primary/[0.04]" : "border-border hover:bg-secondary/50",
+          )}
+        >
+          <RadioGroupItem value="bridge" className="mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-foreground">No insurance — use bridge program</p>
+            <p className="text-xs text-muted-foreground">Pharmacy list will be filtered</p>
+          </div>
+        </label>
+      </RadioGroup>
+
+      {choiceMissing && (
+        <p className="text-xs text-destructive">Please choose an insurance option to continue.</p>
+      )}
+
+      {choice === "has" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+          <div className="space-y-1.5">
+            <Label className="text-sm font-medium text-foreground">
+              Insurance company / payer <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              value={hasInsuranceData.payer}
+              onChange={(e) => onHasInsuranceFieldChange("payer", e.target.value)}
+              placeholder="e.g., Blue Cross Blue Shield"
+              className={cn(payerMissing && "border-destructive focus-visible:ring-destructive")}
+              aria-invalid={payerMissing}
+            />
+            {payerMissing && <p className="text-xs text-destructive">Payer name is required</p>}
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-sm font-medium text-foreground">
+              Member ID <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              value={hasInsuranceData.memberId}
+              onChange={(e) => onHasInsuranceFieldChange("memberId", e.target.value)}
+              placeholder="Member / Patient ID"
+              className={cn(memberMissing && "border-destructive focus-visible:ring-destructive")}
+              aria-invalid={memberMissing}
+            />
+            {memberMissing && <p className="text-xs text-destructive">Member ID is required</p>}
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-sm font-medium text-foreground">Group ID</Label>
+            <Input
+              value={hasInsuranceData.groupId}
+              onChange={(e) => onHasInsuranceFieldChange("groupId", e.target.value)}
+              placeholder="If issued"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-sm font-medium text-foreground">Subscriber name (if different)</Label>
+            <Input
+              value={hasInsuranceData.subscriberName}
+              onChange={(e) => onHasInsuranceFieldChange("subscriberName", e.target.value)}
+              placeholder="If different from patient"
+            />
+          </div>
+        </div>
+      )}
+
+      {choice === "bridge" && (
+        <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+          <p className="text-sm text-foreground">
+            On Step 3 you'll only see pharmacies that support bridge programs. If you need a different pharmacy, contact DiRxctional.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
