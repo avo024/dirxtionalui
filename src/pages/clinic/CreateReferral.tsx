@@ -937,11 +937,13 @@ export default function CreateReferral() {
               <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-1">Step 3 of 4</p>
               <h2 className="text-lg font-semibold text-foreground">Select pharmacy for this referral</h2>
               <p className="text-sm text-muted-foreground">
-                Defaults to your clinic's preferred pharmacy. Change if this referral needs a different one.
+                {insuranceChoice === "bridge"
+                  ? "Showing only pharmacies that support bridge programs."
+                  : "Defaults to your clinic's preferred pharmacy. Change if this referral needs a different one."}
               </p>
             </div>
 
-            {!loadingPharmacies && !defaultPharmacyId && (
+            {!loadingPharmacies && !defaultPharmacyId && insuranceChoice !== "bridge" && (
               <div className="flex items-start gap-3 p-4 rounded-lg bg-warning/10 border border-warning/30">
                 <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
                 <p className="text-sm text-foreground">
@@ -954,15 +956,25 @@ export default function CreateReferral() {
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
-            ) : pharmacies.length === 0 ? (
+            ) : availablePharmacies.length === 0 ? (
               <div className="rounded-lg border border-dashed border-border p-8 text-center">
-                <p className="text-sm text-muted-foreground">No pharmacies available. Contact your administrator.</p>
+                <p className="text-sm text-muted-foreground">
+                  {insuranceChoice === "bridge"
+                    ? "No bridge-program pharmacies available — contact DiRxctional support."
+                    : "No pharmacies available. Contact your administrator."}
+                </p>
               </div>
             ) : (
               <PharmacyPicker
-                pharmacies={pharmacies}
+                pharmacies={availablePharmacies}
                 selectedId={selectedPharmacyId}
-                defaultId={defaultPharmacyId}
+                defaultId={
+                  insuranceChoice === "bridge" &&
+                  defaultPharmacyId &&
+                  !availablePharmacies.some((p: any) => p.id === defaultPharmacyId)
+                    ? null
+                    : defaultPharmacyId
+                }
                 onSelect={setSelectedPharmacyId}
               />
             )}
