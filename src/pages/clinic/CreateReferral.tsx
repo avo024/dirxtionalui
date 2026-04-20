@@ -1097,8 +1097,15 @@ export default function CreateReferral() {
 
         {currentStep === 1 && referralMethod && (
           <Button
-            onClick={() => setCurrentStep(2)}
+            onClick={() => {
+              if (!canProceedStep2) {
+                setShowSubmitErrors(true);
+                return;
+              }
+              setCurrentStep(2);
+            }}
             disabled={!canProceedStep2}
+            title={!canProceedStep2 ? "Complete required fields" : undefined}
           >
             Next: Choose Pharmacy
             <ArrowRight className="h-4 w-4 ml-2" />
