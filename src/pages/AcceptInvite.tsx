@@ -3,6 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAuth0 } from "@auth0/auth0-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import logo from "@/assets/logo.png";
 
@@ -18,6 +20,7 @@ export default function AcceptInvite() {
   const [state, setState] = useState<PageState>("loading");
   const [clinicName, setClinicName] = useState("");
   const [email, setEmail] = useState("");
+  const [emailError, setEmailError] = useState("");
 
   useEffect(() => {
     if (!token) {
@@ -27,9 +30,8 @@ export default function AcceptInvite() {
     fetch(`${API_BASE_URL}/invites/${token}`)
       .then(async (res) => {
         if (res.ok) {
-          const data = await res.json();
+          const data: { clinic_name?: string } = await res.json();
           setClinicName(data.clinic_name || "");
-          setEmail(data.email || "");
           setState("valid");
         } else if (res.status === 404) {
           setState("not_found");
@@ -42,16 +44,34 @@ export default function AcceptInvite() {
       .catch(() => setState("error"));
   }, [token]);
 
+  const validateEmail = () => {
+    const trimmed = email.trim();
+    if (!trimmed) {
+      setEmailError("Email is required.");
+      return null;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      setEmailError("Enter a valid email address.");
+      return null;
+    }
+    setEmailError("");
+    return trimmed;
+  };
+
   const handleCreateAccount = () => {
+    const validEmail = validateEmail();
+    if (!validEmail) return;
     loginWithRedirect({
-      authorizationParams: { screen_hint: "signup", login_hint: email, invite_token: token },
+      authorizationParams: { screen_hint: "signup", login_hint: validEmail, invite_token: token },
       appState: { inviteToken: token, returnTo: "/" },
     });
   };
 
   const handleLogIn = () => {
+    const validEmail = validateEmail();
+    if (!validEmail) return;
     loginWithRedirect({
-      authorizationParams: { screen_hint: "login", login_hint: email },
+      authorizationParams: { screen_hint: "login", login_hint: validEmail },
       appState: { inviteToken: token, returnTo: "/" },
     });
   };
@@ -73,22 +93,43 @@ export default function AcceptInvite() {
             )}
 
             {state === "valid" && (
-              <div className="text-center space-y-5">
-                <div>
-                  <h1 className="text-xl font-semibold text-foreground">You're invited to DiRxctional</h1>
+              <div className="space-y-5">
+                <div className="text-center">
+                  <h1 className="text-xl font-semibold text-foreground">
+                    You've been invited to join {clinicName || "your clinic"}
+                  </h1>
                   <p className="text-sm text-muted-foreground mt-2">
-                    Join <span className="font-semibold text-foreground">{clinicName}</span> to manage specialty referrals
+                    Create your account to manage specialty referrals.
                   </p>
                 </div>
-                {email && (
-                  <p className="text-sm text-muted-foreground">
-                    This invite is for: <span className="font-medium text-foreground">{email}</span>
+                <div className="space-y-1.5 text-left">
+                  <Label htmlFor="invite-email">
+                    Email <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="invite-email"
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (emailError) setEmailError("");
+                    }}
+                    placeholder="you@example.com"
+                    aria-invalid={!!emailError}
+                    aria-describedby="invite-email-helper"
+                  />
+                  <p
+                    id="invite-email-helper"
+                    className={`text-xs ${emailError ? "text-destructive" : "text-muted-foreground"}`}
+                  >
+                    {emailError || "Use the email address this invite was sent to."}
                   </p>
-                )}
+                </div>
                 <Button onClick={handleCreateAccount} className="w-full" size="lg">
                   Create Account
                 </Button>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground text-center">
                   Already have an account?{" "}
                   <button onClick={handleLogIn} className="text-primary hover:underline font-medium">
                     Log in
