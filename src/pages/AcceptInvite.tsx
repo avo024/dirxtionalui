@@ -93,22 +93,43 @@ export default function AcceptInvite() {
             )}
 
             {state === "valid" && (
-              <div className="text-center space-y-5">
-                <div>
-                  <h1 className="text-xl font-semibold text-foreground">You're invited to DiRxctional</h1>
+              <div className="space-y-5">
+                <div className="text-center">
+                  <h1 className="text-xl font-semibold text-foreground">
+                    You've been invited to join {clinicName || "your clinic"}
+                  </h1>
                   <p className="text-sm text-muted-foreground mt-2">
-                    Join <span className="font-semibold text-foreground">{clinicName}</span> to manage specialty referrals
+                    Create your account to manage specialty referrals.
                   </p>
                 </div>
-                {email && (
-                  <p className="text-sm text-muted-foreground">
-                    This invite is for: <span className="font-medium text-foreground">{email}</span>
+                <div className="space-y-1.5 text-left">
+                  <Label htmlFor="invite-email">
+                    Email <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="invite-email"
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (emailError) setEmailError("");
+                    }}
+                    placeholder="you@example.com"
+                    aria-invalid={!!emailError}
+                    aria-describedby="invite-email-helper"
+                  />
+                  <p
+                    id="invite-email-helper"
+                    className={`text-xs ${emailError ? "text-destructive" : "text-muted-foreground"}`}
+                  >
+                    {emailError || "Use the email address this invite was sent to."}
                   </p>
-                )}
+                </div>
                 <Button onClick={handleCreateAccount} className="w-full" size="lg">
                   Create Account
                 </Button>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground text-center">
                   Already have an account?{" "}
                   <button onClick={handleLogIn} className="text-primary hover:underline font-medium">
                     Log in
