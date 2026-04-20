@@ -20,6 +20,7 @@ export default function AcceptInvite() {
   const [state, setState] = useState<PageState>("loading");
   const [clinicName, setClinicName] = useState("");
   const [email, setEmail] = useState("");
+  const [emailError, setEmailError] = useState("");
 
   useEffect(() => {
     if (!token) {
@@ -29,9 +30,8 @@ export default function AcceptInvite() {
     fetch(`${API_BASE_URL}/invites/${token}`)
       .then(async (res) => {
         if (res.ok) {
-          const data = await res.json();
+          const data: { clinic_name?: string } = await res.json();
           setClinicName(data.clinic_name || "");
-          setEmail(data.email || "");
           setState("valid");
         } else if (res.status === 404) {
           setState("not_found");
@@ -44,16 +44,34 @@ export default function AcceptInvite() {
       .catch(() => setState("error"));
   }, [token]);
 
+  const validateEmail = () => {
+    const trimmed = email.trim();
+    if (!trimmed) {
+      setEmailError("Email is required.");
+      return null;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      setEmailError("Enter a valid email address.");
+      return null;
+    }
+    setEmailError("");
+    return trimmed;
+  };
+
   const handleCreateAccount = () => {
+    const validEmail = validateEmail();
+    if (!validEmail) return;
     loginWithRedirect({
-      authorizationParams: { screen_hint: "signup", login_hint: email, invite_token: token },
+      authorizationParams: { screen_hint: "signup", login_hint: validEmail, invite_token: token },
       appState: { inviteToken: token, returnTo: "/" },
     });
   };
 
   const handleLogIn = () => {
+    const validEmail = validateEmail();
+    if (!validEmail) return;
     loginWithRedirect({
-      authorizationParams: { screen_hint: "login", login_hint: email },
+      authorizationParams: { screen_hint: "login", login_hint: validEmail },
       appState: { inviteToken: token, returnTo: "/" },
     });
   };
