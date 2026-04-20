@@ -1241,3 +1241,123 @@ function ReviewField({ label, value, confidence }: { label: string; value: strin
     </div>
   );
 }
+
+/* Insurance choice (forced selection) — used in upload + manual modes */
+function InsuranceChoiceSection({
+  choice,
+  onChoiceChange,
+  hasInsuranceData,
+  onHasInsuranceFieldChange,
+  showErrors,
+}: {
+  choice: "has" | "bridge" | null;
+  onChoiceChange: (c: "has" | "bridge") => void;
+  hasInsuranceData: { payer: string; memberId: string; groupId: string; subscriberName: string };
+  onHasInsuranceFieldChange: (field: "payer" | "memberId" | "groupId" | "subscriberName", value: string) => void;
+  showErrors: boolean;
+}) {
+  const choiceMissing = showErrors && choice === null;
+  const payerMissing = showErrors && choice === "has" && !hasInsuranceData.payer.trim();
+  const memberMissing = showErrors && choice === "has" && !hasInsuranceData.memberId.trim();
+
+  return (
+    <div className="rounded-xl border border-border p-4 space-y-4">
+      <div className="flex items-center gap-2">
+        <Shield className="h-4 w-4 text-primary" />
+        <h3 className="text-sm font-semibold text-foreground">
+          Insurance <span className="text-destructive">*</span>
+        </h3>
+      </div>
+
+      <RadioGroup
+        value={choice ?? ""}
+        onValueChange={(v) => onChoiceChange(v as "has" | "bridge")}
+        className="grid grid-cols-1 sm:grid-cols-2 gap-2"
+      >
+        <label
+          className={cn(
+            "flex items-start gap-3 rounded-lg border p-3 cursor-pointer transition-colors",
+            choice === "has" ? "border-primary/40 bg-primary/[0.04]" : "border-border hover:bg-secondary/50",
+          )}
+        >
+          <RadioGroupItem value="has" className="mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-foreground">Patient has insurance</p>
+            <p className="text-xs text-muted-foreground">Enter payer details below</p>
+          </div>
+        </label>
+        <label
+          className={cn(
+            "flex items-start gap-3 rounded-lg border p-3 cursor-pointer transition-colors",
+            choice === "bridge" ? "border-primary/40 bg-primary/[0.04]" : "border-border hover:bg-secondary/50",
+          )}
+        >
+          <RadioGroupItem value="bridge" className="mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-foreground">No insurance — use bridge program</p>
+            <p className="text-xs text-muted-foreground">Pharmacy list will be filtered</p>
+          </div>
+        </label>
+      </RadioGroup>
+
+      {choiceMissing && (
+        <p className="text-xs text-destructive">Please choose an insurance option to continue.</p>
+      )}
+
+      {choice === "has" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+          <div className="space-y-1.5">
+            <Label className="text-sm font-medium text-foreground">
+              Insurance company / payer <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              value={hasInsuranceData.payer}
+              onChange={(e) => onHasInsuranceFieldChange("payer", e.target.value)}
+              placeholder="e.g., Blue Cross Blue Shield"
+              className={cn(payerMissing && "border-destructive focus-visible:ring-destructive")}
+              aria-invalid={payerMissing}
+            />
+            {payerMissing && <p className="text-xs text-destructive">Payer name is required</p>}
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-sm font-medium text-foreground">
+              Member ID <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              value={hasInsuranceData.memberId}
+              onChange={(e) => onHasInsuranceFieldChange("memberId", e.target.value)}
+              placeholder="Member / Patient ID"
+              className={cn(memberMissing && "border-destructive focus-visible:ring-destructive")}
+              aria-invalid={memberMissing}
+            />
+            {memberMissing && <p className="text-xs text-destructive">Member ID is required</p>}
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-sm font-medium text-foreground">Group ID</Label>
+            <Input
+              value={hasInsuranceData.groupId}
+              onChange={(e) => onHasInsuranceFieldChange("groupId", e.target.value)}
+              placeholder="If issued"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-sm font-medium text-foreground">Subscriber name (if different)</Label>
+            <Input
+              value={hasInsuranceData.subscriberName}
+              onChange={(e) => onHasInsuranceFieldChange("subscriberName", e.target.value)}
+              placeholder="If different from patient"
+            />
+          </div>
+        </div>
+      )}
+
+      {choice === "bridge" && (
+        <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+          <p className="text-sm text-foreground">
+            On Step 3 you'll only see pharmacies that support bridge programs. If you need a different pharmacy, contact DiRxctional.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
