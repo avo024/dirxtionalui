@@ -838,34 +838,36 @@ export default function CreateReferral() {
               {/* Insurance */}
               <AccordionItem value="insurance">
                 <AccordionTrigger className="text-sm font-semibold">
-                  <span className="flex items-center gap-2"><Shield className="h-4 w-4 text-primary" /> Insurance Information</span>
+                  <span className="flex items-center gap-2"><Shield className="h-4 w-4 text-primary" /> Insurance Information <span className="text-destructive">*</span></span>
                 </AccordionTrigger>
                 <AccordionContent className="space-y-4 pt-2">
-                  <FormField label="Has insurance card?">
-                    <div className="flex items-center gap-3 h-10">
-                      <Switch checked={manualData.hasInsurance} onCheckedChange={(v) => {
-                        setManualData((d) => ({ ...d, hasInsurance: v }));
-                        if (!v) { setShowBridgeModal(true); setBridgeStep('ask'); }
-                        if (v) { setIsBridgeProgram(false); setBridgePharmacyId(""); setBridgePharmacyName(""); }
-                      }} />
-                      <span className="text-sm text-muted-foreground">{manualData.hasInsurance ? "Yes" : "No"}</span>
-                    </div>
-                    {isBridgeProgram && bridgePharmacyName && !manualData.hasInsurance && (
-                      <Badge className="mt-2 bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-100">
-                        Bridge Program — {bridgePharmacyName}
-                      </Badge>
-                    )}
-                  </FormField>
-                  {manualData.hasInsurance && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField label="Primary Insurance Name">
-                        <Input value={manualData.primaryInsuranceName} onChange={(e) => setManualData((d) => ({ ...d, primaryInsuranceName: e.target.value }))} placeholder="e.g., Blue Cross Blue Shield" />
-                      </FormField>
-                      <FormField label="Patient ID Number">
-                        <Input value={manualData.primaryMemberId} onChange={(e) => setManualData((d) => ({ ...d, primaryMemberId: e.target.value }))} placeholder="Member/Patient ID" />
-                      </FormField>
+                  <InsuranceChoiceSection
+                    choice={insuranceChoice}
+                    onChoiceChange={(c) => {
+                      setInsuranceChoice(c);
+                      setManualData((d) => ({ ...d, hasInsurance: c === "has" }));
+                    }}
+                    hasInsuranceData={{
+                      payer: manualData.primaryInsuranceName,
+                      memberId: manualData.primaryMemberId,
+                      groupId: manualData.insuranceNotes,
+                      subscriberName: manualData.secondaryInsuranceName,
+                    }}
+                    onHasInsuranceFieldChange={(field, value) => {
+                      setManualData((d) => ({
+                        ...d,
+                        ...(field === "payer" ? { primaryInsuranceName: value } : {}),
+                        ...(field === "memberId" ? { primaryMemberId: value } : {}),
+                        ...(field === "groupId" ? { insuranceNotes: value } : {}),
+                        ...(field === "subscriberName" ? { secondaryInsuranceName: value } : {}),
+                      }));
+                    }}
+                    showErrors={showSubmitErrors}
+                  />
+                  {insuranceChoice === "has" && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-border">
                       <FormField label="Secondary Insurance Name">
-                        <Input value={manualData.secondaryInsuranceName} onChange={(e) => setManualData((d) => ({ ...d, secondaryInsuranceName: e.target.value }))} placeholder="Optional" />
+                        <Input value={manualData.secondaryMemberId ? manualData.secondaryInsuranceName : manualData.secondaryInsuranceName} onChange={(e) => setManualData((d) => ({ ...d, secondaryInsuranceName: e.target.value }))} placeholder="Optional" />
                       </FormField>
                       <FormField label="Secondary Patient ID Number">
                         <Input value={manualData.secondaryMemberId} onChange={(e) => setManualData((d) => ({ ...d, secondaryMemberId: e.target.value }))} placeholder="Optional" />
@@ -880,9 +882,6 @@ export default function CreateReferral() {
                             <SelectItem value="other">Other</SelectItem>
                           </SelectContent>
                         </Select>
-                      </FormField>
-                      <FormField label="Insurance Notes">
-                        <Textarea value={manualData.insuranceNotes} onChange={(e) => setManualData((d) => ({ ...d, insuranceNotes: e.target.value }))} placeholder="Plan name, group number, etc." rows={2} />
                       </FormField>
                     </div>
                   )}
