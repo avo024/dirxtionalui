@@ -332,9 +332,40 @@ export default function CreateReferral() {
     patient.phone_primary || patient.phone || '—';
 
   const canProceedStep1 = !!selectedPatient;
-  const canProceedStep2 = referralMethod === "upload"
-    ? uploadedFiles.filter(f => f.zone === "required").length > 0
-    : (manualData.diagnosisCode && manualData.drugRequested);
+  // Insurance section validity (used by Step 2)
+  const insuranceSectionValid = (() => {
+    if (insuranceChoice === null) return false;
+    if (insuranceChoice === "bridge") return true;
+    // "has" requires payer + member ID
+    return !!manualData.primaryInsuranceName.trim() && !!manualData.primaryMemberId.trim();
+  })();
+
+  const canProceedStep2 = (() => {
+    if (!insuranceSectionValid) return false;
+    if (referralMethod === "upload") {
+      const hasDocs = uploadedFiles.length > 0;
+      return hasDocs || noDocsConfirmed;
+    }
+    return !!manualData.diagnosisCode && !!manualData.drugRequested;
+  })();
+
+  // Pharmacies available in step 3 — filter to bridge-eligible when bridge chosen
+  const availablePharmacies = useMemo(() => {
+    if (insuranceChoice === "bridge") {
+      return pharmacies.filter((p: any) => p.accepts_no_insurance);
+    }
+    return pharmacies;
+  }, [pharmacies, insuranceChoice]);
+
+  // If bridge selected and current selection isn't eligible, clear it
+  useEffect(() => {
+    if (insuranceChoice !== "bridge") return;
+    const current = pharmacies.find((p: any) => p.id === selectedPharmacyId);
+    if (current && !current.accepts_no_insurance) {
+      setSelectedPharmacyId(null);
+    }
+  }, [insuranceChoice, pharmacies, selectedPharmacyId]);
+
   const canProceedStep3 = !!selectedPharmacyId;
   const selectedPharmacy = useMemo(
     () => pharmacies.find((p: any) => p.id === selectedPharmacyId) || null,
