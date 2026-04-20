@@ -92,7 +92,8 @@ export default function CreateReferral() {
 
   // Upload state
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
-  
+  // Upload mode: explicit acknowledgement that no documents are available
+  const [noDocsConfirmed, setNoDocsConfirmed] = useState(false);
 
   // Manual entry state
   const [manualData, setManualData] = useState({
@@ -109,13 +110,14 @@ export default function CreateReferral() {
     secondaryInsuranceName: "", secondaryMemberId: "",
   });
 
-  // Bridge Program state
-  const [isBridgeProgram, setIsBridgeProgram] = useState(false);
-  const [showBridgeModal, setShowBridgeModal] = useState(false);
-  const [bridgeStep, setBridgeStep] = useState<'ask' | 'pick'>('ask');
-  const [bridgePharmacyId, setBridgePharmacyId] = useState("");
-  const [bridgePharmacyName, setBridgePharmacyName] = useState("");
-  const [uploadHasInsurance, setUploadHasInsurance] = useState(true);
+  // Insurance choice — forced selection (applies to both upload + manual)
+  // null = not yet chosen, "has" = patient has insurance, "bridge" = no insurance, use bridge program
+  const [insuranceChoice, setInsuranceChoice] = useState<"has" | "bridge" | null>(null);
+
+  // Bridge program is implied by insuranceChoice === "bridge"
+  const isBridgeProgram = insuranceChoice === "bridge";
+  // Step 4 submit-attempt validation errors
+  const [showSubmitErrors, setShowSubmitErrors] = useState(false);
 
   // Pharmacy list (used by both bridge program picker and pharmacy step)
   const [pharmacies, setPharmacies] = useState<any[]>([]);
