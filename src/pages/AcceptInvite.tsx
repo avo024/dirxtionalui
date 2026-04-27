@@ -103,11 +103,11 @@ export default function AcceptInvite() {
     if (!lastName.trim()) e.lastName = "Last name is required.";
 
     if (!phone.trim()) e.phone = "Phone number is required.";
-    else if (!E164.test(phone.trim()))
-      e.phone = "Use E.164 format, e.g. +12141234567.";
+    else if (!toE164US(phone))
+      e.phone = "Enter a valid US phone number, e.g. (214) 123-4567.";
 
-    if (!npi.trim()) e.npi = "NPI is required.";
-    else if (!NPI.test(npi.trim())) e.npi = "NPI must be exactly 10 digits.";
+    if (npi.trim() && !NPI.test(npi.trim()))
+      e.npi = "NPI must be exactly 10 digits.";
 
     if (!password) e.password = "Password is required.";
     else if (
