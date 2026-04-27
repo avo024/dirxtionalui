@@ -276,25 +276,24 @@ export default function AcceptInvite() {
                     type="tel"
                     required
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+12141234567"
+                    onChange={(e) => setPhone(formatPhoneInput(e.target.value))}
+                    placeholder="(214) 123-4567"
                     aria-invalid={!!errors.phone}
                   />
                   <p
                     className={`text-xs ${errors.phone ? "text-destructive" : "text-muted-foreground"}`}
                   >
-                    {errors.phone || "Format: +12141234567 (E.164)"}
+                    {errors.phone || "US phone number"}
                   </p>
                 </div>
 
                 <div className="space-y-1.5">
                   <Label htmlFor="invite-npi">
-                    NPI <span className="text-destructive">*</span>
+                    NPI (optional — physicians and NPs only)
                   </Label>
                   <Input
                     id="invite-npi"
                     inputMode="numeric"
-                    required
                     value={npi}
                     onChange={(e) => setNpi(e.target.value.replace(/\D/g, "").slice(0, 10))}
                     placeholder="10-digit NPI"
