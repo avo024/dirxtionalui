@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Check, X } from "lucide-react";
 import { signUp, signIn } from "@/lib/cognito";
 import { toast } from "@/hooks/use-toast";
+import { AsYouType, parsePhoneNumberFromString } from "libphonenumber-js";
 import logo from "@/assets/logo.png";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
@@ -18,8 +19,24 @@ interface InviteResponse {
   clinic_id?: string;
 }
 
-const E164 = /^\+[1-9]\d{1,14}$/;
+
 const NPI = /^\d{10}$/;
+
+function formatPhoneInput(value: string) {
+  // Strip non-digits, drop leading 1 country code if present, cap at 10 digits
+  let digits = value.replace(/\D/g, "");
+  if (digits.startsWith("1") && digits.length > 10) digits = digits.slice(1);
+  digits = digits.slice(0, 10);
+  return new AsYouType("US").input(digits);
+}
+
+function toE164US(value: string): string | null {
+  const parsed = parsePhoneNumberFromString(value, "US");
+  if (parsed && parsed.isValid() && parsed.country === "US") {
+    return parsed.number; // E.164, e.g. +12141234567
+  }
+  return null;
+}
 
 function checkPasswordPolicy(pw: string) {
   return {
@@ -86,11 +103,11 @@ export default function AcceptInvite() {
     if (!lastName.trim()) e.lastName = "Last name is required.";
 
     if (!phone.trim()) e.phone = "Phone number is required.";
-    else if (!E164.test(phone.trim()))
-      e.phone = "Use E.164 format, e.g. +12141234567.";
+    else if (!toE164US(phone))
+      e.phone = "Enter a valid US phone number, e.g. (214) 123-4567.";
 
-    if (!npi.trim()) e.npi = "NPI is required.";
-    else if (!NPI.test(npi.trim())) e.npi = "NPI must be exactly 10 digits.";
+    if (npi.trim() && !NPI.test(npi.trim()))
+      e.npi = "NPI must be exactly 10 digits.";
 
     if (!password) e.password = "Password is required.";
     else if (
@@ -125,7 +142,7 @@ export default function AcceptInvite() {
             email: email.trim(),
             given_name: firstName.trim(),
             family_name: lastName.trim(),
-            phone_number: phone.trim(),
+            phone_number: toE164US(phone) || "",
             "custom:role": "clinic_user",
             "custom:clinic_id": clinicId,
             "custom:npi": npi.trim(),
@@ -259,25 +276,24 @@ export default function AcceptInvite() {
                     type="tel"
                     required
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+12141234567"
+                    onChange={(e) => setPhone(formatPhoneInput(e.target.value))}
+                    placeholder="(214) 123-4567"
                     aria-invalid={!!errors.phone}
                   />
                   <p
                     className={`text-xs ${errors.phone ? "text-destructive" : "text-muted-foreground"}`}
                   >
-                    {errors.phone || "Format: +12141234567 (E.164)"}
+                    {errors.phone || "US phone number"}
                   </p>
                 </div>
 
                 <div className="space-y-1.5">
                   <Label htmlFor="invite-npi">
-                    NPI <span className="text-destructive">*</span>
+                    NPI (optional — physicians and NPs only)
                   </Label>
                   <Input
                     id="invite-npi"
                     inputMode="numeric"
-                    required
                     value={npi}
                     onChange={(e) => setNpi(e.target.value.replace(/\D/g, "").slice(0, 10))}
                     placeholder="10-digit NPI"
