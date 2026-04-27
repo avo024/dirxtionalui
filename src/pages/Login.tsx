@@ -1,11 +1,12 @@
-import { useAuth0 } from "@auth0/auth0-react";
 import { Navigate } from "react-router-dom";
 import { Loader2, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
+import { hostedUiSignIn } from "@/lib/cognito";
 import logo from "@/assets/logo.png";
 
 export default function Login() {
-  const { isAuthenticated, isLoading, loginWithRedirect } = useAuth0();
+  const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -40,12 +41,9 @@ export default function Login() {
           <Button
             size="lg"
             className="w-full"
-            onClick={() =>
-              loginWithRedirect({
-                authorizationParams: { screen_hint: "login" },
-                appState: { returnTo: "/" },
-              })
-            }
+            onClick={() => {
+              void hostedUiSignIn();
+            }}
           >
             <LogIn className="h-4 w-4 mr-2" />
             Log In
@@ -53,7 +51,7 @@ export default function Login() {
         </div>
 
         <p className="text-xs text-center text-muted-foreground">
-          Secure authentication powered by Auth0
+          Secure authentication powered by AWS Cognito
         </p>
       </div>
     </div>

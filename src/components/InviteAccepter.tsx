@@ -1,11 +1,12 @@
 import { useEffect, useRef } from "react";
-import { useAuth0 } from "@auth0/auth0-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { getIdToken } from "@/lib/cognito";
 import { toast } from "@/hooks/use-toast";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function InviteAccepter() {
-  const { isAuthenticated, getAccessTokenSilently } = useAuth0();
+  const { isAuthenticated } = useAuth();
   const processedRef = useRef(false);
 
   useEffect(() => {
@@ -16,7 +17,11 @@ export default function InviteAccepter() {
 
     (async () => {
       try {
-        const accessToken = await getAccessTokenSilently();
+        const accessToken = await getIdToken();
+        if (!accessToken) {
+          console.error("No Cognito ID token available for invite accept");
+          return;
+        }
         const res = await fetch(`${API_BASE_URL}/invites/${token}/accept`, {
           method: "POST",
           headers: { Authorization: `Bearer ${accessToken}` },
@@ -41,7 +46,7 @@ export default function InviteAccepter() {
         sessionStorage.removeItem("pendingInviteToken");
       }
     })();
-  }, [isAuthenticated, getAccessTokenSilently]);
+  }, [isAuthenticated]);
 
   return null;
 }

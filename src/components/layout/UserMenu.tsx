@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useAuth0 } from "@auth0/auth0-react";
 import { LogOut, UserCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,16 +16,15 @@ import { useAdminProfile } from "@/hooks/useAdminProfile";
 import { EditProfileModal } from "@/components/EditProfileModal";
 
 export function UserMenu() {
-  const { user: auth0User, logout } = useAuth0();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { data: clinicProfile } = useProfile();
   const { data: adminProfile } = useAdminProfile();
   const [editProfileOpen, setEditProfileOpen] = useState(false);
 
-  if (!auth0User) return null;
+  if (!user) return null;
 
-  const isClinicUser = user?.role === "clinic_user";
-  const isAdmin = user?.role === "internal_admin";
+  const isClinicUser = user.role === "clinic_user";
+  const isAdmin = user.role === "internal_admin";
 
   // Pick the right profile based on role; each hook only fires for its role.
   const activeProfile = isClinicUser ? clinicProfile : isAdmin ? adminProfile : null;
@@ -35,14 +33,14 @@ export function UserMenu() {
       ? `${activeProfile.first_name} ${activeProfile.last_name}`
       : null;
 
-  // Display label: name when available; email placeholder while loading.
-  const displayLabel = fullName ?? auth0User.email ?? auth0User.name ?? "Account";
+  // Display label: name when available; email/auth name fallback.
+  const displayLabel = fullName ?? user.name ?? user.email ?? "Account";
 
-  // Avatar initials: profile first+last; otherwise email/name fallback
+  // Avatar initials: profile first+last; otherwise name/email fallback.
   const initials =
     activeProfile?.first_name && activeProfile?.last_name
       ? `${activeProfile.first_name[0]}${activeProfile.last_name[0]}`.toUpperCase()
-      : (auth0User.name || auth0User.email || "U")
+      : (user.name || user.email || "U")
           .split(" ")
           .map((s) => s[0])
           .filter(Boolean)
@@ -56,7 +54,7 @@ export function UserMenu() {
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="gap-2 h-9 px-2">
             <Avatar className="h-7 w-7">
-              {auth0User.picture && <AvatarImage src={auth0User.picture} alt={displayLabel} />}
+              {user.picture && <AvatarImage src={user.picture} alt={displayLabel} />}
               <AvatarFallback className="text-xs">{initials}</AvatarFallback>
             </Avatar>
             <span className="text-sm font-medium hidden sm:inline">
@@ -67,9 +65,9 @@ export function UserMenu() {
         <DropdownMenuContent align="end" className="w-56">
           <DropdownMenuLabel className="flex flex-col gap-0.5">
             <span className="text-sm font-medium">{displayLabel}</span>
-            {auth0User.email && displayLabel !== auth0User.email && (
+            {user.email && displayLabel !== user.email && (
               <span className="text-xs text-muted-foreground font-normal">
-                {auth0User.email}
+                {user.email}
               </span>
             )}
           </DropdownMenuLabel>
@@ -87,9 +85,7 @@ export function UserMenu() {
             </>
           )}
           <DropdownMenuItem
-            onClick={() =>
-              logout({ logoutParams: { returnTo: window.location.origin } })
-            }
+            onClick={() => logout()}
             className="cursor-pointer"
           >
             <LogOut className="h-4 w-4 mr-2" />

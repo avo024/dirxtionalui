@@ -1,8 +1,9 @@
-import React, { createContext, useContext, useMemo, useCallback, useEffect } from "react";
-import { useAuth0 } from "@auth0/auth0-react";
+import React, { createContext, useContext, useMemo, useCallback, useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Hub } from "aws-amplify/utils";
 import { useApi } from "@/hooks/useApi";
 import { getMyClinic } from "@/lib/api";
+import { getCurrentClaims, cognitoSignOut, type IdTokenClaims } from "@/lib/cognito";
 
 export type UserRole = "clinic_user" | "internal_admin";
 
@@ -18,7 +19,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  /** @deprecated mock login no-op — use Auth0's loginWithRedirect on the Login page */
+  /** @deprecated mock login no-op — use Login page's hosted-UI redirect */
   login: (role: UserRole) => void;
   logout: () => void;
   isAuthenticated: boolean;
@@ -27,23 +28,54 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// Custom claim namespaces (configure in your Auth0 Action)
 const ROLE_CLAIM = "https://dirxctional.com/role";
-const CLINIC_CLAIM = "https://dirxctional.com/clinic_name";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const {
-    user: auth0User,
-    isAuthenticated,
-    isLoading,
-    logout: auth0Logout,
-  } = useAuth0();
+  const [claims, setClaims] = useState<IdTokenClaims | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Bridge Auth0 access tokens into the API layer.
+  // Bridge Cognito ID tokens into the API layer.
   useApi();
 
-  const claimedRole = auth0User?.[ROLE_CLAIM] as UserRole | undefined;
-  const role: UserRole | null = !isAuthenticated || !auth0User
+  // Initial session load + Hub subscription for sign-in / sign-out / refresh.
+  useEffect(() => {
+    let cancelled = false;
+
+    const refresh = async () => {
+      const c = await getCurrentClaims();
+      if (!cancelled) {
+        setClaims(c);
+        setIsLoading(false);
+      }
+    };
+
+    refresh();
+
+    const unsubscribe = Hub.listen("auth", ({ payload }) => {
+      switch (payload.event) {
+        case "signedIn":
+        case "tokenRefresh":
+        case "signInWithRedirect":
+          refresh();
+          break;
+        case "signedOut":
+          if (!cancelled) setClaims(null);
+          break;
+        default:
+          break;
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, []);
+
+  const isAuthenticated = !!claims;
+
+  const claimedRole = claims?.role as UserRole | undefined;
+  const role: UserRole | null = !isAuthenticated
     ? null
     : claimedRole === "internal_admin"
       ? "internal_admin"
@@ -59,37 +91,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   });
 
   const user = useMemo<User | null>(() => {
-    if (!isAuthenticated || !auth0User || !role) return null;
+    if (!isAuthenticated || !claims || !role) return null;
 
     if (!claimedRole) {
-      // TODO: configure Auth0 Action to inject role claim at ROLE_CLAIM.
+      // TODO: configure Cognito Pre-Token-Generation Lambda to inject the role claim.
       console.warn(
-        `[Auth] No role claim "${ROLE_CLAIM}" found on Auth0 user — defaulting to clinic_user.`,
+        `[Auth] No role claim "${ROLE_CLAIM}" found on Cognito ID token — defaulting to clinic_user.`,
       );
     }
 
-    const fallbackClinicName = (auth0User[CLINIC_CLAIM] as string) || "Your Clinic";
+    const displayName =
+      [claims.given_name, claims.family_name].filter(Boolean).join(" ") ||
+      claims.name ||
+      claims.email ||
+      "User";
 
     return {
       role,
-      name: auth0User.name || auth0User.email || "User",
-      email: auth0User.email,
-      picture: auth0User.picture,
-      clinic_id: clinic?.id,
-      clinic_name: clinic?.name || fallbackClinicName,
+      name: displayName,
+      email: claims.email,
+      picture: claims.picture,
+      clinic_id: clinic?.id ?? claims.clinic_id,
+      clinic_name: clinic?.name || "Your Clinic",
       clinic_specialty: clinic?.specialty,
     };
-  }, [auth0User, isAuthenticated, role, claimedRole, clinic]);
+  }, [claims, isAuthenticated, role, claimedRole, clinic]);
 
   const login = useCallback((_role: UserRole) => {
     console.warn(
-      "[Auth] Mock login() is deprecated. Call useAuth0().loginWithRedirect() from the Login page instead.",
+      "[Auth] Mock login() is deprecated. Trigger the Cognito Hosted UI from the Login page instead.",
     );
   }, []);
 
   const logout = useCallback(() => {
-    auth0Logout({ logoutParams: { returnTo: window.location.origin } });
-  }, [auth0Logout]);
+    void cognitoSignOut();
+  }, []);
 
   // Clean up legacy mock-auth localStorage key once.
   useEffect(() => {
