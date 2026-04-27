@@ -22,6 +22,22 @@ interface InviteResponse {
 const E164 = /^\+[1-9]\d{1,14}$/;
 const NPI = /^\d{10}$/;
 
+function formatPhoneInput(value: string) {
+  // Strip non-digits, drop leading 1 country code if present, cap at 10 digits
+  let digits = value.replace(/\D/g, "");
+  if (digits.startsWith("1") && digits.length > 10) digits = digits.slice(1);
+  digits = digits.slice(0, 10);
+  return new AsYouType("US").input(digits);
+}
+
+function toE164US(value: string): string | null {
+  const parsed = parsePhoneNumberFromString(value, "US");
+  if (parsed && parsed.isValid() && parsed.country === "US") {
+    return parsed.number; // E.164, e.g. +12141234567
+  }
+  return null;
+}
+
 function checkPasswordPolicy(pw: string) {
   return {
     length: pw.length >= 12,
