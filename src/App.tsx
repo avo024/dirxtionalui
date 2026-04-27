@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 
 import Index from "./pages/Index";
 import Login from "./pages/Login";
+import Callback from "./pages/Callback";
 import AcceptInvite from "./pages/AcceptInvite";
 import InviteAccepter from "./components/InviteAccepter";
 import NotFound from "./pages/NotFound";
@@ -43,6 +44,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/callback" element={<Callback />} />
             <Route path="/invite/:token" element={<AcceptInvite />} />
 
             {/* Clinic routes */}
