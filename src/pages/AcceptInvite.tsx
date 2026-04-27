@@ -142,7 +142,7 @@ export default function AcceptInvite() {
             email: email.trim(),
             given_name: firstName.trim(),
             family_name: lastName.trim(),
-            phone_number: phone.trim(),
+            phone_number: toE164US(phone) || "",
             "custom:role": "clinic_user",
             "custom:clinic_id": clinicId,
             "custom:npi": npi.trim(),
