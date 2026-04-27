@@ -1,26 +1,56 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useAuth0 } from "@auth0/auth0-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2 } from "lucide-react";
+import { Loader2, Check, X } from "lucide-react";
+import { signUp, signIn } from "@/lib/cognito";
+import { toast } from "@/hooks/use-toast";
 import logo from "@/assets/logo.png";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 type PageState = "loading" | "valid" | "not_found" | "expired" | "error";
 
+interface InviteResponse {
+  clinic_name?: string;
+  clinic_id?: string;
+}
+
+const E164 = /^\+[1-9]\d{1,14}$/;
+const NPI = /^\d{10}$/;
+
+function checkPasswordPolicy(pw: string) {
+  return {
+    length: pw.length >= 12,
+    upper: /[A-Z]/.test(pw),
+    lower: /[a-z]/.test(pw),
+    number: /\d/.test(pw),
+    symbol: /[^A-Za-z0-9]/.test(pw),
+  };
+}
+
 export default function AcceptInvite() {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
-  const { loginWithRedirect } = useAuth0();
 
   const [state, setState] = useState<PageState>("loading");
   const [clinicName, setClinicName] = useState("");
+  const [clinicId, setClinicId] = useState("");
+
   const [email, setEmail] = useState("");
-  const [emailError, setEmailError] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [npi, setNpi] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState(false);
+
+  const policy = useMemo(() => checkPasswordPolicy(password), [password]);
 
   useEffect(() => {
     if (!token) {
@@ -30,8 +60,9 @@ export default function AcceptInvite() {
     fetch(`${API_BASE_URL}/invites/${token}`)
       .then(async (res) => {
         if (res.ok) {
-          const data: { clinic_name?: string } = await res.json();
+          const data: InviteResponse = await res.json();
           setClinicName(data.clinic_name || "");
+          setClinicId(data.clinic_id || "");
           setState("valid");
         } else if (res.status === 404) {
           setState("not_found");
@@ -44,36 +75,101 @@ export default function AcceptInvite() {
       .catch(() => setState("error"));
   }, [token]);
 
-  const validateEmail = () => {
-    const trimmed = email.trim();
-    if (!trimmed) {
-      setEmailError("Email is required.");
-      return null;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
-      setEmailError("Enter a valid email address.");
-      return null;
-    }
-    setEmailError("");
-    return trimmed;
+  const validate = () => {
+    const e: Record<string, string> = {};
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) e.email = "Email is required.";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail))
+      e.email = "Enter a valid email address.";
+
+    if (!firstName.trim()) e.firstName = "First name is required.";
+    if (!lastName.trim()) e.lastName = "Last name is required.";
+
+    if (!phone.trim()) e.phone = "Phone number is required.";
+    else if (!E164.test(phone.trim()))
+      e.phone = "Use E.164 format, e.g. +12141234567.";
+
+    if (!npi.trim()) e.npi = "NPI is required.";
+    else if (!NPI.test(npi.trim())) e.npi = "NPI must be exactly 10 digits.";
+
+    if (!password) e.password = "Password is required.";
+    else if (
+      !policy.length ||
+      !policy.upper ||
+      !policy.lower ||
+      !policy.number ||
+      !policy.symbol
+    )
+      e.password = "Password does not meet the requirements below.";
+
+    if (confirmPassword !== password)
+      e.confirmPassword = "Passwords do not match.";
+
+    if (!clinicId) e.form = "Missing clinic information. Refresh and try again.";
+
+    setErrors(e);
+    return Object.keys(e).length === 0;
   };
 
-  const handleCreateAccount = () => {
-    const validEmail = validateEmail();
-    if (!validEmail) return;
-    loginWithRedirect({
-      authorizationParams: { screen_hint: "signup", login_hint: validEmail, invite_token: token },
-      appState: { inviteToken: token, returnTo: "/" },
-    });
-  };
+  const handleSubmit = async (ev: React.FormEvent) => {
+    ev.preventDefault();
+    if (!validate() || !token) return;
 
-  const handleLogIn = () => {
-    const validEmail = validateEmail();
-    if (!validEmail) return;
-    loginWithRedirect({
-      authorizationParams: { screen_hint: "login", login_hint: validEmail },
-      appState: { inviteToken: token, returnTo: "/" },
-    });
+    setSubmitting(true);
+    try {
+      await signUp({
+        username: email.trim(),
+        password,
+        options: {
+          userAttributes: {
+            email: email.trim(),
+            given_name: firstName.trim(),
+            family_name: lastName.trim(),
+            phone_number: phone.trim(),
+            "custom:role": "clinic_user",
+            "custom:clinic_id": clinicId,
+            "custom:npi": npi.trim(),
+          },
+          // Pre-SignUp Lambda reads validationData to verify the invite token.
+          validationData: {
+            invite_token: token,
+          },
+        },
+      });
+
+      // Pre-SignUp Lambda auto-confirms; sign in immediately.
+      try {
+        await signIn({
+          username: email.trim(),
+          password,
+        });
+        sessionStorage.setItem("pendingInviteToken", token);
+        navigate("/", { replace: true });
+      } catch (signInErr) {
+        console.error("Auto sign-in failed after signup", signInErr);
+        toast({
+          title: "Account created",
+          description: "Please log in to continue.",
+        });
+        navigate("/login", { replace: true });
+      }
+    } catch (err: unknown) {
+      const error = err as { name?: string; message?: string };
+      let message = error.message || "Sign-up failed. Please try again.";
+      if (error.name === "UsernameExistsException") {
+        message = "An account with this email already exists. Try logging in.";
+      } else if (error.name === "InvalidPasswordException") {
+        message = "Password does not meet the policy. See requirements below.";
+      } else if (error.name === "InvalidParameterException") {
+        message = error.message || "One of the fields is invalid.";
+      } else if (error.name === "UserLambdaValidationException") {
+        message =
+          "This invite could not be verified. It may have expired or already been used.";
+      }
+      setErrors((prev) => ({ ...prev, form: message }));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -93,7 +189,7 @@ export default function AcceptInvite() {
             )}
 
             {state === "valid" && (
-              <div className="space-y-5">
+              <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="text-center">
                   <h1 className="text-xl font-semibold text-foreground">
                     You've been invited to join {clinicName || "your clinic"}
@@ -102,7 +198,8 @@ export default function AcceptInvite() {
                     Create your account to manage specialty referrals.
                   </p>
                 </div>
-                <div className="space-y-1.5 text-left">
+
+                <div className="space-y-1.5">
                   <Label htmlFor="invite-email">
                     Email <span className="text-destructive">*</span>
                   </Label>
@@ -111,31 +208,152 @@ export default function AcceptInvite() {
                     type="email"
                     required
                     value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value);
-                      if (emailError) setEmailError("");
-                    }}
+                    onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
-                    aria-invalid={!!emailError}
-                    aria-describedby="invite-email-helper"
+                    aria-invalid={!!errors.email}
+                  />
+                  {errors.email && (
+                    <p className="text-xs text-destructive">{errors.email}</p>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="invite-first">
+                      First name <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="invite-first"
+                      required
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      aria-invalid={!!errors.firstName}
+                    />
+                    {errors.firstName && (
+                      <p className="text-xs text-destructive">{errors.firstName}</p>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="invite-last">
+                      Last name <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="invite-last"
+                      required
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      aria-invalid={!!errors.lastName}
+                    />
+                    {errors.lastName && (
+                      <p className="text-xs text-destructive">{errors.lastName}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="invite-phone">
+                    Phone number <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="invite-phone"
+                    type="tel"
+                    required
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="+12141234567"
+                    aria-invalid={!!errors.phone}
                   />
                   <p
-                    id="invite-email-helper"
-                    className={`text-xs ${emailError ? "text-destructive" : "text-muted-foreground"}`}
+                    className={`text-xs ${errors.phone ? "text-destructive" : "text-muted-foreground"}`}
                   >
-                    {emailError || "Use the email address this invite was sent to."}
+                    {errors.phone || "Format: +12141234567 (E.164)"}
                   </p>
                 </div>
-                <Button onClick={handleCreateAccount} className="w-full" size="lg">
-                  Create Account
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="invite-npi">
+                    NPI <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="invite-npi"
+                    inputMode="numeric"
+                    required
+                    value={npi}
+                    onChange={(e) => setNpi(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                    placeholder="10-digit NPI"
+                    aria-invalid={!!errors.npi}
+                  />
+                  {errors.npi && (
+                    <p className="text-xs text-destructive">{errors.npi}</p>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="invite-password">
+                    Password <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="invite-password"
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    aria-invalid={!!errors.password}
+                  />
+                  <ul className="text-xs space-y-0.5 mt-1">
+                    <PolicyItem ok={policy.length} label="At least 12 characters" />
+                    <PolicyItem ok={policy.upper} label="One uppercase letter" />
+                    <PolicyItem ok={policy.lower} label="One lowercase letter" />
+                    <PolicyItem ok={policy.number} label="One number" />
+                    <PolicyItem ok={policy.symbol} label="One symbol" />
+                  </ul>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="invite-confirm">
+                    Confirm password <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="invite-confirm"
+                    type="password"
+                    required
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    aria-invalid={!!errors.confirmPassword}
+                  />
+                  {errors.confirmPassword && (
+                    <p className="text-xs text-destructive">{errors.confirmPassword}</p>
+                  )}
+                </div>
+
+                {errors.form && (
+                  <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3">
+                    <p className="text-sm text-destructive">{errors.form}</p>
+                  </div>
+                )}
+
+                <Button type="submit" className="w-full" size="lg" disabled={submitting}>
+                  {submitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Creating account…
+                    </>
+                  ) : (
+                    "Create Account"
+                  )}
                 </Button>
+
                 <p className="text-sm text-muted-foreground text-center">
                   Already have an account?{" "}
-                  <button onClick={handleLogIn} className="text-primary hover:underline font-medium">
+                  <button
+                    type="button"
+                    onClick={() => navigate("/login")}
+                    className="text-primary hover:underline font-medium"
+                  >
                     Log in
                   </button>
                 </p>
-              </div>
+              </form>
             )}
 
             {state === "not_found" && (
@@ -174,5 +392,18 @@ export default function AcceptInvite() {
         </Card>
       </div>
     </div>
+  );
+}
+
+function PolicyItem({ ok, label }: { ok: boolean; label: string }) {
+  return (
+    <li className={`flex items-center gap-1.5 ${ok ? "text-foreground" : "text-muted-foreground"}`}>
+      {ok ? (
+        <Check className="h-3.5 w-3.5 text-primary" />
+      ) : (
+        <X className="h-3.5 w-3.5" />
+      )}
+      <span>{label}</span>
+    </li>
   );
 }
