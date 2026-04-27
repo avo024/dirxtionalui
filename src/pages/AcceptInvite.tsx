@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Check, X } from "lucide-react";
 import { signUp, signIn } from "@/lib/cognito";
 import { toast } from "@/hooks/use-toast";
+import { AsYouType, parsePhoneNumberFromString } from "libphonenumber-js";
 import logo from "@/assets/logo.png";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
