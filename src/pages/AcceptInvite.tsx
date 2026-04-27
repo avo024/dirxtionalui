@@ -19,7 +19,7 @@ interface InviteResponse {
   clinic_id?: string;
 }
 
-const E164 = /^\+[1-9]\d{1,14}$/;
+
 const NPI = /^\d{10}$/;
 
 function formatPhoneInput(value: string) {
