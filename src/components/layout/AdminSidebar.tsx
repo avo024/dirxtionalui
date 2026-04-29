@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, FileText, Building2, Mail, Hospital, LogOut } from "lucide-react";
+import { LayoutDashboard, FileText, Building2, Mail, Hospital, LogOut, LineChart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { adminApi } from "@/lib/api";
@@ -9,6 +9,7 @@ import logo from "@/assets/logo.png";
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
   { label: "All Referrals", icon: FileText, path: "/admin/referrals" },
+  { label: "AI Quality", icon: LineChart, path: "/admin/ai-quality" },
   { label: "Pharmacies", icon: Building2, path: "/admin/pharmacies" },
   { label: "Clinics", icon: Hospital, path: "/admin/clinics" },
   { label: "Invites", icon: Mail, path: "/admin/invites" },
