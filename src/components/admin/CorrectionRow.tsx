@@ -1,21 +1,11 @@
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { getRelativeTime } from "@/lib/dateUtils";
+import { formatChangeArrow } from "@/lib/aiQualityFormat";
 import type { AIQualityCorrection } from "@/lib/aiQualityApi";
 
 interface Props {
   correction: AIQualityCorrection;
-}
-
-function formatVal(v: string | null): string {
-  if (v === null || v === undefined || v === "") return "(empty)";
-  return `"${v}"`;
-}
-
-function changeArrow(c: AIQualityCorrection): string {
-  if (c.change_type === "added") return `(added ${formatVal(c.final_value)})`;
-  if (c.change_type === "cleared") return `(cleared ${formatVal(c.model_value)})`;
-  return `${formatVal(c.model_value)} → ${formatVal(c.final_value)}`;
 }
 
 export function CorrectionRow({ correction: c }: Props) {
@@ -37,7 +27,7 @@ export function CorrectionRow({ correction: c }: Props) {
       <code className="w-56 shrink-0 truncate text-xs text-foreground">
         {c.field_path}
       </code>
-      <span className="flex-1 truncate text-foreground">{changeArrow(c)}</span>
+      <span className="flex-1 truncate text-foreground">{formatChangeArrow(c)}</span>
       <span className="shrink-0 text-xs text-muted-foreground">
         {conf}
         {c.prompt_version ? ` · prompt ${c.prompt_version}` : ""}
