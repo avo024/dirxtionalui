@@ -67,8 +67,8 @@ export interface AIQualityCorrection {
   id?: string;
   referral_id: string;
   field_path: string;
-  model_value: string | null;
-  final_value: string | null;
+  model_value: unknown;
+  final_value: unknown;
   model_confidence: number | null;
   change_type: CorrectionChangeType;
   prompt_version?: string | null;
