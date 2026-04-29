@@ -5,36 +5,13 @@
  * NOT cached by react-query (staleTime/gcTime: 0 in the hooks). PHI must
  * not sit in browser storage beyond the active session.
  */
+import { getHeaders } from "@/lib/api";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-// Re-use the same token plumbing as src/lib/api.ts. We keep a tiny local
-// copy of the provider lookup to avoid widening api.ts's public surface.
-type TokenProvider = () => Promise<string | undefined>;
-let cachedProvider: TokenProvider | null = null;
-export function _setAIQualityTokenProvider(p: TokenProvider | null) {
-  cachedProvider = p;
-}
-
-async function authHeaders(): Promise<HeadersInit> {
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  // Pull from the shared api.ts provider via dynamic import to keep modules decoupled.
-  try {
-    const mod = await import("@/lib/api");
-    // @ts-expect-error — internal accessor; api.ts owns the provider.
-    const tokenProvider: TokenProvider | undefined = mod.__getAuthTokenProvider?.();
-    const token = tokenProvider ? await tokenProvider() : await cachedProvider?.();
-    if (token) headers["Authorization"] = `Bearer ${token}`;
-  } catch {
-    /* noop */
-  }
-  if (import.meta.env.DEV) headers["X-DEV-ADMIN"] = "1";
-  return headers;
-}
-
 async function noStoreFetch(url: string): Promise<Response> {
   return fetch(url, {
-    headers: await authHeaders(),
+    headers: await getHeaders(),
     cache: "no-store",
   });
 }
