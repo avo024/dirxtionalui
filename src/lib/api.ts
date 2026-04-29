@@ -45,7 +45,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
   return response.json();
 }
 
-async function getHeaders(): Promise<HeadersInit> {
+export async function getHeaders(): Promise<HeadersInit> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
