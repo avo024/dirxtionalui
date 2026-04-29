@@ -1,93 +1,109 @@
-# Migrate Auth0 → AWS Amplify (Cognito)
+# AI Extraction Quality Dashboard (Internal Admin)
 
-HIPAA migration. Same UI, new auth backend. No production deploy — preview only.
+Build two new admin-only pages that surface AI extraction accuracy, plus a sidebar entry. Strictly gated to `internal_admin`, no client-side caching of PHI-bearing endpoints, no export/share affordances.
 
-## Dependencies & env
+## Files to add
 
-- Remove: `@auth0/auth0-react`
-- Add: `aws-amplify` (v6)
-- `.env` updates:
-  - Remove `VITE_AUTH0_DOMAIN`, `VITE_AUTH0_CLIENT_ID`, `VITE_AUTH0_AUDIENCE`
-  - Add `VITE_COGNITO_REGION`, `VITE_COGNITO_USER_POOL_ID`, `VITE_COGNITO_APP_CLIENT_ID`, `VITE_COGNITO_DOMAIN` with the values you provided
-- Redirect URLs computed at runtime from `window.location.origin` so prod (`https://app.dirxctional.com`) and dev (`http://localhost:5173`, Lovable preview) both work without code changes:
-  - `redirectSignIn: [origin + "/callback"]`
-  - `redirectSignOut: [origin + "/"]`
+- `src/pages/admin/AIQuality.tsx` — overview page (`/admin/ai-quality`)
+- `src/pages/admin/AIQualityReferral.tsx` — per-referral detail (`/admin/ai-quality/referral/:id`)
+- `src/pages/admin/AIQualityCorrections.tsx` — corrections list (`/admin/ai-quality/corrections`), reachable from the watch-list callout
+- `src/lib/aiQualityApi.ts` — typed API wrappers for the three endpoints (kept separate from `adminApi` so the no-store fetch policy is unmistakable)
+- `src/hooks/useAIQuality.ts` — react-query hooks with `staleTime: 0`, `gcTime: 0`, `refetchOnWindowFocus: true`
 
-## New files
+## Files to edit
 
-1. **`src/lib/amplify.ts`** — `Amplify.configure({...})` with Cognito User Pool + OAuth (scopes `openid email profile`, response type `code`, domain from env). Imported once from `main.tsx` before `<App/>` renders.
-2. **`src/lib/cognito.ts`** — thin wrapper exposing `getIdToken()`, `getCurrentUser()`, `signOut()`, `federatedSignIn()`, `signUp(...)`, plus a `parseClaims(idToken)` helper that pulls `sub`, `https://dirxctional.com/role`, `https://dirxctional.com/clinic_id`, `https://dirxctional.com/npi` (and standard `email`, `name`, `picture`) from the JWT payload.
-3. **`src/pages/Callback.tsx`** — route at `/callback`. On mount, awaits `fetchAuthSession()` (Amplify v6 completes the code exchange automatically when this URL loads), then `navigate("/", { replace: true })` so `Index` sends the user to the right dashboard. Shows a spinner while resolving; shows an error + "Back to login" if the session fails.
+- `src/App.tsx` — add three routes inside the existing `<Route path="/admin" element={<AdminLayout />}>` block
+- `src/components/layout/AdminSidebar.tsx` — insert "AI Quality" link (LineChart icon) between "All Referrals" and "Pharmacies"
 
-## Changed files
+## Routing & role gating
 
-### `src/main.tsx`
-Replace `<Auth0Provider>` wrapper with a plain `<App/>`. Import `./lib/amplify` for its side effect (configures Amplify). Drop `onRedirectCallback` (Cognito handled in `/callback` page; pending invite token still uses `sessionStorage` set by `AcceptInvite`).
+`AdminLayout` already redirects non-`internal_admin` users to `/clinic/dashboard`, so nesting under `/admin` gives us the silent redirect for free. Each new page also re-checks `user?.role === "internal_admin"` and `<Navigate to="/clinic/dashboard" replace />` defensively.
 
-### `src/contexts/AuthContext.tsx`
-Rewrite to be Amplify-backed but keep the **same exported API** (`useAuth()` returns `{ user, login, logout, isAuthenticated, isLoading }`) so the rest of the app is untouched.
-- On mount: call `fetchAuthSession()` → parse ID token claims → set `user`. Subscribe to Amplify Hub `auth` events (`signedIn`, `signedOut`, `tokenRefresh`) to keep state fresh.
-- `user.role` from `https://dirxctional.com/role` claim (default `clinic_user` with the same console warning as today).
-- `user.clinic_id` from `https://dirxctional.com/clinic_id` claim — stop calling `getMyClinic()` purely for the id (still call it for `name`/`specialty` fallback, same React Query hook).
-- `logout()` calls `signOut({ global: true })` which redirects through the Cognito sign-out endpoint back to `/`.
+## API layer (`src/lib/aiQualityApi.ts`)
 
-### `src/hooks/useApi.ts`
-Replace `useAuth0().getAccessTokenSilently` with a function that calls `fetchAuthSession()` and returns `tokens.idToken.toString()`. Same `setAuthTokenProvider` plumbing — `src/lib/api.ts` doesn't change.
+Three functions calling the live endpoints, reusing the existing bearer-token header pattern (`getHeaders()` from `api.ts` — exported as needed). All requests pass `cache: "no-store"`.
 
-### `src/pages/Login.tsx`
-Keep the existing card UI. The "Log In" button now calls `signInWithRedirect()` (Amplify v6 equivalent of `Auth.federatedSignIn()`) which sends the user to the Cognito Hosted UI. No in-app email/password form.
+```ts
+getOverview({ days, formType })            // GET /admin/extraction-quality
+getCorrections({ days, field, highConfOnly, limit, cursor })
+                                           // GET /admin/extraction-quality/corrections
+getReferralQuality(id)                     // GET /admin/extraction-quality/referral/:id
+```
 
-### `src/components/layout/UserMenu.tsx`
-Replace `useAuth0()` with the existing `useAuth()` context (already exposes `logout` + user info). Avatar/email/name come from the Cognito ID token claims surfaced through `AuthContext` instead of `auth0User`.
+Types modeled on the response shapes referenced in the prompt (`totals`, `fields[]`, `top_problem_fields[]`, `by_form_type[]`, `corrections[]`, `documents[]`, `extracted_data`).
 
-### `src/components/InviteAccepter.tsx`
-Replace `getAccessTokenSilently()` with `fetchAuthSession()` → ID token. Same logic: read `pendingInviteToken` from sessionStorage after sign-in, POST to `/invites/:token/accept`, toast, clear.
+## React-query usage
 
-### `src/pages/AcceptInvite.tsx` (significant rebuild)
-Today this page just collects an email and bounces to Auth0. New flow per your spec: full in-app signup form.
-- Still calls `GET /invites/:token` first to validate + fetch `clinic_name` and `clinic_id`.
-- Form fields (all required, validated client-side):
-  - Email
-  - First name (`given_name`)
-  - Last name (`family_name`)
-  - Phone (E.164, regex `^\+[1-9]\d{1,14}$`, helper text "Format: +12141234567")
-  - NPI (exactly 10 digits)
-  - Password (≥12 chars, upper, lower, number, symbol — live checklist below the field)
-  - Confirm password
-- Submit calls Amplify v6 `signUp({ username: email, password, options: { userAttributes: { email, given_name, family_name, phone_number, 'custom:role': 'clinic_user', 'custom:clinic_id': clinicId, 'custom:npi': npi }, validationData: { invite_token: token } } })`.
-- On success (Pre-SignUp Lambda auto-confirms): call `signIn({ username: email, password })` to log them in immediately, then `navigate("/")`. If auto-sign-in fails, fall back to redirecting to `/login` with a success toast.
-- Error states: surface Cognito errors (`UsernameExistsException`, `InvalidPasswordException`, `InvalidParameterException`, Pre-SignUp Lambda rejection for invalid invite token) as inline form errors / toast.
-- The existing `not_found` / `expired` / `error` invite-state branches stay as-is.
+```ts
+useQuery({
+  queryKey: ["ai-quality", "overview", days, formType],
+  queryFn: () => getOverview({ days, formType }),
+  staleTime: 0,
+  gcTime: 0,                  // v5 name for cacheTime
+  refetchOnMount: "always",
+});
+```
 
-### `src/App.tsx`
-Add `<Route path="/callback" element={<Callback />} />`.
+Same options for the other two hooks. No localStorage / sessionStorage writes from these pages.
 
-## Technical details
+## Page 1 — `/admin/ai-quality`
 
-- **Amplify v6 API names** (the spec referenced v5 names like `Auth.signIn`; v6 is now standard and what `aws-amplify@^6` ships):
-  - `Auth.currentSession()` → `fetchAuthSession()`
-  - `Auth.currentAuthenticatedUser()` → `getCurrentUser()`
-  - `Auth.signIn()` → `signIn()`
-  - `Auth.signOut()` → `signOut()`
-  - `Auth.signUp()` → `signUp()`
-  - `Auth.federatedSignIn()` → `signInWithRedirect()`
-  - All imported from `aws-amplify/auth`.
-  - Token: `(await fetchAuthSession()).tokens?.idToken?.toString()`.
-- **Amplify v6 `signUp` and `validationData`**: in v6, `validationData` lives under `options.validationData` as `Record<string, string>`. The Pre-SignUp Lambda receives it on `event.request.validationData`.
-- **Custom claim parsing**: `idToken.payload` is already a parsed object in v6 — no manual JWT decode needed. We read `payload['https://dirxctional.com/role']` etc.
-- **Hub events**: `import { Hub } from 'aws-amplify/utils'` then `Hub.listen('auth', ({ payload }) => …)`.
-- **Sign-out redirect**: `signOut({ global: true })` with `redirectSignOut` configured in Amplify will hit the Cognito logout endpoint and bounce back to `/`.
-- **Dev/preview redirect URIs**: the Cognito App Client must have both `https://app.dirxctional.com/callback` and the Lovable preview URL (`https://id-preview--16e269eb-61df-41a0-87c9-86db3f97fe05.lovable.app/callback`) plus `http://localhost:5173/callback` listed as allowed callback URLs, with matching sign-out URLs. **You'll need to add the Lovable preview URL in the Cognito console before the preview test will work** — flagging this so it's not a surprise.
-- `src/lib/api.ts` is unchanged: still pulls a bearer token from the registered provider; the provider just returns Cognito ID tokens now.
-- `mock_user` localStorage cleanup in `AuthContext` is preserved.
+Layout uses existing card style (`rounded-xl border border-border bg-card p-5 card-shadow`) matching `AdminDashboard.tsx`.
 
-## Test plan (preview)
+Sections, top-to-bottom:
 
-1. Hard-refresh preview → Login page renders unchanged.
-2. Click "Log In" → redirects to `dirxctional.auth.us-east-2.amazoncognito.com` Hosted UI (different from Auth0 — confirms cutover).
-3. After Hosted UI sign-in → lands on `/callback`, spinner, then routed to clinic or admin dashboard based on role claim.
-4. Logout → returns to `/` then `/login`, Cognito session cleared.
-5. Invite flow: visit `/invite/<valid-token>` → form renders with clinic name → submit with valid fields → user created + signed in → lands on dashboard. Invalid token → backend rejects via Pre-SignUp Lambda → inline error.
-6. API calls in the dashboard include `Authorization: Bearer <Cognito ID token>` (verify in Network tab).
+1. **Header** — title "AI Extraction Quality", muted subtitle, time-range segmented control (7/14/30/90 days, default 7), form-type `<Select>` populated from `by_form_type[].form_type` (plus "All").
+2. **Stat tiles** (grid `grid-cols-2 lg:grid-cols-4`) — Extractions, Acceptance rate (% or `—`), High-confidence-but-edited (warning bg when `> 0`), Corrections logged. Each tile mirrors the existing dashboard tile structure.
+3. **Watch-list callout** — only rendered if any `top_problem_fields[].high_conf_wrong_count > 0`. Amber-bordered card listing up to 5 fields with counts and a "Review corrections →" link to `/admin/ai-quality/corrections?high_conf_only=true`.
+4. **Per-field accuracy table** — shadcn `Table`, search input filtering by `field_path` substring, sortable headers (default `edit_count` desc). Acceptance rate formatted `Math.round(x*100)+"%"` or `—`. Avg confidence `toFixed(3)`. Last edited via existing `getRelativeTime()` from `src/lib/dateUtils.ts`. Empty state copy as specified.
+5. **By-form-type rollup** — only when non-empty. Simple two-column table (Form type, Edits, Edited referrals) — skip the bar chart for v1 to stay lean; visual hierarchy matches existing tables.
+6. **Recent corrections feed** — second query (`limit=20`, same `days` window). Plain-text list rows; left border `border-l-4 border-warning` when `model_confidence >= 0.85`. Each row links to `/admin/ai-quality/referral/:referral_id`.
 
-No production publish — you'll flip the backend feature flag and publish manually.
+## Page 2 — `/admin/ai-quality/referral/:id`
+
+- Header: "Referral · {{id}}" (UUID only — no patient name in title or `document.title`), subtitle with status / `prompt_version || "unknown"` / relative `updated_at`, back link to `/admin/ai-quality`.
+- Two-column grid (`grid-cols-1 lg:grid-cols-2 gap-6`):
+  - **Left — Source documents**: iterate `data.documents[]`. Reuse existing `<DocumentViewer>` component with the presigned `url`. If `url` is null, render "Document temporarily unavailable" placeholder. Note line: "Doc viewer link refreshes when page reloads."
+  - **Right — Extracted data tree**: walk `data.extracted_data` recursively, grouping by top-level key (patient/provider/clinical/insurance/prior_auth/pharmacy/dermatology/…). Each leaf shows label + current value. Build a `Map<field_path, correction[]>` from `data.corrections` and decorate matching leaves:
+    - Edit-count `Badge` (variant outline)
+    - Faded line below: `was: "X" → now: "Y" · conf 0.NN · {relative time}`
+    - Change-type badges using existing `Badge` with bordered variants — `Added by human` (success border), `Cleared by human` (destructive border), `Edited` (warning border)
+    - Extra `⚠ high conf` badge when `model_confidence >= 0.85`
+- Bottom: shadcn `Collapsible` "Raw extraction JSON" containing `<pre><code>{JSON.stringify(extracted_data, null, 2)}</code></pre>`.
+
+PHI-display rules: reuse existing masking/format helpers used in `AdminReferralReview.tsx` for member IDs etc. — the field renderer will use the same plain-text approach (per memory: plain text in tables) without adding any download/copy/share buttons.
+
+## Page 3 — `/admin/ai-quality/corrections`
+
+Reached only via the watch-list callout link. Uses `getCorrections` with cursor-based pagination ("Load more" button — no infinite scroll, no export). Filters: `field` text input, `high_conf_only` checkbox (default on when arriving via watch-list link via query-string), `days` selector. Each row links to the per-referral detail page. Same row styling as the overview's recent-corrections feed.
+
+## Sidebar entry
+
+In `AdminSidebar.tsx`, add to `navItems` between Referrals and Pharmacies:
+
+```ts
+{ label: "AI Quality", icon: LineChart, path: "/admin/ai-quality" }
+```
+
+`AdminSidebar` only renders inside `AdminLayout`, which already requires `internal_admin`, so the link is implicitly hidden from clinic users. Active-state matcher widened to also highlight on `/admin/ai-quality/...` sub-routes.
+
+## HIPAA / trust controls (enforced in code)
+
+- Role gate: `AdminLayout` (server-validated token + client claim check) + per-page defensive redirect.
+- `cache: "no-store"` on every fetch; react-query `staleTime: 0`, `gcTime: 0`; no service-worker registration touched.
+- No `document.title` mutation, no patient names in URLs, no breadcrumbs beyond the referral UUID.
+- No export, no CSV, no copy-link, no share buttons anywhere on these pages.
+- No per-admin attribution UI — `corrections[].edited_by` is intentionally not rendered.
+- Engineering-only signal stays under `/admin/*` and is invisible to `clinic_user`.
+
+## Out of scope (explicitly not built)
+
+Prompt A/B tool, "mark as training example", bulk ops, export, per-admin breakdown, email digests.
+
+## Manual verification after build
+
+1. Sign in as internal_admin → "AI Quality" appears in sidebar; overview loads with empty state.
+2. Generate a correction (admin edits an extracted field on `AdminReferralReview`) → appears in overview within ~1s after refetch / window focus.
+3. Click a feed row → detail page renders documents + tree + correction badges.
+4. Sign in as clinic_user → sidebar link absent; visiting `/admin/ai-quality` silently redirects to `/clinic/dashboard`.
+5. DevTools → Network tab → confirm `Cache-Control: no-store` echoed and no entries in react-query cache after navigation away.
