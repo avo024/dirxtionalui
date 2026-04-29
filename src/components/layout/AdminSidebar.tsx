@@ -47,7 +47,8 @@ export function AdminSidebar() {
       <nav className="flex-1 px-3 py-4 space-y-1">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path ||
-            (item.path === "/admin/referrals" && location.pathname.startsWith("/admin/referrals/"));
+            (item.path === "/admin/referrals" && location.pathname.startsWith("/admin/referrals/")) ||
+            (item.path === "/admin/ai-quality" && location.pathname.startsWith("/admin/ai-quality"));
           return (
             <Link
               key={item.path}
