@@ -12,21 +12,28 @@ import {
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { getRelativeTime } from "@/lib/dateUtils";
+import { renderFieldValue } from "@/lib/aiQualityFormat";
 import type {
   AIQualityCorrection,
   AIQualityReferralDocument,
 } from "@/lib/aiQualityApi";
 
-function formatVal(v: unknown): string {
-  if (v === null || v === undefined || v === "") return "—";
-  if (Array.isArray(v)) return v.length ? v.join(", ") : "—";
-  if (typeof v === "object") return JSON.stringify(v);
-  return String(v);
+function isDiagnosisLikeArray(v: unknown): boolean {
+  return (
+    Array.isArray(v) &&
+    v.length > 0 &&
+    v.every((x) => x !== null && typeof x === "object" && "code" in (x as object))
+  );
 }
 
 function isLeaf(v: unknown): boolean {
   if (v === null || v === undefined) return true;
-  if (Array.isArray(v)) return v.every((x) => typeof x !== "object" || x === null);
+  if (Array.isArray(v)) {
+    if (v.every((x) => typeof x !== "object" || x === null)) return true;
+    // ICD-10-style arrays render inline via renderFieldValue
+    if (isDiagnosisLikeArray(v)) return true;
+    return false;
+  }
   return typeof v !== "object";
 }
 
@@ -160,10 +167,10 @@ function DocPreview({ doc }: { doc: AIQualityReferralDocument }) {
             onError={() => setErrored(true)}
           />
         ) : (
-          <img
+          <embed
             src={doc.url}
-            alt={doc.original_filename}
-            className="w-full max-h-[480px] object-contain"
+            type={doc.file_type || "application/pdf"}
+            className="w-full h-[480px]"
             onError={() => setErrored(true)}
           />
         )}
@@ -301,7 +308,7 @@ function Leaf({
           <p className="text-xs text-muted-foreground capitalize">
             {displayLabel.replace(/_/g, " ")}
           </p>
-          <p className="text-sm text-foreground break-words">{formatVal(value)}</p>
+          <p className="text-sm text-foreground break-words">{renderFieldValue(value)}</p>
         </div>
         {corrections && corrections.length > 0 && (
           <div className="flex flex-col items-end gap-1 shrink-0">
@@ -314,7 +321,8 @@ function Leaf({
       </div>
       {latest && (
         <p className="mt-1 text-xs text-muted-foreground">
-          was: "{latest.model_value ?? ""}" → now: "{latest.final_value ?? ""}" · conf{" "}
+          was: {renderFieldValue(latest.model_value)} → now:{" "}
+          {renderFieldValue(latest.final_value)} · conf{" "}
           {latest.model_confidence !== null && latest.model_confidence !== undefined
             ? latest.model_confidence.toFixed(2)
             : "—"}{" "}
