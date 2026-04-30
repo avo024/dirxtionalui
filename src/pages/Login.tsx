@@ -54,9 +54,12 @@ export default function Login() {
           Secure authentication powered by AWS Cognito
         </p>
 
-        <p className="text-xs text-center text-muted-foreground pt-2">
+        <p className="text-xs text-center text-muted-foreground pt-2 space-x-4">
           <Link to="/privacy" className="hover:text-foreground underline">
             Privacy Policy
+          </Link>
+          <Link to="/cookies" className="hover:text-foreground underline">
+            Cookie Policy
           </Link>
         </p>
       </div>

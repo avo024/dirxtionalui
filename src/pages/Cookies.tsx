@@ -3,9 +3,9 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ArrowLeft } from "lucide-react";
 import logo from "@/assets/logo.png";
-import { PRIVACY_POLICY_MD } from "@/content/privacyPolicy";
+import { COOKIE_POLICY_MD } from "@/content/cookiePolicy";
 
-export default function Privacy() {
+export default function Cookies() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
@@ -56,14 +56,27 @@ export default function Privacy() {
               em: ({ node, ...props }) => (
                 <em className="text-slate-500 not-italic block text-sm mb-1" {...props} />
               ),
-              a: ({ node, ...props }) => (
-                <a
-                  className="text-primary underline hover:opacity-80"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  {...props}
-                />
-              ),
+              a: ({ node, href, ...props }) => {
+                const isInternal = href?.startsWith("/");
+                if (isInternal) {
+                  return (
+                    <Link
+                      to={href!}
+                      className="text-primary underline hover:opacity-80"
+                      {...(props as any)}
+                    />
+                  );
+                }
+                return (
+                  <a
+                    href={href}
+                    className="text-primary underline hover:opacity-80"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    {...props}
+                  />
+                );
+              },
               table: ({ node, ...props }) => (
                 <div className="overflow-x-auto my-6">
                   <table className="w-full border-collapse text-sm" {...props} />
@@ -95,7 +108,7 @@ export default function Privacy() {
               ),
             }}
           >
-            {PRIVACY_POLICY_MD}
+            {COOKIE_POLICY_MD}
           </ReactMarkdown>
         </article>
       </main>
@@ -104,14 +117,9 @@ export default function Privacy() {
         <div className="mx-auto max-w-[1100px] px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-sm text-muted-foreground">
           <p>© {new Date().getFullYear()} ScRXpt, LLC. All rights reserved.</p>
           <div className="flex gap-4">
-          <div className="flex gap-4">
             <Link to="/privacy" className="hover:text-foreground underline">
               Privacy Policy
             </Link>
-            <Link to="/cookies" className="hover:text-foreground underline">
-              Cookie Policy
-            </Link>
-          </div>
             <Link to="/cookies" className="hover:text-foreground underline">
               Cookie Policy
             </Link>
