@@ -10,7 +10,6 @@ export type UserRole = "clinic_user" | "internal_admin";
 interface User {
   role: UserRole;
   name: string;
-  nickname?: string;
   given_name?: string;
   family_name?: string;
   clinic_name?: string;
@@ -108,12 +107,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       claims.name ||
       claims.email ||
       "User";
-    const displayName = claims.nickname?.trim() || legalName;
 
     return {
       role,
-      name: displayName,
-      nickname: claims.nickname,
+      name: legalName,
       given_name: claims.given_name,
       family_name: claims.family_name,
       email: claims.email,

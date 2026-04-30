@@ -37,9 +37,8 @@ export function UserMenu() {
       ? `${user.given_name} ${user.family_name}`
       : null;
 
-  // Prefer Cognito nickname, then legal name from claims, then backend profile, then auth name/email.
+  // Prefer legal name from Cognito claims, then backend profile, then auth name/email.
   const displayLabel =
-    user.nickname?.trim() ||
     legalFullName ||
     profileFullName ||
     user.name ||
@@ -48,7 +47,6 @@ export function UserMenu() {
 
   // Avatar initials follow the same priority chain.
   const initialsSource =
-    user.nickname?.trim() ||
     legalFullName ||
     profileFullName ||
     user.name ||
