@@ -19,6 +19,11 @@ interface InviteResponse {
   clinic_id?: string;
 }
 
+interface PolicyVersions {
+  tos_version: string;
+  privacy_version: string;
+}
+
 
 const NPI = /^\d{10}$/;
 
@@ -67,6 +72,10 @@ export default function AcceptInvite() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
 
+  const [policyVersions, setPolicyVersions] = useState<PolicyVersions | null>(null);
+  const [tosAccepted, setTosAccepted] = useState(false);
+  const [privacyAcknowledged, setPrivacyAcknowledged] = useState(false);
+
   const policy = useMemo(() => checkPasswordPolicy(password), [password]);
 
   useEffect(() => {
@@ -91,6 +100,15 @@ export default function AcceptInvite() {
       })
       .catch(() => setState("error"));
   }, [token]);
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/policies/current`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(r)))
+      .then((data: PolicyVersions) => setPolicyVersions(data))
+      .catch(() => {
+        // Non-fatal; button stays disabled until policies load.
+      });
+  }, []);
 
   const validate = () => {
     const e: Record<string, string> = {};
