@@ -9,7 +9,7 @@ export function AppFooter() {
           <Link to="/privacy" className="hover:text-foreground underline">
             Privacy Policy
           </Link>
-          <Link to="/cookies" className="hover:text-foreground underline">
+          <Link to="/cookie-policy" className="hover:text-foreground underline">
             Cookie Policy
           </Link>
         </div>
