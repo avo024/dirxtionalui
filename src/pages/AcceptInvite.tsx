@@ -19,6 +19,11 @@ interface InviteResponse {
   clinic_id?: string;
 }
 
+interface PolicyVersions {
+  tos_version: string;
+  privacy_version: string;
+}
+
 
 const NPI = /^\d{10}$/;
 
@@ -67,6 +72,10 @@ export default function AcceptInvite() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
 
+  const [policyVersions, setPolicyVersions] = useState<PolicyVersions | null>(null);
+  const [tosAccepted, setTosAccepted] = useState(false);
+  const [privacyAcknowledged, setPrivacyAcknowledged] = useState(false);
+
   const policy = useMemo(() => checkPasswordPolicy(password), [password]);
 
   useEffect(() => {
@@ -91,6 +100,15 @@ export default function AcceptInvite() {
       })
       .catch(() => setState("error"));
   }, [token]);
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/policies/current`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(r)))
+      .then((data: PolicyVersions) => setPolicyVersions(data))
+      .catch(() => {
+        // Non-fatal; button stays disabled until policies load.
+      });
+  }, []);
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -131,6 +149,17 @@ export default function AcceptInvite() {
   const handleSubmit = async (ev: React.FormEvent) => {
     ev.preventDefault();
     if (!validate() || !token) return;
+    if (!policyVersions) {
+      setErrors((prev) => ({ ...prev, form: "Loading policy versions, please wait a moment." }));
+      return;
+    }
+    if (!tosAccepted || !privacyAcknowledged) {
+      setErrors((prev) => ({
+        ...prev,
+        form: "Please review and accept the Terms of Service and Privacy Policy to continue.",
+      }));
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -161,6 +190,15 @@ export default function AcceptInvite() {
           password,
         });
         sessionStorage.setItem("pendingInviteToken", token);
+        sessionStorage.setItem(
+          "pendingInviteConsent",
+          JSON.stringify({
+            tos_accepted: true,
+            tos_version: policyVersions.tos_version,
+            privacy_acknowledged: true,
+            privacy_version: policyVersions.privacy_version,
+          })
+        );
         navigate("/", { replace: true });
       } catch (signInErr) {
         console.error("Auto sign-in failed after signup", signInErr);
@@ -348,7 +386,63 @@ export default function AcceptInvite() {
                   </div>
                 )}
 
-                <Button type="submit" className="w-full" size="lg" disabled={submitting}>
+                <div className="space-y-3 p-4 border border-slate-200 rounded-lg bg-slate-50">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={tosAccepted}
+                      onChange={(e) => setTosAccepted(e.target.checked)}
+                      className="mt-1 flex-shrink-0"
+                    />
+                    <span className="text-sm text-slate-700">
+                      I have read and agree to the{" "}
+                      <a
+                        href="/terms"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary underline font-medium"
+                      >
+                        Terms of Service
+                      </a>
+                      {policyVersions && ` (version ${policyVersions.tos_version})`}
+                      , including the limitations of liability, mass arbitration procedures, and
+                      the disclaimer regarding AI-extracted data.
+                    </span>
+                  </label>
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={privacyAcknowledged}
+                      onChange={(e) => setPrivacyAcknowledged(e.target.checked)}
+                      className="mt-1 flex-shrink-0"
+                    />
+                    <span className="text-sm text-slate-700">
+                      I have read and acknowledge the{" "}
+                      <a
+                        href="/privacy"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary underline font-medium"
+                      >
+                        Privacy Policy
+                      </a>
+                      {policyVersions && ` (version ${policyVersions.privacy_version})`}{" "}
+                      and understand how DiRxctional handles personal information and PHI.
+                    </span>
+                  </label>
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full"
+                  size="lg"
+                  disabled={
+                    submitting ||
+                    !policyVersions ||
+                    !tosAccepted ||
+                    !privacyAcknowledged
+                  }
+                >
                   {submitting ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -358,6 +452,17 @@ export default function AcceptInvite() {
                     "Create Account"
                   )}
                 </Button>
+
+                {!policyVersions && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    Loading policy versions…
+                  </p>
+                )}
+                {policyVersions && (!tosAccepted || !privacyAcknowledged) && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    Please review and accept the Terms of Service and Privacy Policy to continue.
+                  </p>
+                )}
 
                 <p className="text-sm text-muted-foreground text-center">
                   Already have an account?{" "}

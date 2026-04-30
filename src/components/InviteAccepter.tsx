@@ -22,9 +22,17 @@ export default function InviteAccepter() {
           console.error("No Cognito ID token available for invite accept");
           return;
         }
+
+        const consentRaw = sessionStorage.getItem("pendingInviteConsent");
+        const consent = consentRaw ? JSON.parse(consentRaw) : null;
+
         const res = await fetch(`${API_BASE_URL}/invites/${token}/accept`, {
           method: "POST",
-          headers: { Authorization: `Bearer ${accessToken}` },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: consent ? JSON.stringify(consent) : undefined,
         });
         if (res.ok) {
           let clinicName = "";
@@ -38,12 +46,26 @@ export default function InviteAccepter() {
             title: clinicName ? `Welcome to ${clinicName}` : "Welcome!",
           });
         } else {
-          console.error("Failed to accept invite", await res.text());
+          let message = "We couldn't finalize your invite. Please contact support.";
+          try {
+            const data = await res.json();
+            if (data?.message) message = data.message;
+            else if (data?.error) message = data.error;
+          } catch {
+            // ignore
+          }
+          console.error("Failed to accept invite", res.status, message);
+          toast({
+            title: "Invite acceptance failed",
+            description: message,
+            variant: "destructive",
+          });
         }
       } catch (e) {
         console.error("Invite accept error", e);
       } finally {
         sessionStorage.removeItem("pendingInviteToken");
+        sessionStorage.removeItem("pendingInviteConsent");
       }
     })();
   }, [isAuthenticated]);
