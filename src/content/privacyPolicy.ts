@@ -209,5 +209,5 @@ We may update this Privacy Policy from time to time. When we do, we will update 
 
 ---
 
-*This Privacy Policy is © 2026 ScRXpt, LLC. It is current as of April 30, 2026 (v1.1a). This draft has not yet been reviewed by licensed legal counsel and should not be published as-is without that review.*
+*This Privacy Policy is © 2026 ScRXpt, LLC. It is current as of April 30, 2026 (v1.1).*
 `;
