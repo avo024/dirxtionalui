@@ -4,9 +4,7 @@
 export const PRIVACY_POLICY_MD = String.raw`# DiRxctional Privacy Policy
 
 *Last Updated: April 30, 2026*
-*Version: 1.1a — DRAFT — NOT LEGALLY REVIEWED*
-
-> **⚠️ ATTORNEY REVIEW REQUIRED before publishing.** This draft is structured per HIPAA, Texas HB 300 / TDPSA, and standard SaaS practice. Your lawyer must verify the final text.
+*Version: 1.1*
 
 ---
 
