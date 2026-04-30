@@ -1,15 +1,15 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useProfile } from "@/hooks/useProfile";
 import { ClinicSidebar } from "./ClinicSidebar";
 import { UserMenu } from "./UserMenu";
-import { CompleteProfileModal } from "@/components/CompleteProfileModal";
+import { WelcomeNicknameModal } from "@/components/WelcomeNicknameModal";
+import { useWelcomeNickname } from "@/hooks/useWelcomeNickname";
 import { AppFooter } from "./AppFooter";
 
 export function ClinicLayout() {
   const { user, isAuthenticated, isLoading } = useAuth();
-  const { data: profile } = useProfile();
+  const { show: showWelcome, dismiss: dismissWelcome } = useWelcomeNickname();
 
   if (isLoading) {
     return (
@@ -21,8 +21,6 @@ export function ClinicLayout() {
 
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (user?.role !== "clinic_user") return <Navigate to="/admin/dashboard" replace />;
-
-  const showProfileModal = profile && profile.profile_complete === false;
 
   return (
     <div className="flex min-h-screen w-full">
@@ -36,7 +34,14 @@ export function ClinicLayout() {
         </div>
         <AppFooter />
       </main>
-      {showProfileModal && <CompleteProfileModal />}
+      {showWelcome && (
+        <WelcomeNicknameModal
+          defaultFirst={user?.given_name ?? ""}
+          defaultLast={user?.family_name ?? ""}
+          onDismiss={dismissWelcome}
+        />
+      )}
     </div>
   );
 }
+
