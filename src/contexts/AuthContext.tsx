@@ -10,6 +10,9 @@ export type UserRole = "clinic_user" | "internal_admin";
 interface User {
   role: UserRole;
   name: string;
+  nickname?: string;
+  given_name?: string;
+  family_name?: string;
   clinic_name?: string;
   clinic_specialty?: string;
   clinic_id?: string;
@@ -100,15 +103,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       );
     }
 
-    const displayName =
+    const legalName =
       [claims.given_name, claims.family_name].filter(Boolean).join(" ") ||
       claims.name ||
       claims.email ||
       "User";
+    const displayName = claims.nickname?.trim() || legalName;
 
     return {
       role,
       name: displayName,
+      nickname: claims.nickname,
+      given_name: claims.given_name,
+      family_name: claims.family_name,
       email: claims.email,
       picture: claims.picture,
       clinic_id: clinic?.id ?? claims.clinic_id,

@@ -1,15 +1,15 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAdminProfile } from "@/hooks/useAdminProfile";
-import { CompleteAdminProfileModal } from "@/components/CompleteAdminProfileModal";
+import { WelcomeNicknameModal } from "@/components/WelcomeNicknameModal";
+import { useWelcomeNickname } from "@/hooks/useWelcomeNickname";
 import { AdminSidebar } from "./AdminSidebar";
 import { UserMenu } from "./UserMenu";
 import { AppFooter } from "./AppFooter";
 
 export function AdminLayout() {
   const { user, isAuthenticated, isLoading } = useAuth();
-  const { data: profile } = useAdminProfile();
+  const { show: showWelcome, dismiss: dismissWelcome } = useWelcomeNickname();
 
   if (isLoading) {
     return (
@@ -21,8 +21,6 @@ export function AdminLayout() {
 
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (user?.role !== "internal_admin") return <Navigate to="/clinic/dashboard" replace />;
-
-  const showProfileModal = profile && profile.profile_complete === false;
 
   return (
     <div className="flex min-h-screen w-full">
@@ -36,7 +34,14 @@ export function AdminLayout() {
         </div>
         <AppFooter />
       </main>
-      {showProfileModal && <CompleteAdminProfileModal />}
+      {showWelcome && (
+        <WelcomeNicknameModal
+          defaultFirst={user?.given_name ?? ""}
+          defaultLast={user?.family_name ?? ""}
+          onDismiss={dismissWelcome}
+        />
+      )}
     </div>
   );
 }
+
