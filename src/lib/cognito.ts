@@ -32,6 +32,7 @@ export function parseClaims(payload: Record<string, unknown> | undefined | null)
     sub: p.sub as string | undefined,
     email: p.email as string | undefined,
     name: (p.name as string | undefined) ?? undefined,
+    nickname: (p.nickname as string | undefined) ?? undefined,
     given_name: p.given_name as string | undefined,
     family_name: p.family_name as string | undefined,
     picture: p.picture as string | undefined,
