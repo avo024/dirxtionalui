@@ -104,9 +104,14 @@ export default function Privacy() {
         <div className="mx-auto max-w-[1100px] px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-sm text-muted-foreground">
           <p>© {new Date().getFullYear()} ScRXpt, LLC. All rights reserved.</p>
           <div className="flex gap-4">
+          <div className="flex gap-4">
             <Link to="/privacy" className="hover:text-foreground underline">
               Privacy Policy
             </Link>
+            <Link to="/cookies" className="hover:text-foreground underline">
+              Cookie Policy
+            </Link>
+          </div>
             <Link to="/cookies" className="hover:text-foreground underline">
               Cookie Policy
             </Link>
