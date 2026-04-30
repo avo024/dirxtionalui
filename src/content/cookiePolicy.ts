@@ -4,9 +4,7 @@
 export const COOKIE_POLICY_MD = String.raw`# DiRxctional Cookie Policy
 
 *Last Updated: April 30, 2026*
-*Version: 1.0 — DRAFT — NOT LEGALLY REVIEWED*
-
-> **⚠️ ATTORNEY REVIEW REQUIRED before publishing.** This Cookie Policy is intentionally short because DiRxctional uses only essential authentication and session cookies — no advertising, no third-party analytics, no behavioral tracking. Your lawyer should confirm scope before publish.
+*Version: 1.0*
 
 ---
 
