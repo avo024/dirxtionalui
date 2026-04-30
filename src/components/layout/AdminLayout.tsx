@@ -1,15 +1,12 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { WelcomeNicknameModal } from "@/components/WelcomeNicknameModal";
-import { useWelcomeNickname } from "@/hooks/useWelcomeNickname";
 import { AdminSidebar } from "./AdminSidebar";
 import { UserMenu } from "./UserMenu";
 import { AppFooter } from "./AppFooter";
 
 export function AdminLayout() {
   const { user, isAuthenticated, isLoading } = useAuth();
-  const { show: showWelcome, dismiss: dismissWelcome } = useWelcomeNickname();
 
   if (isLoading) {
     return (
@@ -34,14 +31,6 @@ export function AdminLayout() {
         </div>
         <AppFooter />
       </main>
-      {showWelcome && (
-        <WelcomeNicknameModal
-          defaultFirst={user?.given_name ?? ""}
-          defaultLast={user?.family_name ?? ""}
-          onDismiss={dismissWelcome}
-        />
-      )}
     </div>
   );
 }
-

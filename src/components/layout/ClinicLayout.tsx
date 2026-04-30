@@ -3,13 +3,10 @@ import { Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ClinicSidebar } from "./ClinicSidebar";
 import { UserMenu } from "./UserMenu";
-import { WelcomeNicknameModal } from "@/components/WelcomeNicknameModal";
-import { useWelcomeNickname } from "@/hooks/useWelcomeNickname";
 import { AppFooter } from "./AppFooter";
 
 export function ClinicLayout() {
   const { user, isAuthenticated, isLoading } = useAuth();
-  const { show: showWelcome, dismiss: dismissWelcome } = useWelcomeNickname();
 
   if (isLoading) {
     return (
@@ -34,14 +31,6 @@ export function ClinicLayout() {
         </div>
         <AppFooter />
       </main>
-      {showWelcome && (
-        <WelcomeNicknameModal
-          defaultFirst={user?.given_name ?? ""}
-          defaultLast={user?.family_name ?? ""}
-          onDismiss={dismissWelcome}
-        />
-      )}
     </div>
   );
 }
-
