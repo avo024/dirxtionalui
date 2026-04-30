@@ -12,6 +12,7 @@ export type IdTokenClaims = {
   sub?: string;
   email?: string;
   name?: string;
+  nickname?: string;
   given_name?: string;
   family_name?: string;
   picture?: string;
