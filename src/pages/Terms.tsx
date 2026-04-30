@@ -3,9 +3,9 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ArrowLeft } from "lucide-react";
 import logo from "@/assets/logo.png";
-import { COOKIE_POLICY_MD } from "@/content/cookiePolicy";
+import { TERMS_OF_SERVICE_MD } from "@/content/termsOfService";
 
-export default function Cookies() {
+export default function Terms() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
@@ -56,27 +56,14 @@ export default function Cookies() {
               em: ({ node, ...props }) => (
                 <em className="text-slate-500 not-italic block text-sm mb-1" {...props} />
               ),
-              a: ({ node, href, ...props }) => {
-                const isInternal = href?.startsWith("/");
-                if (isInternal) {
-                  return (
-                    <Link
-                      to={href!}
-                      className="text-primary underline hover:opacity-80"
-                      {...(props as any)}
-                    />
-                  );
-                }
-                return (
-                  <a
-                    href={href}
-                    className="text-primary underline hover:opacity-80"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    {...props}
-                  />
-                );
-              },
+              a: ({ node, ...props }) => (
+                <a
+                  className="text-primary underline hover:opacity-80"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  {...props}
+                />
+              ),
               table: ({ node, ...props }) => (
                 <div className="overflow-x-auto my-6">
                   <table className="w-full border-collapse text-sm" {...props} />
@@ -108,7 +95,7 @@ export default function Cookies() {
               ),
             }}
           >
-            {COOKIE_POLICY_MD}
+            {TERMS_OF_SERVICE_MD}
           </ReactMarkdown>
         </article>
       </main>

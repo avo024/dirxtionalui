@@ -110,6 +110,9 @@ export default function Privacy() {
             <Link to="/cookie-policy" className="hover:text-foreground underline">
               Cookie Policy
             </Link>
+            <Link to="/terms" className="hover:text-foreground underline">
+              Terms of Service
+            </Link>
           </div>
         </div>
       </footer>
