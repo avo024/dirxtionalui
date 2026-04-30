@@ -386,7 +386,63 @@ export default function AcceptInvite() {
                   </div>
                 )}
 
-                <Button type="submit" className="w-full" size="lg" disabled={submitting}>
+                <div className="space-y-3 p-4 border border-slate-200 rounded-lg bg-slate-50">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={tosAccepted}
+                      onChange={(e) => setTosAccepted(e.target.checked)}
+                      className="mt-1 flex-shrink-0"
+                    />
+                    <span className="text-sm text-slate-700">
+                      I have read and agree to the{" "}
+                      <a
+                        href="/terms"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary underline font-medium"
+                      >
+                        Terms of Service
+                      </a>
+                      {policyVersions && ` (version ${policyVersions.tos_version})`}
+                      , including the limitations of liability, mass arbitration procedures, and
+                      the disclaimer regarding AI-extracted data.
+                    </span>
+                  </label>
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={privacyAcknowledged}
+                      onChange={(e) => setPrivacyAcknowledged(e.target.checked)}
+                      className="mt-1 flex-shrink-0"
+                    />
+                    <span className="text-sm text-slate-700">
+                      I have read and acknowledge the{" "}
+                      <a
+                        href="/privacy"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary underline font-medium"
+                      >
+                        Privacy Policy
+                      </a>
+                      {policyVersions && ` (version ${policyVersions.privacy_version})`}{" "}
+                      and understand how DiRxctional handles personal information and PHI.
+                    </span>
+                  </label>
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full"
+                  size="lg"
+                  disabled={
+                    submitting ||
+                    !policyVersions ||
+                    !tosAccepted ||
+                    !privacyAcknowledged
+                  }
+                >
                   {submitting ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -396,6 +452,17 @@ export default function AcceptInvite() {
                     "Create Account"
                   )}
                 </Button>
+
+                {!policyVersions && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    Loading policy versions…
+                  </p>
+                )}
+                {policyVersions && (!tosAccepted || !privacyAcknowledged) && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    Please review and accept the Terms of Service and Privacy Policy to continue.
+                  </p>
+                )}
 
                 <p className="text-sm text-muted-foreground text-center">
                   Already have an account?{" "}
