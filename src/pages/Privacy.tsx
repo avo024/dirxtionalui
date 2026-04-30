@@ -103,9 +103,14 @@ export default function Privacy() {
       <footer className="border-t border-border mt-10">
         <div className="mx-auto max-w-[1100px] px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-sm text-muted-foreground">
           <p>© {new Date().getFullYear()} ScRXpt, LLC. All rights reserved.</p>
-          <Link to="/privacy" className="hover:text-foreground underline">
-            Privacy Policy
-          </Link>
+          <div className="flex gap-4">
+            <Link to="/privacy" className="hover:text-foreground underline">
+              Privacy Policy
+            </Link>
+            <Link to="/cookies" className="hover:text-foreground underline">
+              Cookie Policy
+            </Link>
+          </div>
         </div>
       </footer>
     </div>

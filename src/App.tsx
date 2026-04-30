@@ -12,6 +12,7 @@ import AcceptInvite from "./pages/AcceptInvite";
 import InviteAccepter from "./components/InviteAccepter";
 import NotFound from "./pages/NotFound";
 import Privacy from "./pages/Privacy";
+import Cookies from "./pages/Cookies";
 
 import { ClinicLayout } from "@/components/layout/ClinicLayout";
 import ClinicDashboard from "@/pages/clinic/ClinicDashboard";
@@ -51,6 +52,7 @@ const App = () => (
             <Route path="/callback" element={<Callback />} />
             <Route path="/invite/:token" element={<AcceptInvite />} />
             <Route path="/privacy" element={<Privacy />} />
+            <Route path="/cookies" element={<Cookies />} />
 
             {/* Clinic routes */}
             <Route path="/clinic" element={<ClinicLayout />}>
