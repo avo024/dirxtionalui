@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ClinicSidebar } from "./ClinicSidebar";
 import { UserMenu } from "./UserMenu";
 import { AppFooter } from "./AppFooter";
+import { ConsentReacceptModal } from "@/components/ConsentReacceptModal";
 
 export function ClinicLayout() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -31,6 +32,7 @@ export function ClinicLayout() {
         </div>
         <AppFooter />
       </main>
+      <ConsentReacceptModal />
     </div>
   );
 }
