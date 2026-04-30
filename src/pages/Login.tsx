@@ -1,4 +1,4 @@
-import { Navigate } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { Loader2, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -52,6 +52,12 @@ export default function Login() {
 
         <p className="text-xs text-center text-muted-foreground">
           Secure authentication powered by AWS Cognito
+        </p>
+
+        <p className="text-xs text-center text-muted-foreground pt-2">
+          <Link to="/privacy" className="hover:text-foreground underline">
+            Privacy Policy
+          </Link>
         </p>
       </div>
     </div>

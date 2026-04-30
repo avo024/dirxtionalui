@@ -5,6 +5,7 @@ import { useAdminProfile } from "@/hooks/useAdminProfile";
 import { CompleteAdminProfileModal } from "@/components/CompleteAdminProfileModal";
 import { AdminSidebar } from "./AdminSidebar";
 import { UserMenu } from "./UserMenu";
+import { AppFooter } from "./AppFooter";
 
 export function AdminLayout() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -26,13 +27,14 @@ export function AdminLayout() {
   return (
     <div className="flex min-h-screen w-full">
       <AdminSidebar />
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto flex flex-col">
         <div className="flex justify-end px-6 pt-4 lg:px-8">
           <UserMenu />
         </div>
-        <div className="mx-auto max-w-[1400px] px-6 py-8 lg:px-8">
+        <div className="mx-auto max-w-[1400px] w-full px-6 py-8 lg:px-8 flex-1">
           <Outlet />
         </div>
+        <AppFooter />
       </main>
       {showProfileModal && <CompleteAdminProfileModal />}
     </div>
