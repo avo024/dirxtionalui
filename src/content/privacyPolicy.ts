@@ -4,9 +4,7 @@
 export const PRIVACY_POLICY_MD = String.raw`# DiRxctional Privacy Policy
 
 *Last Updated: April 30, 2026*
-*Version: 1.1a — DRAFT — NOT LEGALLY REVIEWED*
-
-> **⚠️ ATTORNEY REVIEW REQUIRED before publishing.** This draft is structured per HIPAA, Texas HB 300 / TDPSA, and standard SaaS practice. Your lawyer must verify the final text.
+*Version: 1.1*
 
 ---
 
@@ -211,5 +209,5 @@ We may update this Privacy Policy from time to time. When we do, we will update 
 
 ---
 
-*This Privacy Policy is © 2026 ScRXpt, LLC. It is current as of April 30, 2026 (v1.1a). This draft has not yet been reviewed by licensed legal counsel and should not be published as-is without that review.*
+*This Privacy Policy is © 2026 ScRXpt, LLC. It is current as of April 30, 2026 (v1.1).*
 `;
