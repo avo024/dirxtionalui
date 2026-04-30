@@ -10,6 +10,9 @@ export type UserRole = "clinic_user" | "internal_admin";
 interface User {
   role: UserRole;
   name: string;
+  nickname?: string;
+  given_name?: string;
+  family_name?: string;
   clinic_name?: string;
   clinic_specialty?: string;
   clinic_id?: string;
