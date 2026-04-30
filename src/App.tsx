@@ -53,6 +53,7 @@ const App = () => (
             <Route path="/invite/:token" element={<AcceptInvite />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/cookies" element={<Cookies />} />
+            <Route path="/cookie-policy" element={<Cookies />} />
 
             {/* Clinic routes */}
             <Route path="/clinic" element={<ClinicLayout />}>
