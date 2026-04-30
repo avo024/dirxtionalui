@@ -5,6 +5,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { ClinicSidebar } from "./ClinicSidebar";
 import { UserMenu } from "./UserMenu";
 import { CompleteProfileModal } from "@/components/CompleteProfileModal";
+import { AppFooter } from "./AppFooter";
 
 export function ClinicLayout() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -26,13 +27,14 @@ export function ClinicLayout() {
   return (
     <div className="flex min-h-screen w-full">
       <ClinicSidebar />
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto flex flex-col">
         <div className="flex justify-end px-6 pt-4 lg:px-8">
           <UserMenu />
         </div>
-        <div className="mx-auto max-w-[1400px] px-6 py-8 lg:px-8">
+        <div className="mx-auto max-w-[1400px] w-full px-6 py-8 lg:px-8 flex-1">
           <Outlet />
         </div>
+        <AppFooter />
       </main>
       {showProfileModal && <CompleteProfileModal />}
     </div>
