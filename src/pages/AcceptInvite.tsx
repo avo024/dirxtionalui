@@ -149,6 +149,17 @@ export default function AcceptInvite() {
   const handleSubmit = async (ev: React.FormEvent) => {
     ev.preventDefault();
     if (!validate() || !token) return;
+    if (!policyVersions) {
+      setErrors((prev) => ({ ...prev, form: "Loading policy versions, please wait a moment." }));
+      return;
+    }
+    if (!tosAccepted || !privacyAcknowledged) {
+      setErrors((prev) => ({
+        ...prev,
+        form: "Please review and accept the Terms of Service and Privacy Policy to continue.",
+      }));
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -179,6 +190,15 @@ export default function AcceptInvite() {
           password,
         });
         sessionStorage.setItem("pendingInviteToken", token);
+        sessionStorage.setItem(
+          "pendingInviteConsent",
+          JSON.stringify({
+            tos_accepted: true,
+            tos_version: policyVersions.tos_version,
+            privacy_acknowledged: true,
+            privacy_version: policyVersions.privacy_version,
+          })
+        );
         navigate("/", { replace: true });
       } catch (signInErr) {
         console.error("Auto sign-in failed after signup", signInErr);
