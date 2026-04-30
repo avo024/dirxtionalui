@@ -28,25 +28,39 @@ export function UserMenu() {
 
   // Pick the right profile based on role; each hook only fires for its role.
   const activeProfile = isClinicUser ? clinicProfile : isAdmin ? adminProfile : null;
-  const fullName =
+  const profileFullName =
     activeProfile?.first_name && activeProfile?.last_name
       ? `${activeProfile.first_name} ${activeProfile.last_name}`
       : null;
+  const legalFullName =
+    user.given_name && user.family_name
+      ? `${user.given_name} ${user.family_name}`
+      : null;
 
-  // Display label: name when available; email/auth name fallback.
-  const displayLabel = fullName ?? user.name ?? user.email ?? "Account";
+  // Prefer Cognito nickname, then legal name from claims, then backend profile, then auth name/email.
+  const displayLabel =
+    user.nickname?.trim() ||
+    legalFullName ||
+    profileFullName ||
+    user.name ||
+    user.email ||
+    "Account";
 
-  // Avatar initials: profile first+last; otherwise name/email fallback.
-  const initials =
-    activeProfile?.first_name && activeProfile?.last_name
-      ? `${activeProfile.first_name[0]}${activeProfile.last_name[0]}`.toUpperCase()
-      : (user.name || user.email || "U")
-          .split(" ")
-          .map((s) => s[0])
-          .filter(Boolean)
-          .slice(0, 2)
-          .join("")
-          .toUpperCase();
+  // Avatar initials follow the same priority chain.
+  const initialsSource =
+    user.nickname?.trim() ||
+    legalFullName ||
+    profileFullName ||
+    user.name ||
+    user.email ||
+    "U";
+  const initials = initialsSource
+    .split(" ")
+    .map((s) => s[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 
   return (
     <>
