@@ -10,6 +10,7 @@ import { ClinicFormModal } from "@/components/ClinicFormModal";
 import { adminApi, type AdminClinic } from "@/lib/api";
 
 export default function ClinicsList() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<AdminClinic | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
