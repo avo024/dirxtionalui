@@ -34,6 +34,8 @@ import PharmaciesList from "@/pages/admin/PharmaciesList";
 import PharmacyDetail from "@/pages/admin/PharmacyDetail";
 import AdminInvites from "@/pages/admin/AdminInvites";
 import ClinicsList from "@/pages/admin/ClinicsList";
+import ClinicDetail from "@/pages/admin/ClinicDetail";
+import AdminAddonRequests from "@/pages/admin/AdminAddonRequests";
 import AIQuality from "@/pages/admin/AIQuality";
 import AIQualityReferral from "@/pages/admin/AIQualityReferral";
 import AIQualityCorrections from "@/pages/admin/AIQualityCorrections";
