@@ -100,7 +100,7 @@ export default function ClinicsList() {
                 <TableRow
                   key={clinic.id}
                   className="cursor-pointer hover:bg-secondary/30"
-                  onClick={() => setEditing(clinic)}
+                  onClick={() => navigate(`/admin/clinics/${clinic.id}`)}
                 >
                   <TableCell className="font-medium">{clinic.name}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{clinic.email || "—"}</TableCell>
