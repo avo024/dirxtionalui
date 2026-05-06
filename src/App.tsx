@@ -67,6 +67,7 @@ const App = () => (
               <Route path="referrals/new" element={<CreateReferral />} />
               <Route path="referrals/:id" element={<ReferralDetail />} />
               <Route path="referrals" element={<ReferralsList />} />
+              <Route path="services" element={<Services />} />
             </Route>
 
             {/* Admin routes */}
