@@ -79,7 +79,9 @@ const App = () => (
               <Route path="referrals" element={<AdminReferralsList />} />
               <Route path="pharmacies/:id" element={<PharmacyDetail />} />
               <Route path="pharmacies" element={<PharmaciesList />} />
+              <Route path="clinics/:id" element={<ClinicDetail />} />
               <Route path="clinics" element={<ClinicsList />} />
+              <Route path="addon-requests" element={<AdminAddonRequests />} />
               <Route path="invites" element={<AdminInvites />} />
               <Route path="ai-quality" element={<AIQuality />} />
               <Route path="ai-quality/corrections" element={<AIQualityCorrections />} />
