@@ -9,6 +9,7 @@ const navItems = [
   { label: "Patients", icon: Users, path: "/clinic/patients" },
   { label: "New Referral", icon: Plus, path: "/clinic/referrals/new" },
   { label: "My Referrals", icon: FileText, path: "/clinic/referrals" },
+  { label: "Services", icon: Sparkles, path: "/clinic/services" },
 ];
 
 export function ClinicSidebar() {
