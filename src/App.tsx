@@ -34,6 +34,8 @@ import PharmaciesList from "@/pages/admin/PharmaciesList";
 import PharmacyDetail from "@/pages/admin/PharmacyDetail";
 import AdminInvites from "@/pages/admin/AdminInvites";
 import ClinicsList from "@/pages/admin/ClinicsList";
+import ClinicDetail from "@/pages/admin/ClinicDetail";
+import AdminAddonRequests from "@/pages/admin/AdminAddonRequests";
 import AIQuality from "@/pages/admin/AIQuality";
 import AIQualityReferral from "@/pages/admin/AIQualityReferral";
 import AIQualityCorrections from "@/pages/admin/AIQualityCorrections";
@@ -77,7 +79,9 @@ const App = () => (
               <Route path="referrals" element={<AdminReferralsList />} />
               <Route path="pharmacies/:id" element={<PharmacyDetail />} />
               <Route path="pharmacies" element={<PharmaciesList />} />
+              <Route path="clinics/:id" element={<ClinicDetail />} />
               <Route path="clinics" element={<ClinicsList />} />
+              <Route path="addon-requests" element={<AdminAddonRequests />} />
               <Route path="invites" element={<AdminInvites />} />
               <Route path="ai-quality" element={<AIQuality />} />
               <Route path="ai-quality/corrections" element={<AIQualityCorrections />} />

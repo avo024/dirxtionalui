@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Search, Plus, Pencil, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,7 @@ import { ClinicFormModal } from "@/components/ClinicFormModal";
 import { adminApi, type AdminClinic } from "@/lib/api";
 
 export default function ClinicsList() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<AdminClinic | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
@@ -98,7 +100,7 @@ export default function ClinicsList() {
                 <TableRow
                   key={clinic.id}
                   className="cursor-pointer hover:bg-secondary/30"
-                  onClick={() => setEditing(clinic)}
+                  onClick={() => navigate(`/admin/clinics/${clinic.id}`)}
                 >
                   <TableCell className="font-medium">{clinic.name}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{clinic.email || "—"}</TableCell>
