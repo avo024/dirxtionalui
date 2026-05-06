@@ -24,6 +24,7 @@ import ReferralDetail from "@/pages/clinic/ReferralDetail";
 import PatientsList from "@/pages/clinic/PatientsList";
 import PatientDetail from "@/pages/clinic/PatientDetail";
 import CreatePatient from "@/pages/clinic/CreatePatient";
+import Services from "@/pages/clinic/Services";
 
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
@@ -66,6 +67,7 @@ const App = () => (
               <Route path="referrals/new" element={<CreateReferral />} />
               <Route path="referrals/:id" element={<ReferralDetail />} />
               <Route path="referrals" element={<ReferralsList />} />
+              <Route path="services" element={<Services />} />
             </Route>
 
             {/* Admin routes */}
