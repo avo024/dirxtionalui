@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Plus, FileText, LogOut, Users } from "lucide-react";
+import { LayoutDashboard, Plus, FileText, LogOut, Users, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import logo from "@/assets/logo.png";
