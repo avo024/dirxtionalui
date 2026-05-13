@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Check, ChevronsUpDown, Mail, Phone, Printer } from "lucide-react";
+import { Check, ChevronsUpDown, Phone, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -84,43 +84,25 @@ export function PharmacyPicker({ pharmacies, selectedId, defaultId, onSelect }: 
               <CommandList>
                 <CommandEmpty>No pharmacy found.</CommandEmpty>
                 <CommandGroup>
-                  {sorted.map((p) => {
-                    const cs = cityState(p);
-                    return (
-                      <CommandItem
-                        key={p.id}
-                        value={`${p.name} ${cs}`.trim()}
-                        onSelect={() => {
-                          onSelect(p.id);
-                          setOpen(false);
-                        }}
-                        className="flex items-center justify-between gap-2"
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <Check
-                            className={cn(
-                              "h-4 w-4 shrink-0",
-                              selectedId === p.id ? "opacity-100" : "opacity-0",
-                            )}
-                          />
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-medium truncate">{p.name}</span>
-                              {p.id === defaultId && (
-                                <Badge variant="secondary" className="text-[10px]">Default</Badge>
-                              )}
-                            </div>
-                            {cs && (
-                              <p className="text-xs text-muted-foreground">{cs}</p>
-                            )}
-                          </div>
-                        </div>
-                        {p.accepts_no_insurance && (
-                          <Badge variant="outline" className="text-[10px] shrink-0">Bridge</Badge>
+                  {sorted.map((p) => (
+                    <CommandItem
+                      key={p.id}
+                      value={`${p.name} ${cityState(p)}`.trim()}
+                      onSelect={() => {
+                        onSelect(p.id);
+                        setOpen(false);
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      <Check
+                        className={cn(
+                          "h-4 w-4 shrink-0",
+                          selectedId === p.id ? "opacity-100" : "opacity-0",
                         )}
-                      </CommandItem>
-                    );
-                  })}
+                      />
+                      <span className="font-medium truncate">{p.name}</span>
+                    </CommandItem>
+                  ))}
                 </CommandGroup>
               </CommandList>
             </Command>
@@ -131,45 +113,18 @@ export function PharmacyPicker({ pharmacies, selectedId, defaultId, onSelect }: 
       {/* Selected details */}
       {selected ? (
         <div className="rounded-xl border-2 border-primary/30 bg-primary/[0.04] p-4">
-          <div className="flex items-start justify-between gap-3 mb-2">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <p className="font-semibold text-foreground">{selected.name}</p>
-                {selected.id === defaultId && (
-                  <Badge variant="secondary" className="text-xs">Default</Badge>
-                )}
-                {selected.accepts_no_insurance && (
-                  <Badge variant="outline" className="text-xs">Accepts bridge programs</Badge>
-                )}
-              </div>
-              {cityState(selected) && (
-                <p className="text-xs text-muted-foreground mt-0.5">{cityState(selected)}</p>
-              )}
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
-            {selected.phone && (
-              <div className="flex items-center gap-2 text-foreground">
-                <Phone className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                <span className="truncate">{selected.phone}</span>
-              </div>
-            )}
+          <p className="font-semibold text-foreground text-base">{selected.name}</p>
+          <div className="mt-2 space-y-1 text-sm">
             {selected.fax && (
               <div className="flex items-center gap-2 text-foreground">
                 <Printer className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                <span className="truncate">Fax: {selected.fax}</span>
+                <span>Fax: {selected.fax}</span>
               </div>
             )}
-            {selected.alt_phone_fax && (
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Phone className="h-3.5 w-3.5 shrink-0" />
-                <span className="truncate">Alt: {selected.alt_phone_fax}</span>
-              </div>
-            )}
-            {selected.email && (
+            {selected.phone && (
               <div className="flex items-center gap-2 text-foreground">
-                <Mail className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                <span className="truncate">{selected.email}</span>
+                <Phone className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <span>Phone: {selected.phone}</span>
               </div>
             )}
           </div>
