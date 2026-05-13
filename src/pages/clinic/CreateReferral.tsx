@@ -656,25 +656,10 @@ export default function CreateReferral() {
               </label>
             )}
 
-            {/* Insurance choice */}
+            {/* Bridge program choice */}
             <InsuranceChoiceSection
               choice={insuranceChoice}
               onChoiceChange={setInsuranceChoice}
-              hasInsuranceData={{
-                payer: manualData.primaryInsuranceName,
-                memberId: manualData.primaryMemberId,
-                groupId: manualData.insuranceNotes,
-                subscriberName: manualData.secondaryInsuranceName,
-              }}
-              onHasInsuranceFieldChange={(field, value) => {
-                setManualData((d) => ({
-                  ...d,
-                  ...(field === "payer" ? { primaryInsuranceName: value } : {}),
-                  ...(field === "memberId" ? { primaryMemberId: value } : {}),
-                  ...(field === "groupId" ? { insuranceNotes: value } : {}),
-                  ...(field === "subscriberName" ? { secondaryInsuranceName: value } : {}),
-                }));
-              }}
               showErrors={showSubmitErrors}
             />
 
