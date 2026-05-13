@@ -1,51 +1,36 @@
-## Plan — Clinic Services page
+## Fix Step 3 Pharmacy Bridge-Program Filter
 
-### New files
-1. **`src/lib/servicesApi.ts`** — typed wrappers around the three endpoints:
-   - `getMyServices()` → GET `/clinics/me/services`
-   - `requestAddon({ addon_id, clinic_notes? })` → POST `/clinics/me/addon-requests`
-   - `cancelAddonRequest(requestId)` → DELETE `/clinics/me/addon-requests/{id}`
-   Uses `getHeaders()` from `src/lib/api.ts` and `API_BASE_URL` (export it or duplicate the env read).
-   Defines TS types: `ServiceCatalogItem`, `ActiveAddon`, `PendingRequest`, `ServicesResponse`.
+### Problem
+In `CreateReferral.tsx` Step 3, the pharmacy list is incorrectly filtered to only `accepts_no_insurance` pharmacies when the user selects "bridge program" on Step 2. The backend does **not** track `supports_bridge_program` on pharmacies, so this filter is wrong and shows misleading empty-state copy.
 
-2. **`src/components/DynamicIcon.tsx`** — small helper that looks up a Lucide icon by string name, falls back to `Box`. `name: string | null | undefined`, `className?: string`.
+### Changes
+1. **Remove bridge-based pharmacy filtering (lines 352-367)**
+   - Delete `availablePharmacies` useMemo that filters by `accepts_no_insurance` when `insuranceChoice === "bridge"`
+   - Delete useEffect that auto-clears pharmacy selection when bridge is chosen
+   - Everywhere the component currently uses `availablePharmacies`, use `pharmacies` instead
 
-3. **`src/pages/clinic/Services.tsx`** — the page. Sections:
-   - **Header**: "Services" + subtitle.
-   - **Section 1 — Current Plan**: hardcoded read-only `Card` with a `Sparkles` icon, "Plan", "Contact your account manager" copy, and a `mailto:hello@dirxctional.com` link. No upgrade button.
-   - **Section 2 — Active Add-ons**: rendered only when `active_addons.length > 0`. Card containing a list; each row shows `DynamicIcon`, name, description, price `$X/mo`, optional `× quantity`, and a green "Active" `Badge`.
-   - **Section 3 — Available Add-ons**: grid (responsive `grid-cols-1 md:grid-cols-2`) of `catalog.filter(a => a.state !== "active")`. Each card shows icon, name, description, price; if `state === "requested"` show amber "Requested" badge, else show **Request** button that opens the request dialog.
-   - **Section 4 — Pending Requests**: rendered only when `pending_requests.length > 0`. List with name, "Requested {relative time}" via `formatDistanceToNow`, price, **Cancel** button.
-   - **Loading**: spinner; **Error / 403**: friendly empty state "This section is for clinic users."
+2. **Fix Step 3 UI copy (lines 940-944, 962-965)**
+   - Replace conditional helper text with single generic sentence about defaulting to clinic's preferred pharmacy
+   - Replace conditional empty-state with generic: "No pharmacies available for your clinic. Contact DiRxctional support."
 
-   Data: `useQuery(['clinic','services'], getMyServices)`. Mutations via `useMutation`, on success `queryClient.invalidateQueries(['clinic','services'])` and `toast.success(...)`; on error `toast.error(err.message)`.
+3. **Fix default-pharmacy warning (line 946)**
+   - Remove `insuranceChoice !== "bridge"` guard so the warning shows for all users without a default pharmacy
 
-4. **Request dialog** (inline component in Services.tsx): shadcn `Dialog` showing addon name, price, optional `Textarea` for notes, Cancel/Submit buttons. Submit triggers the request mutation.
+4. **Fix defaultId logic in PharmacyPicker (lines 971-977)**
+   - Remove special bridge-only null-default handling
+   - Pass `defaultPharmacyId` directly, always
 
-5. **Cancel confirmation**: reuse existing `ConfirmModal` with title "Cancel request?" and the addon name in description.
+5. **Fix InsuranceChoiceSection bridge copy (lines 1298, 1354-1360)**
+   - Change radio sub-label from "Pharmacy list will be filtered" to generic text
+   - Remove "On Step 3 you'll only see pharmacies that support bridge programs" info box
 
-### Edits
-6. **`src/components/layout/ClinicSidebar.tsx`** — add a nav item:
-   ```ts
-   { label: "Services", icon: Sparkles, path: "/clinic/services" }
-   ```
-   Insert after "My Referrals". No "+" badge.
+### What stays unchanged
+- Step 2 bridge-program toggle itself
+- `is_bridge_program` / `insurance_not_provided` submission payload (still sent to backend correctly)
+- Admin-side flows
+- `PharmacyPicker.tsx` component itself (only its caller changes)
 
-7. **`src/App.tsx`** — register the new route inside the existing `/clinic` `ClinicLayout` block:
-   ```tsx
-   <Route path="services" element={<Services />} />
-   ```
-   Import `Services from "@/pages/clinic/Services"`.
-
-### Behavior details
-- One fetch on mount; refetch (via `invalidateQueries`) only after successful request submit / cancel. No polling.
-- Toast on submit success: "Request submitted — we'll confirm via email within 1 business day".
-- Active = green (`bg-emerald-100 text-emerald-700` or existing success badge variant). Requested = amber (`bg-amber-100 text-amber-700`).
-- Mobile: catalog uses `grid-cols-1 md:grid-cols-2`; rows in active/pending sections stack icon+text on left, price+action on right with `flex-wrap`.
-- Admin users won't reach this route under normal nav (no sidebar entry in admin), but if they hit `/clinic/services` directly the existing `ClinicLayout` already redirects non-clinic users to `/admin/dashboard`. The 403 fallback inside the page handles backend-level rejection.
-
-### Out of scope
-- No Stripe / billing UI.
-- No tier change UI.
-- No subscription cancel button.
-- No polling or caching beyond React Query defaults.
+### Test plan
+1. Upload referral → Step 2 select "No bridge program" → Step 3 shows all pharmacies
+2. Upload referral → Step 2 select "Yes, bridge program" → Step 3 shows same full pharmacy list
+3. Verify `is_bridge_program: true` is still sent on submission
