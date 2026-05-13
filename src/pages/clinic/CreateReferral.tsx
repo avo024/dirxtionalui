@@ -332,13 +332,8 @@ export default function CreateReferral() {
     patient.phone_primary || patient.phone || '—';
 
   const canProceedStep1 = !!selectedPatient;
-  // Insurance section validity (used by Step 2)
-  const insuranceSectionValid = (() => {
-    if (insuranceChoice === null) return false;
-    if (insuranceChoice === "bridge") return true;
-    // "has" requires payer + member ID
-    return !!manualData.primaryInsuranceName.trim() && !!manualData.primaryMemberId.trim();
-  })();
+  // Bridge-program section validity (only the choice is required)
+  const insuranceSectionValid = insuranceChoice !== null;
 
   const canProceedStep2 = (() => {
     if (!insuranceSectionValid) return false;
