@@ -994,6 +994,22 @@ export default function CreateReferral() {
               </div>
             </ReviewCard>
 
+            {/* Insurance */}
+            <ReviewCard icon={Shield} title="Insurance">
+              {insuranceChoice === "bridge" ? (
+                <p className="text-sm text-foreground">Bridge program — manufacturer-funded</p>
+              ) : referralMethod === "upload" ? (
+                <p className="text-sm text-muted-foreground">
+                  Insurance details will be extracted from your uploaded documents.
+                </p>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <ReviewField label="Payer" value={manualData.primaryInsuranceName || "—"} />
+                  <ReviewField label="Member ID" value={manualData.primaryMemberId || "—"} />
+                </div>
+              )}
+            </ReviewCard>
+
             {/* Documents */}
             {uploadedFiles.length > 0 && (
               <ReviewCard icon={FileText} title="Documents Uploaded">
