@@ -332,13 +332,8 @@ export default function CreateReferral() {
     patient.phone_primary || patient.phone || '—';
 
   const canProceedStep1 = !!selectedPatient;
-  // Insurance section validity (used by Step 2)
-  const insuranceSectionValid = (() => {
-    if (insuranceChoice === null) return false;
-    if (insuranceChoice === "bridge") return true;
-    // "has" requires payer + member ID
-    return !!manualData.primaryInsuranceName.trim() && !!manualData.primaryMemberId.trim();
-  })();
+  // Bridge-program section validity (only the choice is required)
+  const insuranceSectionValid = insuranceChoice !== null;
 
   const canProceedStep2 = (() => {
     if (!insuranceSectionValid) return false;
@@ -656,25 +651,10 @@ export default function CreateReferral() {
               </label>
             )}
 
-            {/* Insurance choice */}
+            {/* Bridge program choice */}
             <InsuranceChoiceSection
               choice={insuranceChoice}
               onChoiceChange={setInsuranceChoice}
-              hasInsuranceData={{
-                payer: manualData.primaryInsuranceName,
-                memberId: manualData.primaryMemberId,
-                groupId: manualData.insuranceNotes,
-                subscriberName: manualData.secondaryInsuranceName,
-              }}
-              onHasInsuranceFieldChange={(field, value) => {
-                setManualData((d) => ({
-                  ...d,
-                  ...(field === "payer" ? { primaryInsuranceName: value } : {}),
-                  ...(field === "memberId" ? { primaryMemberId: value } : {}),
-                  ...(field === "groupId" ? { insuranceNotes: value } : {}),
-                  ...(field === "subscriberName" ? { secondaryInsuranceName: value } : {}),
-                }));
-              }}
               showErrors={showSubmitErrors}
             />
 
@@ -861,27 +841,33 @@ export default function CreateReferral() {
                       setInsuranceChoice(c);
                       setManualData((d) => ({ ...d, hasInsurance: c === "has" }));
                     }}
-                    hasInsuranceData={{
-                      payer: manualData.primaryInsuranceName,
-                      memberId: manualData.primaryMemberId,
-                      groupId: manualData.insuranceNotes,
-                      subscriberName: manualData.secondaryInsuranceName,
-                    }}
-                    onHasInsuranceFieldChange={(field, value) => {
-                      setManualData((d) => ({
-                        ...d,
-                        ...(field === "payer" ? { primaryInsuranceName: value } : {}),
-                        ...(field === "memberId" ? { primaryMemberId: value } : {}),
-                        ...(field === "groupId" ? { insuranceNotes: value } : {}),
-                        ...(field === "subscriberName" ? { secondaryInsuranceName: value } : {}),
-                      }));
-                    }}
                     showErrors={showSubmitErrors}
                   />
                   {insuranceChoice === "has" && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-border">
+                      <FormField label="Insurance company / payer">
+                        <Input
+                          value={manualData.primaryInsuranceName}
+                          onChange={(e) => setManualData((d) => ({ ...d, primaryInsuranceName: e.target.value }))}
+                          placeholder="e.g., Blue Cross Blue Shield"
+                        />
+                      </FormField>
+                      <FormField label="Member ID">
+                        <Input
+                          value={manualData.primaryMemberId}
+                          onChange={(e) => setManualData((d) => ({ ...d, primaryMemberId: e.target.value }))}
+                          placeholder="Member / Patient ID"
+                        />
+                      </FormField>
+                      <FormField label="Group ID">
+                        <Input
+                          value={manualData.insuranceNotes}
+                          onChange={(e) => setManualData((d) => ({ ...d, insuranceNotes: e.target.value }))}
+                          placeholder="If issued"
+                        />
+                      </FormField>
                       <FormField label="Secondary Insurance Name">
-                        <Input value={manualData.secondaryMemberId ? manualData.secondaryInsuranceName : manualData.secondaryInsuranceName} onChange={(e) => setManualData((d) => ({ ...d, secondaryInsuranceName: e.target.value }))} placeholder="Optional" />
+                        <Input value={manualData.secondaryInsuranceName} onChange={(e) => setManualData((d) => ({ ...d, secondaryInsuranceName: e.target.value }))} placeholder="Optional" />
                       </FormField>
                       <FormField label="Secondary Patient ID Number">
                         <Input value={manualData.secondaryMemberId} onChange={(e) => setManualData((d) => ({ ...d, secondaryMemberId: e.target.value }))} placeholder="Optional" />
@@ -897,6 +883,11 @@ export default function CreateReferral() {
                           </SelectContent>
                         </Select>
                       </FormField>
+                    </div>
+                  )}
+                  {insuranceChoice === "bridge" && (
+                    <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+                      <p className="text-sm text-foreground">Bridge program — manufacturer-funded. No insurance fields needed.</p>
                     </div>
                   )}
                 </AccordionContent>
@@ -1001,6 +992,22 @@ export default function CreateReferral() {
                   <Badge variant="secondary" className="text-xs">Default</Badge>
                 )}
               </div>
+            </ReviewCard>
+
+            {/* Insurance */}
+            <ReviewCard icon={Shield} title="Insurance">
+              {insuranceChoice === "bridge" ? (
+                <p className="text-sm text-foreground">Bridge program — manufacturer-funded</p>
+              ) : referralMethod === "upload" ? (
+                <p className="text-sm text-muted-foreground">
+                  Insurance details will be extracted from your uploaded documents.
+                </p>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <ReviewField label="Payer" value={manualData.primaryInsuranceName || "—"} />
+                  <ReviewField label="Member ID" value={manualData.primaryMemberId || "—"} />
+                </div>
+              )}
             </ReviewCard>
 
             {/* Documents */}
@@ -1222,32 +1229,31 @@ function ReviewField({ label, value, confidence }: { label: string; value: strin
   );
 }
 
-/* Insurance choice (forced selection) — used in upload + manual modes */
+/* Bridge-program Yes/No — used in upload + manual modes.
+   "has" = not a bridge program (normal insurance flow)
+   "bridge" = manufacturer bridge program */
 function InsuranceChoiceSection({
   choice,
   onChoiceChange,
-  hasInsuranceData,
-  onHasInsuranceFieldChange,
   showErrors,
 }: {
   choice: "has" | "bridge" | null;
   onChoiceChange: (c: "has" | "bridge") => void;
-  hasInsuranceData: { payer: string; memberId: string; groupId: string; subscriberName: string };
-  onHasInsuranceFieldChange: (field: "payer" | "memberId" | "groupId" | "subscriberName", value: string) => void;
   showErrors: boolean;
 }) {
   const choiceMissing = showErrors && choice === null;
-  const payerMissing = showErrors && choice === "has" && !hasInsuranceData.payer.trim();
-  const memberMissing = showErrors && choice === "has" && !hasInsuranceData.memberId.trim();
 
   return (
     <div className="rounded-xl border border-border p-4 space-y-4">
       <div className="flex items-center gap-2">
         <Shield className="h-4 w-4 text-primary" />
         <h3 className="text-sm font-semibold text-foreground">
-          Insurance <span className="text-destructive">*</span>
+          Bridge program? <span className="text-destructive">*</span>
         </h3>
       </div>
+      <p className="text-xs text-muted-foreground -mt-1">
+        Is this referral being routed through a manufacturer-funded bridge program (e.g., Dupixent MyWay, Humira Complete)?
+      </p>
 
       <RadioGroup
         value={choice ?? ""}
@@ -1262,8 +1268,8 @@ function InsuranceChoiceSection({
         >
           <RadioGroupItem value="has" className="mt-0.5" />
           <div>
-            <p className="text-sm font-medium text-foreground">Patient has insurance</p>
-            <p className="text-xs text-muted-foreground">Enter payer details below</p>
+            <p className="text-sm font-medium text-foreground">No bridge program</p>
+            <p className="text-xs text-muted-foreground">Standard insurance billing</p>
           </div>
         </label>
         <label
@@ -1274,63 +1280,15 @@ function InsuranceChoiceSection({
         >
           <RadioGroupItem value="bridge" className="mt-0.5" />
           <div>
-            <p className="text-sm font-medium text-foreground">No insurance — use bridge program</p>
-            <p className="text-xs text-muted-foreground">We'll route this through a manufacturer bridge program</p>
+            <p className="text-sm font-medium text-foreground">Yes, bridge program</p>
+            <p className="text-xs text-muted-foreground">Manufacturer-funded — insurance not used</p>
           </div>
         </label>
       </RadioGroup>
 
       {choiceMissing && (
-        <p className="text-xs text-destructive">Please choose an insurance option to continue.</p>
+        <p className="text-xs text-destructive">Please choose an option to continue.</p>
       )}
-
-      {choice === "has" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-          <div className="space-y-1.5">
-            <Label className="text-sm font-medium text-foreground">
-              Insurance company / payer <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              value={hasInsuranceData.payer}
-              onChange={(e) => onHasInsuranceFieldChange("payer", e.target.value)}
-              placeholder="e.g., Blue Cross Blue Shield"
-              className={cn(payerMissing && "border-destructive focus-visible:ring-destructive")}
-              aria-invalid={payerMissing}
-            />
-            {payerMissing && <p className="text-xs text-destructive">Payer name is required</p>}
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-sm font-medium text-foreground">
-              Member ID <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              value={hasInsuranceData.memberId}
-              onChange={(e) => onHasInsuranceFieldChange("memberId", e.target.value)}
-              placeholder="Member / Patient ID"
-              className={cn(memberMissing && "border-destructive focus-visible:ring-destructive")}
-              aria-invalid={memberMissing}
-            />
-            {memberMissing && <p className="text-xs text-destructive">Member ID is required</p>}
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-sm font-medium text-foreground">Group ID</Label>
-            <Input
-              value={hasInsuranceData.groupId}
-              onChange={(e) => onHasInsuranceFieldChange("groupId", e.target.value)}
-              placeholder="If issued"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-sm font-medium text-foreground">Subscriber name (if different)</Label>
-            <Input
-              value={hasInsuranceData.subscriberName}
-              onChange={(e) => onHasInsuranceFieldChange("subscriberName", e.target.value)}
-              placeholder="If different from patient"
-            />
-          </div>
-        </div>
-      )}
-
     </div>
   );
 }
