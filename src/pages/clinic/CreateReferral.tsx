@@ -349,23 +349,6 @@ export default function CreateReferral() {
     return !!manualData.diagnosisCode && !!manualData.drugRequested;
   })();
 
-  // Pharmacies available in step 3 — filter to bridge-eligible when bridge chosen
-  const availablePharmacies = useMemo(() => {
-    if (insuranceChoice === "bridge") {
-      return pharmacies.filter((p: any) => p.accepts_no_insurance);
-    }
-    return pharmacies;
-  }, [pharmacies, insuranceChoice]);
-
-  // If bridge selected and current selection isn't eligible, clear it
-  useEffect(() => {
-    if (insuranceChoice !== "bridge") return;
-    const current = pharmacies.find((p: any) => p.id === selectedPharmacyId);
-    if (current && !current.accepts_no_insurance) {
-      setSelectedPharmacyId(null);
-    }
-  }, [insuranceChoice, pharmacies, selectedPharmacyId]);
-
   const canProceedStep3 = !!selectedPharmacyId;
   const selectedPharmacy = useMemo(
     () => pharmacies.find((p: any) => p.id === selectedPharmacyId) || null,
