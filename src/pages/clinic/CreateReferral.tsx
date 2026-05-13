@@ -1222,32 +1222,31 @@ function ReviewField({ label, value, confidence }: { label: string; value: strin
   );
 }
 
-/* Insurance choice (forced selection) — used in upload + manual modes */
+/* Bridge-program Yes/No — used in upload + manual modes.
+   "has" = not a bridge program (normal insurance flow)
+   "bridge" = manufacturer bridge program */
 function InsuranceChoiceSection({
   choice,
   onChoiceChange,
-  hasInsuranceData,
-  onHasInsuranceFieldChange,
   showErrors,
 }: {
   choice: "has" | "bridge" | null;
   onChoiceChange: (c: "has" | "bridge") => void;
-  hasInsuranceData: { payer: string; memberId: string; groupId: string; subscriberName: string };
-  onHasInsuranceFieldChange: (field: "payer" | "memberId" | "groupId" | "subscriberName", value: string) => void;
   showErrors: boolean;
 }) {
   const choiceMissing = showErrors && choice === null;
-  const payerMissing = showErrors && choice === "has" && !hasInsuranceData.payer.trim();
-  const memberMissing = showErrors && choice === "has" && !hasInsuranceData.memberId.trim();
 
   return (
     <div className="rounded-xl border border-border p-4 space-y-4">
       <div className="flex items-center gap-2">
         <Shield className="h-4 w-4 text-primary" />
         <h3 className="text-sm font-semibold text-foreground">
-          Insurance <span className="text-destructive">*</span>
+          Bridge program? <span className="text-destructive">*</span>
         </h3>
       </div>
+      <p className="text-xs text-muted-foreground -mt-1">
+        Is this referral being routed through a manufacturer-funded bridge program (e.g., Dupixent MyWay, Humira Complete)?
+      </p>
 
       <RadioGroup
         value={choice ?? ""}
@@ -1262,8 +1261,8 @@ function InsuranceChoiceSection({
         >
           <RadioGroupItem value="has" className="mt-0.5" />
           <div>
-            <p className="text-sm font-medium text-foreground">Patient has insurance</p>
-            <p className="text-xs text-muted-foreground">Enter payer details below</p>
+            <p className="text-sm font-medium text-foreground">No bridge program</p>
+            <p className="text-xs text-muted-foreground">Standard insurance billing</p>
           </div>
         </label>
         <label
@@ -1274,63 +1273,15 @@ function InsuranceChoiceSection({
         >
           <RadioGroupItem value="bridge" className="mt-0.5" />
           <div>
-            <p className="text-sm font-medium text-foreground">No insurance — use bridge program</p>
-            <p className="text-xs text-muted-foreground">We'll route this through a manufacturer bridge program</p>
+            <p className="text-sm font-medium text-foreground">Yes, bridge program</p>
+            <p className="text-xs text-muted-foreground">Manufacturer-funded — insurance not used</p>
           </div>
         </label>
       </RadioGroup>
 
       {choiceMissing && (
-        <p className="text-xs text-destructive">Please choose an insurance option to continue.</p>
+        <p className="text-xs text-destructive">Please choose an option to continue.</p>
       )}
-
-      {choice === "has" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-          <div className="space-y-1.5">
-            <Label className="text-sm font-medium text-foreground">
-              Insurance company / payer <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              value={hasInsuranceData.payer}
-              onChange={(e) => onHasInsuranceFieldChange("payer", e.target.value)}
-              placeholder="e.g., Blue Cross Blue Shield"
-              className={cn(payerMissing && "border-destructive focus-visible:ring-destructive")}
-              aria-invalid={payerMissing}
-            />
-            {payerMissing && <p className="text-xs text-destructive">Payer name is required</p>}
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-sm font-medium text-foreground">
-              Member ID <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              value={hasInsuranceData.memberId}
-              onChange={(e) => onHasInsuranceFieldChange("memberId", e.target.value)}
-              placeholder="Member / Patient ID"
-              className={cn(memberMissing && "border-destructive focus-visible:ring-destructive")}
-              aria-invalid={memberMissing}
-            />
-            {memberMissing && <p className="text-xs text-destructive">Member ID is required</p>}
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-sm font-medium text-foreground">Group ID</Label>
-            <Input
-              value={hasInsuranceData.groupId}
-              onChange={(e) => onHasInsuranceFieldChange("groupId", e.target.value)}
-              placeholder="If issued"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-sm font-medium text-foreground">Subscriber name (if different)</Label>
-            <Input
-              value={hasInsuranceData.subscriberName}
-              onChange={(e) => onHasInsuranceFieldChange("subscriberName", e.target.value)}
-              placeholder="If different from patient"
-            />
-          </div>
-        </div>
-      )}
-
     </div>
   );
 }
