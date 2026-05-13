@@ -349,23 +349,6 @@ export default function CreateReferral() {
     return !!manualData.diagnosisCode && !!manualData.drugRequested;
   })();
 
-  // Pharmacies available in step 3 — filter to bridge-eligible when bridge chosen
-  const availablePharmacies = useMemo(() => {
-    if (insuranceChoice === "bridge") {
-      return pharmacies.filter((p: any) => p.accepts_no_insurance);
-    }
-    return pharmacies;
-  }, [pharmacies, insuranceChoice]);
-
-  // If bridge selected and current selection isn't eligible, clear it
-  useEffect(() => {
-    if (insuranceChoice !== "bridge") return;
-    const current = pharmacies.find((p: any) => p.id === selectedPharmacyId);
-    if (current && !current.accepts_no_insurance) {
-      setSelectedPharmacyId(null);
-    }
-  }, [insuranceChoice, pharmacies, selectedPharmacyId]);
-
   const canProceedStep3 = !!selectedPharmacyId;
   const selectedPharmacy = useMemo(
     () => pharmacies.find((p: any) => p.id === selectedPharmacyId) || null,
@@ -937,13 +920,11 @@ export default function CreateReferral() {
               <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-1">Step 3 of 4</p>
               <h2 className="text-lg font-semibold text-foreground">Select pharmacy for this referral</h2>
               <p className="text-sm text-muted-foreground">
-                {insuranceChoice === "bridge"
-                  ? "Showing only pharmacies that support bridge programs."
-                  : "Defaults to your clinic's preferred pharmacy. Change if this referral needs a different one."}
+                Defaults to your clinic's preferred pharmacy. Change if this referral needs a different one.
               </p>
             </div>
 
-            {!loadingPharmacies && !defaultPharmacyId && insuranceChoice !== "bridge" && (
+            {!loadingPharmacies && !defaultPharmacyId && (
               <div className="flex items-start gap-3 p-4 rounded-lg bg-warning/10 border border-warning/30">
                 <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
                 <p className="text-sm text-foreground">
@@ -956,25 +937,17 @@ export default function CreateReferral() {
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
-            ) : availablePharmacies.length === 0 ? (
+            ) : pharmacies.length === 0 ? (
               <div className="rounded-lg border border-dashed border-border p-8 text-center">
                 <p className="text-sm text-muted-foreground">
-                  {insuranceChoice === "bridge"
-                    ? "No bridge-program pharmacies available — contact DiRxctional support."
-                    : "No pharmacies available. Contact your administrator."}
+                  No pharmacies available for your clinic. Contact DiRxctional support.
                 </p>
               </div>
             ) : (
               <PharmacyPicker
-                pharmacies={availablePharmacies}
+                pharmacies={pharmacies}
                 selectedId={selectedPharmacyId}
-                defaultId={
-                  insuranceChoice === "bridge" &&
-                  defaultPharmacyId &&
-                  !availablePharmacies.some((p: any) => p.id === defaultPharmacyId)
-                    ? null
-                    : defaultPharmacyId
-                }
+                defaultId={defaultPharmacyId}
                 onSelect={setSelectedPharmacyId}
               />
             )}
@@ -1295,7 +1268,7 @@ function InsuranceChoiceSection({
           <RadioGroupItem value="bridge" className="mt-0.5" />
           <div>
             <p className="text-sm font-medium text-foreground">No insurance — use bridge program</p>
-            <p className="text-xs text-muted-foreground">Pharmacy list will be filtered</p>
+            <p className="text-xs text-muted-foreground">We'll route this through a manufacturer bridge program</p>
           </div>
         </label>
       </RadioGroup>
@@ -1351,13 +1324,6 @@ function InsuranceChoiceSection({
         </div>
       )}
 
-      {choice === "bridge" && (
-        <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
-          <p className="text-sm text-foreground">
-            On Step 3 you'll only see pharmacies that support bridge programs. If you need a different pharmacy, contact DiRxctional.
-          </p>
-        </div>
-      )}
     </div>
   );
 }
