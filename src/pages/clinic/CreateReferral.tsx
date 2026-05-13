@@ -944,12 +944,19 @@ export default function CreateReferral() {
                 </p>
               </div>
             ) : (
-              <PharmacyPicker
-                pharmacies={pharmacies}
-                selectedId={selectedPharmacyId}
-                defaultId={defaultPharmacyId}
-                onSelect={setSelectedPharmacyId}
-              />
+              <>
+                <PharmacyPicker
+                  pharmacies={pharmacies}
+                  selectedId={selectedPharmacyId}
+                  defaultId={defaultPharmacyId}
+                  onSelect={setSelectedPharmacyId}
+                />
+                {defaultPharmacyId && selectedPharmacyId === defaultPharmacyId && (
+                  <p className="text-xs text-muted-foreground -mt-2">
+                    Default pharmacy for your clinic — change if needed.
+                  </p>
+                )}
+              </>
             )}
           </div>
         )}
