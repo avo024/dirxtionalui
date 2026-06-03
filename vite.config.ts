@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => ({
     },
   },
   build: {
-    outDir: '/var/www/dirxctional',
+    outDir: process.env.VITE_OUT_DIR || 'dist',
     emptyOutDir: true,
   },
 }));
