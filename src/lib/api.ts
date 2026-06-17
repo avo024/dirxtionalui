@@ -9,7 +9,13 @@
  * until the backend fully accepts Auth0 JWTs.
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// API base URL:
+//   - Production:  set via .env (VITE_API_URL=https://app.dirxctional.com/api)
+//   - Local dev:   falls back to '/api', which the Vite dev server proxies
+//                  to the local Flask backend on localhost:5000 (see vite.config.ts).
+// The relative fallback means `npm run dev` Just Works — no CORS, no manual
+// env tweaking. See dev.sh for the standard local dev command.
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 // ---- Token provider registration ------------------------------------------
 // Race-safe: requests await `tokenReady` so they block until `useApi()` has

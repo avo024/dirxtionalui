@@ -27,12 +27,49 @@ This means:
 
 ## Quick Restart
 
-**Local dev server:**
+**Local dev server (proven workflow, see `dev.sh` for the script):**
+
+The setup runs Vite on EC2 (where it can reach Flask + RDS) and uses SSM port-forwarding to make it appear on your Mac at `localhost:8080`. **One command on EC2, one on Mac, open browser.**
+
 ```bash
+# On EC2 (SSM session):
 cd ~/dirxtionalui
-npm install   # only on first run or after package.json changes
-npm run dev   # serves at http://localhost:5173 (or whatever Vite picks)
+./dev.sh                       # clears Vite cache, checks Flask, starts dev server on 0.0.0.0:8080
 ```
+
+```bash
+# On Mac:
+aws ssm start-session --target i-0e8596fe46db91799 --region us-east-2 \
+  --document-name AWS-StartPortForwardingSession \
+  --parameters '{"portNumber":["8080"],"localPortNumber":["8080"]}'
+```
+
+```bash
+# Then browser:
+open http://localhost:8080
+```
+
+**That's the whole thing.** Hot reload, real backend, real Cognito auth. Leave both SSM sessions running while you work.
+
+**Why this works without CORS or env-var debugging:**
+- `src/lib/api.ts` defaults `API_BASE_URL` to `/api` (a relative path) when `VITE_API_URL` isn't set
+- `vite.config.ts` has a proxy that forwards `/api/*` → `http://localhost:5000` on EC2 (where Flask runs via systemd)
+- Same-origin from the browser's POV → no CORS issue
+- The proxy sets `X-Forwarded-Proto: https` so Talisman doesn't HTTPS-redirect the request
+- The proxy also rewrites any absolute `https://localhost:5000/...` redirects Flask sends back, so the browser follows them through the proxy
+
+**`.env` file:** if `.env` has `VITE_API_URL=https://app.dirxctional.com/api` (the prod default), local dev will try to hit prod and CORS-fail. Either delete that line for local dev or override with a `.env.local`. The `/api` fallback in `api.ts` means leaving `VITE_API_URL` unset entirely is fine.
+
+**Vite dev server vs the older `npm run dev`:**
+- `npm run dev` directly works too, BUT it doesn't clear `node_modules/.vite` first. After changing `.env` files or running into stale-cache issues, always prefer `./dev.sh`.
+- `dev.sh` is idempotent — run it every time, no harm done.
+
+**Common gotchas (we burned hours on these — see below):**
+- **`localhost:5000` connection-refused** — `import.meta.env.VITE_API_URL` is undefined AND your api.ts fallback is still `'http://localhost:5000'`. Pull latest, the fallback is `'/api'` now.
+- **302 redirect to `https://localhost:5000/...`** — proxy isn't sending `X-Forwarded-Proto: https`. Pull latest `vite.config.ts`.
+- **"I see the old design after pulling"** — browser is caching JS chunks. DevTools → Network → check "Disable cache" → reload.
+- **`AuthUserPoolException: Auth UserPool not configured`** — your `.env` file is missing the `VITE_COGNITO_*` vars. Restore from `.env.prod-backup` or recreate them.
+- **Vite isn't running but you see "Lovable design"** — you're hitting `https://app.dirxctional.com` (production) instead of `localhost:8080`. Type the URL by hand.
 
 **Production build (on EC2):**
 ```bash
