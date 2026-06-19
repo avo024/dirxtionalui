@@ -1,8 +1,15 @@
-# Admin Spec 06 — Invites
+# Admin Spec 06 — Invites  ⚠️ FOLDED INTO CLINIC DETAIL (decided 2026-06-19)
 
-**Component:** `AdminInvites.tsx` · **Route:** `/admin/invites`
+**Decision:** invites are clinic-scoped (`createInvite(clinic_id, email)`), so the standalone
+Invites page is being **merged into Clinic Detail** as a "Team / Members & Invites" section, and
+the **`/admin/invites` nav item is retired**. See `04-clinics.md`. Keep the existing invite
+actions (create / list / resend / revoke) — they just move into the clinic context.
 
-> Light restyle. Keep all fields/actions. Match `dh-table` styling.
+Below is the original spec, kept for the action/field reference while implementing the merge.
+
+---
+
+**Component (legacy):** `AdminInvites.tsx` · **Route (retired):** `/admin/invites`
 
 ## What it does
 Manage clinic-user invites. `GET /admin/invites`; create `POST /admin/invites`; resend
