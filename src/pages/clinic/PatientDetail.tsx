@@ -1,60 +1,106 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
-  ArrowLeft, Plus, User, Shield, Phone, Mail, Copy,
-  FileText, Pill, ClipboardList, Loader2, Pencil, Save, X, Eye, AlertTriangle
+  ArrowLeft, Plus, User, Shield, Copy, FileText, Pill, ClipboardList,
+  Loader2, Pencil, Save, X, Eye, AlertTriangle, Check,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PAStatusBadge } from "@/components/PAStatusBadge";
-import { StatusBadge } from "@/components/StatusBadge";
-import { ClinicPABadge } from "@/components/ClinicPABadge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { clinicApi } from "@/lib/api";
-import { formatDateShort, getRelativeTime } from "@/lib/dateUtils";
+import { formatDateShort } from "@/lib/dateUtils";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import "./wizard.css";
+import "./patient.css";
 
 const US_STATES = [
   "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA",
   "KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ",
   "NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT",
-  "VA","WA","WV","WI","WY","DC"
+  "VA","WA","WV","WI","WY","DC",
 ];
+const GENDERS = ["Male", "Female", "Other", "Prefer not to say"];
 
-const formatDateForInput = (dateStr: string | null | undefined): string => {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return dateStr as string;
-  return d.toISOString().split('T')[0];
+const formatDateForInput = (s: string | null | undefined): string => {
+  if (!s) return "";
+  const d = new Date(s);
+  if (isNaN(d.getTime())) return s as string;
+  return d.toISOString().split("T")[0];
+};
+const getAge = (dob: string) => {
+  const b = new Date(dob);
+  const t = new Date();
+  let age = t.getFullYear() - b.getFullYear();
+  const m = t.getMonth() - b.getMonth();
+  if (m < 0 || (m === 0 && t.getDate() < b.getDate())) age--;
+  return age;
 };
 
-function getDrugPABadge(drug: any) {
+type Tone = "success" | "approved" | "warning" | "error" | "rejected" | "muted" | "processing" | "review" | "sent" | "uploaded";
+
+// PA badge for a medication — verbatim logic from the original page.
+function getDrugPABadge(drug: any): { label: string; tone: Tone } {
   const today = new Date();
-  if (drug.is_active === false) {
-    return { label: "Discontinued", className: "bg-muted text-muted-foreground" };
-  }
-  if (drug.pa_status === "denied") {
-    return { label: "PA Denied", className: "bg-destructive/10 text-destructive" };
-  }
-  if (drug.pa_status === "pending" || drug.pa_status === "submitted" || drug.pa_status === "processing") {
-    return { label: "PA Pending", className: "bg-warning/10 text-warning" };
-  }
+  if (drug.is_active === false) return { label: "Discontinued", tone: "muted" };
+  if (drug.pa_status === "denied") return { label: "PA Denied", tone: "error" };
+  if (["pending", "submitted", "processing"].includes(drug.pa_status)) return { label: "PA Pending", tone: "warning" };
   if (drug.pa_status === "approved" && drug.pa_expiration_date) {
-    const expDate = new Date(drug.pa_expiration_date);
-    if (expDate < today) return { label: "PA Expired", className: "bg-destructive/10 text-destructive" };
-    const daysUntil = Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-    if (daysUntil <= 30) return { label: "PA Expiring Soon", className: "bg-warning/10 text-warning" };
-    return { label: "PA Active", className: "bg-success/10 text-success" };
+    const exp = new Date(drug.pa_expiration_date);
+    if (exp < today) return { label: "PA Expired", tone: "error" };
+    const days = Math.ceil((exp.getTime() - today.getTime()) / 86400000);
+    if (days <= 30) return { label: "PA Expiring Soon", tone: "warning" };
+    return { label: "PA Active", tone: "success" };
   }
-  if (drug.pa_status === "approved") {
-    return { label: "PA Active", className: "bg-success/10 text-success" };
-  }
-  return { label: "No PA", className: "bg-muted text-muted-foreground" };
+  if (drug.pa_status === "approved") return { label: "PA Active", tone: "success" };
+  return { label: "No PA", tone: "muted" };
 }
+// Referral status → tone + label (real status values).
+function refStatusBadge(status: string): [Tone, string] {
+  const m: Record<string, [Tone, string]> = {
+    uploaded: ["uploaded", "Uploaded"], processing: ["processing", "Processing"],
+    ready_for_review: ["review", "Ready for review"], needs_info: ["uploaded", "Needs info"],
+    approved_to_send: ["approved", "Approved"], sent_to_pharmacy: ["sent", "Sent to pharmacy"],
+    rejected: ["rejected", "Rejected"],
+  };
+  return m[status] || ["uploaded", status || "—"];
+}
+function clinicPABadge(status: string | null | undefined): [Tone, string] {
+  const m: Record<string, [Tone, string]> = {
+    none: ["muted", "No PA"], pending: ["uploaded", "PA Pending"], submitted: ["review", "PA Submitted"],
+    processing: ["processing", "PA In Progress"], approved: ["approved", "PA Approved"], denied: ["rejected", "PA Denied"],
+  };
+  return m[status || "none"] || ["uploaded", "PA Pending"];
+}
+
+function Badge({ tone, children }: { tone: Tone; children: React.ReactNode }) {
+  return <span className={`pd-badge ${tone}`}>{children}</span>;
+}
+function Btn({ variant = "outline", sm, children, ...rest }: any) {
+  return <button className={`rw-btn ${variant}${sm ? " sm" : ""}`} {...rest}>{children}</button>;
+}
+
+const INFO_GROUPS = [
+  { key: "personal", label: "Personal Information", fields: [
+    { key: "full_name", label: "Full Name" },
+    { key: "dob", label: "Date of Birth", kind: "date" },
+    { key: "gender", label: "Gender", kind: "select", options: GENDERS },
+    { key: "email", label: "Email", copy: true },
+  ]},
+  { key: "contact", label: "Contact", fields: [
+    { key: "phone_primary", label: "Phone", copy: true },
+    { key: "phone_alternate", label: "Alternate Phone" },
+    { key: "address", label: "Street Address", span: true },
+    { key: "city", label: "City" },
+    { key: "state", label: "State", kind: "select", options: US_STATES },
+    { key: "zip", label: "Zip" },
+  ]},
+  { key: "medical", label: "Medical", fields: [
+    { key: "height", label: "Height" },
+    { key: "weight", label: "Weight" },
+    { key: "allergies", label: "Allergies", kind: "textarea", span: true },
+  ]},
+  { key: "guardian", label: "Guardian / Authorized Representative", fields: [
+    { key: "authorized_representative", label: "Authorized Representative" },
+    { key: "authorized_representative_phone", label: "Representative Phone" },
+  ]},
+] as const;
 
 export default function PatientDetail() {
   const { id } = useParams();
@@ -67,603 +113,321 @@ export default function PatientDetail() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("history");
 
-  // Inline editing state
-  const [isEditing, setIsEditing] = useState(false);
-  const [editData, setEditData] = useState<any>({});
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState<any>({});
   const [saving, setSaving] = useState(false);
 
   const loadPatient = () => {
     if (!id) return;
     setLoading(true);
-    clinicApi.getPatient(id)
-      .then((data) => setPatient(data))
-      .catch(() => setError("Failed to load patient"))
-      .finally(() => setLoading(false));
+    clinicApi.getPatient(id).then((data) => setPatient(data)).catch(() => setError("Failed to load patient")).finally(() => setLoading(false));
   };
-
   useEffect(() => { loadPatient(); }, [id]);
-
   useEffect(() => {
     if (!id) return;
     setMedsLoading(true);
-    clinicApi.getPatientDrugs(id)
-      .then((data) => setMedications(data.drugs || []))
-      .catch(() => setMedications([]))
-      .finally(() => setMedsLoading(false));
+    clinicApi.getPatientDrugs(id).then((data) => setMedications(data.drugs || [])).catch(() => setMedications([])).finally(() => setMedsLoading(false));
   }, [id]);
-
   useEffect(() => {
     if (!id) return;
-    clinicApi.getReferrals()
-      .then((data) => {
-        const patientRefs = (data.items || []).filter((r: any) => r.patient_id === id);
-        setReferrals(patientRefs);
-      })
-      .catch(() => setReferrals([]));
+    clinicApi.getReferrals().then((data) => setReferrals((data.items || []).filter((r: any) => r.patient_id === id))).catch(() => setReferrals([]));
   }, [id]);
 
-  const sortedMedications = useMemo(() => {
-    return [...medications].sort((a, b) => {
-      if (a.is_active !== b.is_active) return a.is_active ? -1 : 1;
-      const aDate = a.pa_expiration_date ? new Date(a.pa_expiration_date).getTime() : Infinity;
-      const bDate = b.pa_expiration_date ? new Date(b.pa_expiration_date).getTime() : Infinity;
-      return aDate - bDate;
+  const sortedMedications = useMemo(() => [...medications].sort((a, b) => {
+    if (a.is_active !== b.is_active) return a.is_active ? -1 : 1;
+    const ad = a.pa_expiration_date ? new Date(a.pa_expiration_date).getTime() : Infinity;
+    const bd = b.pa_expiration_date ? new Date(b.pa_expiration_date).getTime() : Infinity;
+    return ad - bd;
+  }), [medications]);
+
+  const beginEdit = () => {
+    setDraft({
+      full_name: patient.full_name || "", dob: formatDateForInput(patient.dob), gender: patient.gender || "",
+      phone_primary: patient.phone_primary || "", phone_alternate: patient.phone_alternate || "", email: patient.email || "",
+      address: patient.address || "", city: patient.city || "", state: patient.state || "", zip: patient.zip || "",
+      height: patient.height || "", weight: patient.weight || "", allergies: patient.allergies || "",
+      authorized_representative: patient.authorized_representative || "", authorized_representative_phone: patient.authorized_representative_phone || "",
     });
-  }, [medications]);
-
-  const startEditing = () => {
-    setEditData({
-      full_name: patient.full_name || "",
-      dob: formatDateForInput(patient.dob),
-      gender: patient.gender || "",
-      phone_primary: patient.phone_primary || "",
-      phone_alternate: patient.phone_alternate || "",
-      email: patient.email || "",
-      address: patient.address || "",
-      city: patient.city || "",
-      state: patient.state || "",
-      zip: patient.zip || "",
-      height: patient.height || "",
-      weight: patient.weight || "",
-      allergies: patient.allergies || "",
-      authorized_representative: patient.authorized_representative || "",
-      authorized_representative_phone: patient.authorized_representative_phone || "",
-    });
-    setIsEditing(true);
+    setEditing(true);
   };
-
-  const cancelEditing = () => {
-    setIsEditing(false);
-    setEditData({});
-  };
-
+  const cancelEdit = () => { setEditing(false); setDraft({}); };
   const saveEdits = async () => {
     if (!id) return;
     setSaving(true);
     try {
-      await clinicApi.updatePatient(id, editData);
+      await clinicApi.updatePatient(id, draft);
       toast.success("Patient updated successfully");
-      setIsEditing(false);
+      setEditing(false);
       loadPatient();
     } catch (err: any) {
       toast.error(err.message || "Failed to update patient");
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   };
+  const setField = (k: string, v: string) => setDraft((d: any) => ({ ...d, [k]: v }));
+  const copy = (text: string, label: string) => { navigator.clipboard?.writeText(text); toast.success(`${label} copied to clipboard`); };
 
-  const setField = (field: string, value: string) => setEditData((d: any) => ({ ...d, [field]: value }));
+  if (loading) return <div className="rw-page" style={{ display: "flex", justifyContent: "center", padding: 80 }}><span className="rw-spin" style={{ color: "var(--color-teal)" }}><Loader2 size={26} /></span></div>;
+  if (error || !patient) return (
+    <div className="rw-page" style={{ textAlign: "center", padding: 80 }}>
+      <p style={{ color: "var(--text-muted)" }}>{error || "Patient not found"}</p>
+      <Btn variant="outline" style={{ marginTop: 16 }} onClick={() => navigate("/clinic/patients")}>Back to Patients</Btn>
+    </div>
+  );
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (error || !patient) {
-    return (
-      <div className="text-center py-20">
-        <p className="text-muted-foreground">{error || "Patient not found"}</p>
-        <Button variant="outline" className="mt-4" onClick={() => navigate("/clinic/patients")}>
-          Back to Patients
-        </Button>
-      </div>
-    );
-  }
-
-  const fullName = patient.full_name || `${patient.first_name || ''} ${patient.last_name || ''}`.trim() || '—';
-  const patientReferrals = referrals;
-
-  const getAge = (dob: string) => {
-    const birth = new Date(dob);
-    const today = new Date();
-    let age = today.getFullYear() - birth.getFullYear();
-    const m = today.getMonth() - birth.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
-    return age;
-  };
-
-  const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success(`${label} copied to clipboard`);
-  };
-
-  const firstName = patient.full_name?.split(' ')[0] || 'Patient';
+  const fullName = patient.full_name || `${patient.first_name || ""} ${patient.last_name || ""}`.trim() || "—";
+  const firstName = patient.full_name?.split(" ")[0] || "Patient";
+  const [paTone, paLabel] = clinicPABadge(patient.pa_status);
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Back */}
-      <Button variant="ghost" size="sm" onClick={() => navigate("/clinic/patients")} className="gap-1.5">
-        <ArrowLeft className="h-4 w-4" />
-        Back to Patients
-      </Button>
+    <div className="rw-page pd-page rw-fade">
+      {/* Bar A — back */}
+      <button className="pd-back" onClick={() => navigate("/clinic/patients")}><ArrowLeft size={15} />Back to Patients</button>
 
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground mb-1">{fullName}</h1>
-          <div className="flex items-center gap-3 flex-wrap text-sm text-muted-foreground">
-            {patient.dob && <span>Age {getAge(patient.dob)}</span>}
-            {patient.dob && <span className="text-border">|</span>}
-            {patient.dob && <span>DOB: {formatDateShort(patient.dob)}</span>}
-            {patient.phone_primary && <span className="text-border">|</span>}
-            {patient.phone_primary && <span>{patient.phone_primary}</span>}
+      {/* Bar B — two-column banner header (serif name) */}
+      <div>
+        <div className="pd-header" style={{ alignItems: "center", marginBottom: 14 }}>
+          <h1 className="pd-name serif" style={{ margin: 0 }}>{fullName}</h1>
+          <Btn variant="primary" onClick={() => navigate(`/clinic/referrals/new?patientId=${patient.id}`)}><Plus size={15} />New Referral for {firstName}</Btn>
+        </div>
+        <div className="pd-banner2">
+          <div className="col demo">
+            <p className="bk"><User size={13} />Demographics</p>
+            <div className="pairs">
+              <div className="pd-pair"><div className="pk">Age</div><div className="pv">{patient.dob ? getAge(patient.dob) : "—"}</div></div>
+              <div className="pd-pair"><div className="pk">DOB</div><div className="pv">{patient.dob ? formatDateShort(patient.dob) : "—"}</div></div>
+              <div className="pd-pair"><div className="pk">Phone</div><div className="pv">{patient.phone_primary || "—"}</div></div>
+              <div className="pd-pair"><div className="pk">Gender</div><div className="pv">{patient.gender || "—"}</div></div>
+            </div>
+          </div>
+          <div className="col ins">
+            <p className="bk"><Shield size={13} />Insurance &amp; PA</p>
+            <div className="pairs">
+              <div className="pd-pair"><div className="pk">Insurance Type</div><div className="pv">{patient.insurance_type || "—"}</div></div>
+              <div className="pd-pair"><div className="pk">PA Status</div><div className="pv"><Badge tone={paTone}>{paLabel}</Badge></div></div>
+              <div className="pd-pair" style={{ gridColumn: "1 / -1" }}><div className="pk">Plan Details</div><div className="pv" style={{ fontWeight: 500, fontSize: "var(--text-xs)" }}>{patient.insurance_notes || "—"}</div></div>
+            </div>
           </div>
         </div>
-        <Button asChild>
-          <Link to={`/clinic/referrals/new?patientId=${patient.id}`}>
-            <Plus className="h-4 w-4 mr-2" />
-            New Referral for {firstName}
-          </Link>
-        </Button>
       </div>
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="history">Referral History</TabsTrigger>
-          <TabsTrigger value="info">Patient Information</TabsTrigger>
-          <TabsTrigger value="medications">Prior Authorizations</TabsTrigger>
-        </TabsList>
+      {/* tabs */}
+      <div className="pd-tabs">
+        {[{ key: "history", label: "Referral History", icon: FileText }, { key: "info", label: "Patient Information", icon: User }, { key: "medications", label: "Prior Authorizations", icon: ClipboardList }].map((t) => (
+          <button key={t.key} className={`pd-tab${activeTab === t.key ? " active" : ""}`} onClick={() => setActiveTab(t.key)}>
+            <span className="ti"><t.icon size={15} /></span>{t.label}
+          </button>
+        ))}
+      </div>
 
-        {/* REFERRAL HISTORY TAB */}
-        <TabsContent value="history" className="mt-4 space-y-4">
-          {/* PA Status Card */}
-          <div className="rounded-xl border border-border bg-card p-5 card-shadow">
-            <div className="flex items-start gap-2 mb-3">
-              <Shield className="h-4 w-4 text-primary mt-0.5" />
-              <div>
-                <h3 className="font-semibold text-foreground text-sm">Prior Authorization Status</h3>
-                <p className="text-xs text-muted-foreground">Most recent active medication</p>
+      <div className="pd-content">
+        {activeTab === "history" && <TabHistory medsLoading={medsLoading} medications={medications} referrals={referrals} navigate={navigate} patientId={patient.id} />}
+        {activeTab === "info" && (
+          <TabInfo
+            patient={patient} editing={editing} draft={draft} saving={saving}
+            beginEdit={beginEdit} cancelEdit={cancelEdit} saveEdits={saveEdits} setField={setField} copy={copy}
+            paTone={paTone} paLabel={paLabel}
+          />
+        )}
+        {activeTab === "medications" && <TabMeds medsLoading={medsLoading} meds={sortedMedications} navigate={navigate} patientId={patient.id} />}
+      </div>
+    </div>
+  );
+}
+
+/* ── Referral History tab ── */
+function TabHistory({ medsLoading, medications, referrals, navigate, patientId }: any) {
+  const today = new Date();
+  const activeDrugs = medications.filter((m: any) => m.is_active);
+  const drug = [...activeDrugs].sort((a, b) => new Date(b.last_filled || b.created_at || 0).getTime() - new Date(a.last_filled || a.created_at || 0).getTime())[0] || null;
+  const exp = drug?.pa_expiration_date ? new Date(drug.pa_expiration_date) : null;
+  const isExpired = exp && exp < today;
+  const days = exp ? Math.ceil((exp.getTime() - today.getTime()) / 86400000) : null;
+  const isExpiringSoon = days !== null && days > 0 && days <= 30;
+  const badge = drug ? getDrugPABadge(drug) : null;
+
+  return (
+    <div className="rw-fade" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div className="pd-card">
+        <div className="pd-card-head"><span className="hi"><Shield size={16} /></span><div><h3>Prior Authorization Status</h3><p className="sub">Most recent active medication</p></div></div>
+        {medsLoading ? (
+          <div style={{ display: "flex", justifyContent: "center", padding: 16 }}><span className="rw-spin" style={{ color: "var(--text-muted)" }}><Loader2 size={18} /></span></div>
+        ) : !drug ? (
+          <p style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)", margin: "4px 0" }}>No active medications — medications appear here after a referral is approved.</p>
+        ) : (
+          <div>
+            <div className="pd-health">
+              <div className={`pd-health-rail ${badge!.tone}`} />
+              <div className="pd-health-body">
+                <div className="pd-health-main">
+                  <span className="drug">{drug.drug_name}{drug.dosage && <span className="dose">{drug.dosage}</span>}</span>
+                  <Badge tone={badge!.tone}>{badge!.label}</Badge>
+                </div>
+                <div className="pd-health-meta">
+                  <div><div className="mk">PA Expiration</div><div className={`mv ${isExpired ? "danger" : isExpiringSoon ? "warn" : ""}`}>{exp ? (isExpired ? `Expired ${formatDateShort(drug.pa_expiration_date)}` : formatDateShort(drug.pa_expiration_date)) : "N/A"}</div></div>
+                  <div><div className="mk">Last Filled</div><div className="mv">{drug.last_filled ? formatDateShort(drug.last_filled) : "—"}</div></div>
+                </div>
               </div>
             </div>
-            {medsLoading ? (
-              <div className="flex items-center justify-center py-4">
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-              </div>
-            ) : (() => {
-              const allActive = medications.filter(m => m.is_active);
-              const activeDrugs = [...allActive].sort((a, b) => {
-                const aDate = new Date(a.last_filled || a.created_at || 0).getTime();
-                const bDate = new Date(b.last_filled || b.created_at || 0).getTime();
-                return bDate - aDate;
-              }).slice(0, 1);
-              if (activeDrugs.length === 0) {
-                return (
-                  <p className="text-sm text-muted-foreground py-2">
-                    No active medications — medications appear here after a referral is approved.
-                  </p>
-                );
-              }
-              const today = new Date();
-              return (
-                <div className="space-y-3">
-                  {activeDrugs.map((drug: any) => {
-                    const badge = getDrugPABadge(drug);
-                    const expDate = drug.pa_expiration_date ? new Date(drug.pa_expiration_date) : null;
-                    const isExpired = expDate && expDate < today;
-                    const daysUntil = expDate ? Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : null;
-                    const isExpiringSoon = daysUntil !== null && daysUntil > 0 && daysUntil <= 30;
-
-                    return (
-                      <div key={drug.id}>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                          <div>
-                            <p className="text-xs text-muted-foreground mb-0.5">Current Drug</p>
-                            <p className="text-sm font-medium text-foreground">
-                              {drug.drug_name}
-                              {drug.dosage && <span className="text-muted-foreground font-normal ml-1">{drug.dosage}</span>}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground mb-0.5">PA Status</p>
-                            <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium", badge.className)}>
-                              {badge.label}
-                            </span>
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground mb-0.5">PA Expiration</p>
-                            <p className={cn("text-sm font-medium", isExpired ? "text-destructive" : isExpiringSoon ? "text-warning" : "text-foreground")}>
-                              {expDate ? (isExpired ? `Expired ${formatDateShort(drug.pa_expiration_date)}` : formatDateShort(drug.pa_expiration_date)) : 'N/A'}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground mb-0.5">Last Filled</p>
-                            <p className="text-sm font-medium text-foreground">
-                              {drug.last_filled ? formatDateShort(drug.last_filled) : '—'}
-                            </p>
-                          </div>
-                        </div>
-                        {isExpiringSoon && (
-                          <Alert className="mt-2 border-warning/30 bg-warning/5">
-                            <AlertDescription className="text-sm text-foreground">
-                              <AlertTriangle className="h-4 w-4 inline mr-1.5 text-warning" />
-                              PA for {drug.drug_name} expires on {formatDateShort(drug.pa_expiration_date)}. Consider creating a new referral.
-                            </AlertDescription>
-                          </Alert>
-                        )}
-                        {isExpired && (
-                          <Alert className="mt-2 border-destructive/30 bg-destructive/5">
-                            <AlertDescription className="text-sm text-foreground">
-                              <AlertTriangle className="h-4 w-4 inline mr-1.5 text-destructive" />
-                              PA for {drug.drug_name} expired on {formatDateShort(drug.pa_expiration_date)}. A new referral with PA is required.
-                            </AlertDescription>
-                          </Alert>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })()}
+            {isExpiringSoon && <div className="pd-alert warn"><span className="ai"><AlertTriangle size={16} /></span><span>PA for {drug.drug_name} expires on {formatDateShort(drug.pa_expiration_date)}. Consider creating a new referral.</span></div>}
+            {isExpired && <div className="pd-alert danger"><span className="ai"><AlertTriangle size={16} /></span><span>PA for {drug.drug_name} expired on {formatDateShort(drug.pa_expiration_date)}. A new referral with PA is required.</span></div>}
           </div>
+        )}
+      </div>
 
-          {/* Referrals Table */}
-          {patientReferrals.length > 0 ? (
-            <div className="rounded-xl border border-border bg-card card-shadow overflow-hidden">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border bg-secondary/50">
-                    <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 uppercase tracking-wider">Referral ID</th>
-                    <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 uppercase tracking-wider">Drug</th>
-                    <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 uppercase tracking-wider">Status</th>
-                    <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 uppercase tracking-wider">PA Status</th>
-                    <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 uppercase tracking-wider">Created</th>
-                    <th className="text-right text-xs font-semibold text-muted-foreground px-4 py-3 uppercase tracking-wider">Actions</th>
+      {referrals.length > 0 ? (
+        <div className="pd-table-wrap">
+          <table className="pd-table">
+            <thead><tr><th>Referral ID</th><th>Drug</th><th>Status</th><th>PA Status</th><th>Created</th><th className="right">Actions</th></tr></thead>
+            <tbody>
+              {referrals.map((r: any) => {
+                const [sTone, sLabel] = refStatusBadge(r.status);
+                const [pTone, pLabel] = clinicPABadge(r.pa_status);
+                return (
+                  <tr key={r.id} onClick={() => navigate(`/clinic/referrals/${r.id}`)}>
+                    <td><span className="pd-refid">{r.id.toUpperCase()}</span></td>
+                    <td>{r.drug || r.drug_requested || "—"}</td>
+                    <td><Badge tone={sTone}>{sLabel}</Badge></td>
+                    <td><Badge tone={pTone}>{pLabel}</Badge></td>
+                    <td style={{ color: "var(--text-muted)" }}>{r.created_at ? formatDateShort(r.created_at) : "—"}</td>
+                    <td className="right" onClick={(e) => e.stopPropagation()}><Btn variant="outline" sm onClick={() => navigate(`/clinic/referrals/${r.id}`)}>View</Btn></td>
                   </tr>
-                </thead>
-                <tbody>
-                  {patientReferrals.map((ref, i) => (
-                    <tr
-                      key={ref.id}
-                      onClick={() => navigate(`/clinic/referrals/${ref.id}`)}
-                      className={cn(
-                        "border-b border-border last:border-0 cursor-pointer transition-colors hover:bg-primary/[0.03]",
-                        i % 2 === 1 && "bg-secondary/20"
-                      )}
-                    >
-                      <td className="px-4 py-3">
-                        <span className="font-mono text-xs bg-secondary px-1.5 py-0.5 rounded">{ref.id.toUpperCase()}</span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="text-sm text-foreground">{ref.drug || ref.drug_requested || '—'}</span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <StatusBadge status={ref.status} />
-                      </td>
-                      <td className="px-4 py-3">
-                        <ClinicPABadge status={ref.pa_status} />
-                      </td>
-                      <td className="px-4 py-3 text-sm text-muted-foreground">
-                        {ref.created_at ? formatDateShort(ref.created_at) : '—'}
-                      </td>
-                      <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                        <Button variant="outline" size="sm" className="text-xs" asChild>
-                          <Link to={`/clinic/referrals/${ref.id}`}>View</Link>
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
-              <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
-              <p className="text-sm font-medium text-foreground mb-1">No referrals for this patient</p>
-              <p className="text-sm text-muted-foreground mb-4">Create a referral to get started</p>
-              <Button asChild>
-                <Link to={`/clinic/referrals/new?patientId=${patient.id}`}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Referral
-                </Link>
-              </Button>
-            </div>
-          )}
-
-        </TabsContent>
-
-        {/* PATIENT INFO TAB */}
-        <TabsContent value="info" className="mt-4 space-y-4">
-          <div className="flex justify-end">
-            {!isEditing ? (
-              <Button variant="outline" size="sm" onClick={startEditing}>
-                <Pencil className="h-3.5 w-3.5 mr-1.5" />
-                Edit
-              </Button>
-            ) : (
-              <div className="flex gap-2">
-                <Button size="sm" onClick={saveEdits} disabled={saving}>
-                  {saving ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1.5" />}
-                  Save
-                </Button>
-                <Button variant="outline" size="sm" onClick={cancelEditing} disabled={saving}>
-                  <X className="h-3.5 w-3.5 mr-1.5" />
-                  Cancel
-                </Button>
-              </div>
-            )}
-          </div>
-
-          {isEditing ? (
-            /* ── Edit mode: all fields in one card ── */
-            <div className="rounded-xl border border-border bg-card p-5 card-shadow space-y-6">
-              <div>
-                <h3 className="font-semibold text-foreground text-xs uppercase tracking-wider mb-3">Personal Information</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <EditField label="Full Name" value={editData.full_name} onChange={(v) => setField("full_name", v)} />
-                  <div>
-                    <p className="text-muted-foreground text-xs mb-1">Date of Birth</p>
-                    <Input type="date" value={editData.dob} onChange={(e) => setField("dob", e.target.value)} className="h-8 text-sm" />
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground text-xs mb-1">Gender</p>
-                    <Select value={editData.gender} onValueChange={(v) => setField("gender", v)}>
-                      <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Male">Male</SelectItem>
-                        <SelectItem value="Female">Female</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
-                        <SelectItem value="Prefer not to say">Prefer not to say</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <EditField label="Email" value={editData.email} onChange={(v) => setField("email", v)} />
-                </div>
-              </div>
-              <div>
-                <h3 className="font-semibold text-foreground text-xs uppercase tracking-wider mb-3">Contact</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <EditField label="Phone" value={editData.phone_primary} onChange={(v) => setField("phone_primary", v)} />
-                  <EditField label="Alternate Phone" value={editData.phone_alternate} onChange={(v) => setField("phone_alternate", v)} />
-                  <div className="col-span-2">
-                    <EditField label="Street Address" value={editData.address} onChange={(v) => setField("address", v)} />
-                  </div>
-                  <div className="col-span-2 grid grid-cols-4 gap-4">
-                    <div className="col-span-2">
-                      <EditField label="City" value={editData.city} onChange={(v) => setField("city", v)} />
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground text-xs mb-1">State</p>
-                      <Select value={editData.state} onValueChange={(v) => setField("state", v)}>
-                        <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="State" /></SelectTrigger>
-                        <SelectContent>
-                          {US_STATES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <EditField label="Zip" value={editData.zip} onChange={(v) => setField("zip", v)} />
-                  </div>
-                </div>
-              </div>
-              <div>
-                <h3 className="font-semibold text-foreground text-xs uppercase tracking-wider mb-3">Medical</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <EditField label="Height" value={editData.height} onChange={(v) => setField("height", v)} />
-                  <EditField label="Weight" value={editData.weight} onChange={(v) => setField("weight", v)} />
-                  <div className="col-span-2">
-                    <p className="text-muted-foreground text-xs mb-1">Allergies</p>
-                    <Textarea value={editData.allergies} onChange={(e) => setField("allergies", e.target.value)} rows={2} className="text-sm" />
-                  </div>
-                </div>
-              </div>
-              <div>
-                <h3 className="font-semibold text-foreground text-xs uppercase tracking-wider mb-3">Guardian / Authorized Representative</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <EditField label="Authorized Representative" value={editData.authorized_representative} onChange={(v) => setField("authorized_representative", v)} />
-                  <EditField label="Representative Phone" value={editData.authorized_representative_phone} onChange={(v) => setField("authorized_representative_phone", v)} />
-                </div>
-              </div>
-            </div>
-          ) : (
-            /* ── Read mode: grouped sections ── */
-            <div className="space-y-4">
-              {/* Section 1: Personal Information */}
-              <div className="rounded-lg border border-border/50 bg-card p-5">
-                <h3 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase mb-4">Personal Information</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <InfoField label="Full Name" value={fullName} />
-                  <InfoField label="Date of Birth" value={patient.dob ? `${formatDateShort(patient.dob)} (Age ${getAge(patient.dob)})` : '—'} />
-                  <InfoField label="Gender" value={patient.gender || '—'} />
-                  <div>
-                    <p className="text-muted-foreground text-xs mb-0.5">Email</p>
-                    <div className="flex items-center gap-1">
-                      <p className="font-medium text-foreground text-sm">{patient.email || '—'}</p>
-                      {patient.email && (
-                        <button onClick={() => copyToClipboard(patient.email, "Email")} className="p-0.5 rounded hover:bg-secondary transition-colors">
-                          <Copy className="h-3 w-3 text-muted-foreground" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Section 2: Contact */}
-              <div className="rounded-lg border border-border/50 bg-card p-5">
-                <h3 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase mb-4">Contact</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-muted-foreground text-xs mb-0.5">Phone</p>
-                    <div className="flex items-center gap-1">
-                      <p className="font-medium text-foreground text-sm">{patient.phone_primary || '—'}</p>
-                      {patient.phone_primary && (
-                        <button onClick={() => copyToClipboard(patient.phone_primary, "Phone")} className="p-0.5 rounded hover:bg-secondary transition-colors">
-                          <Copy className="h-3 w-3 text-muted-foreground" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  <InfoField label="Alternate Phone" value={patient.phone_alternate || '—'} />
-                  <div className="col-span-2">
-                    <InfoField label="Street Address" value={patient.address || '—'} />
-                  </div>
-                  <div className="col-span-2 grid grid-cols-4 gap-4">
-                    <div className="col-span-2">
-                      <InfoField label="City" value={patient.city || '—'} />
-                    </div>
-                    <InfoField label="State" value={patient.state || '—'} />
-                    <InfoField label="Zip" value={patient.zip || '—'} />
-                  </div>
-                </div>
-              </div>
-
-              {/* Section 3: Medical */}
-              <div className="rounded-lg border border-border/50 bg-card p-5">
-                <h3 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase mb-4">Medical</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <InfoField label="Height" value={patient.height || '—'} />
-                  <InfoField label="Weight" value={patient.weight || '—'} />
-                  <div className="col-span-2">
-                    <InfoField label="Allergies" value={patient.allergies || '—'} />
-                  </div>
-                </div>
-              </div>
-
-              {/* Section 4: Guardian (only if data exists) */}
-              {patient.authorized_representative && (
-                <div className="rounded-lg border border-border/50 bg-card p-5">
-                  <h3 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase mb-4">Guardian / Authorized Representative</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <InfoField label="Authorized Representative" value={patient.authorized_representative} />
-                    <InfoField label="Representative Phone" value={patient.authorized_representative_phone || '—'} />
-                  </div>
-                </div>
-              )}
-
-              {/* Insurance Info */}
-              <div className="rounded-lg border border-border/50 bg-card p-5">
-                <h3 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase mb-4">Insurance Information</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <InfoField label="Insurance Type" value={patient.insurance_type || '—'} />
-                  <InfoField label="Plan Details" value={patient.insurance_notes || '—'} />
-                  <div>
-                    <p className="text-muted-foreground text-xs mb-0.5">PA Status</p>
-                    <PAStatusBadge status={patient.pa_status || 'none'} expirationDate={patient.pa_expiration_date} />
-                  </div>
-                  <InfoField label="PA Expiration" value={patient.pa_expiration_date ? formatDateShort(patient.pa_expiration_date) : "N/A"} />
-                </div>
-              </div>
-            </div>
-          )}
-        </TabsContent>
-
-        {/* MEDICATIONS TAB */}
-        <TabsContent value="medications" className="mt-4">
-          {medsLoading ? (
-            <div className="flex items-center justify-center py-16">
-              <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
-              <span className="text-sm text-muted-foreground">Loading medications...</span>
-            </div>
-          ) : sortedMedications.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {sortedMedications.map((drug) => {
-                const badge = getDrugPABadge(drug);
-                return (
-                  <div
-                    key={drug.id}
-                    className={cn(
-                      "rounded-xl border border-border p-4 card-shadow transition-all duration-200 hover:shadow-md",
-                      drug.is_active === false ? "bg-muted/30" : "bg-card"
-                    )}
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                          <Pill className="h-4 w-4 text-primary" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-foreground">{drug.drug_name}</p>
-                        </div>
-                      </div>
-                      <span className={cn("text-[11px] font-medium px-2 py-0.5 rounded-full whitespace-nowrap", badge.className)}>
-                        {badge.label}
-                      </span>
-                    </div>
-
-                    <p className="text-sm text-muted-foreground mb-3">
-                      {drug.dosage} · {drug.frequency || '—'}
-                    </p>
-
-                    <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-border pt-3 mb-3">
-                      <span>
-                        PA expires: {drug.pa_expiration_date ? formatDateShort(drug.pa_expiration_date) : "N/A"}
-                      </span>
-                      <span>
-                        Last filled: {drug.last_filled ? formatDateShort(drug.last_filled) : "Never"}
-                      </span>
-                    </div>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full text-xs"
-                      onClick={() => drug.last_referral_id && navigate(`/clinic/referrals/${drug.last_referral_id}`)}
-                      disabled={!drug.last_referral_id}
-                      title={!drug.last_referral_id ? "No referral linked to this medication." : undefined}
-                    >
-                      <Eye className="h-3.5 w-3.5 mr-1" />
-                      View PA Details
-                    </Button>
-                  </div>
                 );
               })}
-            </div>
-          ) : (
-            <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
-              <ClipboardList className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
-              <p className="text-sm font-medium text-foreground mb-1">No Medications on Record</p>
-              <p className="text-sm text-muted-foreground mb-4">No active prescriptions for this patient yet</p>
-              <Button asChild>
-                <Link to={`/clinic/referrals/new?patientId=${patient.id}`}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create First Referral
-                </Link>
-              </Button>
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="pd-empty">
+          <span className="ei"><FileText size={28} /></span>
+          <p className="t">No referrals for this patient</p>
+          <p className="s">Create a referral to get started</p>
+          <Btn variant="primary" onClick={() => navigate(`/clinic/referrals/new?patientId=${patientId}`)}><Plus size={15} />Create Referral</Btn>
+        </div>
+      )}
     </div>
   );
 }
 
-function InfoField({ label, value }: { label: string; value: string }) {
+/* ── Patient Information tab (read sections + edit drawer) ── */
+function ReadField({ patient, f, copy }: any) {
+  const v = patient[f.key];
+  const display = f.key === "dob" ? (v ? `${formatDateShort(v)} (Age ${getAge(v)})` : "—") : (v || "—");
   return (
-    <div>
-      <p className="text-muted-foreground text-xs mb-0.5">{label}</p>
-      <p className="font-medium text-foreground text-sm">{value}</p>
+    <div className={`pd-info${f.span ? " pd-col-span" : ""}`}>
+      <p className="ik">{f.label}</p>
+      <div className="iv">
+        <span>{display}</span>
+        {f.copy && v && <button className="pd-copy" title="Copy" onClick={() => copy(v, f.label)}><Copy size={13} /></button>}
+      </div>
+    </div>
+  );
+}
+function EditFieldRow({ f, draft, setField }: any) {
+  const v = draft[f.key] || "";
+  return (
+    <div className={f.span ? "pd-col-span" : ""}>
+      <p className="ik" style={{ marginBottom: 4 }}>{f.label}</p>
+      {f.kind === "select" ? (
+        <select className="rw-select" value={v} onChange={(e) => setField(f.key, e.target.value)}>
+          <option value="">Select</option>
+          {f.options.map((o: string) => <option key={o} value={o}>{o}</option>)}
+        </select>
+      ) : f.kind === "date" ? (
+        <input className="rw-input" type="date" value={v} onChange={(e) => setField(f.key, e.target.value)} />
+      ) : f.kind === "textarea" ? (
+        <textarea className="rw-textarea" rows={2} value={v} onChange={(e) => setField(f.key, e.target.value)} />
+      ) : (
+        <input className="rw-input" value={v} onChange={(e) => setField(f.key, e.target.value)} />
+      )}
+    </div>
+  );
+}
+function TabInfo({ patient, editing, draft, saving, beginEdit, cancelEdit, saveEdits, setField, copy, paTone, paLabel }: any) {
+  return (
+    <div className="rw-fade">
+      <div className="pd-edit-bar">
+        <Btn variant="outline" sm onClick={beginEdit}><Pencil size={14} />Edit</Btn>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        {INFO_GROUPS.map((g) => {
+          if (g.key === "guardian" && !patient.authorized_representative) return null;
+          return (
+            <div className="pd-card soft" key={g.key}>
+              <p className="pd-sect-label">{g.label}</p>
+              <div className="pd-grid2">{g.fields.map((f: any) => <ReadField key={f.key} patient={patient} f={f} copy={copy} />)}</div>
+            </div>
+          );
+        })}
+        <div className="pd-card soft">
+          <p className="pd-sect-label">Insurance Information</p>
+          <div className="pd-grid2">
+            <div className="pd-info"><p className="ik">Insurance Type</p><div className="iv">{patient.insurance_type || "—"}</div></div>
+            <div className="pd-info"><p className="ik">Plan Details</p><div className="iv">{patient.insurance_notes || "—"}</div></div>
+            <div className="pd-info"><p className="ik">PA Status</p><div className="iv"><Badge tone={paTone}>{paLabel}</Badge></div></div>
+            <div className="pd-info"><p className="ik">PA Expiration</p><div className="iv">{patient.pa_expiration_date ? formatDateShort(patient.pa_expiration_date) : "N/A"}</div></div>
+          </div>
+        </div>
+      </div>
+
+      {editing && (
+        <>
+          <div className="pd-drawer-scrim" onClick={cancelEdit} />
+          <div className="pd-drawer">
+            <div className="pd-drawer-head"><h3>Edit Patient</h3><button className="rw-x" onClick={cancelEdit} aria-label="Close"><X size={18} /></button></div>
+            <div className="pd-drawer-body">
+              {INFO_GROUPS.map((g) => (
+                <div className="pd-edit-sect" key={g.key}>
+                  <p className="pd-sect-label">{g.label}</p>
+                  <div className="pd-grid2">{g.fields.map((f: any) => <EditFieldRow key={f.key} f={f} draft={draft} setField={setField} />)}</div>
+                </div>
+              ))}
+            </div>
+            <div className="pd-drawer-foot">
+              <Btn variant="outline" onClick={cancelEdit} disabled={saving}>Cancel</Btn>
+              <Btn variant="primary" onClick={saveEdits} disabled={saving}>{saving ? <span className="rw-spin"><Loader2 size={14} /></span> : <Save size={14} />}Save</Btn>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
-function EditField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+/* ── Prior Authorizations tab (dense table) ── */
+function TabMeds({ medsLoading, meds, navigate, patientId }: any) {
+  if (medsLoading) return <div className="rw-fade" style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: 64, gap: 8 }}><span className="rw-spin" style={{ color: "var(--color-teal)" }}><Loader2 size={22} /></span><span style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>Loading medications...</span></div>;
+  if (meds.length === 0) return (
+    <div className="rw-fade pd-empty">
+      <span className="ei"><ClipboardList size={28} /></span>
+      <p className="t">No Medications on Record</p>
+      <p className="s">No active prescriptions for this patient yet</p>
+      <Btn variant="primary" onClick={() => navigate(`/clinic/referrals/new?patientId=${patientId}`)}><Plus size={15} />Create First Referral</Btn>
+    </div>
+  );
   return (
-    <div>
-      <p className="text-muted-foreground text-xs mb-1">{label}</p>
-      <Input value={value} onChange={(e) => onChange(e.target.value)} className="h-8 text-sm" />
+    <div className="rw-fade pd-table-wrap">
+      <table className="pd-table">
+        <thead><tr><th>Medication</th><th>Dosage · Frequency</th><th>PA Status</th><th>PA Expires</th><th>Last Filled</th><th className="right">Actions</th></tr></thead>
+        <tbody>
+          {meds.map((d: any) => {
+            const badge = getDrugPABadge(d);
+            const disabled = !d.last_referral_id;
+            return (
+              <tr key={d.id} onClick={() => !disabled && navigate(`/clinic/referrals/${d.last_referral_id}`)} style={d.is_active === false ? { opacity: 0.62 } : undefined}>
+                <td><div style={{ display: "flex", alignItems: "center", gap: 9 }}><span className="pd-med-ic"><Pill size={14} /></span><span style={{ fontWeight: 600, color: "var(--text-primary)" }}>{d.drug_name}</span></div></td>
+                <td style={{ color: "var(--text-muted)" }}>{d.dosage} · {d.frequency || "—"}</td>
+                <td><Badge tone={badge.tone}>{badge.label}</Badge></td>
+                <td>{d.pa_expiration_date ? formatDateShort(d.pa_expiration_date) : "N/A"}</td>
+                <td style={{ color: "var(--text-muted)" }}>{d.last_filled ? formatDateShort(d.last_filled) : "Never"}</td>
+                <td className="right" onClick={(e) => e.stopPropagation()}>
+                  <Btn variant="outline" sm disabled={disabled} onClick={() => !disabled && navigate(`/clinic/referrals/${d.last_referral_id}`)} title={disabled ? "No referral linked to this medication." : undefined}><Eye size={13} />View</Btn>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }

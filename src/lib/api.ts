@@ -263,6 +263,18 @@ export const clinicApi = {
     return handleResponse(response);
   },
 
+  // Clinic edits to extracted_data (PATCH). Body is a partial map of editable
+  // sections — { patient, clinical, provider, insurance } — deep-merged server-side.
+  // Auto-promotes a rejected referral back to ready_for_review.
+  async editReferral(referralId: string, sections: Record<string, any>): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/referrals/${referralId}`, {
+      method: 'PATCH',
+      headers: await getHeaders(),
+      body: JSON.stringify(sections),
+    });
+    return handleResponse(response);
+  },
+
   async getReferralHistory(referralId: string): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/referrals/${referralId}/history`, {
       headers: await getHeaders(),
@@ -346,11 +358,18 @@ export const adminApi = {
     return handleResponse(response);
   },
 
-  async makeDecision(id: string, decision: 'approve' | 'reject', reason?: string): Promise<any> {
+  // `extra` carries structured rejection — missing_documents + flagged_fields —
+  // which the backend stores in missing_fields JSONB for the clinic's Fix panel.
+  async makeDecision(
+    id: string,
+    decision: 'approve' | 'reject',
+    reason?: string,
+    extra?: { missing_documents?: string[]; flagged_fields?: string[] },
+  ): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/admin/referrals/${id}/decision`, {
       method: 'POST',
       headers: await getHeaders(),
-      body: JSON.stringify({ decision, reason }),
+      body: JSON.stringify({ decision, reason, ...(extra || {}) }),
     });
     return handleResponse(response);
   },

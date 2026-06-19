@@ -1,218 +1,198 @@
 import { useState, useMemo, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Search, Plus, Users, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Search, Plus, Users, ChevronLeft, ChevronRight, Loader2, ListFilter,
+  ChevronsUpDown, ChevronUp, ChevronDown,
+} from "lucide-react";
 import { PAStatusBadge } from "@/components/PAStatusBadge";
 import { clinicApi } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
-import { formatDateShort, formatDateForTable, formatFullDateTime } from "@/lib/dateUtils";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
+import { formatDateShort } from "@/lib/dateUtils";
+import "./wizard.css";
+import "./dashboard.css";
+import "./referrals.css";
+
+const FILTERS = [
+  { value: "all", short: "All", long: "All Patients" },
+  { value: "active", short: "Active", long: "Active (Recent Referral)" },
+  { value: "inactive", short: "Inactive", long: "Inactive" },
+  { value: "expiring", short: "Expiring", long: "PA Expiring Soon" },
+];
+
+function matchesFilter(p: any, filter: string) {
+  if (filter === "active") return p.pa_status === "approved" && p.last_drug;
+  if (filter === "inactive") return !p.pa_status || p.pa_status === "none" || p.pa_status === "expired";
+  if (filter === "expiring") return p.pa_status === "expiring";
+  return true;
+}
+
+type Sort = { col: "name" | "dob" | "created"; dir: "asc" | "desc" } | null;
+
+function pageWindow(total: number, cur: number): (number | "…")[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const out: (number | "…")[] = [1];
+  const lo = Math.max(2, cur - 1), hi = Math.min(total - 1, cur + 1);
+  if (lo > 2) out.push("…");
+  for (let i = lo; i <= hi; i++) out.push(i);
+  if (hi < total - 1) out.push("…");
+  out.push(total);
+  return out;
+}
+function getAge(dob: string) {
+  const b = new Date(dob), t = new Date();
+  let age = t.getFullYear() - b.getFullYear();
+  const m = t.getMonth() - b.getMonth();
+  if (m < 0 || (m === 0 && t.getDate() < b.getDate())) age--;
+  return age;
+}
 
 export default function PatientsList() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
+  const [sort, setSort] = useState<Sort>(null);
   const pageSize = 10;
-
   const [patients, setPatients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
     clinicApi.getPatients(search)
-      .then((data) => {
-        setPatients(data.items || []);
-      })
-      .catch(() => {
-        toast({ title: "Error", description: "Failed to load patients", variant: "destructive" });
-      })
+      .then((data) => setPatients(data.items || []))
+      .catch(() => toast({ title: "Error", description: "Failed to load patients", variant: "destructive" }))
       .finally(() => setLoading(false));
   }, [search]);
 
+  const filterCount = (value: string) => value === "all" ? patients.length : patients.filter((p) => matchesFilter(p, value)).length;
+
   const filtered = useMemo(() => {
-    return patients.filter((p) => {
-      if (filter === "active") return p.pa_status === "approved" && p.last_drug;
-      if (filter === "inactive") return !p.pa_status || p.pa_status === "none" || p.pa_status === "expired";
-      if (filter === "expiring") return p.pa_status === "expiring";
-      return true;
+    const base = patients.filter((p) => matchesFilter(p, filter));
+    if (!sort) return base;
+    const dir = sort.dir === "asc" ? 1 : -1;
+    return [...base].sort((a, b) => {
+      let av: any, bv: any;
+      if (sort.col === "name") { av = (a.full_name || "").toLowerCase(); bv = (b.full_name || "").toLowerCase(); }
+      else if (sort.col === "dob") { av = new Date(a.dob || 0).getTime(); bv = new Date(b.dob || 0).getTime(); }
+      else { av = new Date(a.created_at || 0).getTime(); bv = new Date(b.created_at || 0).getTime(); }
+      return av < bv ? -dir : av > bv ? dir : 0;
     });
-  }, [patients, filter]);
+  }, [patients, filter, sort]);
 
-  const totalPages = Math.ceil(filtered.length / pageSize);
-  const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-  const startItem = filtered.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
-  const endItem = Math.min(currentPage * pageSize, filtered.length);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginated = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const startItem = filtered.length === 0 ? 0 : (safePage - 1) * pageSize + 1;
+  const endItem = Math.min(safePage * pageSize, filtered.length);
 
-  const getAge = (dob: string) => {
-    const birth = new Date(dob);
-    const today = new Date();
-    let age = today.getFullYear() - birth.getFullYear();
-    const m = today.getMonth() - birth.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
-    return age;
+  const handleFilter = (v: string) => { setFilter(v); setCurrentPage(1); };
+  const onSort = (col: "name" | "dob" | "created") =>
+    setSort((s) => (!s || s.col !== col ? { col, dir: "asc" } : s.dir === "asc" ? { col, dir: "desc" } : null));
+
+  const SortCaret = ({ col }: { col: "name" | "dob" | "created" }) => {
+    const active = sort?.col === col;
+    const Icon = !active ? ChevronsUpDown : sort!.dir === "asc" ? ChevronUp : ChevronDown;
+    return <span className={`rl-caret${active ? " on" : ""}`}><Icon size={13} /></span>;
   };
+  const SortTh = ({ col, children }: { col: "name" | "dob" | "created"; children: React.ReactNode }) => (
+    <th><button className="rl-sortbtn" onClick={() => onSort(col)}>{children}<SortCaret col={col} /></button></th>
+  );
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="rw-page rl-page rw-fade">
+      <div className="rl-header">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Patients</h1>
-          <p className="text-muted-foreground mt-1">Manage your patients and their referrals</p>
+          <h1 className="rl-h1 serif">Patients</h1>
+          <p className="rl-sub">Manage your patients and their referrals</p>
         </div>
-        <Button asChild>
-          <Link to="/clinic/patients/new">
-            <Plus className="h-4 w-4 mr-2" />
-            Add New Patient
-          </Link>
-        </Button>
+        <Link to="/clinic/patients/new" className="rw-btn primary"><Plus size={15} />Add New Patient</Link>
       </div>
 
-      {/* Search & Filter */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by name, DOB, phone, or email..."
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-            className="pl-9"
-          />
+      <div className="rl-toolbar">
+        <div className="rl-seg-wrap">
+          <div className="rl-seg">
+            {FILTERS.map((f) => (
+              <button key={f.value} className={`rl-seg-btn${filter === f.value ? " on" : ""}`} onClick={() => handleFilter(f.value)}>
+                {f.short}<span className="rl-seg-n num">{filterCount(f.value)}</span>
+              </button>
+            ))}
+          </div>
+          <div className="rl-statusdd">
+            <ListFilter size={15} />
+            <select className="rl-select" value={filter} onChange={(e) => handleFilter(e.target.value)}>
+              {FILTERS.map((f) => <option key={f.value} value={f.value}>{f.long} ({filterCount(f.value)})</option>)}
+            </select>
+          </div>
         </div>
-        {search && (
-          <p className="text-sm text-muted-foreground">{filtered.length} result{filtered.length !== 1 ? "s" : ""} found</p>
-        )}
-        <Select value={filter} onValueChange={(v) => { setFilter(v); setCurrentPage(1); }}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Patients</SelectItem>
-            <SelectItem value="active">Active (Recent Referral)</SelectItem>
-            <SelectItem value="inactive">Inactive</SelectItem>
-            <SelectItem value="expiring">PA Expiring Soon</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="rl-search">
+          <span className="rl-search-ic"><Search size={16} /></span>
+          <input className="rl-search-input" placeholder="Search by name, DOB, phone, or email..." value={search} onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }} />
+        </div>
       </div>
 
-      {/* Loading */}
-      {loading && (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
-      )}
-
-      {/* Table */}
-      {!loading && paginated.length > 0 ? (
-        <div className="rounded-xl border border-border bg-card card-shadow overflow-hidden">
-          <table className="w-full">
+      {loading ? (
+        <div style={{ display: "flex", justifyContent: "center", padding: 48 }}><span className="rw-spin" style={{ color: "var(--color-teal)" }}><Loader2 size={26} /></span></div>
+      ) : paginated.length > 0 ? (
+        <div className="dh-table-wrap">
+          <table className="dh-table">
             <thead>
-              <tr className="border-b border-border bg-secondary/50">
-                <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 uppercase tracking-wider">Patient Name</th>
-                <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 uppercase tracking-wider">DOB (Age)</th>
-                <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 uppercase tracking-wider">Last Drug</th>
-                <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 uppercase tracking-wider">Last Referral</th>
-                <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 uppercase tracking-wider">PA Status</th>
-                <th className="text-right text-xs font-semibold text-muted-foreground px-4 py-3 uppercase tracking-wider">Actions</th>
+              <tr>
+                <SortTh col="name">Patient Name</SortTh>
+                <SortTh col="dob">DOB (Age)</SortTh>
+                <th>Last Drug</th>
+                <SortTh col="created">Last Referral</SortTh>
+                <th>PA Status</th>
+                <th className="r">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {paginated.map((patient, i) => (
-                <tr
-                  key={patient.id}
-                  onClick={() => navigate(`/clinic/patients/${patient.id}`)}
-                  className={cn(
-                    "border-b border-border last:border-0 cursor-pointer transition-colors hover:bg-primary/[0.03]",
-                    i % 2 === 1 && "bg-secondary/20"
-                  )}
-                >
-                  <td className="px-4 py-3">
-                    <span className="font-semibold text-foreground text-sm hover:underline">
-                      {patient.full_name || '—'}
+              {paginated.map((p) => (
+                <tr key={p.id} onClick={() => navigate(`/clinic/patients/${p.id}`)}>
+                  <td><span className="dh-pt-nm">{p.full_name || "—"}</span></td>
+                  <td className="dh-muted-cell">{p.dob ? `${formatDateShort(p.dob)} (${getAge(p.dob)})` : "—"}</td>
+                  <td>{p.last_drug || "—"}{p.last_dosage && <span style={{ color: "var(--text-muted)", marginLeft: 5, fontSize: "var(--text-xs)" }}>{p.last_dosage}</span>}</td>
+                  <td className="dh-muted-cell">{p.created_at ? formatDateShort(p.created_at) : "—"}</td>
+                  <td><PAStatusBadge status={p.pa_status || "none"} expirationDate={p.pa_expiration_date} /></td>
+                  <td className="r" onClick={(e) => e.stopPropagation()}>
+                    <span style={{ display: "inline-flex", gap: 8, justifyContent: "flex-end" }}>
+                      <Link to={`/clinic/patients/${p.id}`} className="rw-btn outline sm">View</Link>
+                      <Link to={`/clinic/referrals/new?patientId=${p.id}`} className="rw-btn primary sm">New Referral</Link>
                     </span>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground">
-                    {patient.dob ? `${formatDateShort(patient.dob)} (${getAge(patient.dob)})` : '—'}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-col">
-                      <span className="text-sm text-foreground">{patient.last_drug || '—'}</span>
-                      {patient.last_dosage && (
-                        <span className="text-xs text-muted-foreground">{patient.last_dosage}</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground">
-                    {patient.created_at ? (
-                      <Tooltip>
-                        <TooltipTrigger className="text-sm text-muted-foreground">
-                          {formatDateForTable(patient.created_at)}
-                        </TooltipTrigger>
-                        <TooltipContent>{formatFullDateTime(patient.created_at)}</TooltipContent>
-                      </Tooltip>
-                    ) : '—'}
-                  </td>
-                  <td className="px-4 py-3">
-                    <PAStatusBadge status={patient.pa_status || 'none'} expirationDate={patient.pa_expiration_date} />
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-                      <Button variant="outline" size="sm" className="text-xs" asChild>
-                        <Link to={`/clinic/patients/${patient.id}`}>View</Link>
-                      </Button>
-                      <Button size="sm" className="text-xs" asChild>
-                        <Link to={`/clinic/referrals/new?patientId=${patient.id}`}>New Referral</Link>
-                      </Button>
-                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      ) : !loading ? (
-        <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
-          <div className="mx-auto h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
-            <Users className="h-7 w-7 text-muted-foreground" />
-          </div>
-          {search || filter !== "all" ? (
-            <>
-              <p className="text-sm font-medium text-foreground mb-1">No patients found</p>
-              <p className="text-sm text-muted-foreground mb-4">Try adjusting your search or filters</p>
-              <Button variant="outline" size="sm" onClick={() => { setSearch(""); setFilter("all"); }}>Clear Filters</Button>
-            </>
-          ) : (
-            <>
-              <h3 className="text-lg font-semibold text-foreground mb-1">No patients yet</h3>
-              <p className="text-sm text-muted-foreground mb-6">Add your first patient to get started</p>
-              <Button asChild>
-                <Link to="/clinic/patients/new"><Plus className="h-4 w-4 mr-2" />Add Your First Patient</Link>
-              </Button>
-            </>
-          )}
+      ) : search || filter !== "all" ? (
+        <div className="dh-empty">
+          <div className="dh-empty-ic sm"><Users size={20} /></div>
+          <p className="rl-empty-t">No patients found</p>
+          <p className="rl-empty-s">Try adjusting your search or filters</p>
+          <button className="rw-btn outline sm" onClick={() => { setSearch(""); setFilter("all"); }}>Clear Filters</button>
         </div>
-      ) : null}
+      ) : (
+        <div className="dh-empty">
+          <div className="dh-empty-ic"><Users size={26} /></div>
+          <h3>No patients yet</h3>
+          <p>Add your first patient to get started</p>
+          <Link to="/clinic/patients/new" className="rw-btn primary" style={{ display: "inline-flex" }}><Plus size={15} />Add Your First Patient</Link>
+        </div>
+      )}
 
-      {/* Pagination */}
       {!loading && filtered.length > pageSize && (
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <span>Showing {startItem}-{endItem} of {filtered.length} patients</span>
-          <div className="flex items-center gap-1">
-            <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage((p) => p - 1)}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-              <Button key={page} variant={page === currentPage ? "default" : "outline"} size="sm" className="w-8 h-8 p-0" onClick={() => setCurrentPage(page)}>
-                {page}
-              </Button>
-            ))}
-            <Button variant="outline" size="sm" disabled={currentPage === totalPages} onClick={() => setCurrentPage((p) => p + 1)}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+        <div className="rl-pag">
+          <div className="rl-pag-meta"><span>Showing {startItem}-{endItem} of {filtered.length} patients</span></div>
+          <div className="rl-pag-ctrl">
+            <button className="rw-btn outline sm" disabled={safePage === 1} onClick={() => setCurrentPage(safePage - 1)}><ChevronLeft size={15} />Prev</button>
+            <div className="rl-pg-window">
+              {pageWindow(totalPages, safePage).map((n, i) => (
+                n === "…" ? <span key={`e${i}`} className="rl-pg-ell">…</span>
+                  : <button key={n} className={`rl-pg-num${n === safePage ? " on" : ""}`} onClick={() => setCurrentPage(n as number)}>{n}</button>
+              ))}
+            </div>
+            <span className="rl-pg-xy">Page {safePage} of {totalPages}</span>
+            <button className="rw-btn outline sm" disabled={safePage === totalPages} onClick={() => setCurrentPage(safePage + 1)}>Next<ChevronRight size={15} /></button>
           </div>
         </div>
       )}

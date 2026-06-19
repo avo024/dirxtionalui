@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { LayoutDashboard, FileText, Building2, Mail, Hospital, LogOut, LineChart, Inbox } from "lucide-react";
+import { LayoutDashboard, FileText, Building2, Hospital, LogOut, LineChart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { adminApi } from "@/lib/api";
@@ -14,8 +14,9 @@ const navItems = [
   { label: "AI Quality", icon: LineChart, path: "/admin/ai-quality" },
   { label: "Pharmacies", icon: Building2, path: "/admin/pharmacies" },
   { label: "Clinics", icon: Hospital, path: "/admin/clinics" },
-  { label: "Add-on Requests", icon: Inbox, path: "/admin/addon-requests" },
-  { label: "Invites", icon: Mail, path: "/admin/invites" },
+  // Add-on Requests hidden until add-ons exist (Services is hidden on the clinic side too).
+  // { label: "Add-on Requests", icon: Inbox, path: "/admin/addon-requests" },
+  // Invites retired — folded into Clinic Detail as "Team & Invites" (clinic-scoped).
 ];
 
 export function AdminSidebar() {
@@ -49,8 +50,8 @@ export function AdminSidebar() {
 
       {/* Role */}
       <div className="px-5 py-3 border-b border-sidebar-border">
-        <p className="text-xs text-muted-foreground">Role</p>
-        <p className="text-sm font-medium text-foreground">Internal Admin</p>
+        <p className="text-xs text-sidebar-foreground/60">Role</p>
+        <p className="text-sm font-medium text-sidebar-accent-foreground">Internal Admin</p>
       </div>
 
       {/* Nav links */}
@@ -72,13 +73,13 @@ export function AdminSidebar() {
                 "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                 isActive
                   ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-foreground"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
               )}
             >
               <item.icon className="h-4 w-4" />
               {item.label}
               {badgeCount > 0 && (
-                <span className="ml-auto h-5 min-w-[20px] rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs px-1.5">
+                <span className="ml-auto h-5 min-w-[20px] rounded-full bg-sidebar-primary text-sidebar-primary-foreground flex items-center justify-center text-xs px-1.5 font-semibold">
                   {badgeCount}
                 </span>
               )}
@@ -91,7 +92,7 @@ export function AdminSidebar() {
       <div className="px-3 py-4 border-t border-sidebar-border">
         <button
           onClick={logout}
-          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-foreground transition-colors w-full"
+          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground transition-colors w-full"
         >
           <LogOut className="h-4 w-4" />
           Sign Out

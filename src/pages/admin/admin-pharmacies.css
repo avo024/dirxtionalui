@@ -1,0 +1,80 @@
+/* ════════════════════════════════════════════════════════════
+   Admin Pharmacies (list + detail) — light restyle.
+   Builds on: colors_and_type.css · wizard.css (rw-) · dashboard.css (dh-) ·
+   referrals.css (rl-search) · admin-review-queue.css (admin shell tint) ·
+   admin-clinics.css (shared cl- header / cards / modal / toast / skeleton).
+   Prefix: ph-
+   ════════════════════════════════════════════════════════════ */
+
+/* ── Dense table (7 fields + status + actions, scrolls) ─────── */
+.ph-table-wrap { overflow-x: auto; }
+.ph-table { min-width: 1180px; }
+.ph-table th, .ph-table td { padding-left: 14px; padding-right: 14px; }
+.ph-row { cursor: pointer; }
+.ph-row.inactive { opacity: .62; }
+.ph-name-cell { display: inline-flex; align-items: center; gap: 11px; }
+.ph-avatar { background: var(--color-navy); color: #cdd4e6; flex-shrink: 0; }
+.ph-name { font-weight: 600; color: var(--text-primary); white-space: nowrap; }
+.ph-num { color: var(--text-body); white-space: nowrap; }
+.ph-email { color: var(--text-body); white-space: nowrap; }
+.ph-loc { color: var(--text-muted); white-space: nowrap; }
+.ph-acts { display: inline-flex; align-items: center; gap: 5px; justify-content: flex-end; }
+.ph-acts .rw-ic-btn { width: 32px; height: 32px; }
+.ph-acts .rw-ic-btn:hover { color: var(--color-navy); border-color: var(--color-navy); }
+.ph-deact:hover { color: var(--color-error) !important; border-color: color-mix(in srgb, var(--color-error) 45%, transparent) !important; background: var(--status-rejected-bg) !important; }
+.rw-ic-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ── Cards ──────────────────────────────────────────────────── */
+.ph-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+.ph-card { display: flex; flex-direction: column; gap: 14px; background: var(--bg-card); border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 18px; text-decoration: none; transition: transform .16s, box-shadow .16s; }
+.ph-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.ph-card.inactive { opacity: .66; }
+.ph-card-top { display: flex; align-items: flex-start; gap: 11px; }
+.ph-card-id { flex: 1; min-width: 0; }
+.ph-card-nm { font-weight: 600; color: var(--text-primary); font-size: var(--text-base); }
+.ph-card-loc { font-size: var(--text-xs); color: var(--text-muted); margin-top: 2px; }
+.ph-card-rows { display: flex; flex-direction: column; gap: 7px; }
+.ph-card-kv { display: flex; align-items: center; gap: 8px; font-size: var(--text-sm); color: var(--text-body); min-width: 0; }
+.ph-card-kv .lucide { color: var(--color-stone-400); flex-shrink: 0; }
+.ph-card-kv span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ph-card-foot { display: flex; align-items: center; gap: 8px; padding-top: 12px; border-top: 1px solid var(--border-default); }
+.ph-card-foot .rw-btn { flex: 1; justify-content: center; }
+.ph-deact-btn:not(:disabled):hover { color: var(--color-error); border-color: color-mix(in srgb, var(--color-error) 40%, transparent); }
+
+/* ── Detail header extras ───────────────────────────────────── */
+.ph-d-header { flex-wrap: wrap; }
+.ph-d-header .cl-d-head-meta { min-width: 220px; }
+.ph-d-header .cl-d-title-row { flex-wrap: wrap; row-gap: 6px; }
+.ph-d-header.inactive { border-left-color: var(--color-stone-400); }
+.ph-d-actions { display: flex; align-items: center; gap: 9px; flex-shrink: 0; margin-left: auto; }
+.ph-d-deact:not(:disabled):hover { color: var(--color-error); border-color: color-mix(in srgb, var(--color-error) 40%, transparent); }
+.ph-badge-noins { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; color: var(--color-warning);
+  background: color-mix(in srgb, var(--color-warning) 14%, transparent); padding: 2px 9px; border-radius: var(--radius-full); white-space: nowrap; }
+.cl-d-stack .ph-d-kvs { grid-template-columns: 1fr 1fr; }
+@media (max-width: 720px) { .cl-d-stack .ph-d-kvs { grid-template-columns: 1fr; } }
+
+/* ── Definition-list variant (mirrors rd-dl) ────────────────── */
+.ph-dl { display: flex; flex-direction: column; padding: 6px 18px 10px; }
+.ph-dl-row { display: grid; grid-template-columns: 190px 1fr; gap: 16px; padding: 11px 0; align-items: baseline;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-default) 60%, transparent); }
+.ph-dl-row:last-child { border-bottom: none; }
+.ph-dl-row .dk { font-size: var(--text-sm); color: var(--text-muted); }
+.ph-dl-row .dv { font-size: var(--text-sm); font-weight: 600; color: var(--text-primary); }
+.ph-dl-row .dv.mono { font-family: var(--font-mono); }
+
+/* ── Blocked medications ────────────────────────────────────── */
+.ph-blocked { padding: 16px 18px; }
+.ph-blocked-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.ph-blocked-chip { display: inline-flex; align-items: center; gap: 5px; font-size: var(--text-sm); font-weight: 600;
+  color: var(--status-rejected-fg); background: var(--status-rejected-bg); padding: 4px 11px; border-radius: var(--radius-full); }
+.ph-blocked-empty { font-size: var(--text-sm); color: var(--text-muted); margin: 0; }
+
+/* ── Notes ──────────────────────────────────────────────────── */
+.ph-notes { padding: 16px 18px; }
+.ph-notes p { font-size: var(--text-sm); color: var(--text-body); margin: 0; line-height: 1.6; white-space: pre-wrap; }
+.ph-notes-empty { color: var(--text-muted) !important; }
+
+/* ── Form modal extras ──────────────────────────────────────── */
+.ph-modal-wide { width: min(680px, 96vw); }
+.ph-textarea { resize: vertical; min-height: 64px; line-height: 1.5; }

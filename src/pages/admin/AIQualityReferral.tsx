@@ -1,22 +1,17 @@
 import { useMemo, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
-import { ArrowLeft, ChevronDown, ChevronRight, FileText, AlertTriangle } from "lucide-react";
-import { Loader2 } from "lucide-react";
+import {
+  ArrowLeft, ChevronDown, ChevronRight, FileText, AlertTriangle, ArrowRight, PenLine, Clock, Loader2,
+} from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAIQualityReferral } from "@/hooks/useAIQuality";
-import { Badge } from "@/components/ui/badge";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { cn } from "@/lib/utils";
+import { StatusBadge } from "@/components/StatusBadge";
 import { getRelativeTime } from "@/lib/dateUtils";
 import { renderFieldValue } from "@/lib/aiQualityFormat";
-import type {
-  AIQualityCorrection,
-  AIQualityReferralDocument,
-} from "@/lib/aiQualityApi";
+import type { AIQualityCorrection, AIQualityReferralDocument } from "@/lib/aiQualityApi";
+import "../clinic/wizard.css";
+import "../clinic/dashboard.css";
+import "./aiq.css";
 
 function isDiagnosisLikeArray(v: unknown): boolean {
   return (
@@ -30,11 +25,14 @@ function isLeaf(v: unknown): boolean {
   if (v === null || v === undefined) return true;
   if (Array.isArray(v)) {
     if (v.every((x) => typeof x !== "object" || x === null)) return true;
-    // ICD-10-style arrays render inline via renderFieldValue
     if (isDiagnosisLikeArray(v)) return true;
     return false;
   }
   return typeof v !== "object";
+}
+
+function confFmt(v: number | null | undefined): string {
+  return v !== null && v !== undefined ? v.toFixed(2) : "—";
 }
 
 export default function AIQualityReferral() {
@@ -46,7 +44,7 @@ export default function AIQualityReferral() {
     return <Navigate to="/clinic/dashboard" replace />;
   }
 
-  // Map field_path -> latest correction (multiple edits to same path → keep all)
+  // Map field_path -> corrections (multiple edits to same path → keep all)
   const correctionsByPath = useMemo(() => {
     const m = new Map<string, AIQualityCorrection[]>();
     for (const c of data?.corrections ?? []) {
@@ -59,22 +57,17 @@ export default function AIQualityReferral() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="aiq-page rw-fade">
+        <div className="aiq-empty"><Loader2 className="rw-spin" style={{ color: "var(--color-teal)", display: "inline-block" }} size={26} /></div>
       </div>
     );
   }
 
   if (isError || !data) {
     return (
-      <div className="space-y-4">
-        <Link
-          to="/admin/ai-quality"
-          className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
-        >
-          <ArrowLeft className="h-4 w-4" /> Back to AI Quality
-        </Link>
-        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-5 text-sm text-destructive">
+      <div className="aiq-page rw-fade">
+        <Link className="aiq-back" to="/admin/ai-quality"><ArrowLeft size={15} />Back to AI Quality</Link>
+        <div className="aiq-card aiq-card-pad" style={{ marginTop: 16, borderColor: "color-mix(in srgb, var(--color-error) 30%, transparent)", color: "var(--color-error)" }}>
           Failed to load: {(error as Error)?.message ?? "Unknown error"}
         </div>
       </div>
@@ -82,62 +75,40 @@ export default function AIQualityReferral() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <Link
-          to="/admin/ai-quality"
-          className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
-        >
-          <ArrowLeft className="h-4 w-4" /> Back to AI Quality
-        </Link>
-        <h1 className="text-2xl font-bold text-foreground">
-          Referral · <span className="font-mono text-lg">{data.referral.id}</span>
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Status: <span className="text-foreground">{data.referral.status}</span> · Prompt
-          version: <span className="text-foreground">{data.referral.prompt_version || "unknown"}</span>{" "}
-          · Last updated: {getRelativeTime(data.referral.updated_at)}
-        </p>
+    <div className="aiq-page rw-fade">
+      {/* Header */}
+      <div className="aiq-ref-head">
+        <Link className="aiq-back" to="/admin/ai-quality"><ArrowLeft size={15} />Back</Link>
+        <span className="aiq-ref-id">{data.referral.id}</span>
+        <StatusBadge status={data.referral.status} />
+        <div className="aiq-ref-meta">
+          <span className="aiq-chip"><span className="k">prompt</span><span className="v">{data.referral.prompt_version || "unknown"}</span></span>
+          <span className="aiq-chip"><Clock size={12} style={{ color: "var(--color-stone-400)" }} /><span className="k">updated</span><span>{getRelativeTime(data.referral.updated_at)}</span></span>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left — documents */}
-        <section className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-foreground">Source documents</h2>
-            <span className="text-xs text-muted-foreground">
-              Doc viewer link refreshes when page reloads
-            </span>
-          </div>
+      <div className="aiq-ref-2col">
+        {/* Left — source documents */}
+        <div className="aiq-card aiq-card-pad">
+          <div className="aiq-sec-head"><div><h2>Source documents</h2><p className="aiq-sec-sub">{data.documents.length} {data.documents.length === 1 ? "file" : "files"} in this referral</p></div></div>
           {data.documents.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No documents on this referral.</p>
+            <p className="aiq-empty">No documents on this referral.</p>
           ) : (
             data.documents.map((doc) => <DocPreview key={doc.id} doc={doc} />)
           )}
-        </section>
+        </div>
 
         {/* Right — extracted data tree */}
-        <section className="space-y-3">
-          <h2 className="font-semibold text-foreground">Extracted data</h2>
-          <ExtractedTree
-            data={data.extracted_data}
-            correctionsByPath={correctionsByPath}
-          />
-        </section>
+        <div className="aiq-card aiq-card-pad">
+          <div className="aiq-sec-head">
+            <div><h2>Extracted data</h2><p className="aiq-sec-sub">Per-field values, model confidence, and reviewer corrections. Amber = high-confidence edit.</p></div>
+          </div>
+          <ExtractedTree data={data.extracted_data} correctionsByPath={correctionsByPath} />
+        </div>
       </div>
 
       {/* Raw JSON */}
-      <Collapsible className="rounded-xl border border-border bg-card">
-        <CollapsibleTrigger className="flex w-full items-center justify-between px-5 py-3 text-sm font-medium text-foreground hover:bg-muted/50">
-          Raw extraction JSON
-          <ChevronDown className="h-4 w-4 text-muted-foreground" />
-        </CollapsibleTrigger>
-        <CollapsibleContent className="border-t border-border">
-          <pre className="overflow-auto px-5 py-4 text-xs text-foreground bg-muted/30">
-            <code>{JSON.stringify(data.extracted_data, null, 2)}</code>
-          </pre>
-        </CollapsibleContent>
-      </Collapsible>
+      <RawJson data={data.extracted_data} />
     </div>
   );
 }
@@ -146,33 +117,19 @@ function DocPreview({ doc }: { doc: AIQualityReferralDocument }) {
   const [errored, setErrored] = useState(false);
   const isPdf = doc.file_type === "application/pdf";
   return (
-    <div className="rounded-xl border border-border bg-card overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-muted/30">
-        <div className="flex items-center gap-2 text-sm">
-          <FileText className="h-4 w-4 text-muted-foreground" />
-          <span className="font-medium text-foreground">{doc.doc_type}</span>
-          <span className="text-muted-foreground">· {doc.original_filename}</span>
-        </div>
+    <div className="aiq-doc" style={{ display: "block", padding: 0, overflow: "hidden" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderBottom: "1px solid var(--border-default)", background: "var(--bg-muted)" }}>
+        <FileText size={15} style={{ color: "var(--text-muted)" }} />
+        <span style={{ fontSize: "var(--text-sm)", fontWeight: 500, color: "var(--text-primary)" }}>{doc.doc_type}</span>
+        <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>· {doc.original_filename}</span>
       </div>
-      <div className="bg-muted/10">
+      <div>
         {!doc.url || errored ? (
-          <p className="p-6 text-center text-sm text-muted-foreground">
-            Document temporarily unavailable
-          </p>
+          <p className="aiq-empty">Document temporarily unavailable</p>
         ) : isPdf ? (
-          <iframe
-            src={doc.url}
-            title={doc.original_filename}
-            className="w-full h-[480px]"
-            onError={() => setErrored(true)}
-          />
+          <iframe src={doc.url} title={doc.original_filename} style={{ width: "100%", height: 460, border: 0 }} onError={() => setErrored(true)} />
         ) : (
-          <embed
-            src={doc.url}
-            type={doc.file_type || "application/pdf"}
-            className="w-full h-[480px]"
-            onError={() => setErrored(true)}
-          />
+          <embed src={doc.url} type={doc.file_type || "application/pdf"} style={{ width: "100%", height: 460 }} onError={() => setErrored(true)} />
         )}
       </div>
     </div>
@@ -187,19 +144,11 @@ function ExtractedTree({
   correctionsByPath: Map<string, AIQualityCorrection[]>;
 }) {
   const groups = Object.entries(data || {});
-  if (groups.length === 0) {
-    return <p className="text-sm text-muted-foreground">No extracted data yet.</p>;
-  }
+  if (groups.length === 0) return <p className="aiq-empty">No extracted data yet.</p>;
   return (
-    <div className="space-y-3">
+    <div className="aiq-tree">
       {groups.map(([key, value]) => (
-        <TreeGroup
-          key={key}
-          path={key}
-          label={key}
-          value={value}
-          correctionsByPath={correctionsByPath}
-        />
+        <TreeGroup key={key} path={key} label={key} value={value} correctionsByPath={correctionsByPath} />
       ))}
     </div>
   );
@@ -217,27 +166,15 @@ function TreeGroup({
   correctionsByPath: Map<string, AIQualityCorrection[]>;
 }) {
   const [open, setOpen] = useState(true);
+  const count = value && typeof value === "object" && !Array.isArray(value) ? Object.keys(value).length : 1;
   return (
-    <div className="rounded-xl border border-border bg-card overflow-hidden">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between px-4 py-2 border-b border-border bg-muted/30 text-sm"
-      >
-        <span className="font-semibold text-foreground capitalize">
-          {label.replace(/_/g, " ")}
-        </span>
-        {open ? (
-          <ChevronDown className="h-4 w-4 text-muted-foreground" />
-        ) : (
-          <ChevronRight className="h-4 w-4 text-muted-foreground" />
-        )}
+    <div className="aiq-tnode">
+      <button className="aiq-tbranch-btn" onClick={() => setOpen((o) => !o)}>
+        {open ? <ChevronDown size={14} style={{ color: "var(--color-stone-400)" }} /> : <ChevronRight size={14} style={{ color: "var(--color-stone-400)" }} />}
+        <span className="aiq-tkey">{label}</span>
+        <span className="aiq-tbranch-count">{count} {count === 1 ? "field" : "fields"}</span>
       </button>
-      {open && (
-        <div className="divide-y divide-border">
-          {renderNode(path, value, correctionsByPath)}
-        </div>
-      )}
+      {open && <div className="aiq-tchildren">{renderNode(path, value, correctionsByPath)}</div>}
     </div>
   );
 }
@@ -248,41 +185,25 @@ function renderNode(
   correctionsByPath: Map<string, AIQualityCorrection[]>,
 ): React.ReactNode {
   if (isLeaf(value)) {
-    return (
-      <Leaf path={path} value={value} corrections={correctionsByPath.get(path)} />
-    );
+    return <Leaf path={path} value={value} corrections={correctionsByPath.get(path)} />;
   }
   if (Array.isArray(value)) {
     return value.map((item, i) => (
-      <div key={i} className="px-4 py-2">
-        <p className="text-xs text-muted-foreground mb-1">[{i}]</p>
-        <div className="pl-3 border-l border-border">
-          {renderNode(`${path}[${i}]`, item, correctionsByPath)}
-        </div>
+      <div key={i} style={{ padding: "4px 0" }}>
+        <div className="aiq-tbranch-count" style={{ padding: "2px 6px" }}>[{i}]</div>
+        <div className="aiq-tchildren">{renderNode(`${path}[${i}]`, item, correctionsByPath)}</div>
       </div>
     ));
   }
   return Object.entries(value as Record<string, any>).map(([k, v]) => {
     const childPath = `${path}.${k}`;
     if (isLeaf(v)) {
-      return (
-        <Leaf
-          key={childPath}
-          path={childPath}
-          label={k}
-          value={v}
-          corrections={correctionsByPath.get(childPath)}
-        />
-      );
+      return <Leaf key={childPath} path={childPath} label={k} value={v} corrections={correctionsByPath.get(childPath)} />;
     }
     return (
-      <div key={childPath} className="px-4 py-2">
-        <p className="text-xs font-medium text-muted-foreground mb-1 capitalize">
-          {k.replace(/_/g, " ")}
-        </p>
-        <div className="pl-3 border-l border-border space-y-0">
-          {renderNode(childPath, v, correctionsByPath)}
-        </div>
+      <div key={childPath} style={{ padding: "4px 0" }}>
+        <div className="aiq-tkey" style={{ padding: "6px 6px 2px" }}>{k}</div>
+        <div className="aiq-tchildren">{renderNode(childPath, v, correctionsByPath)}</div>
       </div>
     );
   });
@@ -301,62 +222,45 @@ function Leaf({
 }) {
   const displayLabel = label || path.split(".").pop() || path;
   const latest = corrections?.[corrections.length - 1];
+  const edited = !!(corrections && corrections.length);
+  const high = (latest?.model_confidence ?? 0) >= 0.85;
   return (
-    <div className="px-4 py-2">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <p className="text-xs text-muted-foreground capitalize">
-            {displayLabel.replace(/_/g, " ")}
-          </p>
-          <p className="text-sm text-foreground break-words">{renderFieldValue(value)}</p>
+    <div className={`aiq-tleaf${edited ? " edited" : ""}`}>
+      <div className="aiq-tleaf-main">
+        <div className="aiq-tleaf-top">
+          <span className="aiq-tkey">{displayLabel}</span>
+          <span className="aiq-tval">{renderFieldValue(value)}</span>
         </div>
-        {corrections && corrections.length > 0 && (
-          <div className="flex flex-col items-end gap-1 shrink-0">
-            <Badge variant="outline" className="text-[10px]">
-              Edited {corrections.length}×
-            </Badge>
-            {latest && <ChangeBadge correction={latest} />}
+        {latest && (
+          <div className="aiq-tcorr">
+            <PenLine size={12} style={{ color: "var(--color-stone-400)" }} />
+            was <span className="aiq-was">{renderFieldValue(latest.model_value)}</span>
+            <ArrowRight size={11} />
+            now <span className="aiq-now">{renderFieldValue(latest.final_value)}</span>
+            <span style={{ color: "var(--color-stone-300)" }}>·</span>
+            <span>conf {confFmt(latest.model_confidence)}</span>
+            <span style={{ color: "var(--color-stone-300)" }}>·</span>
+            <span>{getRelativeTime(latest.edited_at)}</span>
+            {corrections!.length > 1 && <span style={{ color: "var(--text-muted)" }}>· edited {corrections!.length}×</span>}
+            {high && <span className="aiq-conf-badge"><AlertTriangle size={10} />high conf</span>}
           </div>
         )}
       </div>
-      {latest && (
-        <p className="mt-1 text-xs text-muted-foreground">
-          was: {renderFieldValue(latest.model_value)} → now:{" "}
-          {renderFieldValue(latest.final_value)} · conf{" "}
-          {latest.model_confidence !== null && latest.model_confidence !== undefined
-            ? latest.model_confidence.toFixed(2)
-            : "—"}{" "}
-          · {getRelativeTime(latest.edited_at)}
-        </p>
-      )}
+      {latest && <span className={`aiq-tconf${high ? " high" : ""}`}>conf {confFmt(latest.model_confidence)}</span>}
     </div>
   );
 }
 
-function ChangeBadge({ correction }: { correction: AIQualityCorrection }) {
-  const high = (correction.model_confidence ?? 0) >= 0.85;
-  const variantClass = cn(
-    "text-[10px]",
-    correction.change_type === "added" && "border-success text-success",
-    correction.change_type === "cleared" && "border-destructive text-destructive",
-    correction.change_type === "edited" && "border-warning text-warning",
-  );
-  const label =
-    correction.change_type === "added"
-      ? "Added by human"
-      : correction.change_type === "cleared"
-      ? "Cleared by human"
-      : "Edited";
+function RawJson({ data }: { data: Record<string, any> }) {
+  const [open, setOpen] = useState(false);
   return (
-    <div className="flex flex-col items-end gap-1">
-      <Badge variant="outline" className={variantClass}>
-        {label}
-      </Badge>
-      {high && (
-        <Badge variant="outline" className="text-[10px] border-warning text-warning">
-          <AlertTriangle className="h-3 w-3 mr-0.5" /> high conf
-        </Badge>
-      )}
+    <div className="aiq-card aiq-card-pad aiq-raw">
+      <button className="aiq-raw-btn" onClick={() => setOpen((o) => !o)}>
+        {open ? <ChevronDown size={15} style={{ color: "var(--color-stone-400)" }} /> : <ChevronRight size={15} style={{ color: "var(--color-stone-400)" }} />}
+        Raw extracted JSON
+        <span style={{ marginLeft: 8, fontSize: "var(--text-xs)", fontWeight: 400, color: "var(--text-muted)" }}>extracted_data payload</span>
+      </button>
+      {open && <pre className="aiq-raw-pre">{JSON.stringify(data, null, 2)}</pre>}
     </div>
   );
 }
