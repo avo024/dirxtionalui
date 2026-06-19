@@ -260,6 +260,9 @@ export default function ReferralDetail() {
           </div>
         </div>
         <div className="rd-head-actions">
+          {(referral.status === "ready_for_review" || referral.status === "uploaded") && (
+            <button className="rw-btn outline sm" onClick={() => setEditing(true)}><Pencil size={14} />Edit details</button>
+          )}
           <button className="rw-btn outline sm" onClick={() => window.print()}><Printer size={14} />Print</button>
         </div>
       </div>
