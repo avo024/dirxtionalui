@@ -221,23 +221,13 @@ export default function ReferralDetail() {
   const patientFullName = patient.full_name || `${patient.first_name || ""} ${patient.last_name || ""}`.trim() || "—";
   const grouped = groupDocuments(documents);
   const rejected = referral.status === "rejected";
-  const sections: Record<string, any> = { patient, clinical, provider, insurance };
-  // Fields the admin explicitly flagged on reject (dotted paths), + empty required fields.
+  // Highlight ONLY what the admin team explicitly flagged on reject — never fields the
+  // AI merely left blank. The clinic fixes exactly what we marked, nothing else.
   const adminFlaggedSet = new Set<string>(referral.missing_fields?.flagged_fields || []);
-  const isFlagged = (sec: string, k: string) =>
-    ((IMPORTANT[sec] || []).includes(k) && isEmpty(sections[sec]?.[k])) || adminFlaggedSet.has(`${sec}.${k}`);
-  const flagCount = (sec: string) => {
-    const keys = new Set<string>([
-      ...(IMPORTANT[sec] || []),
-      ...[...adminFlaggedSet].filter((p) => p.startsWith(sec + ".")).map((p) => p.slice(sec.length + 1)),
-    ]);
-    return [...keys].filter((k) => isFlagged(sec, k)).length;
-  };
+  const isFlagged = (sec: string, k: string) => adminFlaggedSet.has(`${sec}.${k}`);
+  const flagCount = (sec: string) => [...adminFlaggedSet].filter((p) => p.startsWith(sec + ".")).length;
   const missingDocs: string[] = referral.missing_fields?.missing_documents || [];
   const flaggedFieldPaths: string[] = referral.missing_fields?.flagged_fields || [];
-  // Empty required fields NOT already shown as an explicit admin flag (avoids double-listing).
-  const emptyOnlyCount = ["patient", "clinical", "provider", "insurance"].reduce((n, sec) =>
-    n + (IMPORTANT[sec] || []).filter((k) => isEmpty(sections[sec]?.[k]) && !adminFlaggedSet.has(`${sec}.${k}`)).length, 0);
 
   const copy = (text: string, label: string) => { navigator.clipboard.writeText(text); toast({ title: "Copied!", description: `${label} copied to clipboard` }); };
   const activeDocId = viewerDocId || documents[0]?.id || null;
@@ -270,7 +260,7 @@ export default function ReferralDetail() {
       {/* Bar C — FixPanel (rejected) or success banner */}
       {rejected ? (
         <FixPanel reason={referral.rejection_reason} missingDocs={missingDocs} flaggedFields={flaggedFieldPaths}
-          flags={emptyOnlyCount}
+          flags={0}
           onEdit={() => setEditing(true)} onUpload={() => { setTab("documents"); }} />
       ) : (referral.status === "approved_to_send" || referral.status === "sent_to_pharmacy") && referral.pharmacy_name ? (
         <div className="rd-banner success">
@@ -311,7 +301,7 @@ export default function ReferralDetail() {
             </div>
             <div className="rd-rail">
               <StatusProgress status={referral.status} desc={statusDescriptions[referral.status] || "In progress."} />
-              <InsurancePA referral={referral} insurance={insurance} priorAuth={priorAuth} reloadOnUpdate={loadData} referralId={id!} flagged={!referral.is_bridge_program && isFlagged("insurance", "primary_member_id")} />
+              <InsurancePA referral={referral} insurance={insurance} priorAuth={priorAuth} reloadOnUpdate={loadData} referralId={id!} isFlagged={isFlagged} />
             </div>
           </div>
         )}
@@ -433,7 +423,7 @@ export default function ReferralDetail() {
       </div>
 
       {/* Edit drawer */}
-      {editing && <EditDrawer referralId={id!} data={data} onClose={() => setEditing(false)} onSaved={() => { setEditing(false); loadData(); }} />}
+      {editing && <EditDrawer referralId={id!} data={data} flaggedSet={adminFlaggedSet} onClose={() => setEditing(false)} onSaved={() => { setEditing(false); loadData(); }} />}
     </div>
   );
 }
@@ -497,7 +487,7 @@ function StatusProgress({ status, desc }: { status: string; desc: string }) {
 }
 
 /* ── Insurance & PA (two cards) ── */
-function InsurancePA({ referral, insurance, priorAuth, reloadOnUpdate, referralId, flagged }: any) {
+function InsurancePA({ referral, insurance, priorAuth, reloadOnUpdate, referralId, isFlagged }: any) {
   if (referral.is_bridge_program) {
     return (
       <div className="rd-status-card">
@@ -516,8 +506,8 @@ function InsurancePA({ referral, insurance, priorAuth, reloadOnUpdate, referralI
         </p>
         <div className="rd-dl">
           <DlRow label="Has Insurance" value={insurance.has_insurance_card ? "Yes" : "No"} />
-          {insurance.primary_insurance_name && <DlRow label="Primary Insurance" value={insurance.primary_insurance_name} />}
-          <DlRow label="Member ID" value={insurance.primary_member_id || "—"} flag={flagged} />
+          {(insurance.primary_insurance_name || (isFlagged && isFlagged("insurance", "primary_insurance_name"))) && <DlRow label="Primary Insurance" value={insurance.primary_insurance_name || "—"} flag={!!(isFlagged && isFlagged("insurance", "primary_insurance_name"))} />}
+          <DlRow label="Member ID" value={insurance.primary_member_id || "—"} flag={!!(isFlagged && isFlagged("insurance", "primary_member_id"))} />
           {insurance.secondary_insurance_name && <DlRow label="Secondary Insurance" value={insurance.secondary_insurance_name} />}
           {insurance.notes && <DlRow label="Insurance Notes" value={insurance.notes} />}
         </div>
@@ -616,7 +606,7 @@ const EDIT_GROUPS = [
     { k: "secondary_insurance_name", label: "Secondary Insurance" }, { k: "notes", label: "Insurance Notes" },
   ] },
 ];
-function EditDrawer({ referralId, data, onClose, onSaved }: any) {
+function EditDrawer({ referralId, data, flaggedSet, onClose, onSaved }: any) {
   const [draft, setDraft] = useState<any>(() => {
     const d: any = {};
     EDIT_GROUPS.forEach((g) => {
@@ -648,12 +638,18 @@ function EditDrawer({ referralId, data, onClose, onSaved }: any) {
           <button className="rw-ic-btn" onClick={onClose} aria-label="Close"><X size={18} /></button>
         </div>
         <div className="rd-drawer-body">
+          {flaggedSet && flaggedSet.size > 0 && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", marginBottom: 12, borderRadius: "var(--radius-md)", background: "color-mix(in srgb, var(--color-warning) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--color-warning) 35%, transparent)", color: "#92400E", fontSize: "var(--text-sm)", fontWeight: 600 }}>
+              <AlertTriangle size={15} style={{ flexShrink: 0 }} />
+              {flaggedSet.size} field{flaggedSet.size > 1 ? "s" : ""} flagged by our team — highlighted below.
+            </div>
+          )}
           {EDIT_GROUPS.map((g) => (
             <div className="rd-edit-sect" key={g.section}>
               <p className="rd-edit-sect-label"><span className="ei"><g.icon size={15} /></span>{g.label}</p>
               <div className="rd-edit-grid">
                 {g.fields.map((f: any) => {
-                  const flag = (IMPORTANT[g.section] || []).includes(f.k) && isEmpty((data[g.section] || {})[f.k]);
+                  const flag = !!(flaggedSet && flaggedSet.has(`${g.section}.${f.k}`));
                   const v = draft[g.section][f.k];
                   return (
                     <div key={f.k} className={`rd-efield${f.span || f.k === "notes" || f.k === "allergies" || f.k === "address" ? " span" : ""}`}>
