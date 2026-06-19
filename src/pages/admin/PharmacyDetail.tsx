@@ -1,20 +1,51 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Pencil, Power, MapPin, Mail, Phone, Printer, FileText } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import {
+  ArrowLeft, Pencil, Power, MapPin, Mail, Phone, Printer, PhoneCall, UserRound, Ban, ShieldOff,
+} from "lucide-react";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { PharmacyFormModal } from "@/components/PharmacyFormModal";
+import { getInitials } from "@/components/CreatedByAvatar";
 import { pharmacyApi } from "@/lib/api";
 import { toast } from "sonner";
+import "../clinic/wizard.css";
+import "../clinic/dashboard.css";
+import "./admin-clinics.css";
+import "./admin-pharmacies.css";
 
 function formatPhone(value: string | null): string {
   if (!value) return "—";
   const digits = value.replace(/\D/g, "");
   if (digits.length === 10) return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
   return value;
+}
+
+function StatusPill({ active }: { active: boolean }) {
+  return (
+    <span
+      style={{
+        display: "inline-flex", alignItems: "center", fontSize: 11, fontWeight: 700,
+        padding: "2px 9px", borderRadius: 9999,
+        color: active ? "var(--status-approved-fg)" : "var(--text-muted)",
+        background: active ? "var(--status-approved-bg)" : "var(--bg-muted)",
+      }}
+    >
+      {active ? "Active" : "Inactive"}
+    </span>
+  );
+}
+
+function IconRow({ icon: Icon, label, value, mono }: { icon: any; label: string; value: string; mono?: boolean }) {
+  return (
+    <div className="cl-d-kv">
+      <span className="cl-d-kv-ic"><Icon size={15} /></span>
+      <div>
+        <div className="cl-d-kv-lbl">{label}</div>
+        <div className={`cl-d-kv-val${mono ? " mono" : ""}`}>{value}</div>
+      </div>
+    </div>
+  );
 }
 
 export default function PharmacyDetail() {
@@ -42,143 +73,111 @@ export default function PharmacyDetail() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6 max-w-4xl">
-        <Skeleton className="h-10 w-1/2" />
-        <Skeleton className="h-64 w-full" />
+      <div className="rw-page rw-fade">
+        <div className="cl-skel">
+          {[0, 1, 2, 3].map((i) => <div key={i} className="cl-skel-row" />)}
+        </div>
       </div>
     );
   }
 
   if (isError || !pharmacy) {
     return (
-      <div className="text-center py-20">
-        <p className="text-muted-foreground">Pharmacy not found</p>
-        <Button variant="outline" className="mt-4" onClick={() => navigate("/admin/pharmacies")}>Back</Button>
+      <div className="rw-page rw-fade">
+        <div className="dh-empty">
+          <div className="dh-empty-ic cl-error-ic"><ShieldOff size={24} /></div>
+          <h3>Pharmacy not found</h3>
+          <p>We couldn’t load this pharmacy.</p>
+          <button className="rw-btn primary" onClick={() => navigate("/admin/pharmacies")}>Back to pharmacies</button>
+        </div>
       </div>
     );
   }
 
-  const fullAddress = [pharmacy.address, pharmacy.city, pharmacy.state, pharmacy.zip].filter(Boolean).join(", ") || "—";
+  const p = pharmacy;
+  const fullAddress = [p.address, p.city, p.state, p.zip].filter(Boolean).join(", ") || "—";
+  const secondary = [p.contact_email, p.contact_phone ? formatPhone(p.contact_phone) : null].filter(Boolean).join(" · ") || "—";
+
+  const FIELDS = [
+    { icon: MapPin, label: "Address", value: fullAddress },
+    { icon: Mail, label: "Email", value: p.email || "—" },
+    { icon: Phone, label: "Phone", value: formatPhone(p.phone), mono: true },
+    { icon: Printer, label: "Fax", value: formatPhone(p.fax), mono: true },
+    { icon: PhoneCall, label: "Alt Phone / Fax", value: p.alt_phone_fax || "—", mono: true },
+    { icon: UserRound, label: "Secondary Contact", value: secondary },
+  ];
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="rw-page rw-fade">
+      <button className="cl-back" onClick={() => navigate("/admin/pharmacies")}>
+        <ArrowLeft size={16} />All pharmacies
+      </button>
+
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/admin/pharmacies")}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-foreground">{pharmacy.name}</h1>
-            <Badge
-              variant={pharmacy.is_active ? "default" : "secondary"}
-              className={pharmacy.is_active ? "bg-success/10 text-success border-0" : ""}
-            >
-              {pharmacy.is_active ? "Active" : "Inactive"}
-            </Badge>
-            {pharmacy.accepts_no_insurance && (
-              <Badge variant="outline" className="text-xs">Accepts no insurance</Badge>
+      <div className={`cl-d-header ph-d-header${!p.is_active ? " inactive" : ""}`}>
+        <span className="dh-avatar cl-d-avatar">{getInitials(p.name)}</span>
+        <div className="cl-d-head-meta">
+          <div className="cl-d-title-row">
+            <h1 className="cl-d-title">{p.name}</h1>
+            <StatusPill active={p.is_active} />
+            {p.accepts_no_insurance && (
+              <span className="ph-badge-noins"><ShieldOff size={12} />Accepts no insurance</span>
+            )}
+          </div>
+          {p.city && <p className="cl-d-sub">{[p.city, p.state].filter(Boolean).join(", ")}</p>}
+        </div>
+        <div className="ph-d-actions">
+          <button className="rw-btn outline" onClick={() => setEditOpen(true)}><Pencil size={15} />Edit</button>
+          <button className="rw-btn outline ph-d-deact" disabled={!p.is_active} onClick={() => setDeactivateOpen(true)}>
+            <Power size={15} />Deactivate
+          </button>
+        </div>
+      </div>
+
+      <div className="cl-d-stack">
+        {/* Details */}
+        <div className="cl-card-plain">
+          <div className="cl-panel-head"><h3>Pharmacy details</h3></div>
+          <div className="cl-d-kvs ph-d-kvs">
+            {FIELDS.map((f) => <IconRow key={f.label} icon={f.icon} label={f.label} value={f.value} mono={f.mono} />)}
+          </div>
+        </div>
+
+        {/* Blocked medications */}
+        <div className="cl-card-plain">
+          <div className="cl-panel-head">
+            <h3>Blocked Medications</h3>
+            <span className="cl-panel-sub">{p.blocked_medications.length} blocked</span>
+          </div>
+          <div className="ph-blocked">
+            {p.blocked_medications.length > 0 ? (
+              <div className="ph-blocked-list">
+                {p.blocked_medications.map((m) => (
+                  <span key={m} className="ph-blocked-chip"><Ban size={12} />{m}</span>
+                ))}
+              </div>
+            ) : (
+              <p className="ph-blocked-empty">No blocked medications — this pharmacy can receive referrals for any drug.</p>
             )}
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
-            <Pencil className="h-4 w-4 mr-1" />
-            Edit
-          </Button>
-          {pharmacy.is_active && (
-            <Button variant="outline" size="sm" className="text-destructive" onClick={() => setDeactivateOpen(true)}>
-              <Power className="h-4 w-4 mr-1" />
-              Deactivate
-            </Button>
-          )}
+
+        {/* Notes */}
+        <div className="cl-card-plain">
+          <div className="cl-panel-head"><h3>Notes</h3></div>
+          <div className="ph-notes">
+            {p.notes ? <p>{p.notes}</p> : <p className="ph-notes-empty">No notes for this pharmacy.</p>}
+          </div>
         </div>
       </div>
 
-      {/* Details */}
-      <div className="rounded-xl border border-border bg-card p-6 card-shadow">
-        <h3 className="font-semibold text-foreground mb-4">Pharmacy Details</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
-          <div className="flex items-start gap-2">
-            <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-            <div>
-              <p className="text-xs text-muted-foreground">Address</p>
-              <p className="font-medium">{fullAddress}</p>
-            </div>
-          </div>
-          <div className="flex items-start gap-2">
-            <Mail className="h-4 w-4 text-muted-foreground mt-0.5" />
-            <div>
-              <p className="text-xs text-muted-foreground">Email</p>
-              <p className="font-medium">{pharmacy.email || "—"}</p>
-            </div>
-          </div>
-          <div className="flex items-start gap-2">
-            <Phone className="h-4 w-4 text-muted-foreground mt-0.5" />
-            <div>
-              <p className="text-xs text-muted-foreground">Phone</p>
-              <p className="font-medium">{formatPhone(pharmacy.phone)}</p>
-            </div>
-          </div>
-          <div className="flex items-start gap-2">
-            <Printer className="h-4 w-4 text-muted-foreground mt-0.5" />
-            <div>
-              <p className="text-xs text-muted-foreground">Fax</p>
-              <p className="font-medium">{formatPhone(pharmacy.fax)}</p>
-            </div>
-          </div>
-          {pharmacy.alt_phone_fax && (
-            <div className="flex items-start gap-2">
-              <Phone className="h-4 w-4 text-muted-foreground mt-0.5" />
-              <div>
-                <p className="text-xs text-muted-foreground">Alt Phone/Fax</p>
-                <p className="font-medium">{pharmacy.alt_phone_fax}</p>
-              </div>
-            </div>
-          )}
-          {(pharmacy.contact_email || pharmacy.contact_phone) && (
-            <div className="flex items-start gap-2">
-              <Mail className="h-4 w-4 text-muted-foreground mt-0.5" />
-              <div>
-                <p className="text-xs text-muted-foreground">Secondary Contact</p>
-                <p className="font-medium">{pharmacy.contact_email || "—"}</p>
-                {pharmacy.contact_phone && (
-                  <p className="font-medium text-muted-foreground">{formatPhone(pharmacy.contact_phone)}</p>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {pharmacy.blocked_medications && pharmacy.blocked_medications.length > 0 && (
-          <div className="mt-6">
-            <p className="text-xs text-muted-foreground mb-2">Blocked Medications</p>
-            <div className="flex flex-wrap gap-1">
-              {pharmacy.blocked_medications.map((med) => (
-                <Badge key={med} variant="secondary" className="text-xs">{med}</Badge>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {pharmacy.notes && (
-          <div className="mt-6">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-              <FileText className="h-3.5 w-3.5" />
-              Notes
-            </div>
-            <p className="text-sm whitespace-pre-wrap">{pharmacy.notes}</p>
-          </div>
-        )}
-      </div>
-
-      <PharmacyFormModal open={editOpen} onOpenChange={setEditOpen} pharmacy={pharmacy} />
+      <PharmacyFormModal open={editOpen} onOpenChange={setEditOpen} pharmacy={p} />
 
       <ConfirmModal
         open={deactivateOpen}
         onOpenChange={setDeactivateOpen}
         title="Deactivate pharmacy?"
-        description={`Deactivate ${pharmacy.name}? They won't appear in new referrals.`}
+        description={`Deactivate ${p.name}? They won't appear in new referrals.`}
         confirmLabel="Deactivate"
         variant="destructive"
         onConfirm={() => deleteMutation.mutate()}
