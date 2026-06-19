@@ -1,9 +1,13 @@
-# Admin Spec 07 — Add-on Requests
+# Admin Spec 07 — Add-on Requests  🚫 HIDDEN (decided 2026-06-19)
 
-**Component:** `AdminAddonRequests.tsx` · **Route:** `/admin/addon-requests`
+**Decision:** no add-ons exist yet (clinic-side Services is hidden), so the admin add-on surface
+is hidden too — the **`/admin/addon-requests` nav item is removed** AND the **add-ons panel is
+dropped from Clinic Detail** (see 04-clinics.md). Routes/components stay in code; just no nav +
+no clinic-detail panel. Re-enable both when add-ons launch. No redesign needed now.
 
-> Light restyle. Keep all fields/actions. (Note: clinic-side Services is currently HIDDEN, so
-> this admin queue will usually be empty until add-ons exist — low priority.)
+---
+
+**Component (kept, not linked):** `AdminAddonRequests.tsx` · **Route (no nav):** `/admin/addon-requests`
 
 ## What it does
 Review clinic add-on requests. `GET /admin/addon-requests?status=…`; decide
