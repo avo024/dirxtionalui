@@ -1,36 +1,47 @@
 import { useState, useMemo, useEffect } from "react";
-import { Link, useSearchParams, useLocation } from "react-router-dom";
-import { Search, Plus, FileSearch, ChevronLeft, ChevronRight } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { ReferralTable } from "@/components/ReferralTable";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Link, useSearchParams, useLocation, useNavigate } from "react-router-dom";
+import {
+  Search, Plus, FileSearch, ChevronLeft, ChevronRight, ListFilter,
+  ChevronsUpDown, ChevronUp, ChevronDown, Eye,
+} from "lucide-react";
+import { StatusBadge } from "@/components/StatusBadge";
+import { ClinicPABadge } from "@/components/ClinicPABadge";
+import { CreatedByAvatar } from "@/components/CreatedByAvatar";
 import { clinicApi } from "@/lib/api";
 import { mapReferralsFromBackend } from "@/lib/dataMapper";
-import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { formatDateShort } from "@/lib/dateUtils";
 import type { Referral } from "@/types/index";
+import "./wizard.css";
+import "./dashboard.css";
+import "./referrals.css";
 
-interface FilterDef {
-  label: string;
-  value: string;
-  color: string;
-}
-
-const filters: FilterDef[] = [
-  { label: "All", value: "all", color: "bg-primary text-primary-foreground" },
-  { label: "In Review", value: "in_review", color: "bg-status-processing-bg text-status-processing-fg" },
-  { label: "Needs Attention", value: "rejected", color: "bg-destructive text-destructive-foreground" },
-  { label: "Sent", value: "sent_to_pharmacy", color: "bg-status-sent-bg text-status-sent-fg" },
+const filters = [
+  { label: "All", value: "all" },
+  { label: "In Review", value: "in_review" },
+  { label: "Needs Attention", value: "rejected" },
+  { label: "Sent", value: "sent_to_pharmacy" },
 ];
-
 const filterStatusMap: Record<string, string[]> = {
   all: [],
   in_review: ["processing", "ready_for_review", "uploaded"],
   rejected: ["rejected"],
   sent_to_pharmacy: ["sent_to_pharmacy", "approved_to_send"],
 };
+
+type Sort = { col: "status" | "created" | "updated"; dir: "asc" | "desc" } | null;
+
+// Ellipsis-aware page window: 1 … c-1 c c+1 … total
+function pageWindow(total: number, cur: number): (number | "…")[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const out: (number | "…")[] = [1];
+  const lo = Math.max(2, cur - 1), hi = Math.min(total - 1, cur + 1);
+  if (lo > 2) out.push("…");
+  for (let i = lo; i <= hi; i++) out.push(i);
+  if (hi < total - 1) out.push("…");
+  out.push(total);
+  return out;
+}
 
 export default function ReferralsList() {
   const [referrals, setReferrals] = useState<Referral[]>([]);
@@ -40,230 +51,180 @@ export default function ReferralsList() {
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState("10");
+  const [sort, setSort] = useState<Sort>(null);
   const { toast } = useToast();
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     async function fetchReferrals() {
       try {
         setLoading(true);
         const response = await clinicApi.getReferrals();
-        setReferrals(mapReferralsFromBackend(response.items || response || []));
+        setReferrals(mapReferralsFromBackend((response as any).items || response || []));
       } catch (err) {
         console.error("Failed to fetch referrals:", err);
-        toast({
-          title: "Error loading referrals",
-          description: err instanceof Error ? err.message : "Could not connect to the server.",
-          variant: "destructive",
-        });
+        toast({ title: "Error loading referrals", description: err instanceof Error ? err.message : "Could not connect to the server.", variant: "destructive" });
       } finally {
         setLoading(false);
       }
     }
     fetchReferrals();
-
     const handleFocus = () => fetchReferrals();
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
   }, [toast, location.key]);
 
-  function getFilterCount(value: string): number {
+  const getFilterCount = (value: string): number => {
     if (value === "all") return referrals.length;
     const statuses = filterStatusMap[value] || [value];
     return referrals.filter((r) => statuses.includes(r.status)).length;
-  }
+  };
 
   const filtered = useMemo(() => {
-    return referrals.filter((r) => {
-      const matchesSearch =
-        r.patient_name.toLowerCase().includes(search.toLowerCase()) ||
-        r.drug.toLowerCase().includes(search.toLowerCase()) ||
-        r.id.toLowerCase().includes(search.toLowerCase());
+    const base = referrals.filter((r) => {
+      const q = search.toLowerCase();
+      const matchesSearch = r.patient_name.toLowerCase().includes(q) || r.drug.toLowerCase().includes(q) || r.id.toLowerCase().includes(q);
       if (!matchesSearch) return false;
-
       if (activeFilter === "all") return true;
       const statuses = filterStatusMap[activeFilter] || [activeFilter];
       return statuses.includes(r.status);
     });
-  }, [activeFilter, search, referrals]);
+    if (!sort) return base;
+    const dir = sort.dir === "asc" ? 1 : -1;
+    return [...base].sort((a: any, b: any) => {
+      let av: any, bv: any;
+      if (sort.col === "created") { av = new Date(a.created_at || 0).getTime(); bv = new Date(b.created_at || 0).getTime(); }
+      else if (sort.col === "updated") { av = new Date(a.updated_at || 0).getTime(); bv = new Date(b.updated_at || 0).getTime(); }
+      else { av = a.status || ""; bv = b.status || ""; }
+      return av < bv ? -dir : av > bv ? dir : 0;
+    });
+  }, [activeFilter, search, referrals, sort]);
 
   const itemsPerPage = parseInt(pageSize);
-  const totalPages = Math.ceil(filtered.length / itemsPerPage);
-  const paginatedReferrals = filtered.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+  const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginated = filtered.slice((safePage - 1) * itemsPerPage, safePage * itemsPerPage);
+  const startItem = filtered.length === 0 ? 0 : (safePage - 1) * itemsPerPage + 1;
+  const endItem = Math.min(safePage * itemsPerPage, filtered.length);
+
+  const handleFilter = (value: string) => { setActiveFilter(value); setCurrentPage(1); };
+  const handleSearch = (value: string) => { setSearch(value); setCurrentPage(1); };
+  const onSort = (col: "status" | "created" | "updated") =>
+    setSort((s) => (!s || s.col !== col ? { col, dir: "asc" } : s.dir === "asc" ? { col, dir: "desc" } : null));
+  const clearFilters = () => { setSearch(""); setActiveFilter("all"); };
+
+  const SortCaret = ({ col }: { col: "status" | "created" | "updated" }) => {
+    const active = sort?.col === col;
+    const Icon = !active ? ChevronsUpDown : sort!.dir === "asc" ? ChevronUp : ChevronDown;
+    return <span className={`rl-caret${active ? " on" : ""}`}><Icon size={13} /></span>;
+  };
+  const SortTh = ({ col, children }: { col: "status" | "created" | "updated"; children: React.ReactNode }) => (
+    <th><button className="rl-sortbtn" onClick={() => onSort(col)}>{children}<SortCaret col={col} /></button></th>
   );
-  const startItem = filtered.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
-  const endItem = Math.min(currentPage * itemsPerPage, filtered.length);
-
-  const handleFilterChange = (value: string) => {
-    setActiveFilter(value);
-    setCurrentPage(1);
-  };
-
-  const handleSearchChange = (value: string) => {
-    setSearch(value);
-    setCurrentPage(1);
-  };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="rw-page rl-page rw-fade">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="rl-header">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">My Referrals</h1>
-          <p className="text-muted-foreground mt-1">
-            View and track all your submitted referrals
-          </p>
+          <h1 className="rl-h1 serif">My Referrals</h1>
+          <p className="rl-sub">View and track all your submitted referrals</p>
         </div>
-        <Button asChild>
-          <Link to="/clinic/referrals/new">
-            <Plus className="h-4 w-4 mr-2" />
-            New Referral
-          </Link>
-        </Button>
+        <Link to="/clinic/referrals/new" className="rw-btn primary"><Plus size={15} />New Referral</Link>
       </div>
 
-      {/* Filters & Search */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-        <div className="flex gap-1 bg-secondary rounded-lg p-1">
-          {filters.map((f) => {
-            const count = getFilterCount(f.value);
-            return (
-              <button
-                key={f.value}
-                onClick={() => handleFilterChange(f.value)}
-                className={cn(
-                  "px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 flex items-center gap-1.5",
-                  activeFilter === f.value
-                    ? "bg-card text-foreground card-shadow"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {f.label}
-                <span
-                  className={cn(
-                    "text-xs rounded-full px-1.5 py-0.5 min-w-[20px] text-center font-semibold",
-                    activeFilter === f.value
-                      ? f.color
-                      : "bg-muted text-muted-foreground"
-                  )}
-                >
-                  {count}
-                </span>
+      {/* Toolbar — segmented filter + dropdown + search */}
+      <div className="rl-toolbar">
+        <div className="rl-seg-wrap">
+          <div className="rl-seg">
+            {filters.map((f) => (
+              <button key={f.value} className={`rl-seg-btn${activeFilter === f.value ? " on" : ""}`} onClick={() => handleFilter(f.value)}>
+                {f.label}<span className="rl-seg-n num">{getFilterCount(f.value)}</span>
               </button>
-            );
-          })}
+            ))}
+          </div>
+          <div className="rl-statusdd">
+            <ListFilter size={15} />
+            <select className="rl-select" value={activeFilter} onChange={(e) => handleFilter(e.target.value)}>
+              {filters.map((f) => <option key={f.value} value={f.value}>{f.label} ({getFilterCount(f.value)})</option>)}
+            </select>
+          </div>
         </div>
-        <div className="relative flex-1 max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by patient, drug, or ID..."
-            value={search}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            className="pl-9"
-          />
+        <div className="rl-search">
+          <span className="rl-search-ic"><Search size={16} /></span>
+          <input className="rl-search-input" placeholder="Search by patient, drug, or ID..." value={search} onChange={(e) => handleSearch(e.target.value)} />
         </div>
       </div>
 
-      {/* Loading State */}
+      {/* List */}
       {loading ? (
-        <div className="space-y-3">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-14 w-full rounded-lg" />
-          ))}
-        </div>
+        <div className="rl-skel">{[0, 1, 2, 3].map((i) => <div key={i} className="rl-skel-row" />)}</div>
       ) : filtered.length > 0 ? (
-        <ReferralTable referrals={paginatedReferrals} userType="clinic" />
+        <div className="dh-table-wrap">
+          <table className="dh-table">
+            <thead>
+              <tr>
+                <th>ID</th><th>Patient Name</th><th>Drug</th>
+                <SortTh col="status">Status</SortTh>
+                <th>PA Status</th>
+                <SortTh col="created">Created</SortTh>
+                <SortTh col="updated">Updated</SortTh>
+                <th className="r">Actions</th><th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginated.map((r: any) => (
+                <tr key={r.id} onClick={() => navigate(`/clinic/referrals/${r.id}`)}>
+                  <td><span className="dh-id">{(r.id || "").toUpperCase()}</span></td>
+                  <td><span className="dh-pt">{r.latest_admin_note_at && <span className="dh-note-dot" title="New note" />}<span className="dh-pt-nm">{r.patient_name}</span></span></td>
+                  <td>{r.drug || r.drug_requested || "—"}</td>
+                  <td><StatusBadge status={r.status} /></td>
+                  <td><ClinicPABadge status={r.pa_status} /></td>
+                  <td className="dh-muted-cell">{r.created_at ? formatDateShort(r.created_at) : "—"}</td>
+                  <td className="dh-muted-cell">{r.updated_at ? formatDateShort(r.updated_at) : "—"}</td>
+                  <td className="r" onClick={(e) => e.stopPropagation()}><Link to={`/clinic/referrals/${r.id}`} className="rw-btn outline sm"><Eye size={14} />View</Link></td>
+                  <td><CreatedByAvatar name={r.created_by_name} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       ) : search || activeFilter !== "all" ? (
-        <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
-          <div className="mx-auto h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-4">
-            <FileSearch className="h-5 w-5 text-muted-foreground" />
-          </div>
-          <p className="text-sm font-medium text-foreground mb-1">
-            No referrals found
-          </p>
-          <p className="text-sm text-muted-foreground mb-4">
-            Try adjusting your search or filters
-          </p>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setSearch("");
-              setActiveFilter("all");
-            }}
-          >
-            Clear Filters
-          </Button>
+        <div className="dh-empty">
+          <div className="dh-empty-ic sm"><FileSearch size={20} /></div>
+          <p className="rl-empty-t">No referrals found</p>
+          <p className="rl-empty-s">Try adjusting your search or filters</p>
+          <button className="rw-btn outline sm" onClick={clearFilters}>Clear Filters</button>
         </div>
       ) : (
-        <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
-          <div className="mx-auto h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
-            <FileSearch className="h-7 w-7 text-muted-foreground" />
-          </div>
-          <h3 className="text-lg font-semibold text-foreground mb-1">
-            You haven't created any referrals yet
-          </h3>
-          <p className="text-sm text-muted-foreground mb-6">
-            Create your first referral to get started
-          </p>
-          <Button asChild>
-            <Link to="/clinic/referrals/new">
-              <Plus className="h-4 w-4 mr-2" />
-              Create Your First Referral
-            </Link>
-          </Button>
+        <div className="dh-empty">
+          <div className="dh-empty-ic"><FileSearch size={26} /></div>
+          <h3>You haven't created any referrals yet</h3>
+          <p>Create your first referral to get started</p>
+          <Link to="/clinic/referrals/new" className="rw-btn primary" style={{ display: "inline-flex" }}><Plus size={15} />Create Your First Referral</Link>
         </div>
       )}
 
-      {/* Pagination */}
+      {/* Pagination — compact */}
       {!loading && filtered.length > 0 && (
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <span>
-              Showing {startItem}-{endItem} of {filtered.length} referrals
-            </span>
-            <Select value={pageSize} onValueChange={(v) => { setPageSize(v); setCurrentPage(1); }}>
-              <SelectTrigger className="w-[110px] h-8 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="5">5 per page</SelectItem>
-                <SelectItem value="10">10 per page</SelectItem>
-                <SelectItem value="25">25 per page</SelectItem>
-                <SelectItem value="50">50 per page</SelectItem>
-              </SelectContent>
-            </Select>
+        <div className="rl-pag">
+          <div className="rl-pag-meta">
+            <span>Showing {startItem}-{endItem} of {filtered.length} referrals</span>
+            <select className="rl-pagesize" value={pageSize} onChange={(e) => { setPageSize(e.target.value); setCurrentPage(1); }}>
+              {["5", "10", "25", "50"].map((s) => <option key={s} value={s}>{s} per page</option>)}
+            </select>
           </div>
-          <div className="flex items-center gap-1">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage((p) => p - 1)}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-              <Button
-                key={page}
-                variant={page === currentPage ? "default" : "outline"}
-                size="sm"
-                className="w-8 h-8 p-0"
-                onClick={() => setCurrentPage(page)}
-              >
-                {page}
-              </Button>
-            ))}
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={currentPage === totalPages}
-              onClick={() => setCurrentPage((p) => p + 1)}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+          <div className="rl-pag-ctrl">
+            <button className="rw-btn outline sm" disabled={safePage === 1} onClick={() => setCurrentPage(safePage - 1)}><ChevronLeft size={15} />Prev</button>
+            <div className="rl-pg-window">
+              {pageWindow(totalPages, safePage).map((n, i) => (
+                n === "…" ? <span key={`e${i}`} className="rl-pg-ell">…</span>
+                  : <button key={n} className={`rl-pg-num${n === safePage ? " on" : ""}`} onClick={() => setCurrentPage(n as number)}>{n}</button>
+              ))}
+            </div>
+            <span className="rl-pg-xy">Page {safePage} of {totalPages}</span>
+            <button className="rw-btn outline sm" disabled={safePage === totalPages} onClick={() => setCurrentPage(safePage + 1)}>Next<ChevronRight size={15} /></button>
           </div>
         </div>
       )}

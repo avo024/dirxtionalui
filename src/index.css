@@ -1,69 +1,129 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ───────────────────────────────────────────────────────────────────────
+   DiRxctional brand palette — Direction C "Navy + Teal"
+   Navy #1B2B5B · Teal #14B8A6 · off-white #FAFAF9 canvas · dark navy sidebar.
+   Token shape is shadcn-standard, so all components restyle automatically
+   (clinic + admin share these variables).
+   ─────────────────────────────────────────────────────────────────────── */
+
 @layer base {
   :root {
-    --background: 210 20% 98%;
-    --foreground: 220 20% 14%;
+    --background: 60 11% 98%;          /* #FAFAF9 off-white */
+    --foreground: 222 54% 23%;         /* navy */
 
     --card: 0 0% 100%;
-    --card-foreground: 220 20% 14%;
+    --card-foreground: 222 54% 23%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 20% 14%;
+    --popover-foreground: 222 54% 23%;
 
-    --primary: 159 68% 62%;
+    --primary: 222 54% 23%;            /* navy #1B2B5B */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 220 20% 20%;
+    --secondary: 60 6% 96%;            /* stone-100 */
+    --secondary-foreground: 222 54% 23%;
 
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 10% 46%;
+    --muted: 60 6% 96%;
+    --muted-foreground: 25 5% 45%;     /* stone-500 */
 
-    --accent: 259 73% 70%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 168 76% 97%;             /* teal-50 */
+    --accent-foreground: 175 78% 26%;  /* teal-700 */
 
-    --destructive: 0 89% 68%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 148 48% 48%;
+    --success: 142 71% 36%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 27 83% 57%;
+    --warning: 25 96% 61%;             /* peach */
     --warning-foreground: 0 0% 100%;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 159 68% 62%;
+    --border: 20 6% 90%;               /* stone-200 */
+    --input: 20 6% 90%;
+    --ring: 174 80% 40%;               /* teal #14B8A6 */
 
-    --radius: 0.75rem;
+    --radius: 0.5rem;
 
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 220 10% 40%;
-    --sidebar-primary: 159 68% 55%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 159 40% 96%;
-    --sidebar-accent-foreground: 159 50% 28%;
-    --sidebar-border: 220 13% 93%;
-    --sidebar-ring: 159 68% 62%;
+    /* Dark navy sidebar with teal active highlight */
+    --sidebar-background: 226 55% 16%; /* #121D3E */
+    --sidebar-foreground: 220 16% 78%;
+    --sidebar-primary: 174 80% 40%;    /* teal */
+    --sidebar-primary-foreground: 226 55% 12%;
+    --sidebar-accent: 222 50% 22%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 222 38% 24%;
+    --sidebar-ring: 174 80% 40%;
 
     /* Status semantic colors */
-    --status-uploaded-bg: 220 14% 96%;
-    --status-uploaded-fg: 220 10% 46%;
-    --status-processing-bg: 210 100% 95%;
-    --status-processing-fg: 210 80% 45%;
-    --status-review-bg: 38 92% 95%;
-    --status-review-fg: 38 75% 40%;
-    --status-approved-bg: 148 60% 93%;
-    --status-approved-fg: 148 50% 35%;
-    --status-sent-bg: 159 60% 92%;
-    --status-sent-fg: 159 55% 32%;
-    --status-rejected-bg: 0 100% 96%;
-    --status-rejected-fg: 0 70% 50%;
+    --status-uploaded-bg: 20 6% 93%;
+    --status-uploaded-fg: 25 8% 35%;
+    --status-processing-bg: 217 91% 94%;
+    --status-processing-fg: 224 76% 38%;
+    --status-review-bg: 18 49% 91%;        /* blush */
+    --status-review-fg: 25 70% 32%;
+    --status-approved-bg: 142 60% 92%;
+    --status-approved-fg: 142 71% 24%;
+    --status-sent-bg: 168 76% 92%;
+    --status-sent-fg: 175 78% 26%;
+    --status-rejected-bg: 0 84% 95%;
+    --status-rejected-fg: 0 72% 42%;
+
+    /* ── DiRxctional App UI raw tokens (used by redesign pages, e.g. wizard.css) ──
+       Hex constants for the brand triad + scales. Coexist with the shadcn HSL
+       tokens above; the redesign component CSS references these by name. */
+    --color-navy: #1B2B5B;
+    --color-navy-dark: #121D3E;
+    --color-teal: #14B8A6;
+    --color-teal-50: #F0FDFA;
+    --color-teal-700: #0F766E;
+    --color-stone-50: #FAFAF9;
+    --color-stone-100: #F5F5F4;
+    --color-stone-200: #E7E5E4;
+    --color-stone-300: #D6D3D1;
+    --color-stone-400: #A8A29E;
+    --color-success: #16A34A;
+    --color-warning: #F59E0B;
+    --color-error: #DC2626;
+
+    --text-primary: var(--color-navy);
+    --text-body: #44403C;            /* stone-700 */
+    --text-muted: #78716C;           /* stone-500 */
+    --bg-page: #FAFAF9;
+    --bg-card: #FFFFFF;
+    --border-default: var(--color-stone-200);
+
+    --radius-sm: 0.375rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
+    --radius-full: 9999px;
+
+    --shadow-sm: 0 1px 3px rgba(16,24,40,0.06), 0 1px 2px rgba(16,24,40,0.04);
+    --shadow-md: 0 4px 6px -1px rgba(16,24,40,0.07), 0 2px 4px -2px rgba(16,24,40,0.05);
+    --shadow-lg: 0 10px 15px -3px rgba(16,24,40,0.08), 0 4px 6px -4px rgba(16,24,40,0.04);
+    --glow-teal: 0 0 0 3px rgba(20,184,166,0.20);
+
+    --text-xs: 0.75rem;
+    --text-sm: 0.875rem;
+    --text-base: 1rem;
+    --text-lg: 1.125rem;
+
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+    --font-editorial: 'Newsreader', Georgia, serif;
+
+    /* status-pill hex pairs for the redesign wizard (parallel to HSL above) */
+    --status-uploaded-bg-hex: #EEEDEB;   --status-uploaded-fg-hex: #57534E;
+    --status-processing-bg-hex: #DBEAFE;  --status-processing-fg-hex: #1D4ED8;
+    --status-review-bg-hex: #FBE8DD;      --status-review-fg-hex: #9A4A1E;
+    --status-approved-bg-hex: #DCFCE7;    --status-approved-fg-hex: #15803D;
+    --status-sent-bg-hex: #CCFBF1;        --status-sent-fg-hex: #0F766E;
+    --status-rejected-bg-hex: #FEE2E2;    --status-rejected-fg-hex: #B91C1C;
   }
 
   * {
@@ -73,7 +133,10 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-feature-settings: "cv11", "ss01";
   }
+
+  .num, td.num, [data-numeric] { font-variant-numeric: tabular-nums; }
 }
 
 @layer utilities {

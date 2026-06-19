@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Plus, FileText, LogOut, Users, Sparkles } from "lucide-react";
+import { LayoutDashboard, Plus, FileText, LogOut, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import logo from "@/assets/logo.png";
@@ -9,7 +9,8 @@ const navItems = [
   { label: "Patients", icon: Users, path: "/clinic/patients" },
   { label: "New Referral", icon: Plus, path: "/clinic/referrals/new" },
   { label: "My Referrals", icon: FileText, path: "/clinic/referrals" },
-  { label: "Services", icon: Sparkles, path: "/clinic/services" },
+  // Services hidden until add-ons exist — re-add when there are services to offer.
+  // { label: "Services", icon: Sparkles, path: "/clinic/services" },
 ];
 
 export function ClinicSidebar() {
@@ -25,8 +26,8 @@ export function ClinicSidebar() {
 
       {/* Clinic name */}
       <div className="px-5 py-3 border-b border-sidebar-border">
-        <p className="text-xs text-muted-foreground">Clinic</p>
-        <p className="text-sm font-medium text-foreground truncate">{user?.clinic_name}</p>
+        <p className="text-xs text-sidebar-foreground/60">Clinic</p>
+        <p className="text-sm font-medium text-sidebar-accent-foreground truncate">{user?.clinic_name}</p>
       </div>
 
       {/* Nav links */}
@@ -42,13 +43,13 @@ export function ClinicSidebar() {
                 "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                 isActive
                   ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-foreground"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
               )}
             >
               <item.icon className="h-4 w-4" />
               {item.label}
               {item.label === "New Referral" && (
-                <span className="ml-auto h-5 w-5 rounded bg-primary/10 text-primary flex items-center justify-center text-xs">+</span>
+                <span className="ml-auto h-5 w-5 rounded bg-sidebar-primary/15 text-sidebar-primary flex items-center justify-center text-xs">+</span>
               )}
             </Link>
           );
@@ -59,7 +60,7 @@ export function ClinicSidebar() {
       <div className="px-3 py-4 border-t border-sidebar-border">
         <button
           onClick={logout}
-          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-foreground transition-colors w-full"
+          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground transition-colors w-full"
         >
           <LogOut className="h-4 w-4" />
           Sign Out

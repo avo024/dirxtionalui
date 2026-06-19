@@ -263,6 +263,18 @@ export const clinicApi = {
     return handleResponse(response);
   },
 
+  // Clinic edits to extracted_data (PATCH). Body is a partial map of editable
+  // sections — { patient, clinical, provider, insurance } — deep-merged server-side.
+  // Auto-promotes a rejected referral back to ready_for_review.
+  async editReferral(referralId: string, sections: Record<string, any>): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/referrals/${referralId}`, {
+      method: 'PATCH',
+      headers: await getHeaders(),
+      body: JSON.stringify(sections),
+    });
+    return handleResponse(response);
+  },
+
   async getReferralHistory(referralId: string): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/referrals/${referralId}/history`, {
       headers: await getHeaders(),

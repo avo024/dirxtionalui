@@ -1,31 +1,43 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import {
-  Clock, XCircle, Plus,
-  CalendarDays, FileSearch, AlertTriangle, ArrowRight, Send
+  Clock, XCircle, Plus, CalendarDays, FileSearch, AlertTriangle, ArrowRight, Send,
+  ChevronDown, Eye,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ReferralTable } from "@/components/ReferralTable";
+import { StatusBadge } from "@/components/StatusBadge";
+import { ClinicPABadge } from "@/components/ClinicPABadge";
+import { CreatedByAvatar } from "@/components/CreatedByAvatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { clinicApi } from "@/lib/api";
 import { mapReferralsFromBackend } from "@/lib/dataMapper";
-import { getGreeting, getFormattedDate } from "@/lib/dateUtils";
+import { getGreeting, getFormattedDate, formatDateShort } from "@/lib/dateUtils";
+import "./wizard.css";
+import "./dashboard.css";
+
+type Tone = "warning" | "primary" | "destructive";
+const TONE_STYLE: Record<Tone, { fg: string; bg: string }> = {
+  warning: { fg: "var(--color-warning)", bg: "color-mix(in srgb, var(--color-warning) 12%, transparent)" },
+  primary: { fg: "var(--color-navy)", bg: "color-mix(in srgb, var(--color-navy) 10%, transparent)" },
+  destructive: { fg: "var(--color-error)", bg: "color-mix(in srgb, var(--color-error) 10%, transparent)" },
+};
+function StatIcon({ tone, icon: Icon, size = 18 }: { tone: Tone; icon: any; size?: number }) {
+  const t = TONE_STYLE[tone];
+  return <span className="dh-stat-ic" style={{ background: t.bg, color: t.fg }}><Icon size={size} /></span>;
+}
 
 export default function ClinicDashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const [referrals, setReferrals] = useState<any[]>([]);
   const [patients, setPatients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const location = useLocation();
+  const [alertsOpen, setAlertsOpen] = useState(true);
 
   useEffect(() => {
     const fetchData = () => {
-      Promise.all([
-        clinicApi.getReferrals(),
-        clinicApi.getPatients(),
-      ])
+      Promise.all([clinicApi.getReferrals(), clinicApi.getPatients()])
         .then(([refData, patData]) => {
           setReferrals(mapReferralsFromBackend(refData.items || []));
           setPatients(patData.items || []);
@@ -34,241 +46,160 @@ export default function ClinicDashboard() {
         .finally(() => setLoading(false));
     };
     fetchData();
-
     const handleFocus = () => fetchData();
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
   }, [location.key]);
 
-  const processingCount = referrals.filter((r) =>
-    ["processing", "ready_for_review", "uploaded"].includes(r.status)
-  ).length;
+  const processingCount = referrals.filter((r) => ["processing", "ready_for_review", "uploaded"].includes(r.status)).length;
+  const sentCount = referrals.filter((r) => ["approved_to_send", "sent_to_pharmacy"].includes(r.status)).length;
+  const needsAttentionCount = referrals.filter((r) => r.status === "rejected").length;
 
-  const approvedCount = referrals.filter((r) =>
-    r.status === "approved_to_send"
-  ).length;
-
-  const sentCount = referrals.filter((r) =>
-    ["approved_to_send", "sent_to_pharmacy"].includes(r.status)
-  ).length;
-
-  const paExpiringSoonCount = patients.filter((p) => {
+  const isExpiringSoon = (p: any) => {
     if (!p.pa_expiration_date) return false;
-    const expDate = new Date(p.pa_expiration_date);
-    const today = new Date();
-    const daysUntil = Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-    return daysUntil <= 30 && daysUntil > 0;
-  }).length;
-
-  const needsAttentionCount = referrals.filter((r) =>
-    r.status === "rejected"
-  ).length;
-
-  const patientsExpiringPA = patients.filter((p) => {
-    if (!p.pa_expiration_date) return false;
-    const expDate = new Date(p.pa_expiration_date);
-    const today = new Date();
-    const daysUntil = Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-    return daysUntil <= 30 && daysUntil > 0;
-  });
-
+    const days = Math.ceil((new Date(p.pa_expiration_date).getTime() - Date.now()) / 86400000);
+    return days <= 30 && days > 0;
+  };
+  const patientsExpiringPA = patients.filter(isExpiringSoon);
+  const paExpiringSoonCount = patientsExpiringPA.length;
   const rejectedReferrals = referrals.filter((r) => r.status === "rejected");
 
-  const urgencyOrder: Record<string, number> = {
-    rejected: 0,
-    needs_info: 1,
-    ready_for_review: 2,
-    processing: 3,
-    approved_to_send: 4,
-    uploaded: 5,
+  const urgencyOrder: Record<string, number> = { rejected: 0, needs_info: 1, ready_for_review: 2, processing: 3, approved_to_send: 4, uploaded: 5 };
+  const sortedRecentReferrals = [...referrals].sort((a, b) => (urgencyOrder[a.status] ?? 99) - (urgencyOrder[b.status] ?? 99)).slice(0, 5);
+
+  const STAT: Record<string, any> = {
+    in_review: { label: "In Review", value: processingCount, icon: Clock, tone: "warning", sub: "Being reviewed", link: "/clinic/referrals?filter=in_review" },
+    sent: { label: "Sent to Pharmacy", value: sentCount, icon: Send, tone: "primary", sub: "At pharmacy", link: "/clinic/referrals?filter=sent_to_pharmacy" },
+    attention: { label: "Needs Attention", value: needsAttentionCount, icon: XCircle, tone: "destructive", sub: "Action required", link: "/clinic/referrals?filter=rejected" },
+    expiring: { label: "PA Expiring Soon", value: paExpiringSoonCount, icon: AlertTriangle, tone: "warning", sub: "Within 30 days", link: "/clinic/patients?filter=expiring" },
   };
+  const actionStats = [STAT.attention, STAT.expiring]; // needs-first: red before amber
+  const mutedStats = [STAT.in_review, STAT.sent];
+  const alertCount = (paExpiringSoonCount > 0 ? 1 : 0) + rejectedReferrals.length;
 
-  const sortedRecentReferrals = [...referrals]
-    .sort((a, b) => (urgencyOrder[a.status] ?? 99) - (urgencyOrder[b.status] ?? 99))
-    .slice(0, 5);
-
-  const stats = [
-    {
-      label: "In Review",
-      value: processingCount,
-      icon: Clock,
-      colorClass: "text-warning",
-      bgClass: "bg-warning/10",
-      subtitle: "Being reviewed",
-      link: "/clinic/referrals?filter=in_review",
-    },
-    {
-      label: "Sent to Pharmacy",
-      value: sentCount,
-      icon: Send,
-      colorClass: "text-primary",
-      bgClass: "bg-primary/10",
-      subtitle: "At pharmacy",
-      link: "/clinic/referrals?filter=sent_to_pharmacy",
-    },
-    {
-      label: "Needs Attention",
-      value: needsAttentionCount,
-      icon: XCircle,
-      colorClass: "text-destructive",
-      bgClass: "bg-destructive/10",
-      subtitle: "Action required",
-      link: "/clinic/referrals?filter=rejected",
-    },
-    {
-      label: "PA Expiring Soon",
-      value: paExpiringSoonCount,
-      icon: AlertTriangle,
-      colorClass: "text-warning",
-      bgClass: "bg-warning/10",
-      subtitle: "Within 30 days",
-      link: "/clinic/patients?filter=expiring",
-    },
-  ];
+  const patientName = (p: any) => p.full_name || `${p.first_name || ""} ${p.last_name || ""}`.trim();
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="rw-page dh-page rw-fade">
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            {getGreeting()}, {user?.clinic_name}
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Here's what's happening with your referrals today
-          </p>
+      <div className="dh-header">
+        <div className="dh-greet">
+          <h1 className="dh-h1 serif">{getGreeting()}, {user?.clinic_name}</h1>
+          <p className="dh-sub">Here's what's happening with your referrals today</p>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="text-right hidden sm:block">
-            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <CalendarDays className="h-4 w-4" />
-              {getFormattedDate()}
-            </div>
-          </div>
-          <Button asChild size="lg">
-            <Link to="/clinic/referrals/new">
-              <Plus className="h-4 w-4 mr-2" />
-              New Referral
-            </Link>
-          </Button>
+        <div className="dh-header-right">
+          <div className="dh-date"><CalendarDays size={15} /><span>{getFormattedDate()}</span></div>
+          <Link to="/clinic/referrals/new" className="rw-btn primary"><Plus size={15} />New Referral</Link>
         </div>
       </div>
 
-      {/* Stats */}
+      {/* Stats — action-split */}
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-[120px] rounded-xl" />
-          ))}
+        <div className="dh-split">
+          <div className="dh-split-action"><div className="dh-skel" style={{ height: 86 }} /><div className="dh-skel" style={{ height: 86 }} /></div>
+          <div className="dh-split-muted"><div className="dh-skel" style={{ height: 36 }} /><div className="dh-skel" style={{ height: 36 }} /></div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {stats.map((stat) => (
-            <Link
-              key={stat.label}
-              to={stat.link}
-              className="group rounded-xl border border-border bg-card p-5 card-shadow transition-all duration-200 hover:scale-[1.02] hover:card-shadow-md block"
-            >
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-medium text-muted-foreground">
-                  {stat.label}
-                </p>
-                <div
-                  className={`h-9 w-9 rounded-lg ${stat.bgClass} flex items-center justify-center transition-transform duration-200 group-hover:scale-110`}
-                >
-                  <stat.icon className={`h-4.5 w-4.5 ${stat.colorClass}`} />
+        <div className="dh-split">
+          <div className="dh-split-action">
+            {actionStats.map((s) => (
+              <Link key={s.label} to={s.link} className={`dh-action-card ${s.tone}`}>
+                <StatIcon tone={s.tone} icon={s.icon} size={20} />
+                <div className="dh-action-meta">
+                  <div className="dh-action-head"><span className="dh-action-val num">{s.value}</span><span className="dh-action-lbl">{s.label}</span></div>
+                  <span className="dh-action-sub">{s.sub}</span>
                 </div>
-              </div>
-              <p className="text-3xl font-bold text-foreground">{stat.value}</p>
-              <p className="text-xs text-muted-foreground mt-1.5">{stat.subtitle}</p>
-            </Link>
-          ))}
+                <span className="dh-action-arrow"><ArrowRight size={16} /></span>
+              </Link>
+            ))}
+          </div>
+          <div className="dh-split-muted">
+            {mutedStats.map((s) => (
+              <Link key={s.label} to={s.link} className="dh-muted-card">
+                <div className="dh-muted-top"><span className="dh-muted-lbl">{s.label}</span><StatIcon tone={s.tone} icon={s.icon} size={15} /></div>
+                <span className="dh-muted-val num">{s.value}</span>
+              </Link>
+            ))}
+          </div>
         </div>
       )}
 
-      {/* Alerts */}
-      {!loading && (patientsExpiringPA.length > 0 || rejectedReferrals.length > 0) && (
-        <div className="space-y-3">
-          {patientsExpiringPA.length > 0 && (
-            <Link
-              to="/clinic/patients?filter=expiring"
-              className="flex items-center gap-3 p-4 rounded-xl border border-warning/30 bg-warning/5 hover:bg-warning/10 transition-colors group"
-            >
-              <div className="h-8 w-8 rounded-lg bg-warning/10 flex items-center justify-center shrink-0">
-                <AlertTriangle className="h-4 w-4 text-warning" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-foreground">
-                  {patientsExpiringPA.length} patient{patientsExpiringPA.length > 1 ? "s" : ""} with PA expiring in the next 30 days
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {patientsExpiringPA.map((p) => p.full_name || `${p.first_name || ''} ${p.last_name || ''}`.trim()).join(", ")}
-                </p>
-              </div>
-              <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
-            </Link>
+      {/* Alerts — collapsible, red first */}
+      {!loading && alertCount > 0 && (
+        <div className={`dh-collapse${alertsOpen ? " open" : ""}`}>
+          <button className="dh-collapse-trig" onClick={() => setAlertsOpen((o) => !o)}>
+            <span className="dh-collapse-ic"><AlertTriangle size={16} /></span>
+            <span className="dh-collapse-t">Needs attention <span className="dh-collapse-n">{alertCount}</span></span>
+            <span className="dh-collapse-peek">{rejectedReferrals.length} rejected · {paExpiringSoonCount} PA expiring</span>
+            <span className="dh-collapse-chev"><ChevronDown size={16} /></span>
+          </button>
+          {alertsOpen && (
+            <div className="dh-collapse-body">
+              {rejectedReferrals.map((ref) => (
+                <Link key={ref.id} to={`/clinic/referrals/${ref.id}`} className="dh-alert dest">
+                  <span className="dh-alert-ic"><XCircle size={16} /></span>
+                  <div className="dh-alert-body">
+                    <p className="dh-alert-t">{ref.patient_name} — Needs Attention</p>
+                    <p className="dh-alert-s">{ref.drug_requested || ref.drug || "—"} · {ref.rejection_reason ? ref.rejection_reason.slice(0, 80) + "..." : "Review required"}</p>
+                  </div>
+                  <span className="dh-alert-arrow"><ArrowRight size={16} /></span>
+                </Link>
+              ))}
+              {patientsExpiringPA.length > 0 && (
+                <Link to="/clinic/patients?filter=expiring" className="dh-alert warn">
+                  <span className="dh-alert-ic"><AlertTriangle size={16} /></span>
+                  <div className="dh-alert-body">
+                    <p className="dh-alert-t">{patientsExpiringPA.length} patient{patientsExpiringPA.length > 1 ? "s" : ""} with PA expiring in the next 30 days</p>
+                    <p className="dh-alert-s">{patientsExpiringPA.map(patientName).join(", ")}</p>
+                  </div>
+                  <span className="dh-alert-arrow"><ArrowRight size={16} /></span>
+                </Link>
+              )}
+            </div>
           )}
-          {rejectedReferrals.map((ref) => (
-            <Link
-              key={ref.id}
-              to={`/clinic/referrals/${ref.id}`}
-              className="flex items-center gap-3 p-4 rounded-xl border border-destructive/30 bg-destructive/5 hover:bg-destructive/10 transition-colors group"
-            >
-              <div className="h-8 w-8 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
-                <XCircle className="h-4 w-4 text-destructive" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-foreground">
-                  {ref.patient_name} — Needs Attention
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {ref.drug_requested || ref.drug || '—'} · {ref.rejection_reason ? ref.rejection_reason.slice(0, 80) + "..." : "Review required"}
-                </p>
-              </div>
-              <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
-            </Link>
-          ))}
         </div>
       )}
 
       {/* Recent referrals */}
       {loading ? (
-        <div>
-          <Skeleton className="h-6 w-40 mb-4" />
-          <Skeleton className="h-[200px] rounded-xl" />
-        </div>
+        <div><div className="dh-skel" style={{ height: 24, width: 160, marginBottom: 14 }} /><div className="dh-skel" style={{ height: 200 }} /></div>
       ) : referrals.length > 0 ? (
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-foreground">
-              Recent Referrals
-            </h2>
-            <Button variant="ghost" size="sm" asChild className="text-primary">
-              <Link to="/clinic/referrals">View All →</Link>
-            </Button>
+          <div className="dh-sec-head">
+            <h2>Recent Referrals</h2>
+            <Link to="/clinic/referrals" className="dh-viewall">View All →</Link>
           </div>
-          <ReferralTable
-            referrals={sortedRecentReferrals}
-            userType="clinic"
-          />
+          <div className="dh-table-wrap">
+            <table className="dh-table">
+              <thead>
+                <tr><th>ID</th><th>Patient Name</th><th>Drug</th><th>Status</th><th>PA Status</th><th>Created</th><th>Updated</th><th className="r">Actions</th><th></th></tr>
+              </thead>
+              <tbody>
+                {sortedRecentReferrals.map((r) => (
+                  <tr key={r.id} onClick={() => navigate(`/clinic/referrals/${r.id}`)}>
+                    <td><span className="dh-id">{(r.id || "").toUpperCase()}</span></td>
+                    <td><span className="dh-pt">{r.latest_admin_note_at && <span className="dh-note-dot" title="New note" />}<span className="dh-pt-nm">{r.patient_name}</span></span></td>
+                    <td>{r.drug || r.drug_requested || "—"}</td>
+                    <td><StatusBadge status={r.status} /></td>
+                    <td><ClinicPABadge status={r.pa_status} /></td>
+                    <td className="dh-muted-cell">{r.created_at ? formatDateShort(r.created_at) : "—"}</td>
+                    <td className="dh-muted-cell">{r.updated_at ? formatDateShort(r.updated_at) : "—"}</td>
+                    <td className="r" onClick={(e) => e.stopPropagation()}>
+                      <Link to={`/clinic/referrals/${r.id}`} className="rw-btn outline sm"><Eye size={14} />View</Link>
+                    </td>
+                    <td><CreatedByAvatar name={r.created_by_name} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       ) : (
-        <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
-          <div className="mx-auto h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
-            <FileSearch className="h-7 w-7 text-muted-foreground" />
-          </div>
-          <h3 className="text-lg font-semibold text-foreground mb-1">
-            No referrals yet
-          </h3>
-          <p className="text-sm text-muted-foreground mb-6">
-            Create your first referral to get started
-          </p>
-          <Button asChild>
-            <Link to="/clinic/referrals/new">
-              <Plus className="h-4 w-4 mr-2" />
-              New Referral
-            </Link>
-          </Button>
+        <div className="dh-empty">
+          <div className="dh-empty-ic"><FileSearch size={26} /></div>
+          <h3>No referrals yet</h3>
+          <p>Create your first referral to get started</p>
+          <Link to="/clinic/referrals/new" className="rw-btn primary" style={{ display: "inline-flex" }}><Plus size={15} />New Referral</Link>
         </div>
       )}
     </div>
