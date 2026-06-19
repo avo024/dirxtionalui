@@ -222,8 +222,22 @@ export default function ReferralDetail() {
   const grouped = groupDocuments(documents);
   const rejected = referral.status === "rejected";
   const sections: Record<string, any> = { patient, clinical, provider, insurance };
-  const flagCount = (sec: string) => (IMPORTANT[sec] || []).filter((k) => isEmpty(sections[sec]?.[k])).length;
+  // Fields the admin explicitly flagged on reject (dotted paths), + empty required fields.
+  const adminFlaggedSet = new Set<string>(referral.missing_fields?.flagged_fields || []);
+  const isFlagged = (sec: string, k: string) =>
+    ((IMPORTANT[sec] || []).includes(k) && isEmpty(sections[sec]?.[k])) || adminFlaggedSet.has(`${sec}.${k}`);
+  const flagCount = (sec: string) => {
+    const keys = new Set<string>([
+      ...(IMPORTANT[sec] || []),
+      ...[...adminFlaggedSet].filter((p) => p.startsWith(sec + ".")).map((p) => p.slice(sec.length + 1)),
+    ]);
+    return [...keys].filter((k) => isFlagged(sec, k)).length;
+  };
   const missingDocs: string[] = referral.missing_fields?.missing_documents || [];
+  const flaggedFieldPaths: string[] = referral.missing_fields?.flagged_fields || [];
+  // Empty required fields NOT already shown as an explicit admin flag (avoids double-listing).
+  const emptyOnlyCount = ["patient", "clinical", "provider", "insurance"].reduce((n, sec) =>
+    n + (IMPORTANT[sec] || []).filter((k) => isEmpty(sections[sec]?.[k]) && !adminFlaggedSet.has(`${sec}.${k}`)).length, 0);
 
   const copy = (text: string, label: string) => { navigator.clipboard.writeText(text); toast({ title: "Copied!", description: `${label} copied to clipboard` }); };
   const activeDocId = viewerDocId || documents[0]?.id || null;
@@ -252,8 +266,8 @@ export default function ReferralDetail() {
 
       {/* Bar C — FixPanel (rejected) or success banner */}
       {rejected ? (
-        <FixPanel reason={referral.rejection_reason} missingDocs={missingDocs}
-          flags={["patient", "clinical", "provider", "insurance"].reduce((n, s) => n + flagCount(s), 0)}
+        <FixPanel reason={referral.rejection_reason} missingDocs={missingDocs} flaggedFields={flaggedFieldPaths}
+          flags={emptyOnlyCount}
           onEdit={() => setEditing(true)} onUpload={() => { setTab("documents"); }} />
       ) : (referral.status === "approved_to_send" || referral.status === "sent_to_pharmacy") && referral.pharmacy_name ? (
         <div className="rd-banner success">
@@ -288,13 +302,13 @@ export default function ReferralDetail() {
         {tab === "overview" && (
           <div className="rd-overview">
             <div className="rd-ov-main">
-              <InfoCardDL icon={User} title="Patient Information" obj={patient} fields={PATIENT_FIELDS} section="patient" flagCount={flagCount("patient")} onCopy={copy} />
-              <InfoCardDL icon={Pill} title="Clinical Information" obj={clinical} fields={CLINICAL_FIELDS} section="clinical" flagCount={flagCount("clinical")} onCopy={copy} />
-              <InfoCardDL icon={Stethoscope} title="Provider Information" obj={provider} fields={PROVIDER_FIELDS} section="provider" flagCount={flagCount("provider")} onCopy={copy} />
+              <InfoCardDL icon={User} title="Patient Information" obj={patient} fields={PATIENT_FIELDS} section="patient" flagCount={flagCount("patient")} isFlagged={isFlagged} onCopy={copy} />
+              <InfoCardDL icon={Pill} title="Clinical Information" obj={clinical} fields={CLINICAL_FIELDS} section="clinical" flagCount={flagCount("clinical")} isFlagged={isFlagged} onCopy={copy} />
+              <InfoCardDL icon={Stethoscope} title="Provider Information" obj={provider} fields={PROVIDER_FIELDS} section="provider" flagCount={flagCount("provider")} isFlagged={isFlagged} onCopy={copy} />
             </div>
             <div className="rd-rail">
               <StatusProgress status={referral.status} desc={statusDescriptions[referral.status] || "In progress."} />
-              <InsurancePA referral={referral} insurance={insurance} priorAuth={priorAuth} reloadOnUpdate={loadData} referralId={id!} flagged={!referral.is_bridge_program && flagCount("insurance") > 0} />
+              <InsurancePA referral={referral} insurance={insurance} priorAuth={priorAuth} reloadOnUpdate={loadData} referralId={id!} flagged={!referral.is_bridge_program && isFlagged("insurance", "primary_member_id")} />
             </div>
           </div>
         )}
@@ -422,7 +436,7 @@ export default function ReferralDetail() {
 }
 
 /* ── Definition-list info card with ⚠ flags ── */
-function InfoCardDL({ icon: Icon, title, obj, fields, section, flagCount, onCopy }: any) {
+function InfoCardDL({ icon: Icon, title, obj, fields, section, flagCount, isFlagged, onCopy }: any) {
   return (
     <div className="rd-card">
       <div className="rd-card-head">
@@ -431,7 +445,7 @@ function InfoCardDL({ icon: Icon, title, obj, fields, section, flagCount, onCopy
       </div>
       <div className="rd-dl">
         {fields.map((f: any) => {
-          const flag = (IMPORTANT[section] || []).includes(f.k) && isEmpty(obj[f.k]);
+          const flag = isFlagged ? isFlagged(section, f.k) : ((IMPORTANT[section] || []).includes(f.k) && isEmpty(obj[f.k]));
           let v = obj[f.k];
           if (f.bool) v = v ? "Yes" : "No";
           else if (f.date && v) v = formatDateShort(v);
@@ -500,7 +514,7 @@ function InsurancePA({ referral, insurance, priorAuth, reloadOnUpdate, referralI
         <div className="rd-dl">
           <DlRow label="Has Insurance" value={insurance.has_insurance_card ? "Yes" : "No"} />
           {insurance.primary_insurance_name && <DlRow label="Primary Insurance" value={insurance.primary_insurance_name} />}
-          <DlRow label="Member ID" value={insurance.primary_member_id || "—"} flag={flagged && isEmpty(insurance.primary_member_id)} />
+          <DlRow label="Member ID" value={insurance.primary_member_id || "—"} flag={flagged} />
           {insurance.secondary_insurance_name && <DlRow label="Secondary Insurance" value={insurance.secondary_insurance_name} />}
           {insurance.notes && <DlRow label="Insurance Notes" value={insurance.notes} />}
         </div>
@@ -551,7 +565,9 @@ function DlRow({ label, value, mono, flag }: { label: string; value: string; mon
 }
 
 /* ── FixPanel (rejected recovery) ── */
-function FixPanel({ reason, missingDocs, flags, onEdit, onUpload }: any) {
+function FixPanel({ reason, missingDocs, flaggedFields = [], flags, onEdit, onUpload }: any) {
+  const prettyField = (p: string) => p.split(".").map((s) => s.replace(/_/g, " ").replace(/\b\w/, (c) => c.toUpperCase())).join(" · ");
+  const nothing = missingDocs.length === 0 && flaggedFields.length === 0 && flags === 0;
   return (
     <div className="rd-fix">
       <div className="rd-fix-head">
@@ -567,11 +583,14 @@ function FixPanel({ reason, missingDocs, flags, onEdit, onUpload }: any) {
         <div className="rd-fix-block">
           <p className="rd-fix-k"><ListChecks size={14} />What's needed</p>
           <ul className="rd-checklist">
-            {missingDocs.length === 0 && flags === 0 && <li className="rd-check-item"><span className="ck"><Circle size={15} /></span><span>Review the rejection reason and correct the referral.</span></li>}
+            {nothing && <li className="rd-check-item"><span className="ck"><Circle size={15} /></span><span>Review the rejection reason and correct the referral.</span></li>}
             {missingDocs.map((m: string) => (
               <li className="rd-check-item" key={m}><span className="ck"><Circle size={15} /></span><span>{MISSING_DOC_LABELS[m] || m}</span></li>
             ))}
-            {flags > 0 && <li className="rd-check-item"><span className="ck"><Circle size={15} /></span><span>Verify {flags} flagged field{flags > 1 ? "s" : ""} (marked <AlertTriangle size={12} style={{ verticalAlign: "-1px", color: "var(--color-warning)" }} />)</span></li>}
+            {flaggedFields.map((p: string) => (
+              <li className="rd-check-item" key={p}><span className="ck"><Circle size={15} /></span><span>Correct {prettyField(p)} <AlertTriangle size={12} style={{ verticalAlign: "-1px", color: "var(--color-warning)" }} /></span></li>
+            ))}
+            {flags > 0 && <li className="rd-check-item"><span className="ck"><Circle size={15} /></span><span>Verify {flags} more field{flags > 1 ? "s" : ""} marked <AlertTriangle size={12} style={{ verticalAlign: "-1px", color: "var(--color-warning)" }} /></span></li>}
           </ul>
         </div>
       </div>

@@ -358,11 +358,18 @@ export const adminApi = {
     return handleResponse(response);
   },
 
-  async makeDecision(id: string, decision: 'approve' | 'reject', reason?: string): Promise<any> {
+  // `extra` carries structured rejection — missing_documents + flagged_fields —
+  // which the backend stores in missing_fields JSONB for the clinic's Fix panel.
+  async makeDecision(
+    id: string,
+    decision: 'approve' | 'reject',
+    reason?: string,
+    extra?: { missing_documents?: string[]; flagged_fields?: string[] },
+  ): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/admin/referrals/${id}/decision`, {
       method: 'POST',
       headers: await getHeaders(),
-      body: JSON.stringify({ decision, reason }),
+      body: JSON.stringify({ decision, reason, ...(extra || {}) }),
     });
     return handleResponse(response);
   },

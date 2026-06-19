@@ -27,6 +27,7 @@ import { DrugCombobox } from "@/components/DrugCombobox";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { getDisplayAuthor, getAuthorInitials } from "@/lib/noteAuthor";
 import { useAdminProfile } from "@/hooks/useAdminProfile";
+import { AdminRejectModal, FLAGGABLE_FIELDS, type RejectPayload } from "@/components/AdminRejectModal";
 
 // Critical fields that should be flagged when missing
 const CRITICAL_FIELDS = [
@@ -80,7 +81,7 @@ export default function AdminReferralReview() {
   const [rejectOpen, setRejectOpen] = useState(false);
   const [deliverOpen, setDeliverOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [rejectReason, setRejectReason] = useState("");
+  const [rejecting, setRejecting] = useState(false);
   const [editedData, setEditedData] = useState<any>(null);
   const [changedSections, setChangedSections] = useState<Set<string>>(new Set());
   const [notes, setNotes] = useState<any[]>([]);
@@ -273,21 +274,17 @@ export default function AdminReferralReview() {
     }
   };
 
-  const handleReject = async () => {
-    if (!rejectReason.trim()) {
-      toast({
-        title: "Reason Required",
-        description: "Please provide a reason for rejection",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  const handleReject = async (payload: RejectPayload) => {
     try {
-      await adminApi.makeDecision(id!, 'reject', rejectReason);
+      setRejecting(true);
+      await adminApi.makeDecision(id!, 'reject', payload.reason, {
+        missing_documents: payload.missing_documents,
+        flagged_fields: payload.flagged_fields,
+      });
+      const flaggedNote = payload.flagged_fields.length ? ` · ${payload.flagged_fields.length} field(s) flagged` : "";
       toast({
         title: "Referral Rejected",
-        description: `${referral.patient_name}'s referral has been rejected.`,
+        description: `${referral.patient_name}'s referral was rejected. The clinic has been notified with the recovery checklist${flaggedNote}.`,
       });
       setRejectOpen(false);
       navigate("/admin/referrals");
@@ -297,6 +294,8 @@ export default function AdminReferralReview() {
         description: err.message || "Failed to reject referral",
         variant: "destructive",
       });
+    } finally {
+      setRejecting(false);
     }
   };
 
@@ -1071,25 +1070,20 @@ export default function AdminReferralReview() {
         }}
       />
 
-      {/* Reject modal */}
-      <ConfirmModal
+      {/* Reject modal — structured (reason + missing-docs checklist + flagged fields) */}
+      <AdminRejectModal
         open={rejectOpen}
         onOpenChange={setRejectOpen}
-        title="Reject Referral"
-        description="Please provide a reason for rejection."
-        confirmLabel="Reject"
-        variant="destructive"
+        submitting={rejecting}
         onConfirm={handleReject}
-      >
-        <div className="py-2">
-          <Textarea
-            placeholder="Enter rejection reason..."
-            value={rejectReason}
-            onChange={(e) => setRejectReason(e.target.value)}
-            rows={3}
-          />
-        </div>
-      </ConfirmModal>
+        defaultFlagged={FLAGGABLE_FIELDS.filter((f) => {
+          const [sec, key] = f.path.split(".");
+          const v = (editedData?.[sec] || {})[key];
+          const empty = v == null || String(v).trim() === "";
+          const c = conf[f.path];
+          return empty || (typeof c === "number" && c < 0.85);
+        }).map((f) => f.path)}
+      />
 
       {/* Preview PDF modal */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
