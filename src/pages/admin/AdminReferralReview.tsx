@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, FileText, Loader2, MessageSquare, Send, RefreshCw, AlertTriangle, Shield } from "lucide-react";
+import { ArrowLeft, FileText, Loader2, Send, RefreshCw, AlertTriangle, Shield, User, CreditCard, Pill, Stethoscope, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,10 +24,11 @@ import { toast } from "@/hooks/use-toast";
 import { formatDateShort } from "@/lib/dateUtils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DrugCombobox } from "@/components/DrugCombobox";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { getDisplayAuthor, getAuthorInitials } from "@/lib/noteAuthor";
 import { useAdminProfile } from "@/hooks/useAdminProfile";
 import { AdminRejectModal, FLAGGABLE_FIELDS, type RejectPayload } from "@/components/AdminRejectModal";
+import "../clinic/wizard.css";
+import "./admin-referral-review.css";
 
 // Critical fields that should be flagged when missing
 const CRITICAL_FIELDS = [
@@ -40,26 +41,22 @@ const CRITICAL_FIELDS = [
   "provider.npi",
 ];
 
-function MissingFlag() {
-  return <span className="text-destructive italic text-sm">Missing — check source documents</span>;
-}
-
 function ConfidenceDot({ confidence }: { confidence?: number }) {
   if (confidence === undefined || confidence >= 0.85) return null;
-  if (confidence >= 0.5) {
-    return <span className="inline-block h-2 w-2 rounded-full bg-warning ml-1.5" title={`Confidence: ${Math.round(confidence * 100)}%`} />;
-  }
-  return <span className="inline-block h-2 w-2 rounded-full bg-destructive ml-1.5" title={`Confidence: ${Math.round(confidence * 100)}%`} />;
+  const tone = confidence >= 0.5 ? "mid" : "low";
+  return <span className={`arr-dot ${tone}`} title={`Confidence: ${Math.round(confidence * 100)}%`} />;
 }
 
 function SummaryField({ label, value, confidence, isCritical = false }: { label: string; value?: string | null; confidence?: number; isCritical?: boolean }) {
   const isEmpty = !value || value.trim() === "";
   return (
-    <div className="flex justify-between items-start py-1">
-      <span className="text-xs text-muted-foreground shrink-0">{label}</span>
-      <span className="text-sm text-foreground text-right ml-4 flex items-center gap-1">
+    <div className="arr-srow">
+      <span className="arr-sk">{label}</span>
+      <span className="arr-sv">
         {isEmpty ? (
-          isCritical ? <MissingFlag /> : <span className="text-muted-foreground/60">—</span>
+          isCritical
+            ? <span className="arr-field-miss"><AlertTriangle size={11} />Missing — check docs</span>
+            : <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>—</span>
         ) : (
           <>
             {value}
@@ -351,31 +348,32 @@ export default function AdminReferralReview() {
   return (
     <div className="space-y-0 -mx-6 -my-8 lg:-mx-8">
       {/* Top bar */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-card">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/admin/referrals")}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-lg font-bold text-foreground">{referral.patient_name}</h1>
-              <StatusBadge status={referral.status} />
-              {documents.length > 0 && (
-                <Badge variant="secondary" className="text-xs">{documents.length} doc{documents.length !== 1 ? 's' : ''}</Badge>
-              )}
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {referral.drug} · {referral.clinic_name} · {referral.id}
-            </p>
+      <div className="arr-header">
+        <button className="arr-back" onClick={() => navigate("/admin/referrals")} aria-label="Back to referrals">
+          <ArrowLeft size={16} />
+        </button>
+        <div className="arr-head-main">
+          <div className="arr-name-row">
+            <h1 className="arr-name serif">{referral.patient_name}</h1>
+            <StatusBadge status={referral.status} />
+            {documents.length > 0 && (
+              <span className="arr-doc-chip"><FileText size={12} />{documents.length} doc{documents.length !== 1 ? 's' : ''}</span>
+            )}
+          </div>
+          <div className="arr-meta">
+            <b>{referral.drug}</b>
+            <span className="sepbar">·</span>
+            <span>{referral.clinic_name}</span>
+            <span className="sepbar">·</span>
+            <span className="mono">{referral.id}</span>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="arr-head-actions">
           {(referral.status === 'uploaded' || referral.status === 'ready_for_review') && (
             <div className="flex flex-col items-end">
-              <Button onClick={handleProcessWithAI} variant="ghost" size="sm" className="text-muted-foreground" disabled={isReExtracting}>
-                <RefreshCw className="h-4 w-4 mr-1" />
-                Re-extract
-              </Button>
+              <button className="rw-btn outline sm" onClick={handleProcessWithAI} disabled={isReExtracting}>
+                <RefreshCw size={14} />Re-extract
+              </button>
               {extractError && (
                 <p className="text-xs text-destructive mt-1">{extractError}</p>
               )}
@@ -418,8 +416,8 @@ export default function AdminReferralReview() {
               {/* ── Tab 1: Summary ── */}
               <TabsContent value="summary" className="space-y-3">
                 {/* Card 1: Patient */}
-                <div className="rounded-lg border border-border/50 p-4">
-                  <h4 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase mb-2">Patient</h4>
+                <div className="arr-card">
+                  <div className="arr-card-head"><span className="hi"><User size={15} /></span><h3>Patient</h3></div>
                   <SummaryField label="Name" value={[patient.first_name, patient.last_name].filter(Boolean).join(" ") || null} confidence={getConf("patient.first_name")} isCritical />
                   <SummaryField label="DOB" value={patient.dob} confidence={getConf("patient.dob")} isCritical />
                   <SummaryField label="Phone" value={patient.phone_primary || patient.phone} confidence={getConf("patient.phone_primary")} />
@@ -427,24 +425,24 @@ export default function AdminReferralReview() {
                 </div>
 
                 {/* Card 2: Insurance */}
-                <div className={cn("rounded-lg border p-4", referral.insurance_expired ? "border-orange-300 bg-orange-50/50" : "border-border/50")}>
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">Insurance</h4>
+                <div className={cn("arr-card", referral.insurance_expired && "warn")}>
+                  <div className="arr-card-head">
+                    <span className="hi"><CreditCard size={15} /></span><h3>Insurance</h3>
                     {referral.insurance_expired && (
-                      <Badge className="bg-orange-100 text-orange-700 border-orange-200 hover:bg-orange-100 text-[10px]">EXPIRED</Badge>
+                      <span className="he"><span className="arr-badge-expired"><AlertTriangle size={10} />Expired</span></span>
                     )}
                   </div>
                   {referral.is_bridge_program ? (
-                    <div className="flex items-center gap-2 rounded-md bg-purple-50 border border-purple-200 px-3 py-2">
-                      <Shield className="h-4 w-4 text-purple-600 shrink-0" />
-                      <span className="text-sm font-medium text-purple-700">Bridge Program</span>
+                    <div className="arr-bridge">
+                      <span className="bi"><Shield size={16} /></span>
+                      <span className="bt">Bridge Program</span>
                     </div>
                   ) : (
                     <>
                       {insurance.insurance_not_provided && (
-                        <div className="flex items-center gap-2 rounded-md bg-warning/10 border border-warning/30 px-3 py-2 mb-3">
-                          <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
-                          <span className="text-sm text-warning">No insurance provided — patient requests cash pricing</span>
+                        <div className="arr-ins-banner">
+                          <span className="ii"><AlertTriangle size={15} /></span>
+                          <span className="it">No insurance provided — patient requests cash pricing</span>
                         </div>
                       )}
                       <SummaryField label="Plan" value={insurance.primary_plan_name || insurance.primary_insurance_name} />
@@ -457,53 +455,47 @@ export default function AdminReferralReview() {
                 </div>
 
                 {/* Card 3: Medication */}
-                <div className="rounded-lg border border-border/50 p-4">
-                  <h4 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase mb-2">Medication</h4>
+                <div className="arr-card">
+                  <div className="arr-card-head"><span className="hi"><Pill size={15} /></span><h3>Medication</h3></div>
                   <SummaryField label="Drug" value={drugDisplay || null} confidence={getConf("clinical.drug_requested")} isCritical />
                   <SummaryField label="Dose" value={clinical.dose_amount} />
                   <SummaryField label="Frequency" value={clinical.dose_frequency || clinical.frequency} />
                   <SummaryField label="Route" value={clinical.route || clinical.administration} />
-                  <div className="mt-2">
+                  <div className="mt-3">
                     {referral.is_bridge_program ? (
-                      <Badge className="bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-100">
-                        Bridge Program — PA not required
-                      </Badge>
+                      <span className="arr-chip-pa bridge"><Shield size={12} />Bridge Program — PA not required</span>
                     ) : referral.pa_required ? (
-                      <Badge className="bg-warning/15 text-warning border-warning/30 hover:bg-warning/20">
-                        PA Required{referral.pa_required_reason ? `: ${referral.pa_required_reason}` : ""}
-                      </Badge>
+                      <span className="arr-chip-pa req"><AlertTriangle size={12} />PA Required{referral.pa_required_reason ? `: ${referral.pa_required_reason}` : ""}</span>
                     ) : (
-                      <Badge className="bg-success/15 text-success border-success/30 hover:bg-success/20">
-                        No PA Required
-                      </Badge>
+                      <span className="arr-chip-pa no">No PA Required</span>
                     )}
                   </div>
                 </div>
 
                 {/* Card 4: PA Management */}
                 {referral.is_bridge_program ? (
-                  <div className="rounded-lg border border-purple-200 bg-purple-50 p-4">
-                    <h4 className="text-xs font-semibold tracking-wider text-purple-700 uppercase mb-1">Prior Authorization</h4>
-                    <p className="text-sm text-purple-700">PA not required for Bridge Program referrals</p>
+                  <div className="arr-card bridge">
+                    <div className="arr-card-head"><span className="hi"><Shield size={15} /></span><h3>Prior Authorization</h3></div>
+                    <p className="text-sm" style={{ color: "var(--color-teal-700)" }}>PA not required for Bridge Program referrals</p>
                   </div>
                 ) : (
                   <PAManagementCard referral={referral} paInfo={paInfo} referralId={id!} onPALetterChange={handlePALetterChange} />
                 )}
 
                 {/* Card 5: Diagnosis & Clinical */}
-                <div className="rounded-lg border border-border/50 p-4">
-                  <h4 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase mb-2">Diagnosis & Clinical</h4>
+                <div className="arr-card">
+                  <div className="arr-card-head"><span className="hi"><Stethoscope size={15} /></span><h3>Diagnosis &amp; Clinical</h3></div>
                   <SummaryField label="ICD-10" value={clinical.diagnosis_icd10_primary || clinical.diagnosis_icd10} confidence={getConf("clinical.diagnosis_icd10_primary")} isCritical />
                   <SummaryField label="Description" value={clinical.diagnosis_description} />
                   {clinical.clinical_justification && (
-                    <div className="mt-2">
-                      <span className="text-xs text-muted-foreground block mb-1">Clinical Justification</span>
+                    <div className="mt-3">
+                      <div className="arr-sub">Clinical Justification</div>
                       <p className="text-sm text-foreground">{clinical.clinical_justification}</p>
                     </div>
                   )}
                   {clinical.prior_failed_medications?.length > 0 && (
-                    <div className="mt-2">
-                      <span className="text-xs text-muted-foreground block mb-1">Prior Failed Medications</span>
+                    <div className="mt-3">
+                      <div className="arr-sub">Prior Failed Medications</div>
                       <div className="flex flex-wrap gap-1">
                         {clinical.prior_failed_medications.map((med: string, i: number) => (
                           <Badge key={i} variant="secondary" className="text-xs">{typeof med === 'string' ? med : (med as any).name || String(med)}</Badge>
@@ -513,7 +505,7 @@ export default function AdminReferralReview() {
                   )}
                   {derm && (
                     <div className="mt-3 pt-3 border-t border-border/50">
-                      <span className="text-xs font-semibold text-muted-foreground block mb-2">Dermatology Assessment</span>
+                      <div className="arr-sub" style={{ marginTop: 0 }}>Dermatology Assessment</div>
                       <div className="grid grid-cols-2 gap-x-4">
                         <SummaryField label="BSA%" value={derm.bsa_percentage} />
                         <SummaryField label="POEM" value={derm.poem_score} />
@@ -525,8 +517,8 @@ export default function AdminReferralReview() {
                 </div>
 
                 {/* Card 6: Prescriber */}
-                <div className="rounded-lg border border-border/50 p-4">
-                  <h4 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase mb-2">Prescriber</h4>
+                <div className="arr-card">
+                  <div className="arr-card-head"><span className="hi"><UserRound size={15} /></span><h3>Prescriber</h3></div>
                   <SummaryField label="Name" value={provider.name} />
                   <SummaryField label="NPI" value={provider.npi} confidence={getConf("provider.npi")} isCritical />
                   <SummaryField label="Phone" value={provider.phone} />
@@ -920,33 +912,22 @@ export default function AdminReferralReview() {
               {/* ── Tab 3: Notes ── */}
               <TabsContent value="notes">
                 {notes.length > 0 && (
-                  <div className="space-y-3 mb-4">
+                  <div className="arr-notes">
                     {notes.map((note) => {
                       const isAdmin = note.author_type === 'admin';
                       const authorName = getDisplayAuthor(note, 'admin');
                       const initials = getAuthorInitials(note, 'admin');
                       return (
-                        <div
-                          key={note.id}
-                          className={cn(
-                            "rounded-lg border border-border/50 bg-card p-4 border-l-4 flex gap-3",
-                            isAdmin ? "border-l-purple-500" : "border-l-primary"
-                          )}
-                        >
-                          <Avatar className="h-8 w-8 shrink-0">
-                            <AvatarFallback className={cn(
-                              "text-xs font-semibold",
-                              isAdmin ? "bg-purple-100 text-purple-700" : "bg-primary/10 text-primary"
-                            )}>
-                              {initials}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-baseline justify-between mb-1 gap-3">
-                              <span className="font-semibold text-sm text-foreground truncate">{authorName}</span>
-                              <span className="text-xs text-muted-foreground shrink-0">{new Date(note.created_at).toLocaleString()}</span>
+                        <div key={note.id} className={cn("arr-note", isAdmin ? "admin" : "clinic")}>
+                          <span className="arr-note-ava">{initials}</span>
+                          <div className="arr-note-body">
+                            <div className="arr-note-card">
+                              <div className="arr-note-head">
+                                <span className="arr-note-author">{authorName}</span>
+                                <span className="arr-note-when">{new Date(note.created_at).toLocaleString()}</span>
+                              </div>
+                              <p className="arr-note-text">{note.content}</p>
                             </div>
-                            <p className="text-sm text-foreground whitespace-pre-wrap">{note.content}</p>
                           </div>
                         </div>
                       );
@@ -1003,33 +984,33 @@ export default function AdminReferralReview() {
 
       {/* Bottom action bar */}
       {referral.status !== 'processing' && !isReExtracting && (
-        <div className="fixed bottom-0 left-60 right-0 border-t border-border bg-card px-6 py-3 flex items-center justify-between z-10">
-          <div className="text-sm text-muted-foreground">
+        <div className="arr-actionbar" style={{ position: "fixed", bottom: 0, left: 240, right: 0, zIndex: 10 }}>
+          <div className="arr-action-status">
             {(referral.status === 'ready_for_review' || referral.status === 'uploaded') && (
               <span>Preview the PDF before approving</span>
             )}
           </div>
-          <div className="flex items-center gap-3">
-            <Button variant="outline-primary" onClick={handlePreviewPDF}>
-              <FileText className="h-4 w-4 mr-2" />
-              Preview PDF
-            </Button>
+          <div className="arr-action-spacer" />
+          <div className="arr-action-group">
+            <button className="rw-btn outline" onClick={handlePreviewPDF}>
+              <FileText size={16} />Preview PDF
+            </button>
             {(referral.status === 'ready_for_review' || referral.status === 'uploaded') && (
               <>
-                <Button variant="destructive" onClick={() => setRejectOpen(true)}>Reject</Button>
-                <Button variant="success" onClick={() => setApproveOpen(true)}>Approve</Button>
+                <button className="rw-btn arr-btn-reject" onClick={() => setRejectOpen(true)}>Reject</button>
+                <button className="rw-btn success" onClick={() => setApproveOpen(true)}>Approve</button>
               </>
             )}
             {referral.status === 'approved_to_send' && (
               (() => {
                 const blocked = !referral.is_bridge_program && paLetterInfo?.drug_requires_pa && !paLetterInfo?.has_letter;
                 return (
-                  <div className="relative group">
-                    <Button variant="success" onClick={() => setDeliverOpen(true)} disabled={blocked}>
+                  <div className="arr-tt-wrap">
+                    <button className="rw-btn success" onClick={() => setDeliverOpen(true)} disabled={blocked}>
                       Send to Pharmacy
-                    </Button>
+                    </button>
                     {blocked && (
-                      <div className="absolute bottom-full mb-2 right-0 bg-popover text-popover-foreground text-xs rounded-md border px-3 py-2 shadow-md w-64 hidden group-hover:block z-50">
+                      <div className="arr-tt">
                         PA letter required before sending to pharmacy. Upload one in the PA Management section.
                       </div>
                     )}
