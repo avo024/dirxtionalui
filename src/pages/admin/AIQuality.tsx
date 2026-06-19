@@ -112,7 +112,7 @@ export default function AIQuality() {
       {/* Header */}
       <div className="aiq-head">
         <div className="aiq-head-l">
-          <h1 className="aiq-h1">AI Extraction Quality</h1>
+          <h1 className="aiq-h1 serif">AI Extraction Quality</h1>
           <p className="aiq-sub">
             Internal — track how often the AI extraction needs human correction. Used to iterate on the extraction prompt.
           </p>

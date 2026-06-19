@@ -65,7 +65,7 @@ export default function AIQualityCorrections() {
           <Link className="aiq-back" to="/admin/ai-quality" style={{ marginBottom: 12 }}>
             <ArrowLeft size={15} />Back to overview
           </Link>
-          <h1 className="aiq-h1">Corrections feed</h1>
+          <h1 className="aiq-h1 serif">Corrections feed</h1>
           <p className="aiq-sub">
             Every reviewer edit, newest first. The amber border marks edits the model was confident about (≥ 0.85).
           </p>

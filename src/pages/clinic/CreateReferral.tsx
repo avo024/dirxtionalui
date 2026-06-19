@@ -432,7 +432,7 @@ export default function CreateReferral() {
     <div className="rw-page">
       {/* Bar A — header */}
       <div>
-        <h1 className="rw-h1">New Referral</h1>
+        <h1 className="rw-h1 serif">New Referral</h1>
         <p className="rw-sub">Quick 4-step process to submit a referral</p>
       </div>
 
