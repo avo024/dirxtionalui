@@ -1,43 +1,46 @@
 import { Link } from "react-router-dom";
-import { cn } from "@/lib/utils";
+import { AlertTriangle, ArrowRight, ArrowUpRight } from "lucide-react";
 import { getRelativeTime } from "@/lib/dateUtils";
-import { formatChangeArrow } from "@/lib/aiQualityFormat";
+import { renderFieldValue } from "@/lib/aiQualityFormat";
 import type { AIQualityCorrection } from "@/lib/aiQualityApi";
+import "@/pages/admin/aiq.css";
 
 interface Props {
   correction: AIQualityCorrection;
 }
 
 export function CorrectionRow({ correction: c }: Props) {
-  const highConf = (c.model_confidence ?? 0) >= 0.85;
-  const conf =
-    c.model_confidence !== null && c.model_confidence !== undefined
-      ? `conf ${c.model_confidence.toFixed(2)}`
-      : "conf —";
+  const high = (c.model_confidence ?? 0) >= 0.85;
+  const conf = c.model_confidence !== null && c.model_confidence !== undefined
+    ? c.model_confidence.toFixed(2)
+    : "—";
+
   return (
-    <div
-      className={cn(
-        "flex items-center gap-3 rounded-md border border-border bg-card px-3 py-2 text-sm",
-        highConf && "border-l-4 border-l-warning",
-      )}
-    >
-      <span className="w-20 shrink-0 text-xs text-muted-foreground">
-        {getRelativeTime(c.edited_at)}
+    <Link to={`/admin/ai-quality/referral/${c.referral_id}`} className={`aiq-corr-row${high ? " high" : ""}`}>
+      <span className="aiq-corr-time">{getRelativeTime(c.edited_at)}</span>
+      <span className="aiq-corr-mid">
+        <span className="aiq-corr-field">{c.field_path}</span>
+        <span className="aiq-corr-diff">
+          {c.change_type === "added" ? (
+            <span className="aiq-corr-final">added {renderFieldValue(c.final_value)}</span>
+          ) : c.change_type === "cleared" ? (
+            <span className="aiq-corr-model">cleared {renderFieldValue(c.model_value)}</span>
+          ) : (
+            <>
+              <span className="aiq-corr-model">{renderFieldValue(c.model_value)}</span>
+              <span className="aiq-corr-arrow"><ArrowRight size={14} /></span>
+              <span className="aiq-corr-final">{renderFieldValue(c.final_value)}</span>
+            </>
+          )}
+        </span>
       </span>
-      <code className="w-56 shrink-0 truncate text-xs text-foreground">
-        {c.field_path}
-      </code>
-      <span className="flex-1 truncate text-foreground">{formatChangeArrow(c)}</span>
-      <span className="shrink-0 text-xs text-muted-foreground">
-        {conf}
-        {c.prompt_version ? ` · prompt ${c.prompt_version}` : ""}
+      <span className="aiq-corr-r">
+        <span className="aiq-corr-meta">
+          {high && <span className="aiq-conf-badge"><AlertTriangle size={10} />high</span>}
+          conf {conf}{c.prompt_version ? ` · ${c.prompt_version}` : ""}
+        </span>
+        <span className="aiq-corr-ref">View referral<ArrowUpRight size={12} /></span>
       </span>
-      <Link
-        to={`/admin/ai-quality/referral/${c.referral_id}`}
-        className="shrink-0 text-xs font-medium text-primary hover:underline"
-      >
-        View referral →
-      </Link>
-    </div>
+    </Link>
   );
 }

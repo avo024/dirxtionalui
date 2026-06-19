@@ -1,15 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Loader2, Search } from "lucide-react";
+import { ArrowLeft, Loader2, Search, Check, ChevronDown } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAIQualityCorrections } from "@/hooks/useAIQuality";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { CorrectionRow } from "@/components/admin/CorrectionRow";
-import { cn } from "@/lib/utils";
 import type { AIQualityCorrection } from "@/lib/aiQualityApi";
+import "../clinic/wizard.css";
+import "../clinic/dashboard.css";
+import "../clinic/referrals.css";
+import "./aiq.css";
 
 const DAY_OPTIONS = [7, 14, 30, 90] as const;
 
@@ -17,9 +16,10 @@ export default function AIQualityCorrections() {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const initialHighConf = searchParams.get("high_conf_only") === "true";
+  const initialField = searchParams.get("field") ?? "";
 
   const [days, setDays] = useState<number>(7);
-  const [field, setField] = useState("");
+  const [field, setField] = useState(initialField);
   const [highConfOnly, setHighConfOnly] = useState(initialHighConf);
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [accumulated, setAccumulated] = useState<AIQualityCorrection[]>([]);
@@ -58,100 +58,64 @@ export default function AIQualityCorrections() {
   const nextCursor = query.data?.next_cursor ?? null;
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <Link
-          to="/admin/ai-quality"
-          className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
-        >
-          <ArrowLeft className="h-4 w-4" /> Back to AI Quality
-        </Link>
-        <h1 className="text-2xl font-bold text-foreground">Corrections</h1>
-        <p className="text-sm text-muted-foreground">
-          Internal — full log of human corrections to AI-extracted fields.
-        </p>
+    <div className="aiq-page narrow rw-fade">
+      {/* Header */}
+      <div className="aiq-head">
+        <div className="aiq-head-l">
+          <Link className="aiq-back" to="/admin/ai-quality" style={{ marginBottom: 12 }}>
+            <ArrowLeft size={15} />Back to overview
+          </Link>
+          <h1 className="aiq-h1">Corrections feed</h1>
+          <p className="aiq-sub">
+            Every reviewer edit, newest first. The amber border marks edits the model was confident about (≥ 0.85).
+          </p>
+        </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4">
-        <div>
-          <Label className="text-xs text-muted-foreground">Time range</Label>
-          <div className="mt-1 inline-flex rounded-md border border-border overflow-hidden">
+      {/* Filter bar */}
+      <div className="aiq-card aiq-card-pad">
+        <div className="aiq-filterbar">
+          <div className="aiq-window">
             {DAY_OPTIONS.map((d) => (
-              <button
-                key={d}
-                onClick={() => setDays(d)}
-                className={cn(
-                  "px-3 py-1.5 text-sm transition-colors",
-                  days === d
-                    ? "bg-primary text-primary-foreground"
-                    : "text-foreground hover:bg-muted",
-                )}
-              >
-                {d}d
-              </button>
+              <button key={d} className={`aiq-window-btn${days === d ? " on" : ""}`} onClick={() => setDays(d)}>{d}d</button>
             ))}
           </div>
-        </div>
-
-        <div className="flex-1 min-w-[220px]">
-          <Label className="text-xs text-muted-foreground">Field path</Label>
-          <div className="relative mt-1">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              value={field}
-              onChange={(e) => setField(e.target.value)}
-              placeholder="e.g. clinical.drug_requested"
-              className="pl-8"
-            />
+          <div className="aiq-tbl-search" style={{ width: 280 }}>
+            <span className="rl-search-ic"><Search size={15} /></span>
+            <input placeholder="Filter by field path…" value={field} onChange={(e) => setField(e.target.value)} />
           </div>
-        </div>
-
-        <div className="flex items-center gap-2 pb-1">
-          <Checkbox
-            id="hco"
-            checked={highConfOnly}
-            onCheckedChange={(c) => setHighConfOnly(c === true)}
-          />
-          <Label htmlFor="hco" className="text-sm cursor-pointer">
+          <button className={`aiq-check-inline${highConfOnly ? " on" : ""}`} onClick={() => setHighConfOnly((v) => !v)}>
+            <span className="aiq-check-box">{highConfOnly && <Check size={12} />}</span>
             High-confidence only (≥ 0.85)
-          </Label>
+          </button>
+          <span style={{ marginLeft: "auto", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>
+            {accumulated.length} loaded
+          </span>
         </div>
       </div>
 
       {/* List */}
       {query.isLoading && accumulated.length === 0 ? (
-        <div className="flex justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
+        <div className="aiq-empty"><Loader2 className="rw-spin" style={{ color: "var(--color-teal)", display: "inline-block" }} size={26} /></div>
       ) : query.isError ? (
-        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-5 text-sm text-destructive">
+        <div className="aiq-card aiq-card-pad" style={{ borderColor: "color-mix(in srgb, var(--color-error) 30%, transparent)", color: "var(--color-error)" }}>
           Failed to load corrections: {(query.error as Error)?.message}
         </div>
       ) : accumulated.length === 0 ? (
-        <p className="py-10 text-center text-sm text-muted-foreground">
-          No corrections match these filters.
-        </p>
+        <div className="aiq-card aiq-empty">No corrections match these filters.</div>
       ) : (
-        <div className="space-y-2">
+        <div className="aiq-corr-list">
           {accumulated.map((c, i) => (
-            <CorrectionRow
-              key={c.id ?? `${c.referral_id}-${c.field_path}-${c.edited_at}-${i}`}
-              correction={c}
-            />
+            <CorrectionRow key={c.id ?? `${c.referral_id}-${c.field_path}-${c.edited_at}-${i}`} correction={c} />
           ))}
         </div>
       )}
 
       {nextCursor && (
-        <div className="flex justify-center">
-          <Button
-            variant="outline"
-            disabled={query.isFetching}
-            onClick={() => setCursor(nextCursor)}
-          >
-            {query.isFetching ? "Loading…" : "Load more"}
-          </Button>
+        <div className="aiq-loadmore">
+          <button className="rw-btn outline" disabled={query.isFetching} onClick={() => setCursor(nextCursor)}>
+            <ChevronDown size={15} />{query.isFetching ? "Loading…" : "Load more"}
+          </button>
         </div>
       )}
     </div>
