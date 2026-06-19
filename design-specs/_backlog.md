@@ -67,3 +67,22 @@ Decision (2026-06-18): redesign admin too, not just restyle — most admin pages
   but don't deeply rebuild it until the CMM API lands.
 - Same App UI design system + specs workflow as the clinic side, so both sides feel like one
   product.
+
+## Specialty-specific extracted fields — architecture (decided 2026-06-19)
+**Decision:** KEEP the dermatology section in admin review (do NOT cut). For a derm pilot, derm
+fields (IGA/EASI/BSA/POEM, prior failed therapies, phototherapy) are the PA evidence payers
+require — not "extra."
+
+**Already specialty-driven on the backend:** clinic has a `specialty` (one clinic = one
+specialty); `app/ai/processor.py` passes `specialty` into the extraction prompt; `schema.py` has
+the specialty section; admin review renders the block conditionally (`if extracted_data.dermatology`).
+
+**Scaling to other specialties (rheum, etc.) — additive, no rework:**
+1. Onboarding sets the clinic's specialty (field exists).
+2. Backend: add a specialty-specific extraction prompt (pipeline already branches on specialty).
+3. Frontend: a small **specialty-field registry** `{ dermatology:[...], rheumatology:[...] }` so the
+   admin review renders whichever specialty block is present. Admin can edit/override. Build when
+   the 2nd specialty onboards — not needed for the derm-only pilot.
+
+Referral PDF stays lean (4 core sections); specialty fields ride along for the **PA**, not the PDF.
+Admin 01 already does this functionally + is recolored; full chrome re-skin = post-launch polish.
