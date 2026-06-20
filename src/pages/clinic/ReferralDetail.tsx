@@ -280,7 +280,8 @@ export default function ReferralDetail() {
       {/* Bar C — FixPanel (rejected) or success banner */}
       {rejected ? (
         <FixPanel reason={referral.rejection_reason} items={fixItems} canResubmit={canResubmit} resubmitting={resubmitting}
-          onEdit={() => setEditing(true)} onUpload={() => { setTab("documents"); }} onResubmit={handleResubmit} />
+          onEdit={() => setEditing(true)} onUploadFile={(f: File) => handleUpload(f, "supplemental")} uploading={uploadingCategory === "supplemental"}
+          onResubmit={handleResubmit} />
       ) : (referral.status === "approved_to_send" || referral.status === "sent_to_pharmacy") && referral.pharmacy_name ? (
         <div className="rd-banner success">
           <span className="bi"><CheckCircle size={20} /></span>
@@ -367,17 +368,9 @@ export default function ReferralDetail() {
             </div>
 
             {rejected && (
-              <div className="rd-upload">
-                <h4>Upload Additional Documents</h4>
-                <div className="rd-upload-grid">
-                  {[{ type: "required", label: "Referral Form / Prescription" }, { type: "insurance", label: "Insurance Card" }, { type: "additional", label: "Chart Notes" }].map((z) => (
-                    <UploadZone key={z.type} label={z.label} uploading={uploadingCategory === z.type} onUpload={(f) => handleUpload(f, z.type)} />
-                  ))}
-                </div>
-                <p className="rd-upload-hint" style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", marginTop: 10, display: "flex", alignItems: "center", gap: 6 }}>
-                  <ListChecks size={13} />Uploaded documents check off automatically in the fix checklist on the Overview tab — resubmit from there once everything is resolved.
-                </p>
-              </div>
+              <p className="rd-upload-hint" style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", margin: "14px 2px 0", display: "flex", alignItems: "center", gap: 6 }}>
+                <ListChecks size={13} />To add missing documents, use “Upload documents” in the fix panel on the Overview tab.
+              </p>
             )}
           </>
         )}
@@ -575,9 +568,11 @@ function DlRow({ label, value, mono, flag }: { label: string; value: string; mon
 }
 
 /* ── FixPanel (rejected recovery) ── */
-function FixPanel({ reason, items = [], canResubmit, resubmitting, onEdit, onUpload, onResubmit }: any) {
+function FixPanel({ reason, items = [], canResubmit, resubmitting, onEdit, onUploadFile, uploading, onResubmit }: any) {
+  const [showUpload, setShowUpload] = useState(false);
   const doneCount = items.filter((i: any) => i.done).length;
   const total = items.length;
+  const docItems = items.filter((i: any) => i.kind === "doc");
   return (
     <div className="rd-fix">
       <div className="rd-fix-head">
@@ -613,13 +608,32 @@ function FixPanel({ reason, items = [], canResubmit, resubmitting, onEdit, onUpl
       <div className="rd-fix-actions">
         <span className="rd-fix-actions-lbl">Fix this referral</span>
         <button className="rw-btn outline" onClick={onEdit}><Pencil size={15} />Edit details</button>
-        <button className="rw-btn outline" onClick={onUpload}><Upload size={15} />Upload documents</button>
+        <button className="rw-btn outline" onClick={() => setShowUpload((v: boolean) => !v)}><Upload size={15} />Upload documents</button>
         <span title={!canResubmit ? "Resolve all items above before resubmitting" : undefined} style={{ display: "inline-flex" }}>
           <button className="rw-btn primary" onClick={onResubmit} disabled={!canResubmit || resubmitting}>
             {resubmitting ? <span className="rw-spin"><Loader2 size={15} /></span> : <RefreshCw size={15} />}Resubmit
           </button>
         </span>
       </div>
+      {showUpload && (
+        <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--border-default)" }}>
+          {docItems.length > 0 && (
+            <div style={{ marginBottom: 12 }}>
+              <p style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--text-muted)", margin: "0 0 7px", textTransform: "uppercase", letterSpacing: ".04em" }}>Documents requested</p>
+              <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 5 }}>
+                {docItems.map((d: any) => (
+                  <li key={d.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "var(--text-sm)", color: d.done ? "var(--text-muted)" : "var(--text-body)" }}>
+                    <span style={{ color: d.done ? "var(--color-success)" : "var(--color-stone-400)", display: "inline-flex" }}>{d.done ? <CheckCircle size={14} /> : <Circle size={14} />}</span>
+                    <span style={d.done ? { textDecoration: "line-through" } : undefined}>{d.label}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <UploadZone label="Upload referral packet or any missing document — click to add a file" uploading={uploading} onUpload={onUploadFile} />
+          <p style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", margin: "9px 0 0" }}>Any new document you add checks off the documents above.</p>
+        </div>
+      )}
     </div>
   );
 }
