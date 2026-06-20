@@ -167,7 +167,7 @@ export default function AdminReferralsList() {
               {paginated.map((r: any) => (
                 <tr key={r.id} onClick={() => navigate(`/admin/referrals/${r.id}`)}>
                   <td><span className="dh-id">{(r.id || "").toUpperCase()}</span></td>
-                  <td><span className="dh-pt">{r.latest_clinic_note_at && <span className="dh-note-dot" title="Unread clinic note" />}<span className="dh-pt-nm">{r.patient_name}</span></span></td>
+                  <td><span className="dh-pt"><span className="dh-pt-nm">{r.patient_name}</span></span></td>
                   <td className="dh-muted-cell">{r.clinic_name || "—"}</td>
                   <td><span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>{r.drug || r.drug_requested || "—"}{r.is_bridge_program && <BridgeTag />}</span></td>
                   <td><ClinicPABadge status={r.pa_status} /></td>

@@ -177,7 +177,7 @@ export default function ReferralsList() {
               {paginated.map((r: any) => (
                 <tr key={r.id} onClick={() => navigate(`/clinic/referrals/${r.id}`)}>
                   <td><span className="dh-id">{(r.id || "").toUpperCase()}</span></td>
-                  <td><span className="dh-pt">{r.latest_admin_note_at && <span className="dh-note-dot" title="New note" />}<span className="dh-pt-nm">{r.patient_name}</span></span></td>
+                  <td><span className="dh-pt"><span className="dh-pt-nm">{r.patient_name}</span></span></td>
                   <td>{r.drug || r.drug_requested || "—"}</td>
                   <td><StatusBadge status={r.status} /></td>
                   <td><ClinicPABadge status={r.pa_status} /></td>
