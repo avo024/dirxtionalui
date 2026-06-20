@@ -200,7 +200,6 @@ export default function CreateReferral() {
 
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isPacket, setIsPacket] = useState(false);
-  const [noDocsConfirmed, setNoDocsConfirmed] = useState(false);
 
   const [manualData, setManualData] = useState({
     diagnosisCode: "", drugRequested: "", dosing: "", quantity: "",
@@ -372,7 +371,7 @@ export default function CreateReferral() {
   const insuranceSectionValid = insuranceChoice !== null;
   const canProceedStep2 = (() => {
     if (!insuranceSectionValid) return false;
-    if (referralMethod === "upload") return uploadedFiles.length > 0 || noDocsConfirmed;
+    if (referralMethod === "upload") return uploadedFiles.length > 0;
     return !!manualData.diagnosisCode && !!manualData.drugRequested;
   })();
   const canProceedStep3 = !!selectedPharmacyId;
@@ -408,7 +407,7 @@ export default function CreateReferral() {
             <Btn variant="outline" onClick={() => navigate("/clinic/referrals")}>View Referrals</Btn>
             <Btn variant="outline" onClick={() => {
               setSelectedPatient(null); setReferralMethod(null); setUploadedFiles([]); setIsPacket(false);
-              setNoDocsConfirmed(false); setInsuranceChoice(null); setConfirmAccuracy(false);
+              setInsuranceChoice(null); setConfirmAccuracy(false);
               setSelectedPharmacyId(defaultPharmacyId); setCurrentStep(0); setSubmitted(false);
             }}>Create Another</Btn>
           </div>
@@ -492,12 +491,6 @@ export default function CreateReferral() {
                   <p className="rw-step-desc">Upload all relevant documents for this referral</p>
                 </div>
                 <SmartDropzone files={uploadedFiles} onFiles={(fl) => fl.forEach(handleRealFileUpload)} removeFile={removeFile} setTag={setFileTag} isPacket={isPacket} setPacket={setIsPacket} />
-                {uploadedFiles.length === 0 && (
-                  <label className={`rw-choicebox${noDocsConfirmed ? " on" : ""}`} onClick={(e) => { e.preventDefault(); setNoDocsConfirmed(!noDocsConfirmed); }}>
-                    <span className={`rw-check${noDocsConfirmed ? " on" : ""}`}>{noDocsConfirmed && <Check size={13} />}</span>
-                    <span className="rw-choice-plain">Manual entry only — no documents available for this referral</span>
-                  </label>
-                )}
                 <BridgeBlock choice={insuranceChoice} onChange={setInsuranceChoice} showErrors={showSubmitErrors} />
                 <NoticeStrip icon={Sparkles} tone="teal">Our AI will automatically extract patient info, provider details, drug information, and more from your documents.</NoticeStrip>
                 <NoticeStrip icon={CheckCircle}>Our team will handle the PA and process</NoticeStrip>
