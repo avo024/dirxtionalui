@@ -42,15 +42,6 @@ const MISSING_DOC_LABELS: Record<string, string> = {
   chart_notes: "Chart notes",
   prior_auth: "Prior authorization form",
 };
-// Which uploaded doc_types count as satisfying each "missing document" the admin flagged.
-const DOC_SATISFIED_BY: Record<string, string[]> = {
-  referral_form: ["referral_form", "required"],
-  demographics: ["demographics", "referral_form", "required"],
-  insurance_front: ["insurance_front", "insurance", "insurance_back"],
-  insurance_back: ["insurance_back", "insurance", "insurance_front"],
-  chart_notes: ["chart_notes", "additional"],
-  prior_auth: ["prior_auth", "additional"],
-};
 const prettyFieldPath = (p: string) =>
   p.split(".").map((s) => s.replace(/_/g, " ").replace(/\b\w/, (c) => c.toUpperCase())).join(" · ");
 
@@ -241,9 +232,19 @@ export default function ReferralDetail() {
   const flaggedFieldPaths: string[] = referral.missing_fields?.flagged_fields || [];
   // Live fix checklist — each flagged field / missing doc with its resolved state.
   const fieldVal = (path: string) => { const [s, k] = path.split("."); return (data?.[s] || {})[k]; };
-  const docSatisfied = (key: string) => documents.some((d: any) => (DOC_SATISFIED_BY[key] || [key]).includes(d.doc_type));
+  // Forgiving document rule: clinics rarely name/label files, so we don't try to
+  // match specific doc types. The requested document(s) count as satisfied once the
+  // clinic uploads at least ONE new document after the rejection — the admin
+  // re-reviews everything anyway. Fields, by contrast, are checked exactly.
+  const rejectedAt = history
+    .filter((e: any) => e.event_type === "referral_rejected")
+    .reduce((max: string | null, e: any) => (!max || new Date(e.created_at) > new Date(max) ? e.created_at : max), null as string | null);
+  const hasNewDoc = documents.some((d: any) => {
+    const t = d.uploaded_at || d.created_at;
+    return t && (!rejectedAt || new Date(t) > new Date(rejectedAt));
+  });
   const fixItems = [
-    ...missingDocs.map((k) => ({ kind: "doc", id: k, label: MISSING_DOC_LABELS[k] || k, done: docSatisfied(k) })),
+    ...missingDocs.map((k) => ({ kind: "doc", id: k, label: MISSING_DOC_LABELS[k] || k, done: hasNewDoc })),
     ...flaggedFieldPaths.map((p) => ({ kind: "field", id: p, label: `Correct ${prettyFieldPath(p)}`, done: !isEmpty(fieldVal(p)) })),
   ];
   const canResubmit = fixItems.every((i) => i.done);  // true when nothing specific was flagged
