@@ -372,7 +372,7 @@ export default function ReferralDetail() {
               </div>
               <div className="rd-doc-viewer">
                 {activeDocId ? (
-                  <DocumentViewer key={activeDocId} documents={documents} fetchUrl={fetchClinicDocUrl} initialDocId={activeDocId} />
+                  <DocumentViewer key={activeDocId} documents={documents} fetchUrl={fetchClinicDocUrl} initialDocId={activeDocId} className="flex-1 min-w-0" />
                 ) : (
                   <div className="rd-doc-viewer-empty"><FileText size={28} /><span>No documents to preview</span></div>
                 )}
