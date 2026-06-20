@@ -1,15 +1,17 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Clock, XCircle, Plus, CalendarDays, FileSearch, AlertTriangle, ArrowRight, Send,
-  ChevronDown, Eye,
+  ChevronDown, Eye, Store,
 } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ClinicPABadge } from "@/components/ClinicPABadge";
 import { CreatedByAvatar } from "@/components/CreatedByAvatar";
 import { NotificationBell } from "@/components/NotificationBell";
 import { useAuth } from "@/contexts/AuthContext";
-import { clinicApi } from "@/lib/api";
+import { clinicApi, getMyClinic } from "@/lib/api";
+import { ClinicSettingsModal } from "@/components/ClinicSettingsModal";
 import { mapReferralsFromBackend } from "@/lib/dataMapper";
 import { getGreeting, getFormattedDate, formatDateShort } from "@/lib/dateUtils";
 import "./wizard.css";
@@ -35,6 +37,9 @@ export default function ClinicDashboard() {
   const [patients, setPatients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [alertsOpen, setAlertsOpen] = useState(true);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const { data: clinic } = useQuery({ queryKey: ["my-clinic"], queryFn: getMyClinic });
+  const needsDefaultPharmacy = !!clinic && !clinic.default_pharmacy_id;
 
   useEffect(() => {
     const fetchData = () => {
@@ -94,6 +99,17 @@ export default function ClinicDashboard() {
           <Link to="/clinic/referrals/new" className="rw-btn primary"><Plus size={15} />New Referral</Link>
         </div>
       </div>
+
+      {needsDefaultPharmacy && (
+        <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 18px", marginBottom: 18, borderRadius: "var(--radius-lg)", border: "1px solid var(--color-teal-100)", background: "var(--color-teal-50)" }}>
+          <span style={{ flexShrink: 0, width: 38, height: 38, borderRadius: "var(--radius-md)", background: "#fff", border: "1px solid var(--color-teal-100)", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "var(--color-teal-700)" }}><Store size={18} /></span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--text-primary)", margin: 0 }}>Set your default pharmacy</p>
+            <p style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", margin: "2px 0 0" }}>Pick the pharmacy your referrals should default to — you can change it any time in Clinic Settings.</p>
+          </div>
+          <button className="rw-btn primary sm" onClick={() => setSettingsOpen(true)} style={{ flexShrink: 0 }}><Store size={14} />Set pharmacy</button>
+        </div>
+      )}
 
       {/* Stats — action-split */}
       {loading ? (
@@ -204,6 +220,7 @@ export default function ClinicDashboard() {
           <Link to="/clinic/referrals/new" className="rw-btn primary" style={{ display: "inline-flex" }}><Plus size={15} />New Referral</Link>
         </div>
       )}
+      <ClinicSettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
   );
 }
