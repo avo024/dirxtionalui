@@ -88,7 +88,7 @@
 .dh-id { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-muted); background: var(--bg-muted); padding: 2px 7px; border-radius: var(--radius-sm); }
 .dh-pt { display: inline-flex; align-items: center; gap: 7px; }
 .dh-pt-nm { font-weight: 600; color: var(--text-primary); }
-.dh-note-dot { width: 8px; height: 8px; border-radius: 50%; background: #14B8A6; flex-shrink: 0; }
+/* (dh-note-dot retired — note signals now live in the dashboard NotificationBell) */
 .dh-muted-cell { color: var(--text-muted); white-space: nowrap; }
 
 /* Empty state */
