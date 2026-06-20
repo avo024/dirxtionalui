@@ -42,6 +42,17 @@ const MISSING_DOC_LABELS: Record<string, string> = {
   chart_notes: "Chart notes",
   prior_auth: "Prior authorization form",
 };
+// Which uploaded doc_types count as satisfying each "missing document" the admin flagged.
+const DOC_SATISFIED_BY: Record<string, string[]> = {
+  referral_form: ["referral_form", "required"],
+  demographics: ["demographics", "referral_form", "required"],
+  insurance_front: ["insurance_front", "insurance", "insurance_back"],
+  insurance_back: ["insurance_back", "insurance", "insurance_front"],
+  chart_notes: ["chart_notes", "additional"],
+  prior_auth: ["prior_auth", "additional"],
+};
+const prettyFieldPath = (p: string) =>
+  p.split(".").map((s) => s.replace(/_/g, " ").replace(/\b\w/, (c) => c.toUpperCase())).join(" · ");
 
 const EVENT_LABELS: Record<string, string> = {
   referral_created: "Referral submitted", referral_finalized: "Documents submitted for processing",
@@ -228,6 +239,14 @@ export default function ReferralDetail() {
   const flagCount = (sec: string) => [...adminFlaggedSet].filter((p) => p.startsWith(sec + ".")).length;
   const missingDocs: string[] = referral.missing_fields?.missing_documents || [];
   const flaggedFieldPaths: string[] = referral.missing_fields?.flagged_fields || [];
+  // Live fix checklist — each flagged field / missing doc with its resolved state.
+  const fieldVal = (path: string) => { const [s, k] = path.split("."); return (data?.[s] || {})[k]; };
+  const docSatisfied = (key: string) => documents.some((d: any) => (DOC_SATISFIED_BY[key] || [key]).includes(d.doc_type));
+  const fixItems = [
+    ...missingDocs.map((k) => ({ kind: "doc", id: k, label: MISSING_DOC_LABELS[k] || k, done: docSatisfied(k) })),
+    ...flaggedFieldPaths.map((p) => ({ kind: "field", id: p, label: `Correct ${prettyFieldPath(p)}`, done: !isEmpty(fieldVal(p)) })),
+  ];
+  const canResubmit = fixItems.every((i) => i.done);  // true when nothing specific was flagged
 
   const copy = (text: string, label: string) => { navigator.clipboard.writeText(text); toast({ title: "Copied!", description: `${label} copied to clipboard` }); };
   const activeDocId = viewerDocId || documents[0]?.id || null;
@@ -259,9 +278,8 @@ export default function ReferralDetail() {
 
       {/* Bar C — FixPanel (rejected) or success banner */}
       {rejected ? (
-        <FixPanel reason={referral.rejection_reason} missingDocs={missingDocs} flaggedFields={flaggedFieldPaths}
-          flags={0}
-          onEdit={() => setEditing(true)} onUpload={() => { setTab("documents"); }} />
+        <FixPanel reason={referral.rejection_reason} items={fixItems} canResubmit={canResubmit} resubmitting={resubmitting}
+          onEdit={() => setEditing(true)} onUpload={() => { setTab("documents"); }} onResubmit={handleResubmit} />
       ) : (referral.status === "approved_to_send" || referral.status === "sent_to_pharmacy") && referral.pharmacy_name ? (
         <div className="rd-banner success">
           <span className="bi"><CheckCircle size={20} /></span>
@@ -355,11 +373,9 @@ export default function ReferralDetail() {
                     <UploadZone key={z.type} label={z.label} uploading={uploadingCategory === z.type} onUpload={(f) => handleUpload(f, z.type)} />
                   ))}
                 </div>
-                <div className="rd-resubmit-bar">
-                  <button className="rw-btn primary" onClick={handleResubmit} disabled={resubmitting}>
-                    {resubmitting ? <span className="rw-spin"><Loader2 size={15} /></span> : <RefreshCw size={15} />}Resubmit Referral
-                  </button>
-                </div>
+                <p className="rd-upload-hint" style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", marginTop: 10, display: "flex", alignItems: "center", gap: 6 }}>
+                  <ListChecks size={13} />Uploaded documents check off automatically in the fix checklist on the Overview tab — resubmit from there once everything is resolved.
+                </p>
               </div>
             )}
           </>
@@ -558,9 +574,9 @@ function DlRow({ label, value, mono, flag }: { label: string; value: string; mon
 }
 
 /* ── FixPanel (rejected recovery) ── */
-function FixPanel({ reason, missingDocs, flaggedFields = [], flags, onEdit, onUpload }: any) {
-  const prettyField = (p: string) => p.split(".").map((s) => s.replace(/_/g, " ").replace(/\b\w/, (c) => c.toUpperCase())).join(" · ");
-  const nothing = missingDocs.length === 0 && flaggedFields.length === 0 && flags === 0;
+function FixPanel({ reason, items = [], canResubmit, resubmitting, onEdit, onUpload, onResubmit }: any) {
+  const doneCount = items.filter((i: any) => i.done).length;
+  const total = items.length;
   return (
     <div className="rd-fix">
       <div className="rd-fix-head">
@@ -574,23 +590,34 @@ function FixPanel({ reason, missingDocs, flaggedFields = [], flags, onEdit, onUp
           <div className="rd-fix-reason">{reason || "This referral was rejected. Contact our team for details."}</div>
         </div>
         <div className="rd-fix-block">
-          <p className="rd-fix-k"><ListChecks size={14} />What's needed</p>
+          <p className="rd-fix-k">
+            <ListChecks size={14} />What's needed
+            {total > 0 && (
+              <span style={{ marginLeft: "auto", fontSize: 11, fontWeight: 700, padding: "1px 8px", borderRadius: 9999, color: canResubmit ? "var(--color-success)" : "var(--color-warning)", background: canResubmit ? "color-mix(in srgb, var(--color-success) 13%, transparent)" : "color-mix(in srgb, var(--color-warning) 14%, transparent)" }}>{doneCount}/{total} resolved</span>
+            )}
+          </p>
           <ul className="rd-checklist">
-            {nothing && <li className="rd-check-item"><span className="ck"><Circle size={15} /></span><span>Review the rejection reason and correct the referral.</span></li>}
-            {missingDocs.map((m: string) => (
-              <li className="rd-check-item" key={m}><span className="ck"><Circle size={15} /></span><span>{MISSING_DOC_LABELS[m] || m}</span></li>
+            {total === 0 && <li className="rd-check-item"><span className="ck"><Circle size={15} /></span><span>Review the rejection reason and correct the referral.</span></li>}
+            {items.map((it: any) => (
+              <li className="rd-check-item" key={it.kind + it.id}>
+                <span className="ck" style={it.done ? { color: "var(--color-success)" } : undefined}>{it.done ? <CheckCircle size={15} /> : <Circle size={15} />}</span>
+                <span style={it.done ? { color: "var(--text-muted)", textDecoration: "line-through" } : undefined}>
+                  {it.label}{!it.done && <AlertTriangle size={12} style={{ verticalAlign: "-1px", marginLeft: 4, color: "var(--color-warning)" }} />}
+                </span>
+              </li>
             ))}
-            {flaggedFields.map((p: string) => (
-              <li className="rd-check-item" key={p}><span className="ck"><Circle size={15} /></span><span>Correct {prettyField(p)} <AlertTriangle size={12} style={{ verticalAlign: "-1px", color: "var(--color-warning)" }} /></span></li>
-            ))}
-            {flags > 0 && <li className="rd-check-item"><span className="ck"><Circle size={15} /></span><span>Verify {flags} more field{flags > 1 ? "s" : ""} marked <AlertTriangle size={12} style={{ verticalAlign: "-1px", color: "var(--color-warning)" }} /></span></li>}
           </ul>
         </div>
       </div>
       <div className="rd-fix-actions">
         <span className="rd-fix-actions-lbl">Fix this referral</span>
         <button className="rw-btn outline" onClick={onEdit}><Pencil size={15} />Edit details</button>
-        <button className="rw-btn primary" onClick={onUpload}><Upload size={15} />Upload documents</button>
+        <button className="rw-btn outline" onClick={onUpload}><Upload size={15} />Upload documents</button>
+        <span title={!canResubmit ? "Resolve all items above before resubmitting" : undefined} style={{ display: "inline-flex" }}>
+          <button className="rw-btn primary" onClick={onResubmit} disabled={!canResubmit || resubmitting}>
+            {resubmitting ? <span className="rw-spin"><Loader2 size={15} /></span> : <RefreshCw size={15} />}Resubmit
+          </button>
+        </span>
       </div>
     </div>
   );
@@ -622,7 +649,7 @@ function EditDrawer({ referralId, data, flaggedSet, onClose, onSaved }: any) {
     setSaving(true);
     try {
       await clinicApi.editReferral(referralId, draft);
-      toast({ title: "Referral details updated", description: "Sent back to our team for review." });
+      toast({ title: "Details saved", description: "Your progress is saved — resubmit from the checklist once everything is resolved." });
       onSaved();
     } catch (err: any) {
       toast({ title: "Update failed", description: err.message || "Could not save changes.", variant: "destructive" });
