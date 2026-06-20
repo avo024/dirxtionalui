@@ -79,9 +79,9 @@
 .dh-table-wrap { background: var(--bg-card); border: 1px solid var(--border-default); border-radius: var(--radius-lg); overflow-x: auto; box-shadow: var(--shadow-sm); }
 .dh-table { width: 100%; border-collapse: collapse; }
 .dh-table thead tr { background: var(--bg-muted); }
-.dh-table th { text-align: left; font-size: var(--text-xs); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); padding: 11px 14px; white-space: nowrap; }
+.dh-table th { text-align: left; font-size: var(--text-xs); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); padding: 11px 11px; white-space: nowrap; }
 .dh-table th.r, .dh-table td.r { text-align: right; }
-.dh-table td { padding: 12px 14px; border-top: 1px solid var(--border-default); font-size: var(--text-sm); color: var(--text-body); vertical-align: middle; }
+.dh-table td { padding: 12px 11px; border-top: 1px solid var(--border-default); font-size: var(--text-sm); color: var(--text-body); vertical-align: middle; }
 .dh-table tbody tr { cursor: pointer; }
 .dh-table tbody tr:nth-child(even) { background: color-mix(in srgb, var(--bg-muted) 40%, transparent); }
 .dh-table tbody tr:hover { background: color-mix(in srgb, var(--color-navy) 3%, transparent); }
