@@ -26,7 +26,7 @@ export function AdminLayout() {
         <div className="flex justify-end px-6 pt-4 lg:px-8">
           <UserMenu />
         </div>
-        <div className="mx-auto max-w-[1400px] w-full px-6 py-8 lg:px-8 flex-1">
+        <div className="mx-auto max-w-[1680px] w-full px-6 py-8 lg:px-8 flex-1">
           <Outlet />
         </div>
         <AppFooter />
