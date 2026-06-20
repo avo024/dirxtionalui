@@ -7,7 +7,7 @@ import {
 import { StatusBadge } from "@/components/StatusBadge";
 import { ClinicPABadge } from "@/components/ClinicPABadge";
 import { CreatedByAvatar } from "@/components/CreatedByAvatar";
-import { NoteBell } from "@/components/NoteBell";
+import { NotificationBell } from "@/components/NotificationBell";
 import { useAuth } from "@/contexts/AuthContext";
 import { clinicApi } from "@/lib/api";
 import { mapReferralsFromBackend } from "@/lib/dataMapper";
@@ -89,7 +89,7 @@ export default function ClinicDashboard() {
           <p className="dh-sub">Here's what's happening with your referrals today</p>
         </div>
         <div className="dh-header-right">
-          <NoteBell referrals={referrals} noteField="latest_admin_note_at" linkBase="/clinic/referrals" />
+          <NotificationBell referrals={referrals} noteField="latest_admin_note_at" actionStatus="rejected" linkBase="/clinic/referrals" />
           <div className="dh-date"><CalendarDays size={15} /><span>{getFormattedDate()}</span></div>
           <Link to="/clinic/referrals/new" className="rw-btn primary"><Plus size={15} />New Referral</Link>
         </div>
@@ -180,7 +180,7 @@ export default function ClinicDashboard() {
                 {sortedRecentReferrals.map((r) => (
                   <tr key={r.id} onClick={() => navigate(`/clinic/referrals/${r.id}`)}>
                     <td><span className="dh-id">{(r.id || "").toUpperCase()}</span></td>
-                    <td><span className="dh-pt">{r.latest_admin_note_at && <span className="dh-note-dot" title="New note" />}<span className="dh-pt-nm">{r.patient_name}</span></span></td>
+                    <td><span className="dh-pt"><span className="dh-pt-nm">{r.patient_name}</span></span></td>
                     <td>{r.drug || r.drug_requested || "—"}</td>
                     <td><StatusBadge status={r.status} /></td>
                     <td><ClinicPABadge status={r.pa_status} /></td>
