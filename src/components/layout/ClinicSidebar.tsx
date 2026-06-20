@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Plus, FileText, LogOut, Users } from "lucide-react";
+import { LayoutDashboard, Plus, FileText, LogOut, Users, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { ClinicSettingsModal } from "@/components/ClinicSettingsModal";
 import logo from "@/assets/logo.png";
 
 const navItems = [
@@ -16,18 +18,30 @@ const navItems = [
 export function ClinicSidebar() {
   const location = useLocation();
   const { logout, user } = useAuth();
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
+    <>
     <aside className="w-60 shrink-0 border-r border-sidebar-border bg-sidebar flex flex-col h-screen sticky top-0">
       {/* Logo */}
       <div className="flex items-center justify-center px-5 py-5 bg-white border-b border-sidebar-border">
         <img src={logo} alt="DiRxctional" className="w-auto h-auto max-w-[185px]" />
       </div>
 
-      {/* Clinic name */}
+      {/* Clinic name + settings */}
       <div className="px-5 py-3 border-b border-sidebar-border">
         <p className="text-xs text-sidebar-foreground/60">Clinic</p>
-        <p className="text-sm font-medium text-sidebar-accent-foreground truncate">{user?.clinic_name}</p>
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-medium text-sidebar-accent-foreground truncate flex-1">{user?.clinic_name}</p>
+          <button
+            onClick={() => setSettingsOpen(true)}
+            title="Clinic settings"
+            aria-label="Clinic settings"
+            className="shrink-0 text-sidebar-foreground/60 hover:text-sidebar-accent-foreground transition-colors"
+          >
+            <Settings className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       {/* Nav links */}
@@ -67,5 +81,7 @@ export function ClinicSidebar() {
         </button>
       </div>
     </aside>
+    <ClinicSettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
+    </>
   );
 }

@@ -73,18 +73,40 @@ async function getAuthHeaders(): Promise<HeadersInit> {
 // CURRENT USER / CLINIC
 // ============================================================================
 
-export async function getMyClinic(): Promise<{
+export interface MyClinic {
   id: string;
   name: string;
   specialty?: string;
   email?: string;
-  default_pharmacy_id?: string;
-  default_pharmacy_name?: string;
-}> {
+  phone?: string | null;
+  fax?: string | null;
+  address?: string | null;
+  npi?: string | null;
+  default_pharmacy_id?: string | null;
+  default_pharmacy_name?: string | null;
+}
+
+export async function getMyClinic(): Promise<MyClinic> {
   const res = await fetch(`${API_BASE_URL}/clinics/me`, {
     headers: await getHeaders(),
   });
   if (!res.ok) throw new Error('Failed to load clinic');
+  return res.json();
+}
+
+export async function updateMyClinic(data: {
+  name?: string;
+  phone?: string | null;
+  fax?: string | null;
+  address?: string | null;
+  default_pharmacy_id?: string | null;
+}): Promise<MyClinic> {
+  const res = await fetch(`${API_BASE_URL}/clinics/me`, {
+    method: 'PATCH',
+    headers: await getHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Failed to update clinic');
   return res.json();
 }
 
