@@ -109,7 +109,7 @@ export default function AdminDashboard() {
           <p className="dh-sub">Overview of all referral activity</p>
         </div>
         <div className="dh-header-right">
-          <NotificationBell referrals={referrals} noteField="latest_clinic_note_at" actionStatus="ready_for_review" linkBase="/admin/referrals" />
+          <NotificationBell referrals={referrals} noteField="latest_clinic_note_at" actionStatus={null} linkBase="/admin/referrals" />
           <div className="dh-date"><CalendarDays size={15} /><span>{getFormattedDate()}</span></div>
         </div>
       </div>
