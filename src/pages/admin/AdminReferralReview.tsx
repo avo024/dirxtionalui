@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, FileText, Loader2, Send, RefreshCw, AlertTriangle, Shield, User, CreditCard, Pill, Stethoscope, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -71,6 +71,8 @@ function SummaryField({ label, value, confidence, isCritical = false }: { label:
 export default function AdminReferralReview() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const notesDeepLink = searchParams.get("tab") === "notes";
   const [referral, setReferral] = useState<any>(null);
   const [documents, setDocuments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -139,6 +141,11 @@ export default function AdminReferralReview() {
   useEffect(() => {
     fetchReferralData();
   }, [id]);
+
+  // Deep-linked from the dashboard note bell (?tab=notes) — clear the unread flag.
+  useEffect(() => {
+    if (notesDeepLink && id) localStorage.setItem(`notes_last_viewed_${id}`, new Date().toISOString());
+  }, [id, notesDeepLink]);
 
   useEffect(() => {
     if (referral?.status !== 'processing' && !isReExtracting) return;
@@ -399,7 +406,7 @@ export default function AdminReferralReview() {
             </div>
           ) : data ? (
             <Tabs
-              defaultValue="summary"
+              defaultValue={notesDeepLink ? "notes" : "summary"}
               className="w-full"
               onValueChange={(v) => {
                 if (v === "notes" && id) {

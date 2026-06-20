@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft, FileText, Clock, User, Pill, Stethoscope, Shield, Copy, CheckCircle,
   Send, Upload, Loader2, XCircle, Plus, AlertTriangle, Image, RefreshCw, Sparkles,
@@ -133,7 +133,8 @@ export default function ReferralDetail() {
   const [notes, setNotes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState("overview");
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState(searchParams.get("tab") === "notes" ? "notes" : "overview");
   const [newNote, setNewNote] = useState("");
   const [sendingNote, setSendingNote] = useState(false);
   const [resubmitting, setResubmitting] = useState(false);
@@ -163,6 +164,11 @@ export default function ReferralDetail() {
       .finally(() => setLoading(false));
   };
   useEffect(() => { loadData(); }, [id]);
+  // Deep-linked from the dashboard note bell (?tab=notes) — mark notes read so the
+  // notification clears once they've actually landed on the Notes tab.
+  useEffect(() => {
+    if (tab === "notes" && id) localStorage.setItem(`notes_last_viewed_${id}`, new Date().toISOString());
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleUpload = async (file: File, docType: string) => {
     if (!id) return;
@@ -247,7 +253,13 @@ export default function ReferralDetail() {
     ...missingDocs.map((k) => ({ kind: "doc", id: k, label: MISSING_DOC_LABELS[k] || k, done: hasNewDoc })),
     ...flaggedFieldPaths.map((p) => ({ kind: "field", id: p, label: `Correct ${prettyFieldPath(p)}`, done: !isEmpty(fieldVal(p)) })),
   ];
-  const canResubmit = fixItems.every((i) => i.done);  // true when nothing specific was flagged
+  // The checklist is GUIDANCE, not a hard gate — the admin re-reviews on resubmit.
+  // Allow resubmit once the clinic has made at least one change since the rejection
+  // (edited a field OR uploaded a document). They needn't satisfy every item — e.g.
+  // if they had the info on hand they can just edit and resubmit, no re-upload needed.
+  const editedSinceReject = !!rejectedAt && history.some(
+    (e: any) => e.event_type === "referral_edited_by_clinic" && new Date(e.created_at) > new Date(rejectedAt));
+  const canResubmit = fixItems.length === 0 || hasNewDoc || editedSinceReject;
 
   const copy = (text: string, label: string) => { navigator.clipboard.writeText(text); toast({ title: "Copied!", description: `${label} copied to clipboard` }); };
   const activeDocId = viewerDocId || documents[0]?.id || null;
@@ -609,29 +621,31 @@ function FixPanel({ reason, items = [], canResubmit, resubmitting, onEdit, onUpl
         <span className="rd-fix-actions-lbl">Fix this referral</span>
         <button className="rw-btn outline" onClick={onEdit}><Pencil size={15} />Edit details</button>
         <button className="rw-btn outline" onClick={() => setShowUpload((v: boolean) => !v)}><Upload size={15} />Upload documents</button>
-        <span title={!canResubmit ? "Resolve all items above before resubmitting" : undefined} style={{ display: "inline-flex" }}>
+        <span title={!canResubmit ? "Edit a field or upload a document before resubmitting" : undefined} style={{ display: "inline-flex" }}>
           <button className="rw-btn primary" onClick={onResubmit} disabled={!canResubmit || resubmitting}>
             {resubmitting ? <span className="rw-spin"><Loader2 size={15} /></span> : <RefreshCw size={15} />}Resubmit
           </button>
         </span>
       </div>
       {showUpload && (
-        <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--border-default)" }}>
-          {docItems.length > 0 && (
-            <div style={{ marginBottom: 12 }}>
-              <p style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--text-muted)", margin: "0 0 7px", textTransform: "uppercase", letterSpacing: ".04em" }}>Documents requested</p>
-              <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 5 }}>
-                {docItems.map((d: any) => (
-                  <li key={d.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "var(--text-sm)", color: d.done ? "var(--text-muted)" : "var(--text-body)" }}>
-                    <span style={{ color: d.done ? "var(--color-success)" : "var(--color-stone-400)", display: "inline-flex" }}>{d.done ? <CheckCircle size={14} /> : <Circle size={14} />}</span>
-                    <span style={d.done ? { textDecoration: "line-through" } : undefined}>{d.label}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          <UploadZone label="Upload referral packet or any missing document — click to add a file" uploading={uploading} onUpload={onUploadFile} />
-          <p style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", margin: "9px 0 0" }}>Any new document you add checks off the documents above.</p>
+        <div style={{ padding: "18px 24px 22px", borderTop: "1px solid var(--border-default)", background: "var(--bg-muted)" }}>
+          <div style={{ maxWidth: 440, margin: "0 auto" }}>
+            {docItems.length > 0 && (
+              <div style={{ marginBottom: 14 }}>
+                <p style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--text-muted)", margin: "0 0 8px", textTransform: "uppercase", letterSpacing: ".04em", textAlign: "center" }}>Documents requested</p>
+                <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 6, alignItems: "center" }}>
+                  {docItems.map((d: any) => (
+                    <li key={d.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "var(--text-sm)", color: d.done ? "var(--text-muted)" : "var(--text-body)" }}>
+                      <span style={{ color: d.done ? "var(--color-success)" : "var(--color-stone-400)", display: "inline-flex" }}>{d.done ? <CheckCircle size={14} /> : <Circle size={14} />}</span>
+                      <span style={d.done ? { textDecoration: "line-through" } : undefined}>{d.label}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            <UploadZone label="Upload referral packet or any missing document" uploading={uploading} onUpload={onUploadFile} />
+            <p style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", margin: "10px 0 0", textAlign: "center" }}>Adding a document — or editing a field — lets you resubmit.</p>
+          </div>
         </div>
       )}
     </div>

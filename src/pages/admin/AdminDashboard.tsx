@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ClinicPABadge } from "@/components/ClinicPABadge";
+import { NotificationBell } from "@/components/NotificationBell";
 import { adminApi } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { formatDateShort, getFormattedDate } from "@/lib/dateUtils";
@@ -108,6 +109,7 @@ export default function AdminDashboard() {
           <p className="dh-sub">Overview of all referral activity</p>
         </div>
         <div className="dh-header-right">
+          <NotificationBell referrals={referrals} noteField="latest_clinic_note_at" actionStatus="ready_for_review" linkBase="/admin/referrals" />
           <div className="dh-date"><CalendarDays size={15} /><span>{getFormattedDate()}</span></div>
         </div>
       </div>
@@ -184,7 +186,7 @@ export default function AdminDashboard() {
                 {needsAttention.slice(0, 25).map((r: any) => (
                   <tr key={r.id} onClick={() => navigate(`/admin/referrals/${r.id}`)}>
                     <td><span className="dh-id">{(r.id || "").toUpperCase()}</span></td>
-                    <td><span className="dh-pt">{hasUnreadClinicNote(r) && <span className="dh-note-dot" title="Unread clinic note" />}<span className="dh-pt-nm">{r.patient_name}</span></span></td>
+                    <td><span className="dh-pt"><span className="dh-pt-nm">{r.patient_name}</span></span></td>
                     <td className="dh-muted-cell">{r.clinic_name || "—"}</td>
                     <td><span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>{r.drug || r.drug_requested || "—"}{r.is_bridge_program && <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 600, padding: "1px 6px", borderRadius: 9999, background: "var(--color-teal-50)", color: "var(--color-teal-700)" }}><Zap size={10} />Bridge</span>}</span></td>
                     <td><ClinicPABadge status={r.pa_status} /></td>
