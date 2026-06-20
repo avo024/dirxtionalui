@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ClinicPABadge } from "@/components/ClinicPABadge";
+import { NoteBell } from "@/components/NoteBell";
 import { adminApi } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { formatDateShort, getFormattedDate } from "@/lib/dateUtils";
@@ -108,6 +109,7 @@ export default function AdminDashboard() {
           <p className="dh-sub">Overview of all referral activity</p>
         </div>
         <div className="dh-header-right">
+          <NoteBell referrals={referrals} noteField="latest_clinic_note_at" linkBase="/admin/referrals" />
           <div className="dh-date"><CalendarDays size={15} /><span>{getFormattedDate()}</span></div>
         </div>
       </div>

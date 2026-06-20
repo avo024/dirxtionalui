@@ -7,6 +7,7 @@ import {
 import { StatusBadge } from "@/components/StatusBadge";
 import { ClinicPABadge } from "@/components/ClinicPABadge";
 import { CreatedByAvatar } from "@/components/CreatedByAvatar";
+import { NoteBell } from "@/components/NoteBell";
 import { useAuth } from "@/contexts/AuthContext";
 import { clinicApi } from "@/lib/api";
 import { mapReferralsFromBackend } from "@/lib/dataMapper";
@@ -88,6 +89,7 @@ export default function ClinicDashboard() {
           <p className="dh-sub">Here's what's happening with your referrals today</p>
         </div>
         <div className="dh-header-right">
+          <NoteBell referrals={referrals} noteField="latest_admin_note_at" linkBase="/clinic/referrals" />
           <div className="dh-date"><CalendarDays size={15} /><span>{getFormattedDate()}</span></div>
           <Link to="/clinic/referrals/new" className="rw-btn primary"><Plus size={15} />New Referral</Link>
         </div>

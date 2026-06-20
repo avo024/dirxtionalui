@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft, FileText, Clock, User, Pill, Stethoscope, Shield, Copy, CheckCircle,
   Send, Upload, Loader2, XCircle, Plus, AlertTriangle, Image, RefreshCw, Sparkles,
@@ -133,7 +133,8 @@ export default function ReferralDetail() {
   const [notes, setNotes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState("overview");
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState(searchParams.get("tab") === "notes" ? "notes" : "overview");
   const [newNote, setNewNote] = useState("");
   const [sendingNote, setSendingNote] = useState(false);
   const [resubmitting, setResubmitting] = useState(false);
@@ -163,6 +164,11 @@ export default function ReferralDetail() {
       .finally(() => setLoading(false));
   };
   useEffect(() => { loadData(); }, [id]);
+  // Deep-linked from the dashboard note bell (?tab=notes) — mark notes read so the
+  // notification clears once they've actually landed on the Notes tab.
+  useEffect(() => {
+    if (tab === "notes" && id) localStorage.setItem(`notes_last_viewed_${id}`, new Date().toISOString());
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleUpload = async (file: File, docType: string) => {
     if (!id) return;
