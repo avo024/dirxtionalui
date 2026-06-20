@@ -44,8 +44,8 @@ export function AdminSidebar() {
   return (
     <aside className="w-60 shrink-0 border-r border-sidebar-border bg-sidebar flex flex-col h-screen sticky top-0">
       {/* Logo */}
-      <div className="flex items-center px-5 py-4 border-b border-sidebar-border">
-        <img src={logo} alt="DiRxctional" className="h-24 w-auto" />
+      <div className="flex items-center justify-center px-5 py-5 bg-white border-b border-sidebar-border">
+        <img src={logo} alt="DiRxctional" className="h-20 w-auto" />
       </div>
 
       {/* Role */}
