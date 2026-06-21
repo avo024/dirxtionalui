@@ -25,7 +25,7 @@ export default function Login() {
       <div className="w-full max-w-md space-y-8">
         {/* Logo */}
         <div className="text-center">
-          <img src={logo} alt="DiRxctional" className="h-40 w-auto mx-auto mb-4" />
+          <img src={logo} alt="Dirxctional" className="h-20 w-auto mx-auto mb-4" />
           <p className="text-muted-foreground mt-1">Clinical Referral Automation Platform</p>
         </div>
 
@@ -34,7 +34,7 @@ export default function Login() {
           <div className="text-center space-y-2">
             <h1 className="text-xl font-semibold text-foreground">Welcome back</h1>
             <p className="text-sm text-muted-foreground">
-              Sign in to access your DiRxctional account
+              Sign in to access your Dirxctional account
             </p>
           </div>
 
