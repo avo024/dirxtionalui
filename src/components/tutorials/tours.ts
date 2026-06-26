@@ -47,7 +47,7 @@ export const TOURS: Record<string, TourDef> = {
     route: "/clinic/dashboard",
     steps: [
       {
-        title: "Welcome to DiRxctional 👋",
+        title: "Welcome to Dirxctional 👋",
         description:
           "Here's a 60-second tour of the essentials. You can replay this — and every other walkthrough — anytime from the Help button.",
       },
