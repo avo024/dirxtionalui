@@ -11,6 +11,8 @@ import { CreatedByAvatar } from "@/components/CreatedByAvatar";
 import { NotificationBell } from "@/components/NotificationBell";
 import { useAuth } from "@/contexts/AuthContext";
 import { clinicApi, getMyClinic } from "@/lib/api";
+import { useTour } from "@/components/tutorials/useTour";
+import { OVERVIEW_SEEN_KEY } from "@/components/tutorials/tours";
 import { ClinicSettingsModal } from "@/components/ClinicSettingsModal";
 import { mapReferralsFromBackend } from "@/lib/dataMapper";
 import { getGreeting, getFormattedDate, formatDateShort } from "@/lib/dateUtils";
@@ -40,6 +42,18 @@ export default function ClinicDashboard() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const { data: clinic } = useQuery({ queryKey: ["my-clinic"], queryFn: getMyClinic });
   const needsDefaultPharmacy = !!clinic && !clinic.default_pharmacy_id;
+  const { runTour } = useTour();
+
+  // First-login product tour: fire the Overview walkthrough once, after the
+  // dashboard has loaded (so the highlighted stat cards exist). localStorage
+  // only — no backend. Clear dx_tour_overview_seen to replay on next visit.
+  useEffect(() => {
+    if (loading) return;
+    if (localStorage.getItem(OVERVIEW_SEEN_KEY) === "1") return;
+    localStorage.setItem(OVERVIEW_SEEN_KEY, "1");
+    const t = window.setTimeout(() => runTour("overview"), 600);
+    return () => window.clearTimeout(t);
+  }, [loading, runTour]);
 
   useEffect(() => {
     const fetchData = () => {
@@ -118,7 +132,7 @@ export default function ClinicDashboard() {
           <div className="dh-split-muted"><div className="dh-skel" style={{ height: 36 }} /><div className="dh-skel" style={{ height: 36 }} /></div>
         </div>
       ) : (
-        <div className="dh-split">
+        <div className="dh-split" data-tour="dashboard-stats">
           <div className="dh-split-action">
             {actionStats.map((s) => (
               <Link key={s.label} to={s.link} className={`dh-action-card ${s.tone}`}>

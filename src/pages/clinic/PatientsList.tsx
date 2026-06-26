@@ -105,7 +105,7 @@ export default function PatientsList() {
           <h1 className="rl-h1 serif">Patients</h1>
           <p className="rl-sub">Manage your patients and their referrals</p>
         </div>
-        <Link to="/clinic/patients/new" className="rw-btn primary"><Plus size={15} />Add New Patient</Link>
+        <Link to="/clinic/patients/new" className="rw-btn primary" data-tour="add-patient"><Plus size={15} />Add New Patient</Link>
       </div>
 
       <div className="rl-toolbar">
