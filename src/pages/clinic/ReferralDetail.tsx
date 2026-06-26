@@ -49,8 +49,8 @@ const EVENT_LABELS: Record<string, string> = {
   referral_created: "Referral submitted", referral_finalized: "Documents submitted for processing",
   document_uploaded: "Document uploaded", ai_extraction_completed: "AI extraction completed",
   ai_extraction_completed_auto: "AI extraction completed", validation_updated: "Document validation updated",
-  referral_approved: "Referral approved by admin", referral_rejected: "Referral rejected",
-  referral_rejectd: "Referral rejected", referral_resubmitted: "Referral resubmitted by clinic",
+  referral_approved: "Referral approved by admin", referral_rejected: "Referral needs attention",
+  referral_rejectd: "Referral needs attention", referral_resubmitted: "Referral resubmitted by clinic",
   referral_edited_by_clinic: "Clinic corrected referral details", pharmacy_reassigned: "Pharmacy reassigned",
   delivery_completed: "Sent to pharmacy", sent_to_pharmacy: "Sent to pharmacy", delivery_failed: "Pharmacy delivery failed",
   pa_submitted: "Prior authorization submitted", pa_approved: "Prior authorization approved",
@@ -503,7 +503,7 @@ function StatusProgress({ status, desc }: { status: string; desc: string }) {
           );
         })}
       </div>
-      {rejected && <div className="rd-prog-note"><ArrowRight size={14} />Branched to rejected at review — fix &amp; resubmit to continue</div>}
+      {rejected && <div className="rd-prog-note"><ArrowRight size={14} />Flagged for attention at review — fix &amp; resubmit to continue</div>}
     </div>
   );
 }
@@ -594,8 +594,8 @@ function FixPanel({ reason, items = [], canResubmit, resubmitting, onEdit, onUpl
       </div>
       <div className="rd-fix-grid">
         <div className="rd-fix-block">
-          <p className="rd-fix-k"><MessageSquareWarning size={14} />Rejection reason</p>
-          <div className="rd-fix-reason">{reason || "This referral was rejected. Contact our team for details."}</div>
+          <p className="rd-fix-k"><MessageSquareWarning size={14} />What needs attention</p>
+          <div className="rd-fix-reason">{reason || "This referral needs attention. Contact our team for details."}</div>
         </div>
         <div className="rd-fix-block">
           <p className="rd-fix-k">
@@ -605,7 +605,7 @@ function FixPanel({ reason, items = [], canResubmit, resubmitting, onEdit, onUpl
             )}
           </p>
           <ul className="rd-checklist">
-            {total === 0 && <li className="rd-check-item"><span className="ck"><Circle size={15} /></span><span>Review the rejection reason and correct the referral.</span></li>}
+            {total === 0 && <li className="rd-check-item"><span className="ck"><Circle size={15} /></span><span>Review what needs attention and correct the referral.</span></li>}
             {items.map((it: any) => (
               <li className="rd-check-item" key={it.kind + it.id}>
                 <span className="ck" style={it.done ? { color: "var(--color-success)" } : undefined}>{it.done ? <CheckCircle size={15} /> : <Circle size={15} />}</span>
