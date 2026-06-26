@@ -57,7 +57,7 @@ function refStatusBadge(status: string): [Tone, string] {
     uploaded: ["uploaded", "Uploaded"], processing: ["processing", "Processing"],
     ready_for_review: ["review", "Ready for review"], needs_info: ["uploaded", "Needs info"],
     approved_to_send: ["approved", "Approved"], sent_to_pharmacy: ["sent", "Sent to pharmacy"],
-    rejected: ["rejected", "Rejected"],
+    rejected: ["rejected", "Needs Attention"],
   };
   return m[status] || ["uploaded", status || "—"];
 }

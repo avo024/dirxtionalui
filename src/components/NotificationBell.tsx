@@ -14,7 +14,7 @@ import { getRelativeTime } from "@/lib/dateUtils";
 type Kind = "note" | "rejected" | "review";
 const META: Record<Kind, { icon: any; color: string; label: string }> = {
   note: { icon: MessageSquare, color: "var(--color-teal)", label: "New note" },
-  rejected: { icon: AlertTriangle, color: "var(--color-error)", label: "Rejected — needs attention" },
+  rejected: { icon: AlertTriangle, color: "var(--color-error)", label: "Needs attention" },
   review: { icon: ClipboardCheck, color: "var(--color-navy)", label: "Ready for review" },
 };
 const MAX_LIST = 10;

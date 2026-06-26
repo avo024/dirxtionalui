@@ -162,7 +162,7 @@ export default function ClinicDashboard() {
           <button className="dh-collapse-trig" onClick={() => setAlertsOpen((o) => !o)}>
             <span className="dh-collapse-ic"><AlertTriangle size={16} /></span>
             <span className="dh-collapse-t">Needs attention <span className="dh-collapse-n">{alertCount}</span></span>
-            <span className="dh-collapse-peek">{rejectedReferrals.length} rejected · {paExpiringSoonCount} PA expiring</span>
+            <span className="dh-collapse-peek">{rejectedReferrals.length} need attention · {paExpiringSoonCount} PA expiring</span>
             <span className="dh-collapse-chev"><ChevronDown size={16} /></span>
           </button>
           {alertsOpen && (
