@@ -350,6 +350,45 @@ export const clinicApi = {
 };
 
 // ============================================================================
+// Clinic "Contact us" support thread — general / account / how-to support.
+// NOT patient-specific (that stays in referral Notes). See SUPPORT_API_CONTRACT.md.
+// ============================================================================
+
+export interface SupportMessage {
+  id: string;
+  author_type: 'clinic_user' | 'admin';
+  author_name: string;
+  category: 'support' | 'feedback';
+  body: string;
+  created_at?: string;
+}
+
+export const supportApi = {
+  async getMessages(): Promise<{ items: SupportMessage[]; latest_admin_at: string | null }> {
+    const response = await fetch(`${API_BASE_URL}/support/messages`, {
+      headers: await getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  async postMessage(body: string, category: 'support' | 'feedback' = 'support'): Promise<SupportMessage> {
+    const response = await fetch(`${API_BASE_URL}/support/messages`, {
+      method: 'POST',
+      headers: await getHeaders(),
+      body: JSON.stringify({ body, category }),
+    });
+    return handleResponse(response);
+  },
+
+  async getSummary(): Promise<{ total: number; latest_admin_at: string | null }> {
+    const response = await fetch(`${API_BASE_URL}/support/summary`, {
+      headers: await getHeaders(),
+    });
+    return handleResponse(response);
+  },
+};
+
+// ============================================================================
 // ADMIN ENDPOINTS
 // ============================================================================
 
