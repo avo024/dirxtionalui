@@ -135,7 +135,7 @@ export default function ReferralsList() {
       </div>
 
       {/* Toolbar — segmented filter + dropdown + search */}
-      <div className="rl-toolbar">
+      <div className="rl-toolbar" data-tour="referrals-filters">
         <div className="rl-seg-wrap">
           <div className="rl-seg">
             {filters.map((f) => (
@@ -161,7 +161,7 @@ export default function ReferralsList() {
       {loading ? (
         <div className="rl-skel">{[0, 1, 2, 3].map((i) => <div key={i} className="rl-skel-row" />)}</div>
       ) : filtered.length > 0 ? (
-        <div className="dh-table-wrap">
+        <div className="dh-table-wrap" data-tour="referrals-table">
           <table className="dh-table">
             <thead>
               <tr>

@@ -445,7 +445,7 @@ export default function CreateReferral() {
             </div>
             <div className="rw-track"><i style={{ width: progress + "%" }} /></div>
           </div>
-          <div className="rw-seg">
+          <div className="rw-seg" data-tour="wizard-steps">
             {STEPS.map((s, i) => {
               const done = i < currentStep, current = i === currentStep;
               return (
@@ -471,7 +471,7 @@ export default function CreateReferral() {
           )}
 
           {/* Card content */}
-          <div className="rw-card">
+          <div className="rw-card" data-tour="wizard-body">
             {currentStep === 0 && (
               <Step1Patient
                 search={patientSearch} setSearch={setPatientSearch} results={filteredPatients}
@@ -532,7 +532,7 @@ export default function CreateReferral() {
           </div>
 
           {/* Bar D — footer */}
-          <div className="rw-foot">
+          <div className="rw-foot" data-tour="wizard-next">
             <Btn variant="outline" onClick={goBack}><ArrowLeft size={15} />{currentStep === 0 ? "Cancel" : "Back"}</Btn>
             {currentStep === 0 && <Btn variant="primary" onClick={goNext} disabled={!canProceedStep1}>Next: Referral Method<ArrowRight size={15} /></Btn>}
             {currentStep === 1 && referralMethod && <Btn variant="primary" onClick={goNext} disabled={!canProceedStep2}>Next: Choose Pharmacy<ArrowRight size={15} /></Btn>}

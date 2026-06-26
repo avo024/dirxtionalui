@@ -7,10 +7,10 @@ import { ClinicSettingsModal } from "@/components/ClinicSettingsModal";
 import logo from "@/assets/logo.png";
 
 const navItems = [
-  { label: "Dashboard", icon: LayoutDashboard, path: "/clinic/dashboard" },
-  { label: "Patients", icon: Users, path: "/clinic/patients" },
-  { label: "New Referral", icon: Plus, path: "/clinic/referrals/new" },
-  { label: "My Referrals", icon: FileText, path: "/clinic/referrals" },
+  { label: "Dashboard", icon: LayoutDashboard, path: "/clinic/dashboard", tour: "nav-dashboard" },
+  { label: "Patients", icon: Users, path: "/clinic/patients", tour: "nav-patients" },
+  { label: "New Referral", icon: Plus, path: "/clinic/referrals/new", tour: "nav-new-referral" },
+  { label: "My Referrals", icon: FileText, path: "/clinic/referrals", tour: "nav-referrals" },
   // Services hidden until add-ons exist — re-add when there are services to offer.
   // { label: "Services", icon: Sparkles, path: "/clinic/services" },
 ];
@@ -45,7 +45,7 @@ export function ClinicSidebar() {
       </div>
 
       {/* Nav links */}
-      <nav className="flex-1 px-3 py-4 space-y-1">
+      <nav className="flex-1 px-3 py-4 space-y-1" data-tour="clinic-nav">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path ||
             (item.path === "/clinic/referrals" && location.pathname.startsWith("/clinic/referrals/") && !location.pathname.includes("new"));
@@ -53,6 +53,7 @@ export function ClinicSidebar() {
             <Link
               key={item.path}
               to={item.path}
+              data-tour={item.tour}
               className={cn(
                 "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                 isActive
