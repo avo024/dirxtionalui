@@ -152,6 +152,66 @@ export const TOURS: Record<string, TourDef> = {
     ],
   },
 
+  needsAttention: {
+    key: "needsAttention",
+    label: "When a referral needs attention",
+    description: "Handle a flagged referral and resubmit",
+    route: "/clinic/referrals",
+    steps: [
+      {
+        element: '[data-tour="referrals-needs-attention"]',
+        title: "Where flagged referrals show up",
+        description:
+          "When a referral needs your attention, it lands here with a Needs Attention badge. Nothing is lost — it's just waiting on a quick fix.",
+        side: "bottom",
+        align: "start",
+      },
+      {
+        element: '[data-tour="referrals-table"]',
+        title: "Open it to see what's needed",
+        description:
+          "Open that referral to see exactly what's needed — usually a corrected document or a missing detail.",
+        side: "top",
+        align: "center",
+      },
+      {
+        title: "Fix it and resubmit",
+        description:
+          "On the referral you'll see the reason spelled out and an Upload documents / Resubmit button. Fix the flagged item and resubmit — our team re-runs the prior authorization the same day.",
+      },
+    ],
+  },
+
+  statuses: {
+    key: "statuses",
+    label: "What your statuses mean",
+    description: "A quick read on referral + PA status",
+    route: "/clinic/referrals",
+    steps: [
+      {
+        element: '[data-tour="referrals-table"]',
+        title: "Your referral status",
+        description:
+          "Every referral has a colored status — Uploaded, Processing, In Review, Approved, Sent, Needs Attention. Most need nothing from you; we email you when something changes.",
+        side: "top",
+        align: "center",
+      },
+      {
+        element: '[data-tour="referrals-pa-col"]',
+        title: "PA status — we handle it",
+        description:
+          "PA Status is the prior authorization. You don't submit PAs — the Dirxctional team handles them. Just watch this column.",
+        side: "bottom",
+        align: "center",
+      },
+      {
+        title: "Want the full list?",
+        description:
+          "Want the full meaning of each status? It's all in the Clinic User Guide via the Help button.",
+      },
+    ],
+  },
+
   addPatient: {
     key: "addPatient",
     label: "Add a patient",
@@ -197,6 +257,8 @@ export const TUTORIAL_ORDER: string[] = [
   "overview",
   "createReferral",
   "checkStatus",
+  "needsAttention",
+  "statuses",
   "addPatient",
   "addNote",
 ];

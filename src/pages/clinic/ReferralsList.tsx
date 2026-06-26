@@ -139,7 +139,12 @@ export default function ReferralsList() {
         <div className="rl-seg-wrap">
           <div className="rl-seg">
             {filters.map((f) => (
-              <button key={f.value} className={`rl-seg-btn${activeFilter === f.value ? " on" : ""}`} onClick={() => handleFilter(f.value)}>
+              <button
+                key={f.value}
+                data-tour={f.value === "rejected" ? "referrals-needs-attention" : undefined}
+                className={`rl-seg-btn${activeFilter === f.value ? " on" : ""}`}
+                onClick={() => handleFilter(f.value)}
+              >
                 {f.label}<span className="rl-seg-n num">{getFilterCount(f.value)}</span>
               </button>
             ))}
@@ -167,7 +172,7 @@ export default function ReferralsList() {
               <tr>
                 <th>ID</th><th>Patient Name</th><th>Drug</th>
                 <SortTh col="status">Status</SortTh>
-                <th>PA Status</th>
+                <th data-tour="referrals-pa-col">PA Status</th>
                 <SortTh col="created">Created</SortTh>
                 <SortTh col="updated">Updated</SortTh>
                 <th className="r">Actions</th><th></th>
