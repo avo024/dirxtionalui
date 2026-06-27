@@ -52,6 +52,11 @@ export function EligibilityPanel({ referral }: { referral: EligibilityData }) {
   const [showPayload, setShowPayload] = useState(false);
 
   const status = referral?.eligibility_status ?? null;
+
+  // Feature dormant (flag off) or eligibility hasn't run for this referral yet →
+  // render nothing, so the admin screen is unchanged until there's a real result.
+  if (status == null) return null;
+
   const mismatches = referral?.eligibility_mismatches ?? [];
   const checkedAt = referral?.eligibility_checked_at ?? null;
   const active = referral?.eligibility_active;
