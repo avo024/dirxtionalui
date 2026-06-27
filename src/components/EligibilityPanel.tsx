@@ -53,9 +53,11 @@ export function EligibilityPanel({ referral }: { referral: EligibilityData }) {
 
   const status = referral?.eligibility_status ?? null;
 
-  // Feature dormant (flag off) or eligibility hasn't run for this referral yet →
-  // render nothing, so the admin screen is unchanged until there's a real result.
-  if (status == null) return null;
+  // Render nothing when there's nothing for the admin to act on:
+  //  - null     → feature dormant / not run yet
+  //  - skipped  → deliberately not checked (bridge program, or no insurance on file)
+  // Keeps the admin screen clean — the panel only appears with a real signal.
+  if (status == null || status === "skipped") return null;
 
   const mismatches = referral?.eligibility_mismatches ?? [];
   const checkedAt = referral?.eligibility_checked_at ?? null;
@@ -76,9 +78,9 @@ export function EligibilityPanel({ referral }: { referral: EligibilityData }) {
       tone = "red"; chipLabel = "Coverage inactive"; ChipIcon = XCircle; break;
     case "payer_unmatched":
     case "error":
-    case "skipped":
-      // All three mean the same thing to the reviewer: no eligibility signal —
-      // check the insurance the normal way. One quiet grey chip, no noise.
+      // We had insurance data and tried, but got no usable signal — one quiet
+      // grey chip so the admin knows to check the insurance manually.
+      // (skipped is handled by the early return above — it renders nothing.)
       tone = "grey"; chipLabel = "Not verified"; ChipIcon = HelpCircle; break;
     default:
       tone = "grey"; chipLabel = "Not checked yet"; ChipIcon = HelpCircle; break;
