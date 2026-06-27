@@ -27,6 +27,7 @@ import { DrugCombobox } from "@/components/DrugCombobox";
 import { getDisplayAuthor, getAuthorInitials } from "@/lib/noteAuthor";
 import { useAdminProfile } from "@/hooks/useAdminProfile";
 import { AdminRejectModal, FLAGGABLE_FIELDS, type RejectPayload } from "@/components/AdminRejectModal";
+import { EligibilityPanel } from "@/components/EligibilityPanel";
 import "../clinic/wizard.css";
 import "./admin-referral-review.css";
 
@@ -460,6 +461,9 @@ export default function AdminReferralReview() {
                     </>
                   )}
                 </div>
+
+                {/* Insurance Eligibility (Availity check from AI extraction) */}
+                <EligibilityPanel referral={referral} />
 
                 {/* Card 3: Medication */}
                 <div className="arr-card">
