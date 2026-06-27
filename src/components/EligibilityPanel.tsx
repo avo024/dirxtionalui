@@ -75,9 +75,10 @@ export function EligibilityPanel({ referral }: { referral: EligibilityData }) {
     case "inactive":
       tone = "red"; chipLabel = "Coverage inactive"; ChipIcon = XCircle; break;
     case "payer_unmatched":
-      tone = "grey"; chipLabel = "Payer not matched — not checked"; ChipIcon = HelpCircle; break;
     case "error":
     case "skipped":
+      // All three mean the same thing to the reviewer: no eligibility signal —
+      // check the insurance the normal way. One quiet grey chip, no noise.
       tone = "grey"; chipLabel = "Not verified"; ChipIcon = HelpCircle; break;
     default:
       tone = "grey"; chipLabel = "Not checked yet"; ChipIcon = HelpCircle; break;
