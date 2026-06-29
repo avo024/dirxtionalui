@@ -87,8 +87,8 @@ export const TOURS: Record<string, TourDef> = {
         element: '[data-tour="help-button"]',
         title: "Need a refresher?",
         description:
-          "Open Help anytime to replay any tutorial or read the full Clinic User Guide.",
-        side: "left",
+          "Open Help & Support anytime to replay a tutorial, read the User Guide, or message our team.",
+        side: "right",
         align: "end",
       },
     ],

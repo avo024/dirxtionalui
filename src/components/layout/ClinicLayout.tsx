@@ -5,7 +5,6 @@ import { ClinicSidebar } from "./ClinicSidebar";
 import { UserMenu } from "./UserMenu";
 import { AppFooter } from "./AppFooter";
 import { ConsentReacceptModal } from "@/components/ConsentReacceptModal";
-import { HelpButton } from "@/components/HelpButton";
 
 export function ClinicLayout() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -34,7 +33,6 @@ export function ClinicLayout() {
         <AppFooter />
       </main>
       <ConsentReacceptModal />
-      <HelpButton />
     </div>
   );
 }
