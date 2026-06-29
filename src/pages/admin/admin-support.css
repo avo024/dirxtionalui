@@ -1,0 +1,78 @@
+/* Admin Support — clinic support cases (tickets). Builds on referrals.css (rl-),
+   dashboard.css (dh-table), admin-referral-review.css (arr- notes). Prefix: as-. */
+
+/* Toolbar — status chips left, category toggle right */
+.as-toolbar { justify-content: space-between; }
+
+/* Queue table */
+.as-table-wrap { overflow-x: auto; }
+.as-table { min-width: 880px; }
+.as-table tbody tr { cursor: pointer; }
+.as-clinic { white-space: nowrap; }
+.as-clinic-wrap { display: inline-flex; align-items: center; gap: 8px; }
+.as-clinic-nm { font-weight: 600; color: var(--text-primary); }
+/* subtle teal "needs reply" dot — clinic spoke last */
+.as-reply-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--color-teal);
+  flex-shrink: 0; box-shadow: 0 0 0 3px var(--color-teal-50); }
+.as-subject { color: var(--text-primary); font-weight: 500; max-width: 360px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.as-cat { display: inline-flex; align-items: center; gap: 5px; font-size: var(--text-xs); font-weight: 600;
+  color: var(--text-body); background: var(--bg-muted, var(--color-stone-100)); border: 1px solid var(--border-default);
+  padding: 2px 9px; border-radius: 9999px; white-space: nowrap; }
+.as-cat .ci { display: inline-flex; color: var(--text-muted); }
+.as-cat.feedback { color: var(--color-teal-700); background: var(--color-teal-50); border-color: var(--color-teal-100); }
+.as-cat.feedback .ci { color: var(--color-teal-600); }
+.as-id { font-family: var(--font-mono, ui-monospace, monospace); font-size: var(--text-xs); color: var(--text-muted); }
+.as-activity { color: var(--text-muted); white-space: nowrap; }
+.as-open-cta { color: var(--text-muted); display: inline-flex; }
+.as-table tbody tr:hover .as-open-cta { color: var(--color-navy); }
+
+/* ── Case detail: header · thread · composer ──────────────────── */
+.as-detail { display: flex; flex-direction: column; height: calc(100vh - 56px); min-height: 0; }
+
+.as-d-head { flex-shrink: 0; padding: 15px 26px; border-bottom: 1px solid var(--border-default);
+  background: var(--bg-card); display: flex; align-items: flex-start; gap: 16px; }
+.as-back { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px;
+  border-radius: var(--radius-md); border: 1px solid var(--border-default); background: #fff; color: var(--text-muted);
+  cursor: pointer; flex-shrink: 0; }
+.as-back:hover { background: var(--color-stone-100); color: var(--text-body); }
+.as-d-main { min-width: 0; flex: 1; }
+.as-d-titlerow { display: flex; align-items: center; gap: 11px; flex-wrap: wrap; }
+.as-d-subject { font-size: 1.2rem; font-weight: 600; color: var(--text-primary); margin: 0; letter-spacing: -.02em; }
+.as-d-casenum { font-family: var(--font-mono, ui-monospace, monospace); font-size: var(--text-xs); font-weight: 600;
+  background: var(--color-stone-100); color: var(--text-primary); padding: 3px 9px; border-radius: var(--radius-sm); }
+.as-d-meta { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; font-size: var(--text-sm);
+  color: var(--text-muted); margin-top: 6px; }
+.as-d-meta .sepbar { color: var(--border-default); }
+.as-d-meta b { color: var(--text-body); font-weight: 600; }
+.as-d-actions { display: flex; align-items: center; gap: 9px; flex-shrink: 0; padding-top: 2px; flex-wrap: wrap;
+  justify-content: flex-end; max-width: 340px; }
+
+.as-thread-scroll { flex: 1; min-height: 0; overflow-y: auto; background: var(--color-stone-100); }
+.as-thread { max-width: 760px; margin: 0 auto; padding: 26px 26px 8px; display: flex; flex-direction: column; gap: 4px; }
+/* reuse arr-note; admin messages flip to the right */
+.as-thread .arr-note { padding-bottom: 18px; }
+.as-thread .arr-note-card { max-width: 80%; }
+.as-thread .arr-note.admin { flex-direction: row-reverse; }
+.as-thread .arr-note.admin .arr-note-body { display: flex; flex-direction: column; align-items: flex-end; }
+.as-thread .arr-note.admin .arr-note-head { justify-content: flex-end; }
+.as-thread .arr-note.admin .arr-note-when { margin-left: 0; }
+
+.as-resolved-line { display: flex; align-items: center; gap: 10px; justify-content: center; margin: 4px auto 18px;
+  font-size: var(--text-xs); font-weight: 600; color: var(--status-approved-fg, #16a34a); }
+.as-resolved-line .rl-bar { height: 1px; flex: 1; max-width: 90px;
+  background: color-mix(in srgb, var(--status-approved-fg, #16a34a) 30%, transparent); }
+.as-resolved-line .ri { display: inline-flex; }
+
+.as-composer-wrap { flex-shrink: 0; border-top: 1px solid var(--border-default); background: var(--bg-card); }
+.as-composer { max-width: 760px; margin: 0 auto; padding: 14px 26px; display: flex; gap: 10px; align-items: flex-end; }
+.as-composer textarea { flex: 1; resize: none; min-height: 46px; border: 1px solid var(--border-default);
+  border-radius: var(--radius-md); padding: 10px 12px; font: inherit; font-size: var(--text-sm);
+  color: var(--text-body); background: #fff; }
+.as-composer textarea:focus { outline: none; border-color: var(--color-teal);
+  box-shadow: 0 0 0 3px var(--color-teal-50); }
+.as-composer-hint { max-width: 760px; margin: 0 auto; padding: 0 26px 12px; font-size: var(--text-xs);
+  color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+.as-reopen-bar { max-width: 760px; margin: 0 auto; padding: 16px 26px; display: flex; align-items: center; gap: 12px; }
+.as-reopen-bar .rt { flex: 1; font-size: var(--text-sm); color: var(--text-muted); }
+.as-reopen-bar .rt b { color: var(--text-body); font-weight: 600; }

@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Plus, FileText, LogOut, Users, Settings } from "lucide-react";
+import { LayoutDashboard, Plus, FileText, LogOut, Users, Settings, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { ClinicSettingsModal } from "@/components/ClinicSettingsModal";
+import { useSupportUnread } from "@/components/support/useSupportUnread";
 import logo from "@/assets/logo.png";
 
 const navItems = [
@@ -18,6 +19,7 @@ const navItems = [
 export function ClinicSidebar() {
   const location = useLocation();
   const { logout, user } = useAuth();
+  const { hasUnread } = useSupportUnread();
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
@@ -70,6 +72,23 @@ export function ClinicSidebar() {
           );
         })}
       </nav>
+
+      {/* Help & Support */}
+      <div className="px-3 pt-2">
+        <Link
+          to="/clinic/support"
+          className={cn(
+            "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+            location.pathname.startsWith("/clinic/support")
+              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+              : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+          )}
+        >
+          <HelpCircle className="h-4 w-4" />
+          <span className="flex-1">Help &amp; Support</span>
+          {hasUnread && <span className="h-2 w-2 rounded-full bg-teal-400" aria-hidden />}
+        </Link>
+      </div>
 
       {/* User / Logout */}
       <div className="px-3 py-4 border-t border-sidebar-border">

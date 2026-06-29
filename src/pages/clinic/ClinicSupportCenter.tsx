@@ -1,0 +1,310 @@
+import { useState, useEffect } from "react";
+import {
+  ArrowLeft, ArrowRight, BookOpen, GraduationCap, Plus, ChevronRight, Send,
+  CircleCheck, ShieldCheck, Lock, LifeBuoy, MessageSquareHeart, Loader2, ExternalLink,
+} from "lucide-react";
+import { supportApi, type SupportCaseSummary, type SupportCaseDetail } from "@/lib/api";
+import { toast } from "@/hooks/use-toast";
+import { getRelativeTime, formatDateTime } from "@/lib/dateUtils";
+import { SupportStatusBadge } from "@/components/SupportStatusBadge";
+import { TutorialsMenu } from "@/components/tutorials/TutorialsMenu";
+import { useTour } from "@/components/tutorials/useTour";
+import "./wizard.css";
+import "./dashboard.css";
+import "./referral-detail.css";
+import "./clinic-support.css";
+
+type View = { name: "panel" } | { name: "tutorials" } | { name: "form" } | { name: "case"; id: string };
+
+const CAT_OPTIONS = [
+  { value: "support", label: "Support", Icon: LifeBuoy, sub: "Something isn't working or you need a hand." },
+  { value: "feedback", label: "Feedback", Icon: MessageSquareHeart, sub: "An idea or thought to make Dirxctional better." },
+];
+
+function initials(name?: string) {
+  if (!name) return "?";
+  const p = name.trim().split(/\s+/);
+  return ((p[0]?.[0] || "") + (p[1]?.[0] || "")).toUpperCase() || "?";
+}
+
+export default function ClinicSupportCenter() {
+  const [view, setView] = useState<View>({ name: "panel" });
+  const { runTour } = useTour();
+
+  if (view.name === "tutorials") {
+    return (
+      <div className="cs-case rw-fade">
+        <div className="cs-case-head">
+          <button className="cs-back" onClick={() => setView({ name: "panel" })} title="Back to Help & Support"><ArrowLeft size={17} /></button>
+          <div className="cs-case-head-main">
+            <div className="cs-case-titlerow"><h1 className="cs-case-subj">Tutorials</h1></div>
+            <div className="cs-case-meta"><span>Replay any interactive walkthrough anytime.</span></div>
+          </div>
+        </div>
+        <div className="cs-thread-card" style={{ padding: 10 }}>
+          <TutorialsMenu onRun={(key) => { setView({ name: "panel" }); window.setTimeout(() => runTour(key), 80); }} />
+        </div>
+      </div>
+    );
+  }
+  if (view.name === "form") {
+    return <NewRequest onCancel={() => setView({ name: "panel" })} onCreated={(id) => setView({ name: "case", id })} />;
+  }
+  if (view.name === "case") {
+    return <CaseView caseId={view.id} onBack={() => setView({ name: "panel" })} />;
+  }
+  return <Panel onOpen={(id) => setView({ name: "case", id })} onNew={() => setView({ name: "form" })} onTutorials={() => setView({ name: "tutorials" })} />;
+}
+
+function Panel({ onOpen, onNew, onTutorials }: { onOpen: (id: string) => void; onNew: () => void; onTutorials: () => void }) {
+  const [cases, setCases] = useState<SupportCaseSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supportApi.getCases().then((r) => setCases(r.items || [])).catch(() => {}).finally(() => setLoading(false));
+  }, []);
+
+  return (
+    <div className="cs-page rw-fade">
+      <div className="cs-header">
+        <h1 className="cs-h1">Help &amp; Support</h1>
+        <p className="cs-sub">Have a question, run into an issue, or want to share an idea? We're here to help — most messages get a reply the same day.</p>
+      </div>
+
+      <section className="cs-cards2">
+        <a href="/manual.pdf" target="_blank" rel="noopener noreferrer" className="cs-guide">
+          <div className="cs-guide-top">
+            <div className="cs-guide-ic"><BookOpen size={22} /></div>
+            <div className="cs-guide-meta">
+              <p className="cs-guide-t">User Guide</p>
+              <p className="cs-guide-s">Step-by-step articles on submitting referrals, tracking prior authorizations, and managing your clinic.</p>
+            </div>
+            <span className="cs-guide-arrow"><ExternalLink size={18} /></span>
+          </div>
+        </a>
+        <button type="button" className="cs-guide" onClick={onTutorials}>
+          <div className="cs-guide-top">
+            <div className="cs-guide-ic"><GraduationCap size={22} /></div>
+            <div className="cs-guide-meta">
+              <p className="cs-guide-t">Tutorials</p>
+              <p className="cs-guide-s">Replay any interactive walkthrough — submitting a referral, tracking a PA, and more.</p>
+            </div>
+            <span className="cs-guide-arrow"><ArrowRight size={18} /></span>
+          </div>
+        </button>
+      </section>
+
+      <section>
+        <div className="cs-sec-head">
+          <h2>My requests</h2>
+          <button className="rw-btn primary" onClick={onNew}><Plus size={15} />New request</button>
+        </div>
+        {loading ? (
+          <div style={{ padding: 40, display: "flex", justifyContent: "center" }}>
+            <span className="rw-spin" style={{ color: "var(--color-teal)" }}><Loader2 size={22} /></span>
+          </div>
+        ) : cases.length > 0 ? (
+          <div className="cs-reqs">
+            {cases.map((c) => (
+              <button key={c.id} className="cs-req" onClick={() => onOpen(c.id)}>
+                <div className="cs-req-main">
+                  <div className="cs-req-subj">
+                    <span className="t">{c.subject}</span>
+                    {c.last_author_type === "admin" && c.status !== "resolved" && (
+                      <span className="cs-newreply"><span className="d" />New reply</span>
+                    )}
+                  </div>
+                  <div className="cs-req-meta">
+                    <span>{c.category === "feedback" ? "Feedback" : "Support"}</span>
+                    <span className="sep">·</span><span>#{c.short_id}</span>
+                    <span className="sep">·</span><span>Updated {getRelativeTime(c.last_message_at || c.updated_at)}</span>
+                  </div>
+                </div>
+                <div className="cs-req-right">
+                  <SupportStatusBadge status={c.status} />
+                  <span className="cs-req-chev"><ChevronRight size={18} /></span>
+                </div>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="cs-reqs" style={{ padding: "28px 18px", textAlign: "center" }}>
+            <p style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)", margin: 0 }}>
+              No requests yet. Click <b>New request</b> to ask us anything.
+            </p>
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function NewRequest({ onCancel, onCreated }: { onCancel: () => void; onCreated: (id: string) => void }) {
+  const [category, setCategory] = useState("support");
+  const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
+  const sub = CAT_OPTIONS.find((o) => o.value === category)?.sub;
+
+  const submit = async () => {
+    const body = message.trim();
+    if (!body) return;
+    setSending(true);
+    try {
+      const c = await supportApi.openCase({ category: category as "support" | "feedback", body });
+      onCreated(c.id);
+    } catch (e: any) {
+      toast({ title: "Couldn't send", description: e.message || "Failed to send request", variant: "destructive" });
+    } finally { setSending(false); }
+  };
+
+  return (
+    <div className="cs-case rw-fade">
+      <div className="cs-case-head">
+        <button className="cs-back" onClick={onCancel} title="Back to Help & Support"><ArrowLeft size={17} /></button>
+        <div className="cs-case-head-main">
+          <div className="cs-case-titlerow"><h1 className="cs-case-subj">New request</h1></div>
+          <div className="cs-case-meta"><span>Tell us what's going on — we'll get back to you, usually the same day.</span></div>
+        </div>
+      </div>
+
+      <div className="cs-form-card" style={{ marginTop: 24 }}>
+        <div>
+          <p className="cs-form-label">What's this about?</p>
+          <div className="cs-seg">
+            {CAT_OPTIONS.map((o) => {
+              const Icon = o.Icon;
+              return (
+                <button key={o.value} type="button" className={`cs-catbtn${category === o.value ? " on" : ""}`} onClick={() => setCategory(o.value)}>
+                  <span className="ci"><Icon size={15} /></span>{o.label}
+                </button>
+              );
+            })}
+          </div>
+          <p className="cs-catbtn-sub">{sub}</p>
+        </div>
+
+        <div className="cs-phi">
+          <span className="cs-phi-ic"><ShieldCheck size={18} /></span>
+          <div>
+            <p className="cs-phi-t">Please leave out patient details</p>
+            <p className="cs-phi-s">To keep patient information safe, don't include names, dates of birth, insurance IDs, or diagnoses here. For a question about a specific patient's referral, add a <b>Note</b> on that referral instead — it stays attached to their secure record.</p>
+          </div>
+        </div>
+
+        <div>
+          <p className="cs-form-label">Your message</p>
+          <textarea className="rw-textarea" rows={6}
+            placeholder="Tell us how we can help — please leave out any patient information."
+            value={message} onChange={(e) => setMessage(e.target.value)} />
+        </div>
+
+        <div className="cs-form-actions">
+          <span className="left"><Lock size={13} />Sent securely to the Dirxctional team</span>
+          <button className="rw-btn outline" onClick={onCancel}>Cancel</button>
+          <button className="rw-btn primary" onClick={submit} disabled={!message.trim() || sending}>
+            {sending ? <span className="rw-spin" style={{ display: "inline-flex" }}><Loader2 size={15} /></span> : <Send size={15} />}Send request
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CaseView({ caseId, onBack }: { caseId: string; onBack: () => void }) {
+  const [data, setData] = useState<SupportCaseDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [draft, setDraft] = useState("");
+  const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    supportApi.getCase(caseId)
+      .then((r) => { if (!cancelled) setData(r); })
+      .catch((e: any) => { if (!cancelled) toast({ title: "Error", description: e.message || "Failed to load request", variant: "destructive" }); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [caseId]);
+
+  const send = async () => {
+    const body = draft.trim();
+    if (!body || !data) return;
+    setSending(true);
+    try {
+      const updated = await supportApi.replyCase(caseId, body);
+      setData((d) => d ? {
+        case: updated,
+        messages: [...d.messages, { id: `tmp-${Date.now()}`, author_type: "clinic_user", author_name: "You", body, created_at: new Date().toISOString() }],
+      } : d);
+      setDraft("");
+    } catch (e: any) {
+      toast({ title: "Couldn't send", description: e.message || "Failed to send reply", variant: "destructive" });
+    } finally { setSending(false); }
+  };
+
+  if (loading) {
+    return <div style={{ display: "flex", justifyContent: "center", padding: 64 }}>
+      <span className="rw-spin" style={{ color: "var(--color-teal)" }}><Loader2 size={26} /></span>
+    </div>;
+  }
+  if (!data) return <div style={{ padding: 40 }}>Request not found.</div>;
+
+  const c = data.case;
+  const resolved = c.status === "resolved";
+
+  return (
+    <div className="cs-case rw-fade">
+      <div className="cs-case-head">
+        <button className="cs-back" onClick={onBack} title="Back to Help & Support"><ArrowLeft size={17} /></button>
+        <div className="cs-case-head-main">
+          <div className="cs-case-titlerow">
+            <h1 className="cs-case-subj">{c.subject}</h1>
+            <SupportStatusBadge status={c.status} />
+            <span className="cs-case-num">#{c.short_id}</span>
+          </div>
+          <div className="cs-case-meta">
+            <span>{c.category === "feedback" ? "Feedback" : "Support"}</span>
+            <span className="sep">·</span><span>Opened {getRelativeTime(c.created_at)}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="cs-thread-card">
+        <div className="rd-notes" style={{ maxWidth: "none" }}>
+          {data.messages.map((m) => {
+            const isAdmin = m.author_type === "admin";
+            return (
+              <div className={`rd-note ${isAdmin ? "admin" : "clinic"}`} key={m.id}>
+                <div className="rd-note-ava">{initials(m.author_name)}</div>
+                <div className="rd-note-body">
+                  <div className="rd-note-card">
+                    <div className="rd-note-head">
+                      <span className="rd-note-author">{m.author_name}</span>
+                      <span className="rd-note-when">{formatDateTime(m.created_at)}</span>
+                    </div>
+                    <div className="rd-note-text">{m.body}</div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+
+          {resolved && (
+            <div className="cs-resolved-line">
+              <span className="bar" /><span className="ri"><CircleCheck size={14} /></span>
+              This request is resolved — reply below if you need to reopen it<span className="bar" />
+            </div>
+          )}
+
+          <div className="rd-composer">
+            <textarea className="rw-textarea" rows={2} placeholder="Write a reply…" value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) send(); }} />
+            <button className="rw-btn primary" onClick={send} disabled={!draft.trim() || sending}>
+              {sending ? <span className="rw-spin" style={{ display: "inline-flex" }}><Loader2 size={15} /></span> : <Send size={15} />}Send
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

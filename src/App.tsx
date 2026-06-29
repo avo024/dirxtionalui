@@ -39,6 +39,9 @@ import AdminAddonRequests from "@/pages/admin/AdminAddonRequests";
 import AIQuality from "@/pages/admin/AIQuality";
 import AIQualityReferral from "@/pages/admin/AIQualityReferral";
 import AIQualityCorrections from "@/pages/admin/AIQualityCorrections";
+import AdminSupportList from "@/pages/admin/AdminSupportList";
+import AdminSupportDetail from "@/pages/admin/AdminSupportDetail";
+import ClinicSupportCenter from "@/pages/clinic/ClinicSupportCenter";
 
 const queryClient = new QueryClient();
 
@@ -69,6 +72,7 @@ const App = () => (
               <Route path="referrals/new" element={<CreateReferral />} />
               <Route path="referrals/:id" element={<ReferralDetail />} />
               <Route path="referrals" element={<ReferralsList />} />
+              <Route path="support" element={<ClinicSupportCenter />} />
               <Route path="services" element={<Services />} />
             </Route>
 
@@ -77,6 +81,8 @@ const App = () => (
               <Route path="dashboard" element={<AdminDashboard />} />
               <Route path="referrals/:id" element={<AdminReferralReview />} />
               <Route path="referrals" element={<AdminReferralsList />} />
+              <Route path="support/:caseId" element={<AdminSupportDetail />} />
+              <Route path="support" element={<AdminSupportList />} />
               <Route path="pharmacies/:id" element={<PharmacyDetail />} />
               <Route path="pharmacies" element={<PharmaciesList />} />
               <Route path="clinics/:id" element={<ClinicDetail />} />
