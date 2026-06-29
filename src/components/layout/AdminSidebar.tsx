@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { LayoutDashboard, FileText, Building2, Hospital, LogOut, LineChart } from "lucide-react";
+import { LayoutDashboard, FileText, Building2, Hospital, LogOut, LineChart, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { adminApi } from "@/lib/api";
@@ -14,6 +14,7 @@ const navItems = [
   { label: "AI Quality", icon: LineChart, path: "/admin/ai-quality" },
   { label: "Pharmacies", icon: Building2, path: "/admin/pharmacies" },
   { label: "Clinics", icon: Hospital, path: "/admin/clinics" },
+  { label: "Support", icon: MessageSquare, path: "/admin/support" },
   // Add-on Requests hidden until add-ons exist (Services is hidden on the clinic side too).
   // { label: "Add-on Requests", icon: Inbox, path: "/admin/addon-requests" },
   // Invites retired — folded into Clinic Detail as "Team & Invites" (clinic-scoped).
@@ -60,7 +61,8 @@ export function AdminSidebar() {
           const isActive = location.pathname === item.path ||
             (item.path === "/admin/referrals" && location.pathname.startsWith("/admin/referrals/")) ||
             (item.path === "/admin/clinics" && location.pathname.startsWith("/admin/clinics/")) ||
-            (item.path === "/admin/ai-quality" && location.pathname.startsWith("/admin/ai-quality"));
+            (item.path === "/admin/ai-quality" && location.pathname.startsWith("/admin/ai-quality")) ||
+            (item.path === "/admin/support" && location.pathname.startsWith("/admin/support/"));
           const badgeCount =
             item.label === "All Referrals" ? needsReviewCount :
             item.label === "Add-on Requests" ? pendingAddonCount :
