@@ -358,32 +358,41 @@ export interface SupportMessage {
   id: string;
   author_type: 'clinic_user' | 'admin';
   author_name: string;
-  category: 'support' | 'feedback';
   body: string;
-  created_at?: string;
+  created_at: string;
 }
 
 export const supportApi = {
-  async getMessages(): Promise<{ items: SupportMessage[]; latest_admin_at: string | null }> {
-    const response = await fetch(`${API_BASE_URL}/support/messages`, {
-      headers: await getHeaders(),
-    });
+  async getCases(): Promise<{ items: SupportCaseSummary[] }> {
+    const response = await fetch(`${API_BASE_URL}/support/cases`, { headers: await getHeaders() });
     return handleResponse(response);
   },
 
-  async postMessage(body: string, category: 'support' | 'feedback' = 'support'): Promise<SupportMessage> {
-    const response = await fetch(`${API_BASE_URL}/support/messages`, {
+  async getCase(caseId: string): Promise<SupportCaseDetail> {
+    const response = await fetch(`${API_BASE_URL}/support/cases/${caseId}`, { headers: await getHeaders() });
+    return handleResponse(response);
+  },
+
+  async openCase(data: { category: 'support' | 'feedback'; body: string; subject?: string }): Promise<SupportCaseSummary> {
+    const response = await fetch(`${API_BASE_URL}/support/cases`, {
       method: 'POST',
       headers: await getHeaders(),
-      body: JSON.stringify({ body, category }),
+      body: JSON.stringify(data),
     });
     return handleResponse(response);
   },
 
-  async getSummary(): Promise<{ total: number; latest_admin_at: string | null }> {
-    const response = await fetch(`${API_BASE_URL}/support/summary`, {
+  async replyCase(caseId: string, body: string): Promise<SupportCaseSummary> {
+    const response = await fetch(`${API_BASE_URL}/support/cases/${caseId}/messages`, {
+      method: 'POST',
       headers: await getHeaders(),
+      body: JSON.stringify({ body }),
     });
+    return handleResponse(response);
+  },
+
+  async getSummary(): Promise<{ open_cases: number; latest_admin_at: string | null }> {
+    const response = await fetch(`${API_BASE_URL}/support/summary`, { headers: await getHeaders() });
     return handleResponse(response);
   },
 };
@@ -406,13 +415,6 @@ export interface SupportCaseSummary {
   last_message_at?: string | null;
   last_author_type?: "clinic_user" | "admin" | null;
   needs_reply: boolean;
-}
-export interface SupportMessage {
-  id: string;
-  author_type: "clinic_user" | "admin";
-  author_name: string;
-  body: string;
-  created_at: string;
 }
 export interface SupportCaseDetail {
   case: SupportCaseSummary;

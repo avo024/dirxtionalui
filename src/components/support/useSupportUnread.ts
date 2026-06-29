@@ -8,8 +8,9 @@
  */
 import { useState, useEffect, useCallback } from "react";
 import { supportApi } from "@/lib/api";
-import { SUPPORT_LAST_VIEWED_KEY } from "./useSupportThread";
 
+// localStorage key — last time the clinic viewed their support replies.
+const SUPPORT_LAST_VIEWED_KEY = "support_last_viewed";
 // Re-check periodically so a reply that lands while the app is open surfaces.
 const POLL_MS = 60_000;
 
