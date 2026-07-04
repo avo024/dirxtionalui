@@ -12,6 +12,13 @@ dist
 dist-ssr
 *.local
 
+# Env files — never commit. Use .env.example as the template. Even though the
+# app's VITE_* vars are public-by-design, a tracked .env is a trap for a future
+# maintainer adding a real secret.
+.env
+.env.*
+!.env.example
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
