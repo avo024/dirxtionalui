@@ -47,6 +47,10 @@ export default defineConfig(({ mode }) => ({
     },
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
+  // Strip console.*/debugger from production bundles — on a HIPAA app, no error
+  // bodies / URLs should be reachable from the browser console (screen-share,
+  // shared kiosk, error-monitoring capture). Dev keeps them.
+  esbuild: mode === "production" ? { drop: ["console", "debugger"] } : undefined,
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
