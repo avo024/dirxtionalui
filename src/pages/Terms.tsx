@@ -11,7 +11,7 @@ export default function Terms() {
       <header className="border-b border-border bg-card">
         <div className="mx-auto max-w-[1100px] px-6 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <img src={logo} alt="DiRxctional" className="h-9 w-auto" />
+            <img src={logo} alt="Dirxctional" className="h-9 w-auto" />
           </Link>
           <Link
             to="/"

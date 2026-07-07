@@ -36,7 +36,7 @@ export default function ClinicsList() {
             Clinics
             {!isLoading && !isError && <span className="cl-count num">{items.length}</span>}
           </h1>
-          <p className="cl-sub">Partner clinics that send referrals into DiRxctional</p>
+          <p className="cl-sub">Partner clinics that send referrals into Dirxctional</p>
         </div>
         <button className="rw-btn primary" onClick={() => setCreateOpen(true)}>
           <Plus size={16} />Add Clinic

@@ -5,7 +5,7 @@
 @tailwind utilities;
 
 /* ───────────────────────────────────────────────────────────────────────
-   DiRxctional brand palette — Direction C "Navy + Teal"
+   Dirxctional brand palette — Direction C "Navy + Teal"
    Navy #1B2B5B · Teal #14B8A6 · off-white #FAFAF9 canvas · dark navy sidebar.
    Token shape is shadcn-standard, so all components restyle automatically
    (clinic + admin share these variables).
@@ -73,7 +73,7 @@
     --status-rejected-bg: 0 84% 95%;
     --status-rejected-fg: 0 72% 42%;
 
-    /* ── DiRxctional App UI raw tokens (used by redesign pages, e.g. wizard.css) ──
+    /* ── Dirxctional App UI raw tokens (used by redesign pages, e.g. wizard.css) ──
        Hex constants for the brand triad + scales. Coexist with the shadcn HSL
        tokens above; the redesign component CSS references these by name. */
     --color-navy: #1B2B5B;

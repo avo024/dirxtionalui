@@ -127,7 +127,7 @@ export function EditProfileModal({ open, onOpenChange }: EditProfileModalProps) 
         <DialogHeader>
           <DialogTitle>Edit Profile</DialogTitle>
           <DialogDescription>
-            Update your personal information. Clinic-level details are managed by the DiRxctional team.
+            Update your personal information. Clinic-level details are managed by the Dirxctional team.
           </DialogDescription>
         </DialogHeader>
 
@@ -200,7 +200,7 @@ export function EditProfileModal({ open, onOpenChange }: EditProfileModalProps) 
             <div>
               <h3 className="text-sm font-semibold text-foreground">Clinic Information</h3>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Managed by the DiRxctional team. Contact{" "}
+                Managed by the Dirxctional team. Contact{" "}
                 <a
                   href="mailto:support@dirxctional.com"
                   className="text-primary hover:underline"

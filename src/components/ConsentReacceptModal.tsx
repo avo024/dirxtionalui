@@ -106,8 +106,8 @@ export function ConsentReacceptModal() {
         </h2>
         <p className="mt-3 text-sm text-muted-foreground">
           {isPreClickwrap
-            ? "Welcome back! To continue using DiRxctional, please take a moment to review and accept our Terms of Service and Privacy Policy."
-            : "Since your last sign-in, we've updated our Terms of Service and Privacy Policy. Please review and accept the latest versions to continue using DiRxctional."}
+            ? "Welcome back! To continue using Dirxctional, please take a moment to review and accept our Terms of Service and Privacy Policy."
+            : "Since your last sign-in, we've updated our Terms of Service and Privacy Policy. Please review and accept the latest versions to continue using Dirxctional."}
         </p>
 
         <div className="mt-5 space-y-3 rounded-lg border border-border bg-muted/40 p-4">

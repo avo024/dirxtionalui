@@ -1,5 +1,5 @@
 /**
- * API Service Layer - DiRxctional Platform
+ * API Service Layer - Dirxctional Platform
  * All backend API calls go through here
  *
  * Auth: a token provider is registered by `useApi()` (src/hooks/useApi.ts).

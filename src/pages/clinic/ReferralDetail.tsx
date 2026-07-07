@@ -553,7 +553,7 @@ function InsurancePA({ referral, insurance, priorAuth, reloadOnUpdate, referralI
               {paStatus === "approved" && referral.pa_number && <DlRow label="PA Number" value={referral.pa_number} mono />}
               {paStatus === "approved" && referral.pa_expiration_date && <DlRow label="PA Expires" value={formatDateShort(referral.pa_expiration_date)} />}
               {paStatus === "denied" && referral.pa_denial_reason && <DlRow label="Denial Reason" value={referral.pa_denial_reason} />}
-              <DlRow label="PA Handled By" value={priorAuth.handled_by_us ? "DiRxtional" : "Clinic"} />
+              <DlRow label="PA Handled By" value={priorAuth.handled_by_us ? "Dirxctional" : "Clinic"} />
             </>
           )}
         </div>

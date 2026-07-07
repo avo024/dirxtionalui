@@ -233,7 +233,7 @@ export default function AcceptInvite() {
         <Card className="card-shadow">
           <CardContent className="p-8">
             <div className="text-center mb-6">
-              <img src={logo} alt="DiRxctional" className="h-24 w-auto mx-auto mb-4" />
+              <img src={logo} alt="Dirxctional" className="h-24 w-auto mx-auto mb-4" />
             </div>
 
             {state === "loading" && (
@@ -427,7 +427,7 @@ export default function AcceptInvite() {
                         Privacy Policy
                       </a>
                       {policyVersions && ` (version ${policyVersions.privacy_version})`}{" "}
-                      and understand how DiRxctional handles personal information and PHI.
+                      and understand how Dirxctional handles personal information and PHI.
                     </span>
                   </label>
                 </div>
