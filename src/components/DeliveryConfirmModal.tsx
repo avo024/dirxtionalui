@@ -58,6 +58,13 @@ export function DeliveryConfirmModal({
   });
   const [patientHasInsurance, setPatientHasInsurance] = useState<boolean | null>(null);
 
+  // Treat all-zero placeholders ("000-000-0000") as "no value" so junk data
+  // never renders on the delivery card.
+  const realNumber = (v?: string | null) => {
+    const s = (v || "").trim();
+    return s && !/^[+\-().\s0]*$/.test(s) ? s : "";
+  };
+
   const uploadedDocs = documents.filter(
     (d) => !GENERATED_DOC_TYPES.includes(d.doc_type)
   );
@@ -173,12 +180,12 @@ export function DeliveryConfirmModal({
                 )}
               </div>
               {/* Fax first — delivery is fax-primary (pharmacies only take fax) */}
-              {currentPharmacy.fax ? (
-                <p className="text-sm text-foreground font-medium">Fax: {currentPharmacy.fax}</p>
+              {realNumber(currentPharmacy.fax) ? (
+                <p className="text-sm text-foreground font-medium">Fax: {realNumber(currentPharmacy.fax)}</p>
               ) : (
                 <p className="text-sm text-warning font-medium">⚠ No fax on file — delivery will fail for fax-only pharmacies</p>
               )}
-              {currentPharmacy.phone && <p className="text-sm text-muted-foreground">Phone: {currentPharmacy.phone}</p>}
+              {realNumber(currentPharmacy.phone) && <p className="text-sm text-muted-foreground">Phone: {realNumber(currentPharmacy.phone)}</p>}
               {currentPharmacy.email && <p className="text-sm text-muted-foreground">{currentPharmacy.email}</p>}
               {currentPharmacy.address && <p className="text-sm text-muted-foreground">{currentPharmacy.address}</p>}
             </div>
@@ -233,8 +240,8 @@ export function DeliveryConfirmModal({
                         <SelectItem key={p.id} value={p.id}>
                           <span className="flex items-center gap-2">
                             <span>{p.name}</span>
-                            {p.fax ? (
-                              <span className="text-xs text-muted-foreground">· fax {p.fax}</span>
+                            {realNumber(p.fax) ? (
+                              <span className="text-xs text-muted-foreground">· fax {realNumber(p.fax)}</span>
                             ) : (
                               <span className="text-xs text-warning">· no fax</span>
                             )}
