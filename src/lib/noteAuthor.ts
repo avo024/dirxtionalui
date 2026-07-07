@@ -12,17 +12,17 @@ export interface NoteAuthorLike {
 
 /**
  * Returns the display name for a note's author.
- * Clinic side never sees individual admin attribution — always "DiRxctional Team".
+ * Clinic side never sees individual admin attribution — always "Dirxctional Team".
  */
 export function getDisplayAuthor(note: NoteAuthorLike, viewSide: NoteViewSide): string {
   if (note.author_type === "admin" && viewSide === "clinic") {
-    return "DiRxctional Team";
+    return "Dirxctional Team";
   }
   return (
     note.author_name ||
     (note.author_type === "clinic_user" || note.author_type === "clinic"
       ? "Clinic"
-      : "DiRxctional Team")
+      : "Dirxctional Team")
   );
 }
 

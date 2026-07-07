@@ -107,7 +107,7 @@ export function ClinicSettingsModal({
               <div><p className="text-xs text-muted-foreground">Specialty</p><p className="text-sm capitalize text-foreground">{clinic?.specialty || "—"}</p></div>
               <div><p className="text-xs text-muted-foreground">NPI</p><p className="text-sm font-mono text-foreground">{clinic?.npi || "—"}</p></div>
             </div>
-            <p className="text-xs text-muted-foreground">Specialty and NPI are managed by your DiRxctional admin — contact us to change them.</p>
+            <p className="text-xs text-muted-foreground">Specialty and NPI are managed by your Dirxctional admin — contact us to change them.</p>
           </div>
         )}
 

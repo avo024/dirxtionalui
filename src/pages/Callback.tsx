@@ -42,7 +42,7 @@ export default function Callback() {
       <div className="w-full max-w-md">
         <Card className="card-shadow">
           <CardContent className="p-8 text-center space-y-5">
-            <img src={logo} alt="DiRxctional" className="h-20 w-auto mx-auto" />
+            <img src={logo} alt="Dirxctional" className="h-20 w-auto mx-auto" />
             {error ? (
               <>
                 <h1 className="text-xl font-semibold text-foreground">

@@ -122,7 +122,7 @@ function TeamInvitesPanel({ clinic }: { clinic: AdminClinic }) {
           </button>
         </div>
         {touched && !valid && <p className="cl-invite-hint">Enter a valid email address.</p>}
-        <p className="cl-invite-note">Sends an invitation to join <strong>{clinic.name}</strong> on DiRxctional.</p>
+        <p className="cl-invite-note">Sends an invitation to join <strong>{clinic.name}</strong> on Dirxctional.</p>
       </div>
 
       {/* Pending invites */}

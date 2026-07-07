@@ -84,7 +84,7 @@ export function CompleteProfileModal() {
       <div className="w-full max-w-md bg-card border border-border rounded-lg shadow-xl p-8">
         <div className="mb-6">
           <h2 id="complete-profile-title" className="text-2xl font-bold text-foreground">
-            Welcome to DiRxctional
+            Welcome to Dirxctional
           </h2>
           <p className="text-sm text-muted-foreground mt-2">
             Tell us a bit about you so your teammates know who you are.

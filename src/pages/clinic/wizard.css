@@ -1,6 +1,6 @@
 /* ════════════════════════════════════════════════════════════
    New Referral wizard — redesign styles (scoped, prefix rw-)
-   Built on DiRxctional App UI tokens in index.css.
+   Built on Dirxctional App UI tokens in index.css.
    Final config: two-column · segmented stepper · smart dropzone ·
    single-scroll manual. Renders inside ClinicLayout (sidebar/topbar
    come from the layout, not here).

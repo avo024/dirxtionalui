@@ -1,5 +1,5 @@
 /**
- * Shared TypeScript Types — DiRxctional Platform
+ * Shared TypeScript Types — Dirxctional Platform
  * Single source of truth for all data models
  */
 

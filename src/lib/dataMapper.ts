@@ -1,5 +1,5 @@
 /**
- * Data Mapper — DiRxctional Platform
+ * Data Mapper — Dirxctional Platform
  * Handles field-name mismatches between Flask backend and React frontend.
  */
 

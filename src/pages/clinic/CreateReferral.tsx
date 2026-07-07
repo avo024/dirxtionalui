@@ -775,7 +775,7 @@ function Step3Pharmacy({ loading, pharmacies, selectedId, defaultId, onSelect, s
       {loading ? (
         <div style={{ display: "flex", justifyContent: "center", padding: 48 }}><span className="rw-spin" style={{ color: "var(--text-muted)" }}><Loader2 size={26} /></span></div>
       ) : pharmacies.length === 0 ? (
-        <div className="rw-empty"><p style={{ margin: 0, fontSize: ".875rem" }}>No pharmacies available for your clinic. Contact DiRxctional support.</p></div>
+        <div className="rw-empty"><p style={{ margin: 0, fontSize: ".875rem" }}>No pharmacies available for your clinic. Contact Dirxctional support.</p></div>
       ) : (
         <>
           <RwField label="Pharmacy">

@@ -53,8 +53,10 @@ export function DeliveryConfirmModal({
     name: referral?.pharmacy_name || "",
     email: referral?.pharmacy_email || "",
     phone: referral?.pharmacy_phone || "",
+    fax: referral?.pharmacy_fax || "",
     address: referral?.pharmacy_address || "",
   });
+  const [patientHasInsurance, setPatientHasInsurance] = useState<boolean | null>(null);
 
   const uploadedDocs = documents.filter(
     (d) => !GENERATED_DOC_TYPES.includes(d.doc_type)
@@ -72,6 +74,7 @@ export function DeliveryConfirmModal({
         name: referral?.pharmacy_name || "",
         email: referral?.pharmacy_email || "",
         phone: referral?.pharmacy_phone || "",
+        fax: referral?.pharmacy_fax || "",
         address: referral?.pharmacy_address || "",
       });
     }
@@ -83,6 +86,7 @@ export function DeliveryConfirmModal({
     try {
       const res = await adminApi.getAlternativePharmacies(referralId);
       setPharmacies(res.items || []);
+      setPatientHasInsurance(res.patient_has_insurance ?? null);
     } catch (err: any) {
       toast({ title: "Error", description: err.message || "Failed to load pharmacies", variant: "destructive" });
     } finally {
@@ -99,6 +103,7 @@ export function DeliveryConfirmModal({
         name: updated.pharmacy_name || "",
         email: updated.pharmacy_email || "",
         phone: updated.pharmacy_phone || "",
+        fax: updated.pharmacy_fax || "",
         address: updated.pharmacy_address || "",
       });
       setReassigned(true);
@@ -167,8 +172,14 @@ export function DeliveryConfirmModal({
                   </span>
                 )}
               </div>
+              {/* Fax first — delivery is fax-primary (pharmacies only take fax) */}
+              {currentPharmacy.fax ? (
+                <p className="text-sm text-foreground font-medium">Fax: {currentPharmacy.fax}</p>
+              ) : (
+                <p className="text-sm text-warning font-medium">⚠ No fax on file — delivery will fail for fax-only pharmacies</p>
+              )}
+              {currentPharmacy.phone && <p className="text-sm text-muted-foreground">Phone: {currentPharmacy.phone}</p>}
               {currentPharmacy.email && <p className="text-sm text-muted-foreground">{currentPharmacy.email}</p>}
-              {currentPharmacy.phone && <p className="text-sm text-muted-foreground">{currentPharmacy.phone}</p>}
               {currentPharmacy.address && <p className="text-sm text-muted-foreground">{currentPharmacy.address}</p>}
             </div>
           ) : (
@@ -216,11 +227,24 @@ export function DeliveryConfirmModal({
                     <SelectValue placeholder={reassigning ? "Reassigning..." : "Select a pharmacy"} />
                   </SelectTrigger>
                   <SelectContent>
-                    {pharmacies.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.name}
-                      </SelectItem>
-                    ))}
+                    {pharmacies.map((p) => {
+                      const warnUninsured = patientHasInsurance === false && !p.accepts_no_insurance;
+                      return (
+                        <SelectItem key={p.id} value={p.id}>
+                          <span className="flex items-center gap-2">
+                            <span>{p.name}</span>
+                            {p.fax ? (
+                              <span className="text-xs text-muted-foreground">· fax {p.fax}</span>
+                            ) : (
+                              <span className="text-xs text-warning">· no fax</span>
+                            )}
+                            {warnUninsured && (
+                              <span className="text-xs text-warning">⚠ doesn't accept uninsured</span>
+                            )}
+                          </span>
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               )}

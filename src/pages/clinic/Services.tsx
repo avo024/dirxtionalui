@@ -99,7 +99,7 @@ export default function Services() {
       <div>
         <h1 className="text-3xl font-semibold tracking-tight">Services</h1>
         <p className="text-muted-foreground mt-1">
-          Manage your DiRxctional plan and add-on services
+          Manage your Dirxctional plan and add-on services
         </p>
       </div>
 
@@ -107,7 +107,7 @@ export default function Services() {
       <Card>
         <CardHeader>
           <CardTitle>Current Plan</CardTitle>
-          <CardDescription>Your DiRxctional subscription</CardDescription>
+          <CardDescription>Your Dirxctional subscription</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-start gap-4">
