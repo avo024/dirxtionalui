@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft, ArrowRight, BookOpen, GraduationCap, Plus, ChevronRight, Send,
   CircleCheck, ShieldCheck, Lock, LifeBuoy, MessageSquareHeart, Loader2, ExternalLink,
@@ -35,8 +35,24 @@ function initials(name?: string) {
 }
 
 export default function ClinicSupportCenter() {
-  const [view, setView] = useState<View>({ name: "panel" });
+  const [searchParams, setSearchParams] = useSearchParams();
+  const caseParam = searchParams.get("case");
+  const [view, setView] = useState<View>(() => caseParam ? { name: "case", id: caseParam } : { name: "panel" });
   const { runTour } = useTour();
+
+  // Keep the case view in the URL (?case=...) so browser back/forward — e.g.
+  // case -> open referral -> back — restores exactly where you were.
+  useEffect(() => {
+    if (caseParam && (view.name !== "case" || view.id !== caseParam)) {
+      setView({ name: "case", id: caseParam });
+    } else if (!caseParam && view.name === "case") {
+      setView({ name: "panel" });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [caseParam]);
+
+  const openCaseView = (id: string) => setSearchParams({ case: id });
+  const closeCaseView = () => setSearchParams({});
 
   if (view.name === "tutorials") {
     return (
@@ -58,9 +74,9 @@ export default function ClinicSupportCenter() {
     return <NewRequest onCancel={() => setView({ name: "panel" })} onCreated={() => setView({ name: "panel" })} />;
   }
   if (view.name === "case") {
-    return <CaseView caseId={view.id} onBack={() => setView({ name: "panel" })} />;
+    return <CaseView caseId={view.id} onBack={closeCaseView} />;
   }
-  return <Panel onOpen={(id) => setView({ name: "case", id })} onNew={() => setView({ name: "form" })} onTutorials={() => setView({ name: "tutorials" })} />;
+  return <Panel onOpen={openCaseView} onNew={() => setView({ name: "form" })} onTutorials={() => setView({ name: "tutorials" })} />;
 }
 
 const caseMonth = (c: SupportCaseSummary) => (c.updated_at || c.created_at || "").slice(0, 7);

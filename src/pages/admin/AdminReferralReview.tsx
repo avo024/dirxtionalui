@@ -73,6 +73,7 @@ function SummaryField({ label, value, confidence, isCritical = false }: { label:
 export default function AdminReferralReview() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const fromCaseId = (useLocation().state as any)?.fromCaseId as string | undefined;
   const [searchParams] = useSearchParams();
   const notesDeepLink = searchParams.get("tab") === "notes";
   const [referral, setReferral] = useState<any>(null);
@@ -358,7 +359,9 @@ export default function AdminReferralReview() {
     <div className="space-y-0 -mx-6 -my-8 lg:-mx-8">
       {/* Top bar */}
       <div className="arr-header">
-        <button className="arr-back" onClick={() => navigate("/admin/referrals")} aria-label="Back to referrals">
+        <button className="arr-back" aria-label="Back"
+          title={fromCaseId ? "Back to the support case" : "Back to referrals"}
+          onClick={() => navigate(fromCaseId ? `/admin/support/${fromCaseId}` : "/admin/referrals")}>
           <ArrowLeft size={16} />
         </button>
         <div className="arr-head-main">

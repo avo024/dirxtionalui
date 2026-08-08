@@ -113,7 +113,7 @@ export default function AdminSupportDetail() {
             {c.referral_id && (
               <>
                 <span className="sepbar">·</span>
-                <Link to={`/admin/referrals/${c.referral_id}`} style={{ color: "var(--color-teal-700)", fontWeight: 700 }}>
+                <Link to={`/admin/referrals/${c.referral_id}`} state={{ fromCaseId: c.id }} style={{ color: "var(--color-teal-700)", fontWeight: 700 }}>
                   Open referral #{c.referral_short} →
                 </Link>
               </>
