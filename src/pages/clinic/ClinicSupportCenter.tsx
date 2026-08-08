@@ -2,8 +2,14 @@ import { useState, useEffect } from "react";
 import {
   ArrowLeft, ArrowRight, BookOpen, GraduationCap, Plus, ChevronRight, Send,
   CircleCheck, ShieldCheck, Lock, LifeBuoy, MessageSquareHeart, Loader2, ExternalLink,
+  ChevronsUpDown, Check, FileText,
 } from "lucide-react";
 import { supportApi, type SupportCaseSummary, type SupportCaseDetail } from "@/lib/api";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
+} from "@/components/ui/command";
+import { formatDateShort } from "@/lib/dateUtils";
 import { toast } from "@/hooks/use-toast";
 import { getRelativeTime, formatDateTime } from "@/lib/dateUtils";
 import { SupportStatusBadge } from "@/components/SupportStatusBadge";
@@ -197,14 +203,7 @@ function NewRequest({ onCancel, onCreated }: { onCancel: () => void; onCreated: 
 
         <div>
           <p className="cs-form-label">About a specific referral? <span style={{ fontWeight: 400, color: "var(--text-muted)" }}>(optional)</span></p>
-          <select className="rw-select" value={referralId} onChange={(e) => setReferralId(e.target.value)}>
-            <option value="">No — general question</option>
-            {referrals.map((r) => (
-              <option key={r.id} value={r.id}>
-                {(r.patient_name || "Referral")} — #{(r.id || "").slice(0, 8)}{r.status === "sent_to_pharmacy" ? " (sent)" : ""}
-              </option>
-            ))}
-          </select>
+          <ReferralCombobox referrals={referrals} value={referralId} onChange={setReferralId} />
           {referralId && (
             <p className="cs-catbtn-sub">
               Your message will be saved to this referral's secure notes, so our team sees the full
@@ -344,5 +343,78 @@ function CaseView({ caseId, onBack }: { caseId: string; onBack: () => void }) {
         </div>
       </div>
     </div>
+  );
+}
+
+
+const REF_STATUS_LABEL: Record<string, string> = {
+  uploaded: "Uploaded", processing: "Processing", ready_for_review: "In review",
+  approved_to_send: "Approved", sent_to_pharmacy: "Sent", rejected: "Needs attention",
+};
+
+/** Searchable, recent-first referral picker for support requests. */
+function ReferralCombobox({ referrals, value, onChange }:
+  { referrals: any[]; value: string; onChange: (id: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const sorted = [...referrals].sort((a, b) =>
+    new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+  const selected = referrals.find((r) => r.id === value) || null;
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button type="button" role="combobox" aria-expanded={open}
+          className="rw-select"
+          style={{ display: "flex", alignItems: "center", justifyContent: "space-between", textAlign: "left", cursor: "pointer" }}>
+          <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+            {selected ? (
+              <>
+                <FileText size={14} style={{ color: "var(--color-teal-600)", flexShrink: 0 }} />
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {selected.patient_name || "Referral"} — #{(selected.id || "").slice(0, 8)}
+                </span>
+              </>
+            ) : (
+              <span style={{ color: "var(--text-muted)" }}>No — general question</span>
+            )}
+          </span>
+          <ChevronsUpDown size={14} style={{ opacity: 0.5, flexShrink: 0 }} />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Search by patient name or ID..." />
+          <CommandList>
+            <CommandEmpty>No referral found.</CommandEmpty>
+            <CommandGroup>
+              <CommandItem value="__none__ general question" onSelect={() => { onChange(""); setOpen(false); }}>
+                <Check size={14} className={value === "" ? "opacity-100" : "opacity-0"} style={{ flexShrink: 0 }} />
+                <span style={{ marginLeft: 6, color: "var(--text-muted)" }}>No — general question</span>
+              </CommandItem>
+              {sorted.map((r) => (
+                <CommandItem key={r.id}
+                  value={`${r.patient_name || ""} ${(r.id || "").slice(0, 8)} ${r.drug_requested || ""}`}
+                  onSelect={() => { onChange(r.id); setOpen(false); }}>
+                  <Check size={14} className={value === r.id ? "opacity-100" : "opacity-0"} style={{ flexShrink: 0 }} />
+                  <span style={{ marginLeft: 6, minWidth: 0, flex: 1 }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {r.patient_name || "Referral"}
+                      </span>
+                      <span style={{ fontSize: 11, color: "var(--text-muted)", flexShrink: 0 }}>#{(r.id || "").slice(0, 8)}</span>
+                    </span>
+                    <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: "var(--text-muted)" }}>
+                      <span>{REF_STATUS_LABEL[r.status] || r.status}</span>
+                      {r.created_at && <span>· {formatDateShort(r.created_at)}</span>}
+                      {r.drug_requested && <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>· {r.drug_requested}</span>}
+                    </span>
+                  </span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }
