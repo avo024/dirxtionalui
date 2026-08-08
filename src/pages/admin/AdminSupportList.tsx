@@ -63,6 +63,7 @@ export default function AdminSupportList() {
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState("all");
   const [category, setCategory] = useState("all");
+  const [assigned, setAssigned] = useState("all");
   const [month, setMonth] = useState(CURRENT_MONTH);
   const [search, setSearch] = useState("");
 
@@ -76,6 +77,7 @@ export default function AdminSupportList() {
           category: category === "all" ? undefined : category,
           month,
           search: search.trim() || undefined,
+          assigned: assigned === "all" ? undefined : assigned,
         });
         if (!cancelled) { setItems(res.items || []); setCounts(res.counts || {}); }
       } catch (e: any) {
@@ -86,7 +88,7 @@ export default function AdminSupportList() {
     };
     const t = setTimeout(fetchCases, 250);
     return () => { cancelled = true; clearTimeout(t); };
-  }, [status, category, month, search]);
+  }, [status, category, month, search, assigned]);
 
   const months = useMemo(monthOptions, []);
   const totalCount = (counts.open || 0) + (counts.in_progress || 0) + (counts.resolved || 0);
@@ -109,10 +111,17 @@ export default function AdminSupportList() {
             </button>
           ))}
         </div>
-        <div className="rl-seg">
-          {CAT_TABS.map((t) => (
-            <button key={t.value} className={`rl-seg-btn${category === t.value ? " on" : ""}`} onClick={() => setCategory(t.value)}>{t.label}</button>
-          ))}
+        <div style={{ display: "flex", gap: 10 }}>
+          <div className="rl-seg">
+            {CAT_TABS.map((t) => (
+              <button key={t.value} className={`rl-seg-btn${category === t.value ? " on" : ""}`} onClick={() => setCategory(t.value)}>{t.label}</button>
+            ))}
+          </div>
+          <div className="rl-seg">
+            {[{ value: "all", label: "Everyone" }, { value: "me", label: "Mine" }, { value: "unassigned", label: "Unclaimed" }].map((t) => (
+              <button key={t.value} className={`rl-seg-btn${assigned === t.value ? " on" : ""}`} onClick={() => setAssigned(t.value)}>{t.label}</button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -137,7 +146,7 @@ export default function AdminSupportList() {
         <div className="dh-table-wrap as-table-wrap">
           <table className="dh-table as-table">
             <thead>
-              <tr><th>Clinic</th><th>Subject</th><th>Category</th><th>Status</th><th>Last activity</th><th className="r"></th></tr>
+              <tr><th>Clinic</th><th>Subject</th><th>Category</th><th>Status</th><th>Assigned</th><th>Last activity</th><th className="r"></th></tr>
             </thead>
             <tbody>
               {items.map((c) => (
@@ -157,6 +166,7 @@ export default function AdminSupportList() {
                   </td>
                   <td><CategoryChip category={c.category} /></td>
                   <td><SupportStatusBadge status={c.status} /></td>
+                  <td className="as-activity">{c.assigned_admin_name || <span style={{ opacity: 0.45 }}>—</span>}</td>
                   <td className="as-activity">{getRelativeTime(c.last_message_at || c.updated_at)}</td>
                   <td className="r"><span className="as-open-cta"><ChevronRight size={16} /></span></td>
                 </tr>

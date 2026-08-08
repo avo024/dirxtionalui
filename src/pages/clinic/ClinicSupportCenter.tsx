@@ -63,13 +63,30 @@ export default function ClinicSupportCenter() {
   return <Panel onOpen={(id) => setView({ name: "case", id })} onNew={() => setView({ name: "form" })} onTutorials={() => setView({ name: "tutorials" })} />;
 }
 
+function csMonthOptions() {
+  const opts: { value: string; label: string }[] = [];
+  const now = new Date();
+  for (let i = 0; i < 6; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const label = d.toLocaleString("default", { month: "long", year: "numeric" });
+    opts.push({ value: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`, label: i === 0 ? `${label} · this month` : label });
+  }
+  opts.push({ value: "all", label: "All time" });
+  return opts;
+}
+
 function Panel({ onOpen, onNew, onTutorials }: { onOpen: (id: string) => void; onNew: () => void; onTutorials: () => void }) {
   const [cases, setCases] = useState<SupportCaseSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [month, setMonth] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  });
 
   useEffect(() => {
-    supportApi.getCases().then((r) => setCases(r.items || [])).catch(() => {}).finally(() => setLoading(false));
-  }, []);
+    setLoading(true);
+    supportApi.getCases(month).then((r) => setCases(r.items || [])).catch(() => {}).finally(() => setLoading(false));
+  }, [month]);
 
   return (
     <div className="cs-page rw-fade">
@@ -104,7 +121,12 @@ function Panel({ onOpen, onNew, onTutorials }: { onOpen: (id: string) => void; o
       <section>
         <div className="cs-sec-head">
           <h2>My requests</h2>
-          <button className="rw-btn primary" data-tour="support-new-request" onClick={onNew}><Plus size={15} />New request</button>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <select className="rw-select" style={{ width: "auto", height: 36 }} value={month} onChange={(e) => setMonth(e.target.value)}>
+              {csMonthOptions().map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+            </select>
+            <button className="rw-btn primary" data-tour="support-new-request" onClick={onNew}><Plus size={15} />New request</button>
+          </div>
         </div>
         {loading ? (
           <div style={{ padding: 40, display: "flex", justifyContent: "center" }}>

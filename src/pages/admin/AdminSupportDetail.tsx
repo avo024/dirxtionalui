@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   ArrowLeft, Loader2, Send, CircleDot, Check, RotateCcw, CircleCheck, Info,
-  LifeBuoy, MessageSquareHeart, AlertTriangle,
+  LifeBuoy, MessageSquareHeart, AlertTriangle, UserCheck,
 } from "lucide-react";
 import { adminApi, type SupportCaseSummary, type SupportMessage } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
@@ -106,6 +106,10 @@ export default function AdminSupportDetail() {
             </span>
             <span className="sepbar">·</span>
             <span>Opened {getRelativeTime(c.created_at)}</span>
+            <span className="sepbar">·</span>
+            {c.assigned_admin_name
+              ? <span><b>{c.assigned_admin_name}</b> is handling this</span>
+              : <span style={{ color: "var(--color-warning, #b45309)", fontWeight: 600 }}>Unclaimed</span>}
             {c.referral_id && (
               <>
                 <span className="sepbar">·</span>
@@ -117,6 +121,22 @@ export default function AdminSupportDetail() {
           </div>
         </div>
         <div className="as-d-actions">
+          {!c.assigned_admin_id ? (
+            <button className="rw-btn outline sm" disabled={busy} onClick={async () => {
+              setBusy(true);
+              try { await adminApi.claimSupportCase(caseId!); const full = await adminApi.getSupportCase(caseId!); setData(full); }
+              catch (e: any) { toast({ title: "Couldn't claim", description: e.message, variant: "destructive" }); }
+              finally { setBusy(false); }
+            }}><UserCheck size={14} />Claim</button>
+          ) : (
+            <button className="rw-btn outline sm" disabled={busy} title="Release your claim so a teammate can take it"
+              onClick={async () => {
+                setBusy(true);
+                try { const u = await adminApi.releaseSupportCase(caseId!); setData((d) => d ? { ...d, case: u } : d); }
+                catch (e: any) { toast({ title: "Couldn't release", description: e.message, variant: "destructive" }); }
+                finally { setBusy(false); }
+              }}><UserCheck size={14} />Release</button>
+          )}
           {status === "open" && <>
             <button className="rw-btn primary sm" disabled={busy} onClick={() => setStatus("in_progress")}><CircleDot size={14} />Mark In progress</button>
             <button className="rw-btn outline sm" disabled={busy} onClick={() => setStatus("resolved")}><Check size={14} />Mark Resolved</button>
