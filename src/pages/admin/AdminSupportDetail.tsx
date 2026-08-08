@@ -137,12 +137,18 @@ export default function AdminSupportDetail() {
                 finally { setBusy(false); }
               }}><UserCheck size={14} />Release</button>
           )}
-          {status === "open" && <>
-            <button className="rw-btn primary sm" disabled={busy} onClick={() => setStatus("in_progress")}><CircleDot size={14} />Mark In progress</button>
-            <button className="rw-btn outline sm" disabled={busy} onClick={() => setStatus("resolved")}><Check size={14} />Mark Resolved</button>
+          {!c.assigned_admin_id ? (
+            <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", alignSelf: "center" }}>
+              Claim this case to work it
+            </span>
+          ) : <>
+            {status === "open" && <>
+              <button className="rw-btn primary sm" disabled={busy} onClick={() => setStatus("in_progress")}><CircleDot size={14} />Mark In progress</button>
+              <button className="rw-btn outline sm" disabled={busy} onClick={() => setStatus("resolved")}><Check size={14} />Mark Resolved</button>
+            </>}
+            {status === "in_progress" && <button className="rw-btn primary sm" disabled={busy} onClick={() => setStatus("resolved")}><Check size={14} />Mark Resolved</button>}
+            {status === "resolved" && <button className="rw-btn outline sm" disabled={busy} onClick={() => setStatus("open")}><RotateCcw size={14} />Reopen</button>}
           </>}
-          {status === "in_progress" && <button className="rw-btn primary sm" disabled={busy} onClick={() => setStatus("resolved")}><Check size={14} />Mark Resolved</button>}
-          {status === "resolved" && <button className="rw-btn outline sm" disabled={busy} onClick={() => setStatus("open")}><RotateCcw size={14} />Reopen</button>}
         </div>
       </div>
 
