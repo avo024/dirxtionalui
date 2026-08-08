@@ -212,13 +212,23 @@ function NewRequest({ onCancel, onCreated }: { onCancel: () => void; onCreated: 
           )}
         </div>
 
-        <div className="cs-phi">
-          <span className="cs-phi-ic"><ShieldCheck size={18} /></span>
-          <div>
-            <p className="cs-phi-t">Please leave out patient details</p>
-            <p className="cs-phi-s">To keep patient information safe, don't include names, dates of birth, insurance IDs, or diagnoses here. For a question about a specific patient's referral, add a <b>Note</b> on that referral instead — it stays attached to their secure record.</p>
+        {referralId ? (
+          <div className="cs-phi" style={{ borderColor: "var(--color-teal-100)", background: "var(--color-teal-50)" }}>
+            <span className="cs-phi-ic" style={{ color: "var(--color-teal-700)" }}><ShieldCheck size={18} /></span>
+            <div>
+              <p className="cs-phi-t" style={{ color: "var(--color-teal-700)" }}>Patient details are OK here</p>
+              <p className="cs-phi-s" style={{ color: "var(--color-teal-700)" }}>Because this request is linked to a referral, your message is saved to that referral's <b>secure notes</b> — include whatever details about this patient help us resolve it. Please keep other patients out of this message.</p>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="cs-phi">
+            <span className="cs-phi-ic"><ShieldCheck size={18} /></span>
+            <div>
+              <p className="cs-phi-t">Please leave out patient details</p>
+              <p className="cs-phi-s">To keep patient information safe, don't include names, dates of birth, insurance IDs, or diagnoses here. Asking about a specific patient? <b>Link their referral above</b> — then your message is saved to their secure record and details are fine.</p>
+            </div>
+          </div>
+        )}
 
         <div>
           <p className="cs-form-label">Your message</p>
