@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Loader2, LifeBuoy, MessageSquareHeart, ChevronRight, Inbox, CalendarDays, AlertTriangle } from "lucide-react";
+import { Search, Loader2, LifeBuoy, MessageSquareHeart, ChevronRight, Inbox, AlertTriangle } from "lucide-react";
 import { adminApi, type SupportCaseSummary } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { getRelativeTime } from "@/lib/dateUtils";
@@ -23,21 +23,6 @@ const CAT_TABS = [
   { value: "delivery_issue", label: "Delivery" },
 ];
 
-function monthValue(d: Date) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
-function monthOptions() {
-  const opts: { value: string; label: string }[] = [];
-  const now = new Date();
-  for (let i = 0; i < 6; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const label = d.toLocaleString("default", { month: "long", year: "numeric" });
-    opts.push({ value: monthValue(d), label: i === 0 ? `${label} · this month` : label });
-  }
-  opts.push({ value: "all", label: "All time" });
-  return opts;
-}
-const CURRENT_MONTH = monthValue(new Date());
 
 function CategoryChip({ category }: { category: string }) {
   if (category === "delivery_issue") {
@@ -64,7 +49,7 @@ export default function AdminSupportList() {
   const [status, setStatus] = useState("open");  // land on incoming — the claim queue
   const [category, setCategory] = useState("all");
   const [assigned, setAssigned] = useState("all");
-  const [month, setMonth] = useState(CURRENT_MONTH);
+  const month = "all";  // month control removed at pilot volume — search + status tabs suffice
   const [search, setSearch] = useState("");
 
   useEffect(() => {
@@ -79,7 +64,13 @@ export default function AdminSupportList() {
           search: search.trim() || undefined,
           assigned: assigned === "all" ? undefined : assigned,
         });
-        if (!cancelled) { setItems(res.items || []); setCounts(res.counts || {}); }
+        if (!cancelled) {
+          const items: SupportCaseSummary[] = res.items || [];
+          // Triage order: unclaimed first (grab-me), then by recency.
+          items.sort((a, b) => Number(!!a.assigned_admin_id) - Number(!!b.assigned_admin_id));
+          setItems(items);
+          setCounts(res.counts || {});
+        }
       } catch (e: any) {
         if (!cancelled) toast({ title: "Error", description: e.message || "Failed to load support cases", variant: "destructive" });
       } finally {
@@ -88,9 +79,8 @@ export default function AdminSupportList() {
     };
     const t = setTimeout(fetchCases, 250);
     return () => { cancelled = true; clearTimeout(t); };
-  }, [status, category, month, search, assigned]);
+  }, [status, category, search, assigned]);
 
-  const months = useMemo(monthOptions, []);
   const totalCount = (counts.open || 0) + (counts.in_progress || 0) + (counts.resolved || 0);
   const chipCount = (v: string) => (v === "all" ? totalCount : counts[v] || 0);
 
@@ -129,12 +119,7 @@ export default function AdminSupportList() {
           <span className="rl-search-ic"><Search size={16} /></span>
           <input className="rl-search-input" placeholder="Search by clinic or subject (all time)…" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <div className="rl-statusdd">
-          <CalendarDays size={15} />
-          <select className="rl-select" value={month} onChange={(e) => setMonth(e.target.value)} disabled={!!search.trim()}>
-            {months.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
-          </select>
-        </div>
+
       </div>
 
       {loading ? (
