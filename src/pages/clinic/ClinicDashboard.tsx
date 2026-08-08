@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Clock, XCircle, Plus, CalendarDays, FileSearch, AlertTriangle, ArrowRight, Send,
-  ChevronDown, Eye, Store,
+  ChevronDown, Eye, Store, MessageCircle,
 } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ClinicPABadge } from "@/components/ClinicPABadge";
@@ -12,6 +12,7 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { useAuth } from "@/contexts/AuthContext";
 import { clinicApi, getMyClinic } from "@/lib/api";
 import { useTour } from "@/components/tutorials/useTour";
+import { useSupportUnread } from "@/components/support/useSupportUnread";
 import { OVERVIEW_SEEN_KEY } from "@/components/tutorials/tours";
 import { ClinicSettingsModal } from "@/components/ClinicSettingsModal";
 import { mapReferralsFromBackend } from "@/lib/dataMapper";
@@ -43,6 +44,7 @@ export default function ClinicDashboard() {
   const { data: clinic } = useQuery({ queryKey: ["my-clinic"], queryFn: getMyClinic });
   const needsDefaultPharmacy = !!clinic && !clinic.default_pharmacy_id;
   const { runTour } = useTour();
+  const { hasUnread: supportUnread, bump: bumpSupport } = useSupportUnread();
 
   // First-login product tour: fire the Overview walkthrough once, after the
   // dashboard has loaded (so the highlighted stat cards exist). localStorage
@@ -123,6 +125,18 @@ export default function ClinicDashboard() {
           </div>
           <button className="rw-btn primary sm" onClick={() => setSettingsOpen(true)} style={{ flexShrink: 0 }}><Store size={14} />Set pharmacy</button>
         </div>
+      )}
+
+      {supportUnread && (
+        <Link to="/clinic/support" onClick={() => bumpSupport()}
+          style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 18px", marginBottom: 18, borderRadius: "var(--radius-lg)", border: "1px solid var(--color-teal-100)", background: "var(--color-teal-50)", textDecoration: "none" }}>
+          <span style={{ flexShrink: 0, width: 38, height: 38, borderRadius: "var(--radius-md)", background: "#fff", border: "1px solid var(--color-teal-100)", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "var(--color-teal-700)" }}><MessageCircle size={18} /></span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--text-primary)", margin: 0 }}>Dirxctional replied to your support request</p>
+            <p style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", margin: "2px 0 0" }}>Open Help &amp; Support to read the reply.</p>
+          </div>
+          <span className="rw-btn primary sm" style={{ flexShrink: 0 }}>View reply<ArrowRight size={14} /></span>
+        </Link>
       )}
 
       {/* Stats — action-split */}
