@@ -830,19 +830,18 @@ function DeliveryIssueReporter({ referralId, onReported }: { referralId: string;
   const [open, setOpen] = useState(false);
   const [details, setDetails] = useState("");
   const [sending, setSending] = useState(false);
+  const [openedCaseId, setOpenedCaseId] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const submit = async () => {
     const body = details.trim();
     if (!body) return;
     setSending(true);
     try {
-      await clinicApi.reportDeliveryIssue(referralId, body);
-      toast({
-        title: "Reported — we're on it",
-        description: "Our team was alerted. Track progress under Help & Support → My Requests.",
-      });
+      const res = await clinicApi.reportDeliveryIssue(referralId, body);
       setOpen(false);
       setDetails("");
+      setOpenedCaseId(res.case_id);
       onReported();
     } catch (err: any) {
       toast({ title: "Couldn't send", description: err.message || "Please try again", variant: "destructive" });
@@ -850,6 +849,29 @@ function DeliveryIssueReporter({ referralId, onReported }: { referralId: string;
       setSending(false);
     }
   };
+
+  // Success confirmation — make the moment unmissable: an URGENT case exists,
+  // here's its number, and one click goes straight to it.
+  if (openedCaseId) {
+    return (
+      <div style={{ marginTop: 12, background: "var(--color-teal-50)", border: "1px solid var(--color-teal-100)", borderRadius: "var(--radius-md)", padding: "16px 18px", maxWidth: 560 }}>
+        <p style={{ fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-teal-700)", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+          <CheckCircle size={18} /> Urgent case opened — #{openedCaseId.slice(0, 8)}
+        </p>
+        <p style={{ fontSize: "var(--text-sm)", color: "var(--text-body)", margin: "8px 0 0", lineHeight: 1.55 }}>
+          Our team has been <b>alerted immediately</b> — delivery issues are a top priority for us.
+          Your message is attached to this referral for our team, and your case tracks it from
+          here until it's resolved. We'll email you with every update.
+        </p>
+        <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+          <button className="rw-btn primary sm" onClick={() => navigate(`/clinic/support?case=${openedCaseId}`)}>
+            View my case<ArrowRight size={14} />
+          </button>
+          <button className="rw-btn outline sm" onClick={() => setOpenedCaseId(null)}>Stay on this referral</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ marginTop: 12 }}>
