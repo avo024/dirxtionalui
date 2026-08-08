@@ -250,6 +250,52 @@ export const TOURS: Record<string, TourDef> = {
       },
     ],
   },
+
+  helpSupport: {
+    key: "helpSupport",
+    label: "Help & Support center",
+    description: "Get help, track requests, report issues",
+    route: "/clinic/support",
+    steps: [
+      {
+        element: '[data-tour="help-button"]',
+        title: "Your direct line to us",
+        description:
+          "Help & Support lives at the bottom of your sidebar. A dot appears here whenever we've replied to you.",
+        side: "right",
+        align: "end",
+      },
+      {
+        element: '[data-tour="support-cards"]',
+        title: "Self-serve first, if you like",
+        description:
+          "The User Guide covers every feature step-by-step, and Tutorials replays walkthroughs like this one.",
+        side: "bottom",
+        align: "center",
+      },
+      {
+        element: '[data-tour="support-new-request"]',
+        title: "Ask us anything",
+        description:
+          "Open a request for questions, problems, or ideas — no topic is off-limits. If it's about a specific referral, link it in the form and we'll see the full context instantly.",
+        side: "left",
+        align: "center",
+      },
+      {
+        element: '[data-tour="support-requests"]',
+        title: "Track every request",
+        description:
+          "Each request shows its live status: Open, In progress, or Resolved. We'll email you when we reply and when it's resolved — replying to a resolved request reopens it.",
+        side: "top",
+        align: "center",
+      },
+      {
+        title: "One more thing — patient details",
+        description:
+          "For questions about a specific patient, prefer the Note button on their referral (or link the referral here) — that keeps their information with their secure record. And if a pharmacy ever says a sent referral never arrived, use the \"Pharmacy didn't receive this?\" button right on that referral — it alerts us urgently and opens a tracked request automatically.",
+      },
+    ],
+  },
 };
 
 /** Tours shown in the Tutorials menu, in display order. */
@@ -261,6 +307,7 @@ export const TUTORIAL_ORDER: string[] = [
   "statuses",
   "addPatient",
   "addNote",
+  "helpSupport",
 ];
 
 export const OVERVIEW_SEEN_KEY = "dx_tour_overview_seen";

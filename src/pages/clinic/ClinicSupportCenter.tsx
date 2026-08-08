@@ -71,7 +71,7 @@ function Panel({ onOpen, onNew, onTutorials }: { onOpen: (id: string) => void; o
         <p className="cs-sub">Have a question, run into an issue, or want to share an idea? We're here to help — most messages get a reply the same day.</p>
       </div>
 
-      <section className="cs-cards2">
+      <section className="cs-cards2" data-tour="support-cards">
         <a href="/manual.pdf" target="_blank" rel="noopener noreferrer" className="cs-guide">
           <div className="cs-guide-top">
             <div className="cs-guide-ic"><BookOpen size={22} /></div>
@@ -97,14 +97,14 @@ function Panel({ onOpen, onNew, onTutorials }: { onOpen: (id: string) => void; o
       <section>
         <div className="cs-sec-head">
           <h2>My requests</h2>
-          <button className="rw-btn primary" onClick={onNew}><Plus size={15} />New request</button>
+          <button className="rw-btn primary" data-tour="support-new-request" onClick={onNew}><Plus size={15} />New request</button>
         </div>
         {loading ? (
           <div style={{ padding: 40, display: "flex", justifyContent: "center" }}>
             <span className="rw-spin" style={{ color: "var(--color-teal)" }}><Loader2 size={22} /></span>
           </div>
         ) : cases.length > 0 ? (
-          <div className="cs-reqs">
+          <div className="cs-reqs" data-tour="support-requests">
             {cases.map((c) => (
               <button key={c.id} className="cs-req" onClick={() => onOpen(c.id)}>
                 <div className="cs-req-main">
@@ -117,6 +117,7 @@ function Panel({ onOpen, onNew, onTutorials }: { onOpen: (id: string) => void; o
                   <div className="cs-req-meta">
                     <span>{c.category === "delivery_issue" ? "Delivery issue" : c.category === "feedback" ? "Feedback" : "Support"}</span>
                     <span className="sep">·</span><span>#{c.short_id}</span>
+                    {c.referral_id && (<><span className="sep">·</span><span style={{ color: "var(--color-teal-700)", fontWeight: 600 }}>Ref #{c.referral_short}</span></>)}
                     <span className="sep">·</span><span>Updated {getRelativeTime(c.last_message_at || c.updated_at)}</span>
                   </div>
                 </div>
@@ -143,14 +144,25 @@ function NewRequest({ onCancel, onCreated }: { onCancel: () => void; onCreated: 
   const [category, setCategory] = useState("support");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
+  const [referrals, setReferrals] = useState<any[]>([]);
+  const [referralId, setReferralId] = useState("");
   const sub = CAT_OPTIONS.find((o) => o.value === category)?.sub;
+
+  useEffect(() => {
+    // Optional referral link — lets the clinic say "this is about referral X".
+    import("@/lib/api").then(({ clinicApi }) =>
+      clinicApi.getReferrals()
+        .then((r: any) => setReferrals(r.items || []))
+        .catch(() => {})
+    );
+  }, []);
 
   const submit = async () => {
     const body = message.trim();
     if (!body) return;
     setSending(true);
     try {
-      const c = await supportApi.openCase({ category: category as "support" | "feedback", body });
+      const c = await supportApi.openCase({ category: category as "support" | "feedback", body, referral_id: referralId || null });
       onCreated(c.id);
     } catch (e: any) {
       toast({ title: "Couldn't send", description: e.message || "Failed to send request", variant: "destructive" });
@@ -181,6 +193,24 @@ function NewRequest({ onCancel, onCreated }: { onCancel: () => void; onCreated: 
             })}
           </div>
           <p className="cs-catbtn-sub">{sub}</p>
+        </div>
+
+        <div>
+          <p className="cs-form-label">About a specific referral? <span style={{ fontWeight: 400, color: "var(--text-muted)" }}>(optional)</span></p>
+          <select className="rw-select" value={referralId} onChange={(e) => setReferralId(e.target.value)}>
+            <option value="">No — general question</option>
+            {referrals.map((r) => (
+              <option key={r.id} value={r.id}>
+                {(r.patient_name || "Referral")} — #{(r.id || "").slice(0, 8)}{r.status === "sent_to_pharmacy" ? " (sent)" : ""}
+              </option>
+            ))}
+          </select>
+          {referralId && (
+            <p className="cs-catbtn-sub">
+              Your message will be saved to this referral's secure notes, so our team sees the full
+              patient context — and this request will link straight to it.
+            </p>
+          )}
         </div>
 
         <div className="cs-phi">
