@@ -61,7 +61,7 @@ export default function AdminSupportList() {
   const [items, setItems] = useState<SupportCaseSummary[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
-  const [status, setStatus] = useState("all");
+  const [status, setStatus] = useState("open");  // land on incoming — the claim queue
   const [category, setCategory] = useState("all");
   const [assigned, setAssigned] = useState("all");
   const [month, setMonth] = useState(CURRENT_MONTH);
@@ -111,21 +111,20 @@ export default function AdminSupportList() {
             </button>
           ))}
         </div>
-        <div style={{ display: "flex", gap: 10 }}>
-          <div className="rl-seg">
-            {CAT_TABS.map((t) => (
-              <button key={t.value} className={`rl-seg-btn${category === t.value ? " on" : ""}`} onClick={() => setCategory(t.value)}>{t.label}</button>
-            ))}
-          </div>
+        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
           <div className="rl-seg">
             {[{ value: "all", label: "Everyone" }, { value: "me", label: "Mine" }, { value: "unassigned", label: "Unclaimed" }].map((t) => (
               <button key={t.value} className={`rl-seg-btn${assigned === t.value ? " on" : ""}`} onClick={() => setAssigned(t.value)}>{t.label}</button>
             ))}
           </div>
+          <select className="rl-select" style={{ border: "1px solid var(--border-default)", borderRadius: "var(--radius-md)", height: 38, padding: "0 10px", background: "#fff" }}
+            value={category} onChange={(e) => setCategory(e.target.value)}>
+            {CAT_TABS.map((t) => <option key={t.value} value={t.value}>{t.value === "all" ? "All categories" : t.label}</option>)}
+          </select>
         </div>
       </div>
 
-      <div className="rl-toolbar" style={{ marginTop: -4 }}>
+      <div className="rl-toolbar" style={{ marginTop: 2, gap: 12 }}>
         <div className="rl-search">
           <span className="rl-search-ic"><Search size={16} /></span>
           <input className="rl-search-input" placeholder="Search by clinic or subject (all time)…" value={search} onChange={(e) => setSearch(e.target.value)} />
