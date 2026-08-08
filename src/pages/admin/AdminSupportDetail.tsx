@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
-  ArrowLeft, Loader2, Send, CircleDot, Check, RotateCcw, CircleCheck, Info,
+  ArrowLeft, Loader2, Send, Check, RotateCcw, CircleCheck, Info,
   LifeBuoy, MessageSquareHeart, AlertTriangle, UserCheck,
 } from "lucide-react";
 import { adminApi, type SupportCaseSummary, type SupportMessage } from "@/lib/api";
@@ -137,18 +137,18 @@ export default function AdminSupportDetail() {
                 finally { setBusy(false); }
               }}><UserCheck size={14} />Release</button>
           )}
+          {/* Claim moves open -> in_progress automatically, so there's no
+              'Mark In progress' button — claimed cases only need Resolve. */}
           {!c.assigned_admin_id ? (
-            <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", alignSelf: "center" }}>
-              Claim this case to work it
-            </span>
-          ) : <>
-            {status === "open" && <>
-              <button className="rw-btn primary sm" disabled={busy} onClick={() => setStatus("in_progress")}><CircleDot size={14} />Mark In progress</button>
-              <button className="rw-btn outline sm" disabled={busy} onClick={() => setStatus("resolved")}><Check size={14} />Mark Resolved</button>
-            </>}
-            {status === "in_progress" && <button className="rw-btn primary sm" disabled={busy} onClick={() => setStatus("resolved")}><Check size={14} />Mark Resolved</button>}
-            {status === "resolved" && <button className="rw-btn outline sm" disabled={busy} onClick={() => setStatus("open")}><RotateCcw size={14} />Reopen</button>}
-          </>}
+            <button className="rw-btn outline sm" disabled title="Claim this case first"
+              style={{ opacity: 0.45, cursor: "not-allowed" }}>
+              <Check size={14} />Mark Resolved
+            </button>
+          ) : status === "resolved" ? (
+            <button className="rw-btn outline sm" disabled={busy} onClick={() => setStatus("open")}><RotateCcw size={14} />Reopen</button>
+          ) : (
+            <button className="rw-btn primary sm" disabled={busy} onClick={() => setStatus("resolved")}><Check size={14} />Mark Resolved</button>
+          )}
         </div>
       </div>
 
