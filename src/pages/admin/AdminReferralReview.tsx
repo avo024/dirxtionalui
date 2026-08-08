@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, FileText, Loader2, Send, RefreshCw, AlertTriangle, Shield, User, CreditCard, Pill, Stethoscope, UserRound } from "lucide-react";
+import { ArrowLeft, FileText, Loader2, Send, RefreshCw, AlertTriangle, Shield, User, CreditCard, Pill, Stethoscope, UserRound, Inbox,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -377,6 +378,19 @@ export default function AdminReferralReview() {
           </div>
         </div>
         <div className="arr-head-actions">
+          {!["processing", "ready_for_review", "approved_to_send"].includes(referral.status) && (
+            <button className="rw-btn outline sm" title="Hide from lists (reversible from the Archived view)"
+              onClick={async () => {
+                if (!window.confirm("Archive this referral? It will be hidden from the lists — restore anytime from the Archived view.")) return;
+                try {
+                  await adminApi.archiveReferral(id!);
+                  toast({ title: "Referral archived" });
+                  navigate("/admin/referrals");
+                } catch (e: any) {
+                  toast({ title: "Couldn't archive", description: e.message, variant: "destructive" });
+                }
+              }}><Inbox size={14} />Archive</button>
+          )}
           {(referral.status === 'uploaded' || referral.status === 'ready_for_review') && (
             <div className="flex flex-col items-end">
               <button className="rw-btn outline sm" onClick={handleProcessWithAI} disabled={isReExtracting}>

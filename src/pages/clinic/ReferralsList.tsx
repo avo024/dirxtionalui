@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { Link, useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import {
   Search, Plus, FileSearch, ChevronLeft, ChevronRight, ListFilter,
-  ChevronsUpDown, ChevronUp, ChevronDown, Eye,
+  ChevronsUpDown, ChevronUp, ChevronDown, Eye, Archive, RotateCcw,
 } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ClinicPABadge } from "@/components/ClinicPABadge";
@@ -43,6 +43,18 @@ function pageWindow(total: number, cur: number): (number | "…")[] {
   return out;
 }
 
+function monthOptions() {
+  const opts: { value: string; label: string }[] = [];
+  const now = new Date();
+  for (let i = 0; i < 6; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const label = d.toLocaleString("default", { month: "long", year: "numeric" });
+    opts.push({ value: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`, label: i === 0 ? `${label} · this month` : label });
+  }
+  opts.push({ value: "all", label: "All time" });
+  return opts;
+}
+
 export default function ReferralsList() {
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,6 +64,11 @@ export default function ReferralsList() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState("10");
   const [sort, setSort] = useState<Sort>(null);
+  const [month, setMonth] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  });
+  const [showArchived, setShowArchived] = useState(false);
   const { toast } = useToast();
   const location = useLocation();
   const navigate = useNavigate();
@@ -60,7 +77,10 @@ export default function ReferralsList() {
     async function fetchReferrals() {
       try {
         setLoading(true);
-        const response = await clinicApi.getReferrals();
+        const response = await clinicApi.getReferrals({
+          month: search.trim() ? "all" : month,
+          archived: showArchived,
+        });
         setReferrals(mapReferralsFromBackend((response as any).items || response || []));
       } catch (err) {
         console.error("Failed to fetch referrals:", err);
@@ -73,7 +93,7 @@ export default function ReferralsList() {
     const handleFocus = () => fetchReferrals();
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
-  }, [toast, location.key]);
+  }, [toast, location.key, month, showArchived, search.trim() === "" ? "m" : "all"]);
 
   const getFilterCount = (value: string): number => {
     if (value === "all") return referrals.length;
@@ -160,6 +180,15 @@ export default function ReferralsList() {
           <span className="rl-search-ic"><Search size={16} /></span>
           <input className="rl-search-input" placeholder="Search by patient, drug, or ID..." value={search} onChange={(e) => handleSearch(e.target.value)} />
         </div>
+        <select className="rl-select" style={{ border: "1px solid var(--border-default)", borderRadius: "var(--radius-md)", height: 38, padding: "0 10px", background: "#fff" }}
+          value={month} disabled={!!search.trim() || showArchived}
+          title={search.trim() ? "Search looks across all time" : undefined}
+          onChange={(e) => setMonth(e.target.value)}>
+          {monthOptions().map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+        </select>
+        <button className={`rw-btn sm ${showArchived ? "primary" : "outline"}`} onClick={() => setShowArchived(v => !v)}>
+          <Archive size={14} />{showArchived ? "Back to referrals" : "Archived"}
+        </button>
       </div>
 
       {/* List */}
@@ -188,7 +217,16 @@ export default function ReferralsList() {
                   <td><ClinicPABadge status={r.pa_status} /></td>
                   <td className="dh-muted-cell">{r.created_at ? formatDateShort(r.created_at) : "—"}</td>
                   <td className="dh-muted-cell">{r.updated_at ? formatDateShort(r.updated_at) : "—"}</td>
-                  <td className="r" onClick={(e) => e.stopPropagation()}><Link to={`/clinic/referrals/${r.id}`} className="rw-btn outline sm"><Eye size={14} />View</Link></td>
+                  <td className="r" onClick={(e) => e.stopPropagation()}>
+                    {showArchived ? (
+                      <button className="rw-btn outline sm" onClick={async () => {
+                        try { await clinicApi.unarchiveReferral(r.id); setReferrals((prev: any) => prev.filter((x: any) => x.id !== r.id)); toast({ title: "Referral restored" }); }
+                        catch (e: any) { toast({ title: "Error", description: e.message, variant: "destructive" }); }
+                      }}><RotateCcw size={14} />Unarchive</button>
+                    ) : (
+                      <Link to={`/clinic/referrals/${r.id}`} className="rw-btn outline sm"><Eye size={14} />View</Link>
+                    )}
+                  </td>
                   <td><CreatedByAvatar name={r.created_by_name} /></td>
                 </tr>
               ))}

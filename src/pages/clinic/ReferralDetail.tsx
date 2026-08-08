@@ -286,6 +286,19 @@ export default function ReferralDetail() {
             <button className="rw-btn outline sm" onClick={() => setEditing(true)}><Pencil size={14} />Edit details</button>
           )}
           <button className="rw-btn outline sm" onClick={() => window.print()}><Printer size={14} />Print</button>
+          {(referral.status === "uploaded" || referral.status === "rejected") && (
+            <button className="rw-btn outline sm" title="Hide this referral from your list (reversible from the Archived view)"
+              onClick={async () => {
+                if (!window.confirm("Archive this referral? It will be hidden from your list — you can restore it anytime from the Archived view.")) return;
+                try {
+                  await clinicApi.archiveReferral(id!);
+                  toast({ title: "Referral archived", description: "Find it under Archived on My Referrals if you need it back." });
+                  navigate("/clinic/referrals");
+                } catch (e: any) {
+                  toast({ title: "Couldn't archive", description: e.message, variant: "destructive" });
+                }
+              }}><Inbox size={14} />Archive</button>
+          )}
         </div>
       </div>
 
