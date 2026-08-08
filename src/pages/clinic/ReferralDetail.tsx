@@ -841,8 +841,10 @@ function DeliveryIssueReporter({ referralId, onReported }: { referralId: string;
       const res = await clinicApi.reportDeliveryIssue(referralId, body);
       setOpen(false);
       setDetails("");
+      // NOTE: do NOT reload the page here — the parent's loading spinner would
+      // unmount this component and silently eat the confirmation card. The
+      // refresh happens when the user dismisses the confirmation.
       setOpenedCaseId(res.case_id);
-      onReported();
     } catch (err: any) {
       toast({ title: "Couldn't send", description: err.message || "Please try again", variant: "destructive" });
     } finally {
@@ -867,7 +869,7 @@ function DeliveryIssueReporter({ referralId, onReported }: { referralId: string;
           <button className="rw-btn primary sm" onClick={() => navigate(`/clinic/support?case=${openedCaseId}`)}>
             View my case<ArrowRight size={14} />
           </button>
-          <button className="rw-btn outline sm" onClick={() => setOpenedCaseId(null)}>Stay on this referral</button>
+          <button className="rw-btn outline sm" onClick={() => { setOpenedCaseId(null); onReported(); }}>Stay on this referral</button>
         </div>
       </div>
     );
