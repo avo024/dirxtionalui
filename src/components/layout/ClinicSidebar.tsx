@@ -82,12 +82,18 @@ export function ClinicSidebar() {
             "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
             location.pathname.startsWith("/clinic/support")
               ? "bg-sidebar-accent text-sidebar-accent-foreground"
-              : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+              : hasUnread
+                ? "bg-teal-500/15 text-teal-300 hover:bg-teal-500/25"
+                : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
           )}
         >
           <HelpCircle className="h-4 w-4" />
           <span className="flex-1">Help &amp; Support</span>
-          {hasUnread && <span className="h-2 w-2 rounded-full bg-teal-400" aria-hidden />}
+          {hasUnread && (
+            <span className="animate-pulse rounded-full bg-teal-400 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-teal-950">
+              New
+            </span>
+          )}
         </Link>
       </div>
 
