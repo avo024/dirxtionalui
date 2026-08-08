@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import {
   ArrowLeft, ArrowRight, BookOpen, GraduationCap, Plus, ChevronRight, Send,
   CircleCheck, ShieldCheck, Lock, LifeBuoy, MessageSquareHeart, Loader2, ExternalLink,
@@ -54,7 +55,7 @@ export default function ClinicSupportCenter() {
     );
   }
   if (view.name === "form") {
-    return <NewRequest onCancel={() => setView({ name: "panel" })} onCreated={(id) => setView({ name: "case", id })} />;
+    return <NewRequest onCancel={() => setView({ name: "panel" })} onCreated={() => setView({ name: "panel" })} />;
   }
   if (view.name === "case") {
     return <CaseView caseId={view.id} onBack={() => setView({ name: "panel" })} />;
@@ -168,8 +169,14 @@ function NewRequest({ onCancel, onCreated }: { onCancel: () => void; onCreated: 
     if (!body) return;
     setSending(true);
     try {
-      const c = await supportApi.openCase({ category: category as "support" | "feedback", body, referral_id: referralId || null });
-      onCreated(c.id);
+      await supportApi.openCase({ category: category as "support" | "feedback", body, referral_id: referralId || null });
+      toast({
+        title: "Request sent — we'll reply shortly",
+        description: referralId
+          ? "It's linked to the referral and tracked below. We'll email you when we respond."
+          : "You can track it below. We'll email you when we respond.",
+      });
+      onCreated("");
     } catch (e: any) {
       toast({ title: "Couldn't send", description: e.message || "Failed to send request", variant: "destructive" });
     } finally { setSending(false); }

@@ -151,6 +151,9 @@ export default function AdminSupportList() {
                   <td>
                     <div className="as-subject" title={c.subject}>{c.subject}</div>
                     <span className="as-id">#{c.short_id}</span>
+                    {c.referral_id && (
+                      <span className="as-id" style={{ color: "var(--color-teal-700)", fontWeight: 600 }}> · Ref #{c.referral_short}</span>
+                    )}
                   </td>
                   <td><CategoryChip category={c.category} /></td>
                   <td><SupportStatusBadge status={c.status} /></td>
