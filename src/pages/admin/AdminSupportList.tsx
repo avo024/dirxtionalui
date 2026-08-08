@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Loader2, LifeBuoy, MessageSquareHeart, ChevronRight, Inbox, CalendarDays } from "lucide-react";
+import { Search, Loader2, LifeBuoy, MessageSquareHeart, ChevronRight, Inbox, CalendarDays, AlertTriangle } from "lucide-react";
 import { adminApi, type SupportCaseSummary } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { getRelativeTime } from "@/lib/dateUtils";
@@ -20,6 +20,7 @@ const CAT_TABS = [
   { value: "all", label: "All" },
   { value: "support", label: "Support" },
   { value: "feedback", label: "Feedback" },
+  { value: "delivery_issue", label: "Delivery" },
 ];
 
 function monthValue(d: Date) {
@@ -39,6 +40,13 @@ function monthOptions() {
 const CURRENT_MONTH = monthValue(new Date());
 
 function CategoryChip({ category }: { category: string }) {
+  if (category === "delivery_issue") {
+    return (
+      <span className="as-cat delivery_issue">
+        <span className="ci"><AlertTriangle size={12} /></span>Delivery issue
+      </span>
+    );
+  }
   const isFeedback = category === "feedback";
   return (
     <span className={`as-cat ${category}`}>

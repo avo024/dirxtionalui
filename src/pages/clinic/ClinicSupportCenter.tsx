@@ -115,7 +115,7 @@ function Panel({ onOpen, onNew, onTutorials }: { onOpen: (id: string) => void; o
                     )}
                   </div>
                   <div className="cs-req-meta">
-                    <span>{c.category === "feedback" ? "Feedback" : "Support"}</span>
+                    <span>{c.category === "delivery_issue" ? "Delivery issue" : c.category === "feedback" ? "Feedback" : "Support"}</span>
                     <span className="sep">·</span><span>#{c.short_id}</span>
                     <span className="sep">·</span><span>Updated {getRelativeTime(c.last_message_at || c.updated_at)}</span>
                   </div>
@@ -262,8 +262,16 @@ function CaseView({ caseId, onBack }: { caseId: string; onBack: () => void }) {
             <span className="cs-case-num">#{c.short_id}</span>
           </div>
           <div className="cs-case-meta">
-            <span>{c.category === "feedback" ? "Feedback" : "Support"}</span>
+            <span>{c.category === "delivery_issue" ? "Delivery issue" : c.category === "feedback" ? "Feedback" : "Support"}</span>
             <span className="sep">·</span><span>Opened {getRelativeTime(c.created_at)}</span>
+            {c.referral_id && (
+              <>
+                <span className="sep">·</span>
+                <Link to={`/clinic/referrals/${c.referral_id}`} style={{ color: "var(--color-teal-700)", fontWeight: 600 }}>
+                  Referral #{c.referral_short} →
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>
