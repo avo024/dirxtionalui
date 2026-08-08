@@ -108,7 +108,10 @@ function Panel({ onOpen, onNew, onTutorials }: { onOpen: (id: string) => void; o
     return [...opts, { value: "all", label: "All time" }];
   })();
 
-  const cases = month === "all" ? allCases : allCases.filter((c) => caseMonth(c) === month);
+  const [statusView, setStatusView] = useState("active");  // active | resolved | all
+  const cases = allCases
+    .filter((c) => statusView === "all" ? true : statusView === "resolved" ? c.status === "resolved" : c.status !== "resolved")
+    .filter((c) => month === "all" || caseMonth(c) === month);
 
   return (
     <div className="cs-page rw-fade">
@@ -144,6 +147,11 @@ function Panel({ onOpen, onNew, onTutorials }: { onOpen: (id: string) => void; o
         <div className="cs-sec-head">
           <h2>My requests</h2>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <select className="rw-select" style={{ width: "auto", height: 36 }} value={statusView} onChange={(e) => setStatusView(e.target.value)}>
+              <option value="active">Active requests</option>
+              <option value="resolved">Resolved</option>
+              <option value="all">All</option>
+            </select>
             {monthOpts.length > 2 && (
               <select className="rw-select" style={{ width: "auto", height: 36 }} value={month} onChange={(e) => setMonth(e.target.value)}>
                 {monthOpts.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
@@ -184,7 +192,9 @@ function Panel({ onOpen, onNew, onTutorials }: { onOpen: (id: string) => void; o
         ) : (
           <div className="cs-reqs" style={{ padding: "28px 18px", textAlign: "center" }}>
             <p style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)", margin: 0 }}>
-              No requests yet. Click <b>New request</b> to ask us anything.
+              {allCases.length === 0
+                ? <>No requests yet. Click <b>New request</b> to ask us anything.</>
+                : <>Nothing here — try the dropdown above to see {statusView === "active" ? "resolved" : "active"} requests.</>}
             </p>
           </div>
         )}
