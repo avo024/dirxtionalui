@@ -382,7 +382,7 @@ export const supportApi = {
     return handleResponse(response);
   },
 
-  async openCase(data: { category: 'support' | 'feedback'; body: string; subject?: string }): Promise<SupportCaseSummary> {
+  async openCase(data: { category: 'support' | 'feedback'; body: string; subject?: string; referral_id?: string | null }): Promise<SupportCaseSummary> {
     const response = await fetch(`${API_BASE_URL}/support/cases`, {
       method: 'POST',
       headers: await getHeaders(),
