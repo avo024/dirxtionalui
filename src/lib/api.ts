@@ -389,8 +389,9 @@ export interface SupportMessage {
 }
 
 export const supportApi = {
-  async getCases(): Promise<{ items: SupportCaseSummary[] }> {
-    const response = await fetch(`${API_BASE_URL}/support/cases`, { headers: await getHeaders() });
+  async getCases(month?: string): Promise<{ items: SupportCaseSummary[] }> {
+    const params = month ? `?month=${encodeURIComponent(month)}` : '';
+    const response = await fetch(`${API_BASE_URL}/support/cases${params}`, { headers: await getHeaders() });
     return handleResponse(response);
   },
 
@@ -437,6 +438,8 @@ export interface SupportCaseSummary {
   status: "open" | "in_progress" | "resolved";
   referral_id?: string | null;
   referral_short?: string | null;
+  assigned_admin_id?: string | null;
+  assigned_admin_name?: string | null;
   created_at: string;
   updated_at: string;
   resolved_at?: string | null;
@@ -605,12 +608,13 @@ export const adminApi = {
   },
 
   // ── Clinic support cases (tickets) ──────────────────────────────
-  async getSupportCases(filters?: { status?: string; category?: string; month?: string; search?: string }): Promise<{ items: SupportCaseSummary[]; counts: Record<string, number> }> {
+  async getSupportCases(filters?: { status?: string; category?: string; month?: string; search?: string; assigned?: string }): Promise<{ items: SupportCaseSummary[]; counts: Record<string, number> }> {
     const params = new URLSearchParams();
     if (filters?.status) params.append('status', filters.status);
     if (filters?.category) params.append('category', filters.category);
     if (filters?.month) params.append('month', filters.month);
     if (filters?.search) params.append('search', filters.search);
+    if (filters?.assigned) params.append('assigned', filters.assigned);
     const url = `${API_BASE_URL}/admin/support/cases${params.toString() ? '?' + params : ''}`;
     const response = await fetch(url, { headers: await getHeaders() });
     return handleResponse(response);
@@ -626,6 +630,20 @@ export const adminApi = {
       method: 'POST',
       headers: await getHeaders(),
       body: JSON.stringify({ body }),
+    });
+    return handleResponse(response);
+  },
+
+  async claimSupportCase(caseId: string): Promise<SupportCaseSummary> {
+    const response = await fetch(`${API_BASE_URL}/admin/support/cases/${caseId}/claim`, {
+      method: 'POST', headers: await getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  async releaseSupportCase(caseId: string): Promise<SupportCaseSummary> {
+    const response = await fetch(`${API_BASE_URL}/admin/support/cases/${caseId}/release`, {
+      method: 'POST', headers: await getHeaders(),
     });
     return handleResponse(response);
   },
