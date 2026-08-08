@@ -305,6 +305,9 @@ export default function ReferralDetail() {
               {referral.pharmacy_location && <div className="rd-banner-col"><p className="bk">Location</p><div className="bv">{referral.pharmacy_location}</div></div>}
               {referral.pharmacy_contact && <div className="rd-banner-col"><p className="bk">Contact</p><div className="bv">{referral.pharmacy_contact}</div></div>}
             </div>
+            {referral.status === "sent_to_pharmacy" && (
+              <DeliveryIssueReporter referralId={id!} onReported={loadData} />
+            )}
           </div>
         </div>
       ) : null}
@@ -800,6 +803,70 @@ function ExpiredInsuranceBanner({ referralId, onUpdated }: { referralId: string;
             <button className="rw-btn primary sm" onClick={saveManual} disabled={saving}>{saving ? <span className="rw-spin"><Loader2 size={14} /></span> : <CheckCircle size={14} />}Save Insurance</button>
             <button className="rw-btn outline sm" onClick={() => setMode(null)}>Cancel</button>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** "Pharmacy didn't receive this?" — clinic-side delivery-issue reporter.
+ * One click files the details as a referral note (kept with the patient's
+ * record) AND opens a tracked Delivery-issue case in Help & Support, alerting
+ * the Dirxctional team urgently. Inline expand — no modal dependencies. */
+function DeliveryIssueReporter({ referralId, onReported }: { referralId: string; onReported: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [details, setDetails] = useState("");
+  const [sending, setSending] = useState(false);
+
+  const submit = async () => {
+    const body = details.trim();
+    if (!body) return;
+    setSending(true);
+    try {
+      await clinicApi.reportDeliveryIssue(referralId, body);
+      toast({
+        title: "Reported — we're on it",
+        description: "Our team was alerted. Track progress under Help & Support → My Requests.",
+      });
+      setOpen(false);
+      setDetails("");
+      onReported();
+    } catch (err: any) {
+      toast({ title: "Couldn't send", description: err.message || "Please try again", variant: "destructive" });
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div style={{ marginTop: 12 }}>
+      {!open ? (
+        <button className="rw-btn outline sm" onClick={() => setOpen(true)}>
+          <MessageSquareWarning size={14} />
+          Pharmacy didn't receive this?
+        </button>
+      ) : (
+        <div style={{ background: "color-mix(in srgb, var(--color-warning) 7%, transparent)", border: "1px solid color-mix(in srgb, var(--color-warning) 30%, transparent)", borderRadius: "var(--radius-md)", padding: "12px 14px", maxWidth: 560 }}>
+          <p style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--text-primary)", margin: "0 0 8px" }}>
+            Tell us what the pharmacy said
+          </p>
+          <textarea
+            className="rw-textarea"
+            rows={3}
+            placeholder='e.g. "Called the pharmacy at 2pm — they have no record of receiving this referral."'
+            value={details}
+            onChange={(e) => setDetails(e.target.value)}
+          />
+          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 8 }}>
+            <button className="rw-btn outline sm" onClick={() => { setOpen(false); setDetails(""); }} disabled={sending}>Cancel</button>
+            <button className="rw-btn primary sm" onClick={submit} disabled={!details.trim() || sending}>
+              {sending ? <span className="rw-spin" style={{ display: "inline-flex" }}><Loader2 size={14} /></span> : <Send size={14} />}
+              Report issue
+            </button>
+          </div>
+          <p style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", margin: "8px 0 0" }}>
+            This alerts our team immediately and opens a tracked request you can follow in Help &amp; Support.
+          </p>
         </div>
       )}
     </div>

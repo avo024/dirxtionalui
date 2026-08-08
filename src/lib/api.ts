@@ -212,6 +212,15 @@ export const clinicApi = {
     return handleResponse(response);
   },
 
+  async reportDeliveryIssue(referralId: string, details: string): Promise<{ ok: boolean; case_id: string; note_id: string }> {
+    const response = await fetch(`${API_BASE_URL}/referrals/${referralId}/delivery-issue`, {
+      method: 'POST',
+      headers: await getHeaders(),
+      body: JSON.stringify({ details }),
+    });
+    return handleResponse(response);
+  },
+
   async getReferralDocuments(id: string): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/referrals/${id}/documents`, {
       headers: await getHeaders(),
@@ -406,9 +415,11 @@ export interface SupportCaseSummary {
   short_id: string;
   clinic_id: string;
   clinic_name?: string;
-  category: "support" | "feedback";
+  category: "support" | "feedback" | "delivery_issue";
   subject: string;
   status: "open" | "in_progress" | "resolved";
+  referral_id?: string | null;
+  referral_short?: string | null;
   created_at: string;
   updated_at: string;
   resolved_at?: string | null;

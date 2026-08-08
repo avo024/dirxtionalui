@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   ArrowLeft, Loader2, Send, CircleDot, Check, RotateCcw, CircleCheck, Info,
-  LifeBuoy, MessageSquareHeart,
+  LifeBuoy, MessageSquareHeart, AlertTriangle,
 } from "lucide-react";
 import { adminApi, type SupportCaseSummary, type SupportMessage } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
@@ -101,11 +101,19 @@ export default function AdminSupportDetail() {
             <b>{c.clinic_name}</b>
             <span className="sepbar">·</span>
             <span className={`as-cat ${c.category}`}>
-              <span className="ci">{c.category === "feedback" ? <MessageSquareHeart size={12} /> : <LifeBuoy size={12} />}</span>
-              {c.category === "feedback" ? "Feedback" : "Support"}
+              <span className="ci">{c.category === "delivery_issue" ? <AlertTriangle size={12} /> : c.category === "feedback" ? <MessageSquareHeart size={12} /> : <LifeBuoy size={12} />}</span>
+              {c.category === "delivery_issue" ? "Delivery issue" : c.category === "feedback" ? "Feedback" : "Support"}
             </span>
             <span className="sepbar">·</span>
             <span>Opened {getRelativeTime(c.created_at)}</span>
+            {c.referral_id && (
+              <>
+                <span className="sepbar">·</span>
+                <Link to={`/admin/referrals/${c.referral_id}`} style={{ color: "var(--color-teal-700)", fontWeight: 700 }}>
+                  Open referral #{c.referral_short} →
+                </Link>
+              </>
+            )}
           </div>
         </div>
         <div className="as-d-actions">
