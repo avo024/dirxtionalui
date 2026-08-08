@@ -388,7 +388,11 @@ function CaseView({ caseId, onBack }: { caseId: string; onBack: () => void }) {
                 <div className="rd-note-body">
                   <div className="rd-note-card">
                     <div className="rd-note-head">
-                      <span className="rd-note-author">{m.author_name}</span>
+                      <span className="rd-note-author">
+                        {isAdmin
+                          ? `${(m.author_name || "").split(" ")[0]} | Dirxctional Support Team`
+                          : m.author_name}
+                      </span>
                       <span className="rd-note-when">{formatDateTime(m.created_at)}</span>
                     </div>
                     <div className="rd-note-text">{m.body}</div>
