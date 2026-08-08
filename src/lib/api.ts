@@ -189,9 +189,26 @@ export const clinicApi = {
     return handleResponse(response);
   },
 
-  async getReferrals(): Promise<any> {
-    const response = await fetch(`${API_BASE_URL}/referrals`, {
+  async getReferrals(filters?: { month?: string; archived?: boolean }): Promise<any> {
+    const params = new URLSearchParams();
+    if (filters?.month) params.append('month', filters.month);
+    if (filters?.archived) params.append('archived', 'true');
+    const response = await fetch(`${API_BASE_URL}/referrals${params.toString() ? '?' + params : ''}`, {
       headers: await getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  async archiveReferral(id: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/referrals/${id}/archive`, {
+      method: 'POST', headers: await getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  async unarchiveReferral(id: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/referrals/${id}/unarchive`, {
+      method: 'POST', headers: await getHeaders(),
     });
     return handleResponse(response);
   },
@@ -433,9 +450,11 @@ export interface SupportCaseDetail {
 }
 
 export const adminApi = {
-  async getReferrals(filters?: { status?: string }): Promise<any> {
+  async getReferrals(filters?: { status?: string; month?: string; archived?: boolean }): Promise<any> {
     const params = new URLSearchParams();
     if (filters?.status) params.append('status', filters.status);
+    if (filters?.month) params.append('month', filters.month);
+    if (filters?.archived) params.append('archived', 'true');
 
     const url = `${API_BASE_URL}/admin/referrals${params.toString() ? '?' + params : ''}`;
     const response = await fetch(url, {
@@ -616,6 +635,20 @@ export const adminApi = {
       method: 'PATCH',
       headers: await getHeaders(),
       body: JSON.stringify({ status }),
+    });
+    return handleResponse(response);
+  },
+
+  async archiveReferral(id: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/admin/referrals/${id}/archive`, {
+      method: 'POST', headers: await getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  async unarchiveReferral(id: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/admin/referrals/${id}/unarchive`, {
+      method: 'POST', headers: await getHeaders(),
     });
     return handleResponse(response);
   },

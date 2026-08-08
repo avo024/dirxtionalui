@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   Search, Loader2, ListFilter, ChevronsUpDown, ChevronUp, ChevronDown,
-  ChevronLeft, ChevronRight, ClipboardCheck, AlertTriangle, Zap,
+  ChevronLeft, ChevronRight, ClipboardCheck, AlertTriangle, Zap, Archive, RotateCcw,
 } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ClinicPABadge } from "@/components/ClinicPABadge";
@@ -49,6 +49,18 @@ const BridgeTag = () => (
   <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 600, padding: "1px 6px", borderRadius: 9999, background: "var(--color-teal-50)", color: "var(--color-teal-700)" }}><Zap size={10} />Bridge</span>
 );
 
+function monthOptions() {
+  const opts: { value: string; label: string }[] = [];
+  const now = new Date();
+  for (let i = 0; i < 6; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const label = d.toLocaleString("default", { month: "long", year: "numeric" });
+    opts.push({ value: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`, label: i === 0 ? `${label} · this month` : label });
+  }
+  opts.push({ value: "all", label: "All time" });
+  return opts;
+}
+
 export default function AdminReferralsList() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -59,12 +71,20 @@ export default function AdminReferralsList() {
   const [clinicFilter, setClinicFilter] = useState("all");
   const [sort, setSort] = useState<Sort>(null);
   const [page, setPage] = useState(1);
+  const [month, setMonth] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  });
+  const [showArchived, setShowArchived] = useState(false);
 
   useEffect(() => {
     const fetchReferrals = async () => {
       try {
         setLoading(true);
-        const response = await adminApi.getReferrals();
+        const response = await adminApi.getReferrals({
+          month: search.trim() ? "all" : month,
+          archived: showArchived,
+        });
         setReferrals((response.items || []).map((r: any) => ({ ...r, drug: r.drug_requested, dob: r.patient_dob })));
       } catch (err: any) {
         toast({ title: "Error", description: err.message || "Failed to load referrals", variant: "destructive" });
@@ -74,7 +94,7 @@ export default function AdminReferralsList() {
     const handleFocus = () => fetchReferrals();
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
-  }, [location.key]);
+  }, [location.key, month, showArchived, search.trim() === "" ? "m" : "all"]);
 
   const clinics = useMemo(() => [...new Set(referrals.map((r: any) => r.clinic_name).filter(Boolean))], [referrals]);
   const filterCount = (value: string) => referrals.filter((r) => matchesFilter(r, value)).length;
@@ -148,6 +168,15 @@ export default function AdminReferralsList() {
           <option value="all">All Clinics</option>
           {clinics.map((c: any) => <option key={c} value={c}>{c}</option>)}
         </select>
+        <select className="rl-select" style={{ border: "1px solid var(--border-default)", borderRadius: "var(--radius-md)", height: 38, padding: "0 10px", background: "#fff" }}
+          value={month} disabled={!!search.trim() || showArchived}
+          title={search.trim() ? "Search looks across all time" : undefined}
+          onChange={(e) => { setMonth(e.target.value); setPage(1); }}>
+          {monthOptions().map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+        </select>
+        <button className={`rw-btn sm ${showArchived ? "primary" : "outline"}`} onClick={() => { setShowArchived(v => !v); setPage(1); }}>
+          <Archive size={14} />{showArchived ? "Back to referrals" : "Archived"}
+        </button>
       </div>
 
       {filtered.length > 0 ? (
@@ -175,7 +204,14 @@ export default function AdminReferralsList() {
                   <td className="dh-muted-cell">{r.pharmacy_name || "—"}</td>
                   <td className="dh-muted-cell">{r.created_at ? formatDateShort(r.created_at) : "—"}</td>
                   <td className="r" onClick={(e) => e.stopPropagation()}>
-                    <button className="rw-btn primary sm" onClick={() => navigate(`/admin/referrals/${r.id}`)}><ClipboardCheck size={14} />Review</button>
+                    {showArchived ? (
+                      <button className="rw-btn outline sm" onClick={async () => {
+                        try { await adminApi.unarchiveReferral(r.id); setReferrals((prev) => prev.filter((x: any) => x.id !== r.id)); toast({ title: "Referral restored" }); }
+                        catch (e: any) { toast({ title: "Error", description: e.message, variant: "destructive" }); }
+                      }}><RotateCcw size={14} />Unarchive</button>
+                    ) : (
+                      <button className="rw-btn primary sm" onClick={() => navigate(`/admin/referrals/${r.id}`)}><ClipboardCheck size={14} />Review</button>
+                    )}
                   </td>
                 </tr>
               ))}
