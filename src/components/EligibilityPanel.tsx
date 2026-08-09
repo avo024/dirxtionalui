@@ -1,4 +1,7 @@
 import { useState } from "react";
+import { RefreshCw } from "lucide-react";
+import { adminApi } from "@/lib/api";
+import { toast } from "@/hooks/use-toast";
 import { ShieldCheck, AlertTriangle, XCircle, HelpCircle, ChevronDown } from "lucide-react";
 import { getRelativeTime } from "@/lib/dateUtils";
 // arr-card styling lives with the admin review page; this panel only renders there.
@@ -48,10 +51,29 @@ const TONE_STYLE: Record<ChipTone, { fg: string; bg: string }> = {
  * record. Degrades gracefully: feature-flagged off → status null → "Not checked".
  * Display only; reads eligibility_* fields off the referral object.
  */
-export function EligibilityPanel({ referral }: { referral: EligibilityData }) {
+export function EligibilityPanel({ referral, referralId }: { referral: EligibilityData; referralId?: string }) {
   const [showPayload, setShowPayload] = useState(false);
+  // Manual re-check (after fixing a mismatch/false reading) — response
+  // overrides the referral props in place, no page reload needed.
+  const [override, setOverride] = useState<EligibilityData | null>(null);
+  const [rechecking, setRechecking] = useState(false);
+  const eff: EligibilityData = override ?? referral;
 
-  const status = referral?.eligibility_status ?? null;
+  const recheck = async () => {
+    if (!referralId) return;
+    setRechecking(true);
+    try {
+      const res = await adminApi.recheckEligibility(referralId);
+      setOverride(res);
+      toast({ title: "Eligibility re-checked", description: `Result: ${String(res.eligibility_status || "").replace(/_/g, " ")}` });
+    } catch (e: any) {
+      toast({ title: "Re-check failed", description: e.message, variant: "destructive" });
+    } finally {
+      setRechecking(false);
+    }
+  };
+
+  const status = eff?.eligibility_status ?? null;
 
   // Render nothing when there's nothing for the admin to act on:
   //  - null     → feature dormant / not run yet
@@ -59,9 +81,9 @@ export function EligibilityPanel({ referral }: { referral: EligibilityData }) {
   // Keeps the admin screen clean — the panel only appears with a real signal.
   if (status == null || status === "skipped") return null;
 
-  const mismatches = referral?.eligibility_mismatches ?? [];
-  const checkedAt = referral?.eligibility_checked_at ?? null;
-  const active = referral?.eligibility_active;
+  const mismatches = eff?.eligibility_mismatches ?? [];
+  const checkedAt = eff?.eligibility_checked_at ?? null;
+  const active = eff?.eligibility_active;
 
   let tone: ChipTone;
   let chipLabel: string;
@@ -94,7 +116,18 @@ export function EligibilityPanel({ referral }: { referral: EligibilityData }) {
       <div className="arr-card-head">
         <span className="hi"><ShieldCheck size={15} /></span>
         <h3>Insurance Eligibility</h3>
-        <span className="he" style={{ marginLeft: "auto" }}>
+        {referralId && (
+          <button type="button" onClick={recheck} disabled={rechecking}
+            title="Re-run the insurance check (use after correcting a mismatch)"
+            style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 5,
+                     fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--color-teal-700)",
+                     background: "none", border: "1px solid var(--color-teal-100)",
+                     borderRadius: "var(--radius-md)", padding: "3px 9px", cursor: "pointer" }}>
+            <RefreshCw size={12} className={rechecking ? "animate-spin" : undefined} />
+            Re-check
+          </button>
+        )}
+        <span className="he" style={{ marginLeft: referralId ? 8 : "auto" }}>
           <span
             style={{
               display: "inline-flex", alignItems: "center", gap: 5,
@@ -146,12 +179,12 @@ export function EligibilityPanel({ referral }: { referral: EligibilityData }) {
       {/* Checked timestamp */}
       {checkedAt && (
         <p style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", margin: "10px 0 0" }}>
-          Checked {getRelativeTime(checkedAt)}
+          Checked {override ? "just now" : getRelativeTime(checkedAt)}
         </p>
       )}
 
       {/* Optional collapsible raw payer details (debug/reference; collapsed by default) */}
-      {!isNull && referral?.eligibility_payload && (
+      {!isNull && eff?.eligibility_payload && (
         <div style={{ marginTop: 8 }}>
           <button
             type="button"
@@ -174,7 +207,7 @@ export function EligibilityPanel({ referral }: { referral: EligibilityData }) {
                 whiteSpace: "pre-wrap", wordBreak: "break-word",
               }}
             >
-              {JSON.stringify(referral.eligibility_payload, null, 2)}
+              {JSON.stringify(eff.eligibility_payload, null, 2)}
             </pre>
           )}
         </div>

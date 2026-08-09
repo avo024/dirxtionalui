@@ -657,6 +657,13 @@ export const adminApi = {
     return handleResponse(response);
   },
 
+  async recheckEligibility(id: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/admin/referrals/${id}/recheck-eligibility`, {
+      method: 'POST', headers: await getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
   async archiveReferral(id: string): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/admin/referrals/${id}/archive`, {
       method: 'POST', headers: await getHeaders(),

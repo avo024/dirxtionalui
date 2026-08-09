@@ -480,7 +480,7 @@ export default function AdminReferralReview() {
                 </div>
 
                 {/* Insurance Eligibility (Availity check from AI extraction) */}
-                <EligibilityPanel referral={referral} />
+                <EligibilityPanel referral={referral} referralId={id!} />
 
                 {/* Card 3: Medication */}
                 <div className="arr-card">
