@@ -26,14 +26,14 @@ export function AdminSidebar() {
   const [needsReviewCount, setNeedsReviewCount] = useState(0);
 
   useEffect(() => {
-    adminApi.getReferralCounts()
-      .then((counts) => {
-        setNeedsReviewCount(counts.needs_review || 0);
-      })
-      .catch(() => {
-        // Silently fail — badge just won't show
-      });
-  }, []);
+    const refresh = () =>
+      adminApi.getReferralCounts()
+        .then((counts) => setNeedsReviewCount(counts.needs_review || 0))
+        .catch(() => { /* Silently fail — badge just won't show */ });
+    refresh();                                   // on mount AND every navigation
+    window.addEventListener("focus", refresh);   // and when the tab regains focus
+    return () => window.removeEventListener("focus", refresh);
+  }, [location.pathname]);
 
   const { data: pendingRequests } = useQuery({
     queryKey: ["admin", "addon-requests", "pending"],
