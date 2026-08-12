@@ -16,15 +16,55 @@ import "../clinic/referrals.css";
 const FILTERS = [
   { value: "all", short: "All", long: "All" },
   { value: "needs_review", short: "Needs Review", long: "Needs Review" },
-  { value: "rejected", short: "Rejected", long: "Rejected" },
+  { value: "pa_pending", short: "PA Pending", long: "PA Pending" },
   { value: "approved_to_send", short: "Ready to Send", long: "Ready to Send" },
+  { value: "appeal", short: "First Appeal", long: "First Appeal" },
+  { value: "rejected", short: "Rejected", long: "Rejected" },
   { value: "sent_to_pharmacy", short: "Sent", long: "Sent" },
 ];
+// PA-workflow tabs are server-side views (all time, triage-sorted oldest clock
+// first); the rest filter the month-scoped load client-side as before.
+const PA_VIEWS = new Set(["pa_pending", "appeal"]);
 function matchesFilter(r: any, f: string) {
   if (f === "all") return true;
   if (f === "needs_review") return r.status === "ready_for_review" || r.status === "processing";
+  if (f === "pa_pending") return ["pending", "submitted"].includes(r.pa_status) && !["sent_to_pharmacy", "rejected"].includes(r.status);
+  if (f === "appeal") return r.pa_status === "appeal";
   return r.status === f;
 }
+
+// 72h follow-up clock: countdown from PA submission (or appeal start) — flips
+// to a red OVERDUE chip once the backend says follow-up is due. It's OUR
+// follow-up discipline (expedited-appeal SLA), labeled as such — not a payer
+// deadline breach.
+function ClockChip({ r }: { r: any }) {
+  const startIso = r.pa_status === "appeal" ? r.appeal_started_at : r.pa_submitted_at;
+  const overdue = r.pa_status === "appeal" ? r.appeal_followup_due : r.pa_followup_due;
+  if (!startIso) return null;
+  if (overdue) {
+    return (
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 9999, background: "color-mix(in srgb, var(--color-error) 14%, transparent)", color: "var(--color-error)" }}>
+        <AlertTriangle size={10} />FOLLOW-UP DUE
+      </span>
+    );
+  }
+  const msLeft = new Date(startIso).getTime() + 72 * 3600_000 - Date.now();
+  const hrs = Math.max(0, Math.floor(msLeft / 3600_000));
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 600, padding: "1px 7px", borderRadius: 9999, background: "var(--color-teal-50)", color: "var(--color-teal-700)" }}>
+      check in {hrs}h
+    </span>
+  );
+}
+
+const UrgentTag = () => (
+  <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 9999, background: "color-mix(in srgb, var(--color-error) 14%, transparent)", color: "var(--color-error)" }}><AlertTriangle size={10} />URGENT</span>
+);
+const TaskTag = ({ n }: { n: number }) => (
+  <span title={`${n} open task${n === 1 ? "" : "s"} with the clinic`} style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 600, padding: "1px 6px", borderRadius: 9999, background: "color-mix(in srgb, var(--color-warning) 16%, transparent)", color: "#92610B" }}>
+    <ClipboardCheck size={10} />{n} task{n === 1 ? "" : "s"}
+  </span>
+);
 const PA_RANK: Record<string, number> = { processing: 0, denied: 1, submitted: 2, pending: 3, approved: 4 };
 const paRank = (s: string) => (s in PA_RANK ? PA_RANK[s] : 5);
 
@@ -77,27 +117,42 @@ export default function AdminReferralsList() {
   });
   const [showArchived, setShowArchived] = useState(false);
 
+  const [paCounts, setPaCounts] = useState<any>({});
+  const paView = PA_VIEWS.has(activeFilter);
+
   useEffect(() => {
     const fetchReferrals = async () => {
       try {
         setLoading(true);
-        const response = await adminApi.getReferrals({
-          month: search.trim() ? "all" : month,
-          archived: showArchived,
-        });
+        // PA tabs are all-time server views; other tabs keep the month window.
+        const response = await adminApi.getReferrals(paView
+          ? { view: activeFilter, month: "all" }
+          : { month: search.trim() ? "all" : month, archived: showArchived });
         setReferrals((response.items || []).map((r: any) => ({ ...r, drug: r.drug_requested, dob: r.patient_dob })));
       } catch (err: any) {
         toast({ title: "Error", description: err.message || "Failed to load referrals", variant: "destructive" });
       } finally { setLoading(false); }
     };
+    const fetchCounts = () =>
+      adminApi.getReferralCounts().then(setPaCounts).catch(() => { /* badges just won't show */ });
     fetchReferrals();
-    const handleFocus = () => fetchReferrals();
+    fetchCounts();
+    const handleFocus = () => { fetchReferrals(); fetchCounts(); };
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
-  }, [location.key, month, showArchived, search.trim() === "" ? "m" : "all"]);
+  }, [location.key, month, showArchived, paView, activeFilter, search.trim() === "" ? "m" : "all"]);
 
   const clinics = useMemo(() => [...new Set(referrals.map((r: any) => r.clinic_name).filter(Boolean))], [referrals]);
-  const filterCount = (value: string) => referrals.filter((r) => matchesFilter(r, value)).length;
+  // PA tabs count all-time from the counts endpoint (the local load is
+  // month-scoped, so counting rows would undercount them).
+  const filterCount = (value: string) => {
+    if (value === "pa_pending") return paCounts.pa_pending ?? 0;
+    if (value === "appeal") return paCounts.appeal ?? 0;
+    return referrals.filter((r) => matchesFilter(r, value)).length;
+  };
+  const overdueCount = (value: string) =>
+    value === "pa_pending" ? (paCounts.pa_followup_due ?? 0)
+      : value === "appeal" ? (paCounts.appeal_followup_due ?? 0) : 0;
 
   const filtered = useMemo(() => {
     const base = referrals.filter((r: any) => {
@@ -149,6 +204,11 @@ export default function AdminReferralsList() {
             {FILTERS.map((f) => (
               <button key={f.value} className={`rl-seg-btn${activeFilter === f.value ? " on" : ""}`} onClick={() => handleFilter(f.value)}>
                 {f.short}<span className="rl-seg-n num">{filterCount(f.value)}</span>
+                {overdueCount(f.value) > 0 && (
+                  <span className="num" title="follow-up due" style={{ marginLeft: 4, fontSize: 10, fontWeight: 700, padding: "0 5px", borderRadius: 9999, background: "color-mix(in srgb, var(--color-error) 14%, transparent)", color: "var(--color-error)" }}>
+                    {overdueCount(f.value)}!
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -199,8 +259,12 @@ export default function AdminReferralsList() {
                   <td><span className="dh-pt"><span className="dh-pt-nm">{r.patient_name}</span></span></td>
                   <td className="dh-muted-cell">{r.clinic_name || "—"}</td>
                   <td><span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>{r.drug || r.drug_requested || "—"}{r.is_bridge_program && <BridgeTag />}</span></td>
-                  <td><ClinicPABadge status={r.pa_status} /></td>
-                  <td><span style={{ display: "inline-flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}><StatusBadge status={r.status} />{r.insurance_expired && <ExpiredTag />}</span></td>
+                  <td><span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                    <ClinicPABadge status={r.pa_status} />
+                    {paView && <ClockChip r={r} />}
+                    {r.pa_status === "appeal" && <UrgentTag />}
+                  </span></td>
+                  <td><span style={{ display: "inline-flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}><StatusBadge status={r.status} />{r.insurance_expired && <ExpiredTag />}{(r.open_task_count ?? 0) > 0 && <TaskTag n={r.open_task_count} />}</span></td>
                   <td className="dh-muted-cell">{r.pharmacy_name || "—"}</td>
                   <td className="dh-muted-cell">{r.created_at ? formatDateShort(r.created_at) : "—"}</td>
                   <td className="r" onClick={(e) => e.stopPropagation()}>

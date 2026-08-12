@@ -10,6 +10,7 @@ const paConfig: Record<string, { label: string; className: string; icon: React.E
   approved: { label: "PA Active", className: "bg-success/10 text-success", icon: Shield },
   pending: { label: "PA Pending", className: "bg-warning/10 text-warning", icon: AlertTriangle },
   denied: { label: "PA Denied", className: "bg-destructive/10 text-destructive", icon: XCircle },
+  appeal: { label: "PA In Appeal", className: "bg-destructive/10 text-destructive", icon: AlertTriangle },
 };
 
 interface PAStatusBadgeProps {

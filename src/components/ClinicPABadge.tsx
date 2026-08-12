@@ -6,6 +6,7 @@ const paStatusConfig: Record<string, { label: string; className: string }> = {
   submitted: { label: "PA Submitted", className: "bg-warning/10 text-warning" },
   approved: { label: "PA Approved", className: "bg-status-approved-bg text-status-approved-fg" },
   denied: { label: "PA Denied", className: "bg-destructive/10 text-destructive" },
+  appeal: { label: "PA In Appeal", className: "bg-destructive/10 text-destructive" },
 };
 
 interface ClinicPABadgeProps {
