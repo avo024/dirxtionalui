@@ -78,11 +78,11 @@ export default function AdminDashboard() {
   const today = new Date().toDateString();
   const countToday = (status: string) => referrals.filter((r) => r.status === status && r.updated_at && new Date(r.updated_at).toDateString() === today).length;
   const STAT: Record<string, any> = {
-    total: { label: "Total Referrals", value: referrals.length, icon: FileText, tone: "primary", sub: "All clinics", link: "/admin/referrals" },
-    needs_review: { label: "Needs Review", value: needsReview.length, icon: Clock, tone: "warning", sub: "Awaiting review", link: "/admin/referrals" },
-    rejected: { label: "Rejected Today", value: countToday("rejected"), icon: XCircle, tone: "destructive", sub: "Today", link: "/admin/referrals" },
-    approved: { label: "Approved Today", value: countToday("approved_to_send"), icon: CheckCircle, tone: "primary", sub: "Today", link: "/admin/referrals" },
-    sent: { label: "Sent Today", value: countToday("sent_to_pharmacy"), icon: Send, tone: "primary", sub: "Today", link: "/admin/referrals" },
+    total: { label: "Total Referrals", value: referrals.length, icon: FileText, tone: "primary", sub: "All clinics", link: "/admin/referrals?filter=all" },
+    needs_review: { label: "Needs Review", value: needsReview.length, icon: Clock, tone: "warning", sub: "Awaiting review", link: "/admin/referrals?filter=needs_review" },
+    rejected: { label: "Rejected Today", value: countToday("rejected"), icon: XCircle, tone: "destructive", sub: "Today", link: "/admin/referrals?filter=rejected" },
+    approved: { label: "Approved Today", value: countToday("approved_to_send"), icon: CheckCircle, tone: "primary", sub: "Today", link: "/admin/referrals?filter=approved_to_send" },
+    sent: { label: "Sent Today", value: countToday("sent_to_pharmacy"), icon: Send, tone: "primary", sub: "Today", link: "/admin/referrals?filter=sent_to_pharmacy" },
   };
   const actionStats = [STAT.needs_review, STAT.rejected];
   const mutedStats = [STAT.total, STAT.approved, STAT.sent];
@@ -121,7 +121,7 @@ export default function AdminDashboard() {
 
       {/* PA checks due — the 72h follow-up discipline, front and center */}
       {((paCounts.pa_followup_due ?? 0) + (paCounts.appeal_followup_due ?? 0)) > 0 && (
-        <Link to="/admin/referrals" className="dh-action-card destructive" style={{ marginBottom: 14 }}>
+        <Link to="/admin/referrals?filter=pa_pending" className="dh-action-card destructive" style={{ marginBottom: 14 }}>
           <StatIcon tone="destructive" icon={AlertTriangle} size={20} />
           <div className="dh-action-meta">
             <div className="dh-action-head">
