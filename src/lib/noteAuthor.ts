@@ -13,17 +13,24 @@ export interface NoteAuthorLike {
 /**
  * Returns the display name for a note's author.
  * Clinic side never sees individual admin attribution — always "Dirxctional Team".
+ * Emails NEVER render: legacy rows stored the address when no name was on
+ * file — strip any @-segment and fall back to the clinic/team label.
  */
 export function getDisplayAuthor(note: NoteAuthorLike, viewSide: NoteViewSide): string {
-  if (note.author_type === "admin" && viewSide === "clinic") {
-    return "Dirxctional Team";
+  const isClinicAuthor = note.author_type === "clinic_user" || note.author_type === "clinic";
+
+  // Drop any email segments from stored names ("a@b.com — Clinic" → "Clinic").
+  let name = (note.author_name || "").trim();
+  if (name.includes("@")) {
+    name = name.split("—").map((s) => s.trim()).filter((s) => s && !s.includes("@")).join(" — ");
   }
-  return (
-    note.author_name ||
-    (note.author_type === "clinic_user" || note.author_type === "clinic"
-      ? "Clinic"
-      : "Dirxctional Team")
-  );
+
+  if (note.author_type === "admin") {
+    if (viewSide === "clinic") return "Dirxctional Team";
+    // Admin side: first name + team tag ("Sarah — Dirxctional Team").
+    return name && name !== "Dirxctional Team" ? `${name} — Dirxctional Team` : "Dirxctional Team";
+  }
+  return name || (isClinicAuthor ? "Clinic" : "Dirxctional Team");
 }
 
 /**
