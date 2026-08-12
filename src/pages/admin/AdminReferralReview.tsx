@@ -45,6 +45,77 @@ const CRITICAL_FIELDS = [
   "provider.npi",
 ];
 
+/**
+ * Next-step strip — one computed line answering "what does this referral need
+ * from me right now?" The cards below are reference; this is the instruction.
+ */
+function NextStepStrip({ referral, referralId }: { referral: any; referralId: string }) {
+  const [openTaskCount, setOpenTaskCount] = useState(0);
+  useEffect(() => {
+    adminApi.getTasks(referralId)
+      .then((r) => setOpenTaskCount((r.items || []).filter((t: any) => t.status === "open").length))
+      .catch(() => { /* strip just omits the task line */ });
+  }, [referralId, referral.status, referral.pa_status]);
+
+  const s = referral.status;
+  const pa = referral.pa_status;
+  const paRelevant = !referral.is_bridge_program && referral.pa_required;
+  // Detail endpoint carries the raw timestamps, not the list's computed
+  // flags — derive overdue locally (same 72h rule).
+  const isOverdue = (iso?: string | null) => !!iso && Date.now() > new Date(iso).getTime() + 72 * 3600_000;
+
+  let tone: "work" | "wait" | "urgent" | "done" = "wait";
+  let text = "";
+
+  if (s === "processing") { tone = "wait"; text = "AI is extracting the documents — nothing to do here yet."; }
+  else if (s === "rejected") { tone = "wait"; text = "Waiting on the clinic to fix and resubmit."; }
+  else if (s === "sent_to_pharmacy") { tone = "done"; text = "Sent to the pharmacy — done unless a delivery issue comes in."; }
+  else if (paRelevant && pa === "appeal") {
+    tone = "urgent";
+    text = isOverdue(referral.appeal_started_at)
+      ? "Appeal follow-up is DUE — check the payer and record the outcome below."
+      : "Level-1 appeal in progress — record the outcome when the payer responds.";
+  }
+  else if (paRelevant && pa === "denied") { tone = "urgent"; text = "PA denied — start an appeal or reject the referral."; }
+  else if (paRelevant && pa === "submitted") {
+    const due = isOverdue(referral.pa_submitted_at);
+    tone = due ? "urgent" : "wait";
+    text = due
+      ? "PA follow-up is DUE — check CoverMyMeds and record the decision."
+      : "PA is with the payer — check CoverMyMeds when the follow-up clock comes due.";
+  }
+  else if (s === "approved_to_send") { tone = "work"; text = "Double-check everything, then Send to Pharmacy."; }
+  else if ((s === "ready_for_review" || s === "uploaded") && paRelevant && pa !== "approved") {
+    tone = "work"; text = "Review the extracted data, then submit the PA in PA Management.";
+  }
+  else if (s === "ready_for_review" || s === "uploaded") {
+    tone = "work"; text = "Review the extracted data, then Approve.";
+  }
+  else return null;
+
+  const style: Record<string, { bg: string; fg: string; border: string }> = {
+    work:   { bg: "var(--color-teal-50)", fg: "var(--color-teal-700)", border: "var(--color-teal-100)" },
+    wait:   { bg: "color-mix(in srgb, var(--text-muted) 7%, transparent)", fg: "var(--text-muted)", border: "var(--border-default)" },
+    urgent: { bg: "color-mix(in srgb, var(--color-error) 8%, transparent)", fg: "var(--color-error)", border: "color-mix(in srgb, var(--color-error) 35%, transparent)" },
+    done:   { bg: "color-mix(in srgb, var(--color-success) 8%, transparent)", fg: "var(--color-success)", border: "color-mix(in srgb, var(--color-success) 30%, transparent)" },
+  };
+  const t = style[tone];
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 9, margin: "10px 0 0",
+      padding: "10px 14px", borderRadius: "var(--radius-md, 8px)",
+      background: t.bg, border: `1px solid ${t.border}`, color: t.fg,
+      fontSize: 13.5, fontWeight: 600,
+    }}>
+      {tone === "urgent" ? <AlertTriangle size={15} /> : <ArrowLeft size={15} style={{ transform: "rotate(225deg)" }} />}
+      <span style={{ flex: 1 }}>
+        Next step: {text}
+        {openTaskCount > 0 && <span style={{ fontWeight: 500 }}> · Also waiting on the clinic for {openTaskCount} task{openTaskCount === 1 ? "" : "s"}.</span>}
+      </span>
+    </div>
+  );
+}
+
 function ConfidenceDot({ confidence }: { confidence?: number }) {
   if (confidence === undefined || confidence >= 0.85) return null;
   const tone = confidence >= 0.5 ? "mid" : "low";
@@ -411,6 +482,7 @@ export default function AdminReferralReview() {
             <span className="sepbar">·</span>
             <span className="mono">{referral.id}</span>
           </div>
+          <NextStepStrip referral={referral} referralId={id!} />
         </div>
         <div className="arr-head-actions">
           {!["processing", "ready_for_review", "approved_to_send"].includes(referral.status) && (
