@@ -29,6 +29,8 @@ import { getDisplayAuthor, getAuthorInitials } from "@/lib/noteAuthor";
 import { useAdminProfile } from "@/hooks/useAdminProfile";
 import { AdminRejectModal, FLAGGABLE_FIELDS, type RejectPayload } from "@/components/AdminRejectModal";
 import { EligibilityPanel } from "@/components/EligibilityPanel";
+import { PAAppealCard } from "@/components/PAAppealCard";
+import { ReferralTasksCard } from "@/components/ReferralTasksCard";
 import "../clinic/wizard.css";
 import "./admin-referral-review.css";
 
@@ -82,6 +84,7 @@ export default function AdminReferralReview() {
   const [approveOpen, setApproveOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [deliverOpen, setDeliverOpen] = useState(false);
+  const [returnOpen, setReturnOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [rejecting, setRejecting] = useState(false);
   const [editedData, setEditedData] = useState<any>(null);
@@ -509,6 +512,16 @@ export default function AdminReferralReview() {
                 ) : (
                   <PAManagementCard referral={referral} paInfo={paInfo} referralId={id!} onPALetterChange={handlePALetterChange} />
                 )}
+
+                {/* Level-1 appeal controls (denied → start; in appeal → outcomes) */}
+                <PAAppealCard referral={referral} referralId={id!} onChanged={async () => {
+                  const data = await adminApi.getReferral(id!);
+                  const mapped = { ...data, drug: data.drug_requested, blocked: data.preferred_pharmacy_blocked };
+                  setReferral(mapped);
+                }} />
+
+                {/* Clinic tasks + share-a-document (admin ↔ clinic on this referral) */}
+                <ReferralTasksCard referralId={id!} adminFirstName={adminProfile?.first_name} />
 
                 {/* Card 5: Diagnosis & Clinical */}
                 <div className="arr-card">
@@ -1031,24 +1044,52 @@ export default function AdminReferralReview() {
             )}
             {referral.status === 'approved_to_send' && (
               (() => {
-                const blocked = !referral.is_bridge_program && paLetterInfo?.drug_requires_pa && !paLetterInfo?.has_letter;
+                // Approval evidence = uploaded letter OR a recorded approval with
+                // the PA number (CMM sometimes issues a number, no letter).
+                const hasRecordedNumber = referral.pa_status === 'approved' && !!(referral.pa_data?.pa_number);
+                const blocked = !referral.is_bridge_program && paLetterInfo?.drug_requires_pa && !paLetterInfo?.has_letter && !hasRecordedNumber;
                 return (
-                  <div className="arr-tt-wrap">
-                    <button className="rw-btn success" onClick={() => setDeliverOpen(true)} disabled={blocked}>
-                      Send to Pharmacy
+                  <>
+                    <button className="rw-btn outline" onClick={() => setReturnOpen(true)}
+                      title="Caught something in the double-check? Pull it back to Needs Review to fix and re-approve.">
+                      <ArrowLeft size={15} />Return to review
                     </button>
-                    {blocked && (
-                      <div className="arr-tt">
-                        PA letter required before sending to pharmacy. Upload one in the PA Management section.
-                      </div>
-                    )}
-                  </div>
+                    <div className="arr-tt-wrap">
+                      <button className="rw-btn success" onClick={() => setDeliverOpen(true)} disabled={blocked}>
+                        Send to Pharmacy
+                      </button>
+                      {blocked && (
+                        <div className="arr-tt">
+                          PA approval required before sending: upload the approval letter or record the approval with its PA number in PA Management.
+                        </div>
+                      )}
+                    </div>
+                  </>
                 );
               })()
             )}
           </div>
         </div>
       )}
+
+      {/* Return-to-review modal — reverse an approval before it's sent */}
+      <ConfirmModal
+        open={returnOpen}
+        onOpenChange={setReturnOpen}
+        title="Return to review?"
+        description="This pulls the referral back to Needs Review so you can fix something before sending. The clinic just sees it in review again — no notification. Re-approving regenerates the PDF."
+        confirmLabel="Return to review"
+        onConfirm={async () => {
+          try {
+            await adminApi.unapproveReferral(id!);
+            const data = await adminApi.getReferral(id!);
+            setReferral({ ...data, drug: data.drug_requested, blocked: data.preferred_pharmacy_blocked });
+            toast({ title: "Returned to review", description: "Fix what you caught, then approve again." });
+          } catch (e: any) {
+            toast({ title: "Couldn't return to review", description: e.message, variant: "destructive" });
+          }
+        }}
+      />
 
       {/* Approve modal */}
       <ConfirmModal

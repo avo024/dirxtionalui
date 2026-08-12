@@ -32,6 +32,7 @@ const ExpiredTag = () => (
 
 export default function AdminDashboard() {
   const [referrals, setReferrals] = useState<any[]>([]);
+  const [paCounts, setPaCounts] = useState<any>({});
   const [loading, setLoading] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
@@ -46,8 +47,11 @@ export default function AdminDashboard() {
         toast({ title: "Error", description: err.message || "Failed to load referrals", variant: "destructive" });
       } finally { setLoading(false); }
     };
+    const fetchCounts = () =>
+      adminApi.getReferralCounts().then(setPaCounts).catch(() => { /* widget just shows zeros */ });
     fetchReferrals();
-    const handleFocus = () => fetchReferrals();
+    fetchCounts();
+    const handleFocus = () => { fetchReferrals(); fetchCounts(); };
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
   }, [location.key]);
@@ -113,6 +117,24 @@ export default function AdminDashboard() {
           <div className="dh-date"><CalendarDays size={15} /><span>{getFormattedDate()}</span></div>
         </div>
       </div>
+
+      {/* PA checks due — the 72h follow-up discipline, front and center */}
+      {((paCounts.pa_followup_due ?? 0) + (paCounts.appeal_followup_due ?? 0)) > 0 && (
+        <Link to="/admin/referrals" className="dh-action-card destructive" style={{ marginBottom: 14 }}>
+          <StatIcon tone="destructive" icon={AlertTriangle} size={20} />
+          <div className="dh-action-meta">
+            <div className="dh-action-head">
+              <span className="dh-action-val num">{(paCounts.pa_followup_due ?? 0) + (paCounts.appeal_followup_due ?? 0)}</span>
+              <span className="dh-action-lbl">PA checks due</span>
+            </div>
+            <span className="dh-action-sub">
+              {paCounts.pa_followup_due ?? 0} PA{(paCounts.pa_followup_due ?? 0) === 1 ? "" : "s"} past the 72h follow-up
+              {(paCounts.appeal_followup_due ?? 0) > 0 && ` · ${paCounts.appeal_followup_due} appeal${paCounts.appeal_followup_due === 1 ? "" : "s"}`} — check CoverMyMeds and record the decision
+            </span>
+          </div>
+          <span className="dh-action-arrow"><ArrowRight size={16} /></span>
+        </Link>
+      )}
 
       {/* Action-split stats */}
       <div className="ad-split">
