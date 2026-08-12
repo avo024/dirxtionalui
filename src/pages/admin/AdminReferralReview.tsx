@@ -252,6 +252,10 @@ export default function AdminReferralReview() {
   useEffect(() => {
     if (notesDeepLink && id) localStorage.setItem(`notes_last_viewed_${id}`, new Date().toISOString());
   }, [id, notesDeepLink]);
+  // Chat pane: land on / follow the newest note.
+  useEffect(() => {
+    notesEndRef.current?.scrollIntoView({ block: "nearest" });
+  }, [notes.length]);
 
   useEffect(() => {
     if (referral?.status !== 'processing' && !isReExtracting) return;
@@ -1053,8 +1057,15 @@ export default function AdminReferralReview() {
 
               {/* ── Tab 3: Notes ── */}
               <TabsContent value="notes">
-                {notes.length > 0 && (
-                  <div className="arr-notes">
+                {/* Chat pane: messages scroll in a capped area, composer anchored below. */}
+                <div className="arr-notes">
+                  <div className="arr-notes-scroll">
+                    {notes.length === 0 && (
+                      <div className="arr-notes-empty">
+                        <Send size={18} />
+                        <p>No notes yet — notes are the working conversation with the clinic on this referral.</p>
+                      </div>
+                    )}
                     {notes.map((note) => {
                       const isAdmin = note.author_type === 'admin';
                       const authorName = getDisplayAuthor(note, 'admin');
@@ -1076,7 +1087,7 @@ export default function AdminReferralReview() {
                     })}
                     <div ref={notesEndRef} />
                   </div>
-                )}
+                </div>
                 <div className="flex gap-3 items-end">
                   <Button
                     size="icon"
