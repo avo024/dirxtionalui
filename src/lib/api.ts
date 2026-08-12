@@ -452,12 +452,26 @@ export interface SupportCaseDetail {
   messages: SupportMessage[];
 }
 
+export interface ReferralTask {
+  id: string;
+  referral_id: string;
+  instructions: string;
+  status: 'open' | 'completed' | 'cancelled';
+  clinic_response: string | null;
+  created_by: string | null;
+  created_at: string | null;
+  responded_at: string | null;
+  completed_at: string | null;
+  document_count: number;
+}
+
 export const adminApi = {
-  async getReferrals(filters?: { status?: string; month?: string; archived?: boolean }): Promise<any> {
+  async getReferrals(filters?: { status?: string; month?: string; archived?: boolean; view?: string }): Promise<any> {
     const params = new URLSearchParams();
     if (filters?.status) params.append('status', filters.status);
     if (filters?.month) params.append('month', filters.month);
     if (filters?.archived) params.append('archived', 'true');
+    if (filters?.view) params.append('view', filters.view);
 
     const url = `${API_BASE_URL}/admin/referrals${params.toString() ? '?' + params : ''}`;
     const response = await fetch(url, {
@@ -531,6 +545,79 @@ export const adminApi = {
       method: 'POST',
       headers: await getHeaders(),
       body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  // ── PA appeals (level-1) ─────────────────────────────────────────
+  async startAppeal(id: string): Promise<{ pa_status: string; single_appeal_drug: boolean }> {
+    const response = await fetch(`${API_BASE_URL}/admin/referrals/${id}/pa/appeal`, {
+      method: 'POST', headers: await getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  async recordAppealOutcome(id: string, outcome: 'won' | 'level2' | 'final'): Promise<{ pa_status: string; appeal_outcome: string }> {
+    const response = await fetch(`${API_BASE_URL}/admin/referrals/${id}/pa/appeal/outcome`, {
+      method: 'POST',
+      headers: await getHeaders(),
+      body: JSON.stringify({ outcome }),
+    });
+    return handleResponse(response);
+  },
+
+  // ── Referral tasks (ask the clinic for something) ────────────────
+  async getTasks(referralId: string): Promise<{ items: ReferralTask[] }> {
+    const response = await fetch(`${API_BASE_URL}/admin/referrals/${referralId}/tasks`, {
+      headers: await getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  async createTask(referralId: string, data: { instructions: string; created_by: string }): Promise<{ task: ReferralTask }> {
+    const response = await fetch(`${API_BASE_URL}/admin/referrals/${referralId}/tasks`, {
+      method: 'POST',
+      headers: await getHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  async completeTask(taskId: string, completedBy: string): Promise<{ task: ReferralTask }> {
+    const response = await fetch(`${API_BASE_URL}/admin/tasks/${taskId}/complete`, {
+      method: 'POST',
+      headers: await getHeaders(),
+      body: JSON.stringify({ completed_by: completedBy }),
+    });
+    return handleResponse(response);
+  },
+
+  async cancelTask(taskId: string): Promise<{ task: ReferralTask }> {
+    const response = await fetch(`${API_BASE_URL}/admin/tasks/${taskId}/cancel`, {
+      method: 'POST', headers: await getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  // ── Return an approved referral to review ────────────────────────
+  async unapproveReferral(id: string, reason?: string): Promise<{ status: string; message: string }> {
+    const response = await fetch(`${API_BASE_URL}/admin/referrals/${id}/unapprove`, {
+      method: 'POST',
+      headers: await getHeaders(),
+      body: JSON.stringify(reason ? { reason } : {}),
+    });
+    return handleResponse(response);
+  },
+
+  // ── Admin document upload (appeal docs, payer letters, team docs) ─
+  async uploadAdminDocument(referralId: string, file: File, docType: 'appeal_document' | 'payer_correspondence' | 'team_document'): Promise<{ id: string; doc_type: string; filename: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('doc_type', docType);
+    const response = await fetch(`${API_BASE_URL}/admin/referrals/${referralId}/documents`, {
+      method: 'POST',
+      headers: await getAuthHeaders(),
+      body: formData,
     });
     return handleResponse(response);
   },
