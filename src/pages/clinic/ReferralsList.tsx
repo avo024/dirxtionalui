@@ -19,15 +19,18 @@ import "./referrals.css";
 const filters = [
   { label: "All", value: "all" },
   { label: "In Review", value: "in_review" },
-  { label: "Needs Attention", value: "rejected" },
+  { label: "Action Needed", value: "action_needed" },
   { label: "Sent", value: "sent_to_pharmacy" },
 ];
 const filterStatusMap: Record<string, string[]> = {
   all: [],
   in_review: ["processing", "ready_for_review", "uploaded"],
-  rejected: ["rejected"],
+  rejected: ["rejected"],  // legacy deep links (?filter=rejected) keep working
   sent_to_pharmacy: ["sent_to_pharmacy", "approved_to_send"],
 };
+// Action Needed = everything Dirxctional is waiting on the clinic for:
+// rejected referrals to fix + referrals with open tasks to answer.
+const isActionNeeded = (r: any) => r.status === "rejected" || (r.open_task_count ?? 0) > 0;
 
 type Sort = { col: "status" | "created" | "updated"; dir: "asc" | "desc" } | null;
 
@@ -97,6 +100,7 @@ export default function ReferralsList() {
 
   const getFilterCount = (value: string): number => {
     if (value === "all") return referrals.length;
+    if (value === "action_needed") return referrals.filter(isActionNeeded).length;
     const statuses = filterStatusMap[value] || [value];
     return referrals.filter((r) => statuses.includes(r.status)).length;
   };
@@ -107,9 +111,15 @@ export default function ReferralsList() {
       const matchesSearch = r.patient_name.toLowerCase().includes(q) || r.drug.toLowerCase().includes(q) || r.id.toLowerCase().includes(q);
       if (!matchesSearch) return false;
       if (activeFilter === "all") return true;
+      if (activeFilter === "action_needed") return isActionNeeded(r);
       const statuses = filterStatusMap[activeFilter] || [activeFilter];
       return statuses.includes(r.status);
     });
+    // Action Needed is layered: fix-these (rejected) first, then requests.
+    if (activeFilter === "action_needed" && !sort) {
+      return [...base].sort((a: any, b: any) =>
+        (a.status === "rejected" ? 0 : 1) - (b.status === "rejected" ? 0 : 1));
+    }
     if (!sort) return base;
     const dir = sort.dir === "asc" ? 1 : -1;
     return [...base].sort((a: any, b: any) => {
@@ -213,7 +223,23 @@ export default function ReferralsList() {
                   <td><span className="dh-id">{(r.id || "").toUpperCase()}</span></td>
                   <td><span className="dh-pt"><span className="dh-pt-nm">{r.patient_name}</span></span></td>
                   <td>{r.drug || r.drug_requested || "—"}</td>
-                  <td><StatusBadge status={r.status} /></td>
+                  <td>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                      <StatusBadge status={r.status} />
+                      {(r.open_task_count ?? 0) > 0 && (
+                        <span title="Your Dirxctional team is waiting on a reply or document"
+                          style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 9999, background: "color-mix(in srgb, var(--color-warning) 16%, transparent)", color: "#92610B" }}>
+                          Request
+                        </span>
+                      )}
+                    </span>
+                    {(r.open_task_count ?? 0) > 0 && (r as any).open_task_preview && (
+                      <div title={(r as any).open_task_preview}
+                        style={{ fontSize: 11.5, color: "var(--text-muted)", marginTop: 3, maxWidth: 280, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        “{(r as any).open_task_preview}”
+                      </div>
+                    )}
+                  </td>
                   <td><ClinicPABadge status={r.pa_status} /></td>
                   <td className="dh-muted-cell">{r.created_at ? formatDateShort(r.created_at) : "—"}</td>
                   <td className="dh-muted-cell">{r.updated_at ? formatDateShort(r.updated_at) : "—"}</td>

@@ -49,16 +49,26 @@ const prettyFieldPath = (p: string) =>
 const EVENT_LABELS: Record<string, string> = {
   referral_created: "Referral submitted", referral_finalized: "Documents submitted for processing",
   document_uploaded: "Document uploaded", ai_extraction_completed: "AI extraction completed",
-  ai_extraction_completed_auto: "AI extraction completed", validation_updated: "Document validation updated",
+  ai_extraction_completed_auto: "AI extraction completed",
   referral_approved: "Referral approved by admin", referral_rejected: "Referral needs attention",
   referral_rejectd: "Referral needs attention", referral_resubmitted: "Referral resubmitted by clinic",
   referral_edited_by_clinic: "Clinic corrected referral details", pharmacy_reassigned: "Pharmacy reassigned",
   delivery_completed: "Sent to pharmacy", sent_to_pharmacy: "Sent to pharmacy", delivery_failed: "Pharmacy delivery failed",
+  delivery_issue_reported: "Delivery issue reported — team alerted",
   pa_submitted: "Prior authorization submitted", pa_approved: "Prior authorization approved",
   pa_denied: "Prior authorization denied", pa_processing: "Prior authorization in processing",
-  admin_edit: "Admin updated referral details", final_pdf_generated: "Referral PDF generated",
+  pa_appeal_started: "Appeal filed with the insurer", pa_appeal_won: "Appeal won — PA approved",
+  pa_appeal_level2: "Appeal moved to Level 2 (insurer will contact your office)",
+  pa_appeal_final: "Appeal decision final",
+  task_created: "Dirxctional requested something from your office",
+  task_completed: "Request from Dirxctional completed",
+  referral_archived: "Referral archived", referral_unarchived: "Referral restored",
 };
-const HIDDEN_EVENTS = new Set(["validation_updated", "admin_edit", "final_pdf_generated"]);
+// History is an ALLOWLIST of human milestones — compliance/telemetry events
+// (document_accessed, validation passes, internal edits, eligibility checks…)
+// live in the audit log, not the clinic's timeline. New audit event types are
+// invisible here until deliberately added with a label.
+const VISIBLE_EVENTS = new Set(Object.keys(EVENT_LABELS));
 
 function eventLabel(t: string) { return EVENT_LABELS[t] || t.replace(/_/g, " ").replace(/\b\w/, (c) => c.toUpperCase()); }
 function eventIcon(t: string) {
@@ -66,15 +76,16 @@ function eventIcon(t: string) {
   if (t === "document_uploaded") return FileText;
   if (t === "referral_edited_by_clinic") return Pencil;
   if (t === "ai_extraction_completed" || t === "ai_extraction_completed_auto") return Sparkles;
-  if (["referral_approved", "delivery_completed", "sent_to_pharmacy", "pa_approved"].includes(t)) return CheckCircle;
-  if (["referral_rejected", "referral_rejectd", "delivery_failed", "pa_denied"].includes(t)) return XCircle;
-  if (["pa_submitted", "pa_processing"].includes(t)) return Clock;
+  if (["referral_approved", "delivery_completed", "sent_to_pharmacy", "pa_approved", "pa_appeal_won", "task_completed"].includes(t)) return CheckCircle;
+  if (["referral_rejected", "referral_rejectd", "delivery_failed", "pa_denied", "pa_appeal_final", "delivery_issue_reported"].includes(t)) return XCircle;
+  if (["pa_submitted", "pa_processing", "pa_appeal_started", "pa_appeal_level2"].includes(t)) return Clock;
+  if (t === "task_created") return ClipboardList;
   return Circle;
 }
 function eventColor(t: string) {
-  if (["referral_approved", "delivery_completed", "sent_to_pharmacy", "pa_approved"].includes(t)) return "green";
-  if (["referral_rejected", "referral_rejectd", "pa_denied", "delivery_failed"].includes(t)) return "red";
-  if (["pa_submitted", "pa_processing"].includes(t)) return "amber";
+  if (["referral_approved", "delivery_completed", "sent_to_pharmacy", "pa_approved", "pa_appeal_won", "task_completed"].includes(t)) return "green";
+  if (["referral_rejected", "referral_rejectd", "pa_denied", "delivery_failed", "pa_appeal_final", "delivery_issue_reported"].includes(t)) return "red";
+  if (["pa_submitted", "pa_processing", "pa_appeal_started", "pa_appeal_level2", "task_created"].includes(t)) return "amber";
   if (["ai_extraction_completed", "ai_extraction_completed_auto"].includes(t)) return "blue";
   return "navy";
 }
@@ -378,7 +389,7 @@ export default function ReferralDetail() {
       <div className="rd-tabs">
         {[{ k: "overview", label: "Overview", icon: FileText, n: null },
           { k: "documents", label: "Documents", icon: FileText, n: documents.length },
-          { k: "history", label: "History", icon: Clock, n: history.filter((e) => !HIDDEN_EVENTS.has(e.event_type)).length || null },
+          { k: "history", label: "History", icon: Clock, n: history.filter((e) => VISIBLE_EVENTS.has(e.event_type)).length || null },
           { k: "notes", label: "Notes", icon: Send, n: notes.length || null }].map((t) => (
           <button key={t.k} className={`rd-tab${tab === t.k ? " active" : ""}`}
             onClick={() => { setTab(t.k); if (t.k === "notes" && id) localStorage.setItem(`notes_last_viewed_${id}`, new Date().toISOString()); }}>
@@ -455,8 +466,8 @@ export default function ReferralDetail() {
         {/* HISTORY */}
         {tab === "history" && (
           <div className="rd-hist">
-            {history.filter((e) => !HIDDEN_EVENTS.has(e.event_type)).length > 0 ? (
-              history.filter((e: any) => !HIDDEN_EVENTS.has(e.event_type)).map((event: any, i: number, arr: any[]) => {
+            {history.filter((e) => VISIBLE_EVENTS.has(e.event_type)).length > 0 ? (
+              history.filter((e: any) => VISIBLE_EVENTS.has(e.event_type)).map((event: any, i: number, arr: any[]) => {
                 const Icon = eventIcon(event.event_type);
                 let label = eventLabel(event.event_type);
                 if (event.event_type === "document_uploaded" && event.metadata?.filename) label += `: ${event.metadata.filename}`;

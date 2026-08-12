@@ -57,6 +57,7 @@ export default function ClinicDashboard() {
     return () => window.clearTimeout(t);
   }, [loading, runTour]);
 
+  const [openTaskCount, setOpenTaskCount] = useState(0);
   useEffect(() => {
     const fetchData = () => {
       Promise.all([clinicApi.getReferrals(), clinicApi.getPatients()])
@@ -66,6 +67,9 @@ export default function ClinicDashboard() {
         })
         .catch(console.error)
         .finally(() => setLoading(false));
+      clinicApi.getActionNeededCount()
+        .then((r) => setOpenTaskCount(r.count || 0))
+        .catch(() => { /* box just shows rejected-only */ });
     };
     fetchData();
     const handleFocus = () => fetchData();
@@ -75,7 +79,10 @@ export default function ClinicDashboard() {
 
   const processingCount = referrals.filter((r) => ["processing", "ready_for_review", "uploaded"].includes(r.status)).length;
   const sentCount = referrals.filter((r) => ["approved_to_send", "sent_to_pharmacy"].includes(r.status)).length;
-  const needsAttentionCount = referrals.filter((r) => r.status === "rejected").length;
+  // "Needs Attention" = anything Dirxctional is waiting on the clinic for:
+  // rejected referrals to fix + open tasks to answer. One number, one red box.
+  const rejectedCount = referrals.filter((r) => r.status === "rejected").length;
+  const needsAttentionCount = rejectedCount + openTaskCount;
 
   const isExpiringSoon = (p: any) => {
     if (!p.pa_expiration_date) return false;
@@ -92,12 +99,20 @@ export default function ClinicDashboard() {
   const STAT: Record<string, any> = {
     in_review: { label: "In Review", value: processingCount, icon: Clock, tone: "warning", sub: "Being reviewed", link: "/clinic/referrals?filter=in_review" },
     sent: { label: "Sent to Pharmacy", value: sentCount, icon: Send, tone: "primary", sub: "At pharmacy", link: "/clinic/referrals?filter=sent_to_pharmacy" },
-    attention: { label: "Needs Attention", value: needsAttentionCount, icon: XCircle, tone: "destructive", sub: "Action required", link: "/clinic/referrals?filter=rejected" },
+    attention: {
+      label: "Needs Attention", value: needsAttentionCount, icon: XCircle, tone: "destructive",
+      sub: openTaskCount > 0 && rejectedCount > 0
+        ? `${rejectedCount} to fix · ${openTaskCount} request${openTaskCount === 1 ? "" : "s"}`
+        : openTaskCount > 0
+          ? `Request${openTaskCount === 1 ? "" : "s"} from your Dirxctional team`
+          : "Action required",
+      link: "/clinic/referrals?filter=action_needed",
+    },
     expiring: { label: "PA Expiring Soon", value: paExpiringSoonCount, icon: AlertTriangle, tone: "warning", sub: "Within 30 days", link: "/clinic/patients?filter=expiring" },
   };
   const actionStats = [STAT.attention, STAT.expiring]; // needs-first: red before amber
   const mutedStats = [STAT.in_review, STAT.sent];
-  const alertCount = (paExpiringSoonCount > 0 ? 1 : 0) + rejectedReferrals.length;
+  const alertCount = (paExpiringSoonCount > 0 ? 1 : 0) + rejectedReferrals.length + (openTaskCount > 0 ? 1 : 0);
 
   const patientName = (p: any) => p.full_name || `${p.first_name || ""} ${p.last_name || ""}`.trim();
 
@@ -176,7 +191,7 @@ export default function ClinicDashboard() {
           <button className="dh-collapse-trig" onClick={() => setAlertsOpen((o) => !o)}>
             <span className="dh-collapse-ic"><AlertTriangle size={16} /></span>
             <span className="dh-collapse-t">Needs attention <span className="dh-collapse-n">{alertCount}</span></span>
-            <span className="dh-collapse-peek">{rejectedReferrals.length} need attention · {paExpiringSoonCount} PA expiring</span>
+            <span className="dh-collapse-peek">{rejectedReferrals.length} to fix{openTaskCount > 0 ? ` · ${openTaskCount} request${openTaskCount === 1 ? "" : "s"}` : ""} · {paExpiringSoonCount} PA expiring</span>
             <span className="dh-collapse-chev"><ChevronDown size={16} /></span>
           </button>
           {alertsOpen && (
@@ -191,6 +206,16 @@ export default function ClinicDashboard() {
                   <span className="dh-alert-arrow"><ArrowRight size={16} /></span>
                 </Link>
               ))}
+              {openTaskCount > 0 && (
+                <Link to="/clinic/referrals?filter=action_needed" className="dh-alert warn">
+                  <span className="dh-alert-ic"><AlertTriangle size={16} /></span>
+                  <div className="dh-alert-body">
+                    <p className="dh-alert-t">{openTaskCount} request{openTaskCount > 1 ? "s" : ""} from your Dirxctional team</p>
+                    <p className="dh-alert-s">Open the referral with the amber “Action needed” card to reply or upload.</p>
+                  </div>
+                  <span className="dh-alert-arrow"><ArrowRight size={16} /></span>
+                </Link>
+              )}
               {patientsExpiringPA.length > 0 && (
                 <Link to="/clinic/patients?filter=expiring" className="dh-alert warn">
                   <span className="dh-alert-ic"><AlertTriangle size={16} /></span>
