@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { LayoutDashboard, Plus, FileText, LogOut, Users, Settings, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { ClinicSettingsModal } from "@/components/ClinicSettingsModal";
 import { useSupportUnread } from "@/components/support/useSupportUnread";
+import { clinicApi } from "@/lib/api";
 import logo from "@/assets/logo.png";
 
 const navItems = [
@@ -21,6 +22,17 @@ export function ClinicSidebar() {
   const { logout, user } = useAuth();
   const { hasUnread } = useSupportUnread();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // Open tasks from the Dirxctional team → amber pill on My Referrals.
+  const [actionCount, setActionCount] = useState(0);
+  useEffect(() => {
+    const refresh = () =>
+      clinicApi.getActionNeededCount()
+        .then((r) => setActionCount(r.count || 0))
+        .catch(() => { /* pill just won't show */ });
+    refresh();
+    window.addEventListener("focus", refresh);
+    return () => window.removeEventListener("focus", refresh);
+  }, [location.pathname]);
 
   return (
     <>
@@ -67,6 +79,11 @@ export function ClinicSidebar() {
               {item.label}
               {item.label === "New Referral" && (
                 <span className="ml-auto h-5 w-5 rounded bg-sidebar-primary/15 text-sidebar-primary flex items-center justify-center text-xs">+</span>
+              )}
+              {item.label === "My Referrals" && actionCount > 0 && (
+                <span className="ml-auto rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-bold text-amber-950" title="Your Dirxctional team needs something on a referral">
+                  {actionCount}
+                </span>
               )}
             </Link>
           );

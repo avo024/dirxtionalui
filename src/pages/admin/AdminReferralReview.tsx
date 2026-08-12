@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate, useSearchParams, useLocation } from "react-router-dom";
-import { ArrowLeft, FileText, Loader2, Send, RefreshCw, AlertTriangle, Shield, User, CreditCard, Pill, Stethoscope, UserRound, Inbox,
+import { ArrowLeft, FileText, Loader2, Send, RefreshCw, AlertTriangle, Shield, User, CreditCard, Pill, Stethoscope, UserRound, Inbox, Paperclip,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -96,7 +96,36 @@ export default function AdminReferralReview() {
   const [isReExtracting, setIsReExtracting] = useState(false);
   const [extractError, setExtractError] = useState<string | null>(null);
   const notesEndRef = useRef<HTMLDivElement>(null);
+  const noteFileRef = useRef<HTMLInputElement>(null);
+  const [attachingNote, setAttachingNote] = useState(false);
   const { data: adminProfile } = useAdminProfile();
+
+  // Notes-drop: file → shared team document (clinic sees it under "From your
+  // Dirxctional team") + a timeline note marking it. One store, no duplicates.
+  const attachViaNote = async (file: File) => {
+    if (!id) return;
+    setAttachingNote(true);
+    try {
+      await adminApi.uploadAdminDocument(id, file, "team_document");
+      const content = `📎 Attached document: ${file.name}`;
+      const result = await adminApi.addReferralNote(id, content);
+      const fallbackName = adminProfile && (adminProfile.first_name || adminProfile.last_name)
+        ? `${adminProfile.first_name || ''} ${adminProfile.last_name || ''}`.trim()
+        : 'Admin';
+      setNotes((prev) => [...prev, { id: result.id, author_type: 'admin', author_name: fallbackName, content, created_at: new Date().toISOString(), ...result }]);
+      try {
+        const docsRes = await adminApi.getReferralDocuments(id);
+        setDocuments(docsRes.items || docsRes || []);
+      } catch { /* list refresh is best-effort */ }
+      toast({ title: "Document attached", description: `${file.name} — saved to Documents, shared with the clinic, noted in the timeline.` });
+      setTimeout(() => notesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+    } catch (err: any) {
+      toast({ title: "Attach failed", description: err.message, variant: "destructive" });
+    } finally {
+      setAttachingNote(false);
+      if (noteFileRef.current) noteFileRef.current.value = "";
+    }
+  };
 
   const handlePALetterChange = useCallback((info: PALetterInfo) => {
     setPaLetterInfo(info);
@@ -977,12 +1006,25 @@ export default function AdminReferralReview() {
                   </div>
                 )}
                 <div className="flex gap-3 items-end">
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    title="Attach a document — shared with the clinic under 'From your Dirxctional team', noted in the timeline"
+                    disabled={attachingNote}
+                    onClick={() => noteFileRef.current?.click()}
+                  >
+                    {attachingNote ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
+                  </Button>
+                  <input ref={noteFileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif" style={{ display: "none" }}
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) attachViaNote(f); }} />
                   <Textarea
-                    placeholder="Add a note about this referral..."
+                    placeholder="Add a note about this referral... (or attach a document with the clip)"
                     value={newNote}
                     onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setNewNote(e.target.value)}
                     rows={2}
                     className="flex-1 min-h-[60px]"
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files?.[0]; if (f) attachViaNote(f); }}
                   />
                   <Button
                     size="icon"
@@ -1036,12 +1078,27 @@ export default function AdminReferralReview() {
             <button className="rw-btn outline" onClick={handlePreviewPDF}>
               <FileText size={16} />Preview PDF
             </button>
-            {(referral.status === 'ready_for_review' || referral.status === 'uploaded') && (
-              <>
-                <button className="rw-btn arr-btn-reject" onClick={() => setRejectOpen(true)}>Reject</button>
-                <button className="rw-btn success" onClick={() => setApproveOpen(true)}>Approve</button>
-              </>
-            )}
+            {(referral.status === 'ready_for_review' || referral.status === 'uploaded') && (() => {
+              // Mirror of the server approve gate: the PA story must be closed
+              // (approved / not required / bridge) before a referral can be approved.
+              const paOpen = !referral.is_bridge_program && referral.pa_required && referral.pa_status !== 'approved';
+              const paMsg = referral.pa_status === 'denied'
+                ? "PA denied — start an appeal or reject the referral."
+                : referral.pa_status === 'appeal'
+                  ? "Appeal in progress — record its outcome first."
+                  : referral.pa_status === 'submitted'
+                    ? "PA is with the payer — record its decision first."
+                    : "This drug requires a PA — submit it and record the decision first.";
+              return (
+                <>
+                  <button className="rw-btn arr-btn-reject" onClick={() => setRejectOpen(true)}>Reject</button>
+                  <div className="arr-tt-wrap">
+                    <button className="rw-btn success" onClick={() => setApproveOpen(true)} disabled={paOpen}>Approve</button>
+                    {paOpen && <div className="arr-tt">{paMsg}</div>}
+                  </div>
+                </>
+              );
+            })()}
             {referral.status === 'approved_to_send' && (
               (() => {
                 // Approval evidence = uploaded letter OR a recorded approval with
