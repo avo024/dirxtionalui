@@ -115,6 +115,11 @@ export default function ReferralsList() {
       const statuses = filterStatusMap[activeFilter] || [activeFilter];
       return statuses.includes(r.status);
     });
+    // Action Needed is layered: fix-these (rejected) first, then requests.
+    if (activeFilter === "action_needed" && !sort) {
+      return [...base].sort((a: any, b: any) =>
+        (a.status === "rejected" ? 0 : 1) - (b.status === "rejected" ? 0 : 1));
+    }
     if (!sort) return base;
     const dir = sort.dir === "asc" ? 1 : -1;
     return [...base].sort((a: any, b: any) => {
@@ -218,15 +223,23 @@ export default function ReferralsList() {
                   <td><span className="dh-id">{(r.id || "").toUpperCase()}</span></td>
                   <td><span className="dh-pt"><span className="dh-pt-nm">{r.patient_name}</span></span></td>
                   <td>{r.drug || r.drug_requested || "—"}</td>
-                  <td><span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                    <StatusBadge status={r.status} />
-                    {(r.open_task_count ?? 0) > 0 && (
-                      <span title="Your Dirxctional team is waiting on a reply or document"
-                        style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 9999, background: "color-mix(in srgb, var(--color-warning) 16%, transparent)", color: "#92610B" }}>
-                        Request
-                      </span>
+                  <td>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                      <StatusBadge status={r.status} />
+                      {(r.open_task_count ?? 0) > 0 && (
+                        <span title="Your Dirxctional team is waiting on a reply or document"
+                          style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 9999, background: "color-mix(in srgb, var(--color-warning) 16%, transparent)", color: "#92610B" }}>
+                          Request
+                        </span>
+                      )}
+                    </span>
+                    {(r.open_task_count ?? 0) > 0 && (r as any).open_task_preview && (
+                      <div title={(r as any).open_task_preview}
+                        style={{ fontSize: 11.5, color: "var(--text-muted)", marginTop: 3, maxWidth: 280, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        “{(r as any).open_task_preview}”
+                      </div>
                     )}
-                  </span></td>
+                  </td>
                   <td><ClinicPABadge status={r.pa_status} /></td>
                   <td className="dh-muted-cell">{r.created_at ? formatDateShort(r.created_at) : "—"}</td>
                   <td className="dh-muted-cell">{r.updated_at ? formatDateShort(r.updated_at) : "—"}</td>
