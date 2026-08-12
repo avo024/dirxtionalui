@@ -189,6 +189,10 @@ export default function ReferralDetail() {
   useEffect(() => {
     if (tab === "notes" && id) localStorage.setItem(`notes_last_viewed_${id}`, new Date().toISOString());
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Chat pane: open on the newest message, and follow as new ones arrive.
+  useEffect(() => {
+    if (tab === "notes") notesEndRef.current?.scrollIntoView({ block: "nearest" });
+  }, [tab, notes.length]);
 
   const handleUpload = async (file: File, docType: string) => {
     if (!id) return;
@@ -489,27 +493,36 @@ export default function ReferralDetail() {
           </div>
         )}
 
-        {/* NOTES */}
+        {/* NOTES — chat pane: messages scroll inside a capped area, the
+            composer stays anchored beneath it, always visible. */}
         {tab === "notes" && (
           <div className="rd-notes">
-            {notes.map((note) => {
-              const isAdmin = note.author_type === "admin";
-              return (
-                <div key={note.id} className={`rd-note ${isAdmin ? "admin" : "clinic"}`}>
-                  <span className="rd-note-ava">{getAuthorInitials(note, "clinic")}</span>
-                  <div className="rd-note-body">
-                    <div className="rd-note-card">
-                      <div className="rd-note-head">
-                        <span className="rd-note-author">{getDisplayAuthor(note, "clinic")}</span>
-                        <span className="rd-note-when">{formatDateTime(note.created_at)}</span>
+            <div className="rd-notes-scroll">
+              {notes.length === 0 && (
+                <div className="rd-notes-empty">
+                  <Send size={20} />
+                  <p>No notes yet — anything you write here stays with this referral, and your Dirxctional team sees it.</p>
+                </div>
+              )}
+              {notes.map((note) => {
+                const isAdmin = note.author_type === "admin";
+                return (
+                  <div key={note.id} className={`rd-note ${isAdmin ? "admin" : "clinic"}`}>
+                    <span className="rd-note-ava">{getAuthorInitials(note, "clinic")}</span>
+                    <div className="rd-note-body">
+                      <div className="rd-note-card">
+                        <div className="rd-note-head">
+                          <span className="rd-note-author">{getDisplayAuthor(note, "clinic")}</span>
+                          <span className="rd-note-when">{formatDateTime(note.created_at)}</span>
+                        </div>
+                        <p className="rd-note-text">{note.content}</p>
                       </div>
-                      <p className="rd-note-text">{note.content}</p>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-            <div ref={notesEndRef} />
+                );
+              })}
+              <div ref={notesEndRef} />
+            </div>
             <div className="rd-composer">
               <button
                 className="rw-btn outline"
