@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Search, Loader2, ListFilter, ChevronsUpDown, ChevronUp, ChevronDown,
   ChevronLeft, ChevronRight, ClipboardCheck, AlertTriangle, Zap, Archive, RotateCcw,
@@ -110,7 +110,10 @@ export default function AdminReferralsList() {
   const navigate = useNavigate();
   const [referrals, setReferrals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeFilter, setActiveFilter] = useState("all");
+  // Triage-first: land on Needs Review (the incoming queue) — same pattern as
+  // the support queue landing on Open. Deep links (?filter=) still win.
+  const [searchParams] = useSearchParams();
+  const [activeFilter, setActiveFilter] = useState(searchParams.get("filter") || "needs_review");
   const [search, setSearch] = useState("");
   const [clinicFilter, setClinicFilter] = useState("all");
   const [sort, setSort] = useState<Sort>(null);
