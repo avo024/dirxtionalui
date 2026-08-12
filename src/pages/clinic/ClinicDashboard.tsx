@@ -106,7 +106,7 @@ export default function ClinicDashboard() {
         : openTaskCount > 0
           ? `Request${openTaskCount === 1 ? "" : "s"} from your Dirxctional team`
           : "Action required",
-      link: "/clinic/referrals?filter=rejected",
+      link: "/clinic/referrals?filter=action_needed",
     },
     expiring: { label: "PA Expiring Soon", value: paExpiringSoonCount, icon: AlertTriangle, tone: "warning", sub: "Within 30 days", link: "/clinic/patients?filter=expiring" },
   };
@@ -207,7 +207,7 @@ export default function ClinicDashboard() {
                 </Link>
               ))}
               {openTaskCount > 0 && (
-                <Link to="/clinic/referrals" className="dh-alert warn">
+                <Link to="/clinic/referrals?filter=action_needed" className="dh-alert warn">
                   <span className="dh-alert-ic"><AlertTriangle size={16} /></span>
                   <div className="dh-alert-body">
                     <p className="dh-alert-t">{openTaskCount} request{openTaskCount > 1 ? "s" : ""} from your Dirxctional team</p>
