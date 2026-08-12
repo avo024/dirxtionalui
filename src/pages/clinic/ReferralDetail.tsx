@@ -4,7 +4,7 @@ import {
   ArrowLeft, FileText, Clock, User, Pill, Stethoscope, Shield, Copy, CheckCircle,
   Send, Upload, Loader2, XCircle, Plus, AlertTriangle, Image, RefreshCw, Sparkles,
   Circle, Inbox, Search as SearchIcon, Save, X, Pencil, ListChecks, MessageSquareWarning,
-  Heart, ArrowRight, Printer, Download,
+  Heart, ArrowRight, Printer, Download, Paperclip, ClipboardList,
 } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { clinicApi } from "@/lib/api";
@@ -32,6 +32,7 @@ const DOC_CATEGORIES = [
   { key: "insurance", label: "Insurance Documents", types: ["insurance_front", "insurance_back"] },
   { key: "chart_notes", label: "Chart Notes", types: ["chart_notes"] },
   { key: "other", label: "Other Documents", types: [] as string[] },
+  { key: "team", label: "From your Dirxctional team", types: [] as string[] },
 ];
 
 const MISSING_DOC_LABELS: Record<string, string> = {
@@ -85,6 +86,9 @@ function groupDocuments(docs: any[]) {
   const grouped: Record<string, any[]> = {};
   DOC_CATEGORIES.forEach((c) => { grouped[c.key] = []; });
   docs.forEach((d) => {
+    // Documents the Dirxctional team shared back (PA approval letter, appeal
+    // outcomes, payer letters) get their own group, whatever their type.
+    if (d.from_team) { grouped.team.push(d); return; }
     const cat = DOC_CATEGORIES.find((c) => c.types.includes(d.doc_type || ""));
     grouped[cat ? cat.key : "other"].push(d);
   });
@@ -141,7 +145,10 @@ export default function ReferralDetail() {
   const [uploadingCategory, setUploadingCategory] = useState<string | null>(null);
   const [viewerDocId, setViewerDocId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [attachingNote, setAttachingNote] = useState(false);
   const notesEndRef = useRef<HTMLDivElement>(null);
+  const noteFileRef = useRef<HTMLInputElement>(null);
 
   const fetchClinicDocUrl = (docId: string) => clinicApi.getReferralDocumentUrl(id!, docId).then((r) => ({ url: r.url }));
 
@@ -153,12 +160,14 @@ export default function ReferralDetail() {
       clinicApi.getReferralDocuments(id).catch(() => ({ items: [] })),
       clinicApi.getReferralHistory(id).catch(() => ({ items: [] })),
       clinicApi.getReferralNotes(id).catch(() => ({ items: [] })),
+      clinicApi.getReferralTasks(id).catch(() => ({ items: [] })),
     ])
-      .then(([r, d, h, n]) => {
+      .then(([r, d, h, n, t]) => {
         setReferral(mapReferralFromBackend(r));
         setDocuments(d.items || []);
         setHistory(h.items || []);
         setNotes(n.items || []);
+        setTasks(t.items || []);
       })
       .catch((err) => { console.error("Failed to load referral:", err); setError("Failed to load referral details."); })
       .finally(() => setLoading(false));
@@ -193,6 +202,29 @@ export default function ReferralDetail() {
       toast({ title: "Resubmit failed", description: err.message, variant: "destructive" });
     } finally { setResubmitting(false); }
   };
+  // Notes-drop (Mari's ask): a file dropped/picked in Notes becomes a normal
+  // referral document PLUS a timeline note marking when and why it arrived.
+  // One store — the note is the marker, the file lives in Documents.
+  const attachViaNote = async (file: File) => {
+    if (!id) return;
+    setAttachingNote(true);
+    try {
+      await clinicApi.uploadDocument(id, file, "other");
+      const content = `📎 Attached document: ${file.name}`;
+      const result = await clinicApi.addReferralNote(id, content);
+      setNotes((prev) => [...prev, { id: result.id, author_type: "clinic", author_name: "You", content, created_at: new Date().toISOString(), ...result }]);
+      const d = await clinicApi.getReferralDocuments(id).catch(() => ({ items: [] }));
+      setDocuments(d.items || []);
+      toast({ title: "Document attached", description: `${file.name} — saved to Documents, noted in the timeline.` });
+      setTimeout(() => notesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 50);
+    } catch (err: any) {
+      toast({ title: "Attach failed", description: err.message, variant: "destructive" });
+    } finally {
+      setAttachingNote(false);
+      if (noteFileRef.current) noteFileRef.current.value = "";
+    }
+  };
+
   const addNote = async () => {
     if (!newNote.trim() || !id) return;
     setSendingNote(true);
@@ -325,6 +357,23 @@ export default function ReferralDetail() {
         </div>
       ) : null}
 
+      {/* Action needed — open tasks from the Dirxctional team (not a rejection:
+          nothing is wrong, something extra is needed to keep this moving). */}
+      {tasks.some((t) => t.status === "open") && (
+        <ClinicTasksPanel
+          tasks={tasks}
+          referralId={id!}
+          onChanged={async () => {
+            const [t, d] = await Promise.all([
+              clinicApi.getReferralTasks(id!).catch(() => ({ items: [] })),
+              clinicApi.getReferralDocuments(id!).catch(() => ({ items: [] })),
+            ]);
+            setTasks(t.items || []);
+            setDocuments(d.items || []);
+          }}
+        />
+      )}
+
       {/* Tabs */}
       <div className="rd-tabs">
         {[{ k: "overview", label: "Overview", icon: FileText, n: null },
@@ -451,7 +500,20 @@ export default function ReferralDetail() {
             })}
             <div ref={notesEndRef} />
             <div className="rd-composer">
-              <textarea placeholder="Add a note about this referral..." value={newNote} onChange={(e) => setNewNote(e.target.value)} rows={2} />
+              <button
+                className="rw-btn outline"
+                title="Attach a document — it's saved to Documents and noted here"
+                disabled={attachingNote}
+                onClick={() => noteFileRef.current?.click()}
+                style={{ flexShrink: 0 }}
+              >
+                {attachingNote ? <span className="rw-spin"><Loader2 size={15} /></span> : <Paperclip size={15} />}
+              </button>
+              <input ref={noteFileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif" style={{ display: "none" }}
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) attachViaNote(f); }} />
+              <textarea placeholder="Add a note about this referral... (or attach a document with the clip)" value={newNote} onChange={(e) => setNewNote(e.target.value)} rows={2}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files?.[0]; if (f) attachViaNote(f); }} />
               <button className="rw-btn primary" onClick={addNote} disabled={!newNote.trim() || sendingNote}>
                 {sendingNote ? <span className="rw-spin"><Loader2 size={15} /></span> : <Send size={15} />}
               </button>
@@ -562,14 +624,22 @@ function InsurancePA({ referral, insurance, priorAuth, reloadOnUpdate, referralI
                 {!paStatus ? <span className="rd-pa-pill" style={paPillStyle("pending")}>Pending</span>
                   : paStatus === "approved" ? <span style={paPillStyle("approved")}>Approved</span>
                   : paStatus === "denied" ? <span style={paPillStyle("denied")}>Denied</span>
+                  : paStatus === "appeal" ? <span style={paPillStyle("denied")}>In Appeal</span>
                   : paStatus === "processing" ? <span style={paPillStyle("processing")}>PA In Progress</span>
                   : paStatus === "submitted" ? <span style={paPillStyle("submitted")}>PA Submitted</span>
                   : <span style={paPillStyle("pending")}>{paStatus}</span>}
               </div></div>
-              {paStatus === "approved" && referral.pa_number && <DlRow label="PA Number" value={referral.pa_number} mono />}
+              {/* CMM reference shows whenever it exists — the clinic can look
+                  the PA up in CoverMyMeds themselves at any stage. */}
+              {referral.pa_number && <DlRow label="PA / CMM Number" value={referral.pa_number} mono />}
               {paStatus === "approved" && referral.pa_expiration_date && <DlRow label="PA Expires" value={formatDateShort(referral.pa_expiration_date)} />}
               {paStatus === "denied" && referral.pa_denial_reason && <DlRow label="Denial Reason" value={referral.pa_denial_reason} />}
               <DlRow label="PA Handled By" value={priorAuth.handled_by_us ? "Dirxctional" : "Clinic"} />
+              {referral.appeal_outcome === "level2" && (
+                <p style={{ fontSize: 12, lineHeight: 1.5, margin: "8px 0 0", padding: "8px 10px", borderRadius: 8, background: "hsl(var(--status-review-bg))", color: "hsl(var(--status-review-fg))" }}>
+                  The insurance company is working with your office directly on this appeal — expect contact from them.
+                </p>
+              )}
             </>
           )}
         </div>
@@ -826,6 +896,93 @@ function ExpiredInsuranceBanner({ referralId, onUpdated }: { referralId: string;
  * One click files the details as a referral note (kept with the patient's
  * record) AND opens a tracked Delivery-issue case in Help & Support, alerting
  * the Dirxctional team urgently. Inline expand — no modal dependencies. */
+/* ── Action-needed panel: open tasks from the Dirxctional team ── */
+function ClinicTasksPanel({ tasks, referralId, onChanged }: { tasks: any[]; referralId: string; onChanged: () => Promise<void> }) {
+  const [replies, setReplies] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState<string | null>(null);
+  const fileRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  const open = tasks.filter((t) => t.status === "open");
+  const done = tasks.filter((t) => t.status !== "open");
+
+  const sendReply = async (taskId: string) => {
+    const msg = (replies[taskId] || "").trim();
+    if (!msg) return;
+    setBusy(taskId);
+    try {
+      await clinicApi.respondToTask(referralId, taskId, msg);
+      setReplies((r) => ({ ...r, [taskId]: "" }));
+      toast({ title: "Reply sent", description: "Your Dirxctional team has been notified." });
+      await onChanged();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally { setBusy(null); }
+  };
+
+  const uploadForTask = async (taskId: string, file: File) => {
+    setBusy(taskId);
+    try {
+      await clinicApi.uploadDocument(referralId, file, "other", taskId);
+      toast({ title: "Document uploaded", description: `${file.name} — attached to this request.` });
+      await onChanged();
+    } catch (e: any) {
+      toast({ title: "Upload failed", description: e.message, variant: "destructive" });
+    } finally {
+      setBusy(null);
+      const ref = fileRefs.current[taskId];
+      if (ref) ref.value = "";
+    }
+  };
+
+  return (
+    <div style={{
+      border: "1px solid hsl(var(--warning) / 0.5)", background: "hsl(var(--warning) / 0.08)",
+      borderRadius: "var(--radius)", padding: "16px 18px", marginBottom: 16,
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+        <ClipboardList size={17} style={{ color: "hsl(var(--warning))" }} />
+        <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>Action needed from your office</h3>
+      </div>
+      <p style={{ fontSize: 12.5, color: "hsl(var(--muted-foreground))", margin: "0 0 12px" }}>
+        Nothing is wrong with this referral — your Dirxctional team just needs something extra to keep it moving.
+      </p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {open.map((t) => (
+          <div key={t.id} style={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "var(--radius)", padding: "12px 14px" }}>
+            <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.55 }}>{t.instructions}</p>
+            <p style={{ margin: "4px 0 10px", fontSize: 11.5, color: "hsl(var(--muted-foreground))" }}>
+              {t.created_by} · {formatDateShort(t.created_at)}
+              {t.document_count > 0 && ` · ${t.document_count} document${t.document_count === 1 ? "" : "s"} uploaded`}
+            </p>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <input
+                placeholder="Type a reply…"
+                value={replies[t.id] || ""}
+                onChange={(e) => setReplies((r) => ({ ...r, [t.id]: e.target.value }))}
+                onKeyDown={(e) => { if (e.key === "Enter") sendReply(t.id); }}
+                style={{ flex: "1 1 220px", font: "inherit", fontSize: 13, padding: "7px 10px", borderRadius: "var(--radius)", border: "1px solid hsl(var(--border))", background: "hsl(var(--background))" }}
+              />
+              <button className="rw-btn primary sm" disabled={busy === t.id || !(replies[t.id] || "").trim()} onClick={() => sendReply(t.id)}>
+                {busy === t.id ? <Loader2 size={14} className="rw-spin" /> : <Send size={14} />}Reply
+              </button>
+              <button className="rw-btn outline sm" disabled={busy === t.id} onClick={() => fileRefs.current[t.id]?.click()}>
+                <Upload size={14} />Upload document
+              </button>
+              <input ref={(el) => { fileRefs.current[t.id] = el; }} type="file" accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif" style={{ display: "none" }}
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadForTask(t.id, f); }} />
+            </div>
+          </div>
+        ))}
+      </div>
+      {done.length > 0 && (
+        <p style={{ margin: "10px 0 0", fontSize: 11.5, color: "hsl(var(--muted-foreground))" }}>
+          ✓ {done.length} earlier request{done.length === 1 ? "" : "s"} completed
+        </p>
+      )}
+    </div>
+  );
+}
+
 function DeliveryIssueReporter({ referralId, onReported }: { referralId: string; onReported: () => void }) {
   const [open, setOpen] = useState(false);
   const [details, setDetails] = useState("");

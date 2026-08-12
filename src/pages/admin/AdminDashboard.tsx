@@ -60,7 +60,8 @@ export default function AdminDashboard() {
     return <div className="rw-page" style={{ display: "flex", justifyContent: "center", padding: 64 }}><span className="rw-spin" style={{ color: "var(--color-teal)" }}><Loader2 size={26} /></span></div>;
   }
 
-  const needsReview = referrals.filter((r) => r.status === "ready_for_review");
+  // Filed/in-appeal PAs live in their own tabs — not "needs review" anymore.
+  const needsReview = referrals.filter((r) => r.status === "ready_for_review" && !["submitted", "appeal"].includes(r.pa_status));
   const hasUnreadClinicNote = (r: any): boolean => {
     const noteTs = r.latest_clinic_note_at;
     if (!noteTs) return false;

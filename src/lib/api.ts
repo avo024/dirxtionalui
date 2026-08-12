@@ -245,7 +245,7 @@ export const clinicApi = {
     return handleResponse(response);
   },
 
-  async uploadDocument(referralId: string, file: File, docType: string): Promise<any> {
+  async uploadDocument(referralId: string, file: File, docType: string, taskId?: string): Promise<any> {
     const formData = new FormData();
     formData.append('file', file);
     const docTypeMap: Record<string, string> = {
@@ -254,11 +254,37 @@ export const clinicApi = {
       additional: 'chart_notes',
     };
     formData.append('doc_type', docTypeMap[docType] || docType);
+    // Uploading in answer to an admin task tags the doc with the task.
+    if (taskId) formData.append('task_id', taskId);
 
     const response = await fetch(`${API_BASE_URL}/referrals/${referralId}/documents`, {
       method: 'POST',
       headers: await getAuthHeaders(),
       body: formData,
+    });
+    return handleResponse(response);
+  },
+
+  // ── Tasks: "your Dirxctional team needs something on this referral" ──
+  async getReferralTasks(referralId: string): Promise<{ items: ReferralTask[] }> {
+    const response = await fetch(`${API_BASE_URL}/referrals/${referralId}/tasks`, {
+      headers: await getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  async respondToTask(referralId: string, taskId: string, message: string): Promise<{ task: ReferralTask }> {
+    const response = await fetch(`${API_BASE_URL}/referrals/${referralId}/tasks/${taskId}/respond`, {
+      method: 'POST',
+      headers: await getHeaders(),
+      body: JSON.stringify({ message }),
+    });
+    return handleResponse(response);
+  },
+
+  async getActionNeededCount(): Promise<{ count: number }> {
+    const response = await fetch(`${API_BASE_URL}/referrals/action-needed/count`, {
+      headers: await getHeaders(),
     });
     return handleResponse(response);
   },
