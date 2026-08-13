@@ -24,7 +24,9 @@ const FILTERS = [
 ];
 // PA-workflow tabs are server-side views (all time, triage-sorted oldest clock
 // first); the rest filter the month-scoped load client-side as before.
-const PA_VIEWS = new Set(["pa_pending", "appeal"]);
+// Server-side views (all-time, filtered by the backend): the two PA tabs plus
+// the dashboard's task-replies drill-in (not a visible tab — reached via card).
+const PA_VIEWS = new Set(["pa_pending", "appeal", "task_replies"]);
 function matchesFilter(r: any, f: string) {
   if (f === "all") return true;
   if (f === "needs_review")
@@ -216,6 +218,13 @@ export default function AdminReferralsList() {
         </div>
       </div>
 
+      {activeFilter === "task_replies" && (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, padding: "9px 13px", borderRadius: "var(--radius-md)", background: "color-mix(in srgb, var(--color-warning) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--color-warning) 35%, transparent)", fontSize: 13, fontWeight: 600, color: "#92610B" }}>
+          <ClipboardCheck size={15} />
+          Showing referrals with task replies to review — wherever they sit in the pipeline
+          <button className="rw-btn outline sm" style={{ marginLeft: "auto" }} onClick={() => handleFilter("needs_review")}>Back to queue</button>
+        </div>
+      )}
       <div className="rl-toolbar">
         <div className="rl-seg-wrap">
           <div className="rl-seg">
