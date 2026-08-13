@@ -252,7 +252,7 @@ export default function ClinicDashboard() {
                     <td><span className="dh-pt"><span className="dh-pt-nm">{r.patient_name}</span></span></td>
                     <td>{r.drug || r.drug_requested || "—"}</td>
                     <td><StatusBadge status={r.status} /></td>
-                    <td><ClinicPABadge status={r.pa_status} /></td>
+                    <td><ClinicPABadge status={r.pa_status} appealOutcome={r.appeal_outcome} /></td>
                     <td className="dh-muted-cell">{r.created_at ? formatDateShort(r.created_at) : "—"}</td>
                     <td className="dh-muted-cell">{r.updated_at ? formatDateShort(r.updated_at) : "—"}</td>
                     <td className="r" onClick={(e) => e.stopPropagation()}>

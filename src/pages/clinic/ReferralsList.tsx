@@ -240,7 +240,7 @@ export default function ReferralsList() {
                       </div>
                     )}
                   </td>
-                  <td><ClinicPABadge status={r.pa_status} /></td>
+                  <td><ClinicPABadge status={r.pa_status} appealOutcome={r.appeal_outcome} /></td>
                   <td className="dh-muted-cell">{r.created_at ? formatDateShort(r.created_at) : "—"}</td>
                   <td className="dh-muted-cell">{r.updated_at ? formatDateShort(r.updated_at) : "—"}</td>
                   <td className="r" onClick={(e) => e.stopPropagation()}>
