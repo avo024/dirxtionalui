@@ -39,6 +39,7 @@ type Tone = "success" | "approved" | "warning" | "error" | "rejected" | "muted" 
 function getDrugPABadge(drug: any): { label: string; tone: Tone } {
   const today = new Date();
   if (drug.is_active === false) return { label: "Discontinued", tone: "muted" };
+  if (drug.pa_status === "appeal") return { label: "PA In Appeal", tone: "error" };
   if (drug.pa_status === "denied") return { label: "PA Denied", tone: "error" };
   if (["pending", "submitted", "processing"].includes(drug.pa_status)) return { label: "PA Pending", tone: "warning" };
   if (drug.pa_status === "approved" && drug.pa_expiration_date) {
@@ -65,6 +66,7 @@ function clinicPABadge(status: string | null | undefined): [Tone, string] {
   const m: Record<string, [Tone, string]> = {
     none: ["muted", "No PA"], pending: ["uploaded", "PA Pending"], submitted: ["review", "PA Submitted"],
     processing: ["processing", "PA In Progress"], approved: ["approved", "PA Approved"], denied: ["rejected", "PA Denied"],
+    appeal: ["rejected", "PA In Appeal"],
   };
   return m[status || "none"] || ["uploaded", "PA Pending"];
 }
