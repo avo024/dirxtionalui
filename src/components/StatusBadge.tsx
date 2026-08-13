@@ -11,6 +11,7 @@ const statusStyles: Record<string, string> = {
   approved_to_send: "bg-status-approved-bg text-status-approved-fg",
   sent_to_pharmacy: "bg-status-sent-bg text-status-sent-fg",
   rejected: "bg-status-rejected-bg text-status-rejected-fg",
+  closed: "bg-muted text-muted-foreground",
 };
 
 const dotStyles: Record<string, string> = {
@@ -21,6 +22,7 @@ const dotStyles: Record<string, string> = {
   approved_to_send: "bg-status-approved-fg",
   sent_to_pharmacy: "bg-status-sent-fg",
   rejected: "bg-status-rejected-fg",
+  closed: "bg-muted-foreground",
 };
 
 const statusIcons: Record<string, React.ElementType> = {
@@ -31,6 +33,7 @@ const statusIcons: Record<string, React.ElementType> = {
   approved_to_send: CheckCircle,
   sent_to_pharmacy: Send,
   rejected: XCircle,
+  closed: XCircle,
 };
 
 interface StatusBadgeProps {

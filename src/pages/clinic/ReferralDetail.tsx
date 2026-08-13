@@ -25,6 +25,7 @@ const statusDescriptions: Record<string, string> = {
   approved_to_send: "Your referral has been approved and is being sent to the pharmacy.",
   sent_to_pharmacy: "Your referral has been sent to the assigned pharmacy.",
   rejected: "This referral needs your attention before it can proceed.",
+  closed: "This referral is closed — see the Prior Authorization section for what happened and what your options are.",
 };
 
 const DOC_CATEGORIES = [
@@ -587,6 +588,9 @@ function StatusProgress({ status, desc }: { status: string; desc: string }) {
   const steps = [{ key: "received", label: "Received", icon: Inbox }, { key: "review", label: "In Review", icon: SearchIcon }, { key: "sent", label: "Sent", icon: Send }];
   const cur = status === "sent_to_pharmacy" || status === "approved_to_send" ? 2 : 1;
   const rejected = status === "rejected";
+  // "closed" = terminal stop at the review step — the PA section explains why.
+  const closed = status === "closed";
+  const stopped = rejected || closed;
   return (
     <div className="rd-status-card">
       <div className="rd-status-top"><StatusBadge status={status} size="lg" showIcon /></div>
@@ -594,18 +598,19 @@ function StatusProgress({ status, desc }: { status: string; desc: string }) {
       <div className="rd-prog">
         {steps.map((s, i) => {
           let cls = i < cur ? "done" : i === cur ? "current" : "todo";
-          if (rejected && i === 1) cls = "rejected";
+          if (stopped && i === 1) cls = "rejected";
           const Icon = s.icon;
           return (
             <div key={s.key} className={`rd-prog-step ${cls}`}>
               <div className="rd-prog-bar" />
-              <div className="rd-prog-node">{rejected && i === 1 ? <X size={15} /> : i < cur ? <CheckCircle size={15} /> : <Icon size={15} />}</div>
-              <div className="rd-prog-lbl">{rejected && i === 1 ? "Rejected" : s.label}</div>
+              <div className="rd-prog-node">{stopped && i === 1 ? <X size={15} /> : i < cur ? <CheckCircle size={15} /> : <Icon size={15} />}</div>
+              <div className="rd-prog-lbl">{stopped && i === 1 ? (rejected ? "Rejected" : "Closed") : s.label}</div>
             </div>
           );
         })}
       </div>
       {rejected && <div className="rd-prog-note"><ArrowRight size={14} />Flagged for attention at review — fix &amp; resubmit to continue</div>}
+      {closed && <div className="rd-prog-note"><ArrowRight size={14} />Closed after the insurance appeal — see Prior Authorization below for your options</div>}
     </div>
   );
 }
