@@ -30,10 +30,12 @@ const PA_VIEWS = new Set(["pa_pending", "appeal", "task_replies"]);
 function matchesFilter(r: any, f: string) {
   if (f === "all") return true;
   if (f === "needs_review")
-    // A filed or in-appeal PA has its own home (PA Pending / First Appeal) —
-    // Needs Review holds only work nobody has moved forward yet.
+    // A filed or in-appeal PA has its own home (PA Pending / First Appeal),
+    // and a handed-off/final appeal is out of our hands entirely — Needs
+    // Review holds only work nobody has moved forward yet.
     return (r.status === "ready_for_review" || r.status === "processing")
-      && !["submitted", "appeal"].includes(r.pa_status);
+      && !["submitted", "appeal"].includes(r.pa_status)
+      && !(r.pa_status === "denied" && ["level2", "final"].includes(r.appeal_outcome));
   if (f === "pa_pending") return ["pending", "submitted"].includes(r.pa_status) && !["sent_to_pharmacy", "rejected"].includes(r.status);
   if (f === "appeal") return r.pa_status === "appeal";
   return r.status === f;

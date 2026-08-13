@@ -21,6 +21,33 @@ export function PAAppealCard({ referral, referralId, onChanged }: {
   const paStatus = referral?.pa_status;
   if (referral?.is_bridge_program || (paStatus !== "denied" && paStatus !== "appeal")) return null;
 
+  // Terminal outcomes: the appeal already ENDED in a level-2 handoff or a
+  // final denial — never re-offer "Start appeal"; this referral is out of
+  // our hands (record a PA approval on the PA card if the clinic later
+  // reports a level-2 win).
+  const terminal = paStatus === "denied" && (referral?.appeal_outcome === "level2" || referral?.appeal_outcome === "final");
+  if (terminal) {
+    const isLevel2 = referral.appeal_outcome === "level2";
+    return (
+      <div className="arr-card" style={{ background: "color-mix(in srgb, var(--text-muted) 5%, transparent)" }}>
+        <div className="arr-card-head">
+          <span className="hi"><Scale size={15} /></span>
+          <h3>PA Appeal</h3>
+          <span className="he" style={{ marginLeft: "auto" }}>
+            <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 9999, background: "color-mix(in srgb, var(--text-muted) 12%, transparent)", color: "var(--text-muted)" }}>
+              {isLevel2 ? "LEVEL 2 — HANDED OFF" : "FINAL — NO FURTHER APPEAL"}
+            </span>
+          </span>
+        </div>
+        <p className="text-sm" style={{ color: "var(--text-muted)", margin: 0, lineHeight: 1.55 }}>
+          {isLevel2
+            ? "The level-1 appeal was lost and this moved to Level 2 — the insurer works with the clinic directly now. Nothing for us to do here; the clinic was emailed. If they report a level-2 win, record the approval on the PA card. Archive this referral when done."
+            : "The appeal was lost and this drug has no second appeal level — the payer's decision is final. The clinic was emailed with bridge/cash options. Archive this referral when done."}
+        </p>
+      </div>
+    );
+  }
+
   const overdue = !!referral?.appeal_followup_due;
   const startedAt = referral?.appeal_started_at;
   const hoursLeft = startedAt
