@@ -23,14 +23,14 @@ export function ClinicPABadge({ status, appealOutcome, className }: ClinicPABadg
   if (status === "denied" && appealOutcome === "level2") {
     config = { label: "PA Level 2", className: "bg-muted text-muted-foreground" };
   } else if (status === "denied" && appealOutcome === "final") {
-    config = { label: "PA Denied — Final", className: "bg-destructive/10 text-destructive" };
+    config = { label: "PA Final", className: "bg-destructive/10 text-destructive" };
   }
   if (!config) return null;
 
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+        "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap",
         config.className,
         className
       )}
