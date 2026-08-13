@@ -28,6 +28,7 @@ import Services from "@/pages/clinic/Services";
 
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
+import AdminInsights from "@/pages/admin/AdminInsights";
 import AdminReferralsList from "@/pages/admin/AdminReferralsList";
 import AdminReferralReview from "@/pages/admin/AdminReferralReview";
 import PharmaciesList from "@/pages/admin/PharmaciesList";
@@ -79,6 +80,7 @@ const App = () => (
             {/* Admin routes */}
             <Route path="/admin" element={<AdminLayout />}>
               <Route path="dashboard" element={<AdminDashboard />} />
+              <Route path="insights" element={<AdminInsights />} />
               <Route path="referrals/:id" element={<AdminReferralReview />} />
               <Route path="referrals" element={<AdminReferralsList />} />
               <Route path="support/:caseId" element={<AdminSupportDetail />} />
