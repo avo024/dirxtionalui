@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { LayoutDashboard, FileText, Building2, Hospital, LogOut, LineChart, MessageSquare } from "lucide-react";
+import { LayoutDashboard, FileText, Building2, Hospital, LogOut, LineChart, MessageSquare, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { adminApi } from "@/lib/api";
@@ -11,6 +11,9 @@ import logo from "@/assets/logo.png";
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
   { label: "All Referrals", icon: FileText, path: "/admin/referrals" },
+  // Analytics live on their own page (gate by role later — workers don't
+  // need clinic volumes and trend lines on the daily surface).
+  { label: "Insights", icon: BarChart3, path: "/admin/insights" },
   { label: "AI Quality", icon: LineChart, path: "/admin/ai-quality" },
   { label: "Pharmacies", icon: Building2, path: "/admin/pharmacies" },
   { label: "Clinics", icon: Hospital, path: "/admin/clinics" },

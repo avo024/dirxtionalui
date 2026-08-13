@@ -10,8 +10,6 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { adminApi } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { formatDateShort, getFormattedDate } from "@/lib/dateUtils";
-import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
-import { format, subDays } from "date-fns";
 import "../clinic/wizard.css";
 import "../clinic/dashboard.css";
 import "./admin-dashboard.css";
@@ -85,25 +83,8 @@ export default function AdminDashboard() {
     sent: { label: "Sent Today", value: countToday("sent_to_pharmacy"), icon: Send, tone: "primary", sub: "Today", link: "/admin/referrals?filter=sent_to_pharmacy" },
   };
   const actionStats = [STAT.needs_review, STAT.rejected];
-  const mutedStats = [STAT.total, STAT.approved, STAT.sent];
-
-  const pieData = [
-    { name: "Needs Review", value: referrals.filter((r) => r.status === "ready_for_review").length, color: "#9A4A1E" },
-    { name: "Approved", value: referrals.filter((r) => r.status === "approved_to_send").length, color: "#15803D" },
-    { name: "Sent", value: referrals.filter((r) => r.status === "sent_to_pharmacy").length, color: "#0F766E" },
-    { name: "Rejected", value: referrals.filter((r) => r.status === "rejected").length, color: "#B91C1C" },
-    { name: "Uploaded", value: referrals.filter((r) => r.status === "uploaded").length, color: "#57534E" },
-  ].filter((d) => d.value > 0);
-
-  const lineData = (() => {
-    const days: { date: string; referrals: number }[] = [];
-    for (let i = 6; i >= 0; i--) {
-      const day = subDays(new Date(), i);
-      days.push({ date: format(day, "MMM d"), referrals: referrals.filter((r) => r.created_at && new Date(r.created_at).toDateString() === day.toDateString()).length });
-    }
-    return days;
-  })();
-  const hasData = referrals.length > 0;
+  // Inventory/analytics tiles live on Insights — the dashboard stays operational.
+  const mutedStats = [STAT.approved, STAT.sent];
 
   return (
     <div className="rw-page dh-page rw-fade">
@@ -176,40 +157,6 @@ export default function AdminDashboard() {
               <span className="dh-muted-val num">{s.value}</span>
             </Link>
           ))}
-        </div>
-      </div>
-
-      {/* Charts */}
-      <div className="ad-charts-2up">
-        <div className="ad-chart-card">
-          <div className="ad-chart-head"><div><h3 className="ad-chart-title">Referrals by Status</h3><p className="ad-chart-sub">All-time distribution</p></div></div>
-          <div className="ad-chart-body">
-            {pieData.length ? (
-              <ResponsiveContainer width="100%" height={250}>
-                <PieChart>
-                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={3} dataKey="value">
-                    {pieData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-                  </Pie>
-                  <Tooltip /><Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : <div className="ad-chart-na"><Inbox size={26} />No referrals yet</div>}
-          </div>
-        </div>
-
-        <div className="ad-chart-card">
-          <div className="ad-chart-head"><div><h3 className="ad-chart-title">Referrals Over Time</h3><p className="ad-chart-sub">Last 7 days</p></div></div>
-          <div className="ad-chart-body">
-            <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={lineData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E4" />
-                <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="#78716C" />
-                <YAxis tick={{ fontSize: 12 }} stroke="#78716C" allowDecimals={false} />
-                <Tooltip />
-                <Line type="monotone" dataKey="referrals" stroke="#14B8A6" strokeWidth={2} dot={{ fill: "#14B8A6" }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
         </div>
       </div>
 
