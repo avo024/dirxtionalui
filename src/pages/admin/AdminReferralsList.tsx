@@ -125,17 +125,26 @@ export default function AdminReferralsList() {
   const [showArchived, setShowArchived] = useState(false);
 
   const [paCounts, setPaCounts] = useState<any>({});
+  // PA-view rows live in their own state so switching to a PA tab never
+  // replaces the month-scoped base load — the other tabs' badges count from
+  // the base load, so overwriting it zeroed every count (the tab-count bug).
+  const [viewRows, setViewRows] = useState<any[]>([]);
   const paView = PA_VIEWS.has(activeFilter);
 
   useEffect(() => {
+    const mapRows = (response: any) =>
+      (response.items || []).map((r: any) => ({ ...r, drug: r.drug_requested, dob: r.patient_dob }));
     const fetchReferrals = async () => {
       try {
         setLoading(true);
-        // PA tabs are all-time server views; other tabs keep the month window.
-        const response = await adminApi.getReferrals(paView
-          ? { view: activeFilter, month: "all" }
-          : { month: search.trim() ? "all" : month, archived: showArchived });
-        setReferrals((response.items || []).map((r: any) => ({ ...r, drug: r.drug_requested, dob: r.patient_dob })));
+        // Base month-scoped load ALWAYS runs (feeds tab counts + non-PA tabs);
+        // the active PA tab additionally fetches its all-time server view.
+        const [base, view] = await Promise.all([
+          adminApi.getReferrals({ month: search.trim() ? "all" : month, archived: showArchived }),
+          paView ? adminApi.getReferrals({ view: activeFilter, month: "all" }) : Promise.resolve(null),
+        ]);
+        setReferrals(mapRows(base));
+        setViewRows(view ? mapRows(view) : []);
       } catch (err: any) {
         toast({ title: "Error", description: err.message || "Failed to load referrals", variant: "destructive" });
       } finally { setLoading(false); }
@@ -162,11 +171,13 @@ export default function AdminReferralsList() {
       : value === "appeal" ? (paCounts.appeal_followup_due ?? 0) : 0;
 
   const filtered = useMemo(() => {
-    const base = referrals.filter((r: any) => {
+    // PA tabs display their all-time server view; other tabs the month load.
+    const source = paView ? viewRows : referrals;
+    const base = source.filter((r: any) => {
       const q = search.toLowerCase();
       if (!((r.patient_name || "").toLowerCase().includes(q) || (r.id || "").toLowerCase().includes(q))) return false;
       if (clinicFilter !== "all" && r.clinic_name !== clinicFilter) return false;
-      return matchesFilter(r, activeFilter);
+      return paView || matchesFilter(r, activeFilter);
     });
     if (!sort) return base;
     const dir = sort.dir === "asc" ? 1 : -1;
@@ -177,7 +188,7 @@ export default function AdminReferralsList() {
       else { av = a.status || ""; bv = b.status || ""; }
       return av < bv ? -dir : av > bv ? dir : 0;
     });
-  }, [referrals, search, clinicFilter, activeFilter, sort]);
+  }, [referrals, viewRows, paView, search, clinicFilter, activeFilter, sort]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
