@@ -5,7 +5,8 @@ export type ReferralStatus =
   | "approved"
   | "approved_to_send"
   | "rejected"
-  | "sent_to_pharmacy";
+  | "sent_to_pharmacy"
+  | "closed";
 
 export interface ExtractedPatient {
   first_name: string;
@@ -855,6 +856,7 @@ export const statusLabels: Record<ReferralStatus, string> = {
   approved_to_send: "Approved",
   sent_to_pharmacy: "Sent to Pharmacy",
   rejected: "Needs Attention",
+  closed: "Closed",
 };
 
 export const adminStatusLabels: Record<ReferralStatus, string> = {
@@ -865,6 +867,7 @@ export const adminStatusLabels: Record<ReferralStatus, string> = {
   approved_to_send: "Ready to Send",
   sent_to_pharmacy: "Sent",
   rejected: "Rejected",
+  closed: "Closed",
 };
 
 export type ReferralPAStatus = "not_required" | "required_processing" | "required_submitted" | "required_approved" | "required_denied";

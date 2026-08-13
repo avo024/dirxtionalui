@@ -57,6 +57,7 @@ export default function AdminInsights() {
     { name: "Sent", value: referrals.filter((r) => r.status === "sent_to_pharmacy").length, color: "#0F766E" },
     { name: "Rejected", value: referrals.filter((r) => r.status === "rejected").length, color: "#B91C1C" },
     { name: "Uploaded", value: referrals.filter((r) => r.status === "uploaded").length, color: "#57534E" },
+    { name: "Closed", value: referrals.filter((r) => r.status === "closed").length, color: "#A8A29E" },
   ].filter((d) => d.value > 0), [referrals]);
 
   const lineData = useMemo(() => {

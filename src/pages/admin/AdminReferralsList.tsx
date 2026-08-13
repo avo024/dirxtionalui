@@ -183,6 +183,12 @@ export default function AdminReferralsList() {
       if (clinicFilter !== "all" && r.clinic_name !== clinicFilter) return false;
       return paView || matchesFilter(r, activeFilter);
     });
+    // All is priority-stacked: closed referrals (nothing left to do) sink to
+    // the bottom; everything else keeps recency order.
+    if (!sort && activeFilter === "all") {
+      return [...base].sort((a: any, b: any) =>
+        (a.status === "closed" ? 1 : 0) - (b.status === "closed" ? 1 : 0));
+    }
     if (!sort) return base;
     const dir = sort.dir === "asc" ? 1 : -1;
     return [...base].sort((a: any, b: any) => {
