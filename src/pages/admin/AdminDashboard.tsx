@@ -121,7 +121,23 @@ export default function AdminDashboard() {
       {/* Task replies to review — the clinic answered; an admin needs to
           review the reply/upload and mark the task complete. */}
       {(paCounts.tasks_awaiting_review ?? 0) > 0 && (
-        <Link to="/admin/referrals?filter=all" className="dh-action-card warning" style={{ marginBottom: 14 }}>
+        <Link
+          to="/admin/referrals?filter=task_replies"
+          className="dh-action-card warning"
+          style={{ marginBottom: 14 }}
+          onClick={async (e) => {
+            // Exactly one reply waiting → skip the list, open that referral.
+            if (paCounts.tasks_awaiting_review === 1) {
+              e.preventDefault();
+              try {
+                const res = await adminApi.getReferrals({ view: "task_replies" });
+                const only = (res.items || [])[0];
+                if (only) { navigate(`/admin/referrals/${only.id}`); return; }
+              } catch { /* fall through to the filtered list */ }
+              navigate("/admin/referrals?filter=task_replies");
+            }
+          }}
+        >
           <StatIcon tone="warning" icon={ClipboardCheck} size={20} />
           <div className="dh-action-meta">
             <div className="dh-action-head">
@@ -129,7 +145,7 @@ export default function AdminDashboard() {
               <span className="dh-action-lbl">Task {paCounts.tasks_awaiting_review === 1 ? "reply" : "replies"} to review</span>
             </div>
             <span className="dh-action-sub">
-              The clinic answered — open the referral (task tag on the row), review the reply or upload, and mark it complete
+              The clinic answered — review the reply or upload and mark the task complete
             </span>
           </div>
           <span className="dh-action-arrow"><ArrowRight size={16} /></span>
