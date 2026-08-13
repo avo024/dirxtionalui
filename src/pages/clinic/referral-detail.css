@@ -155,7 +155,10 @@
 .rd-doc-card.active { border-color: var(--color-teal); box-shadow: var(--glow-teal); }
 .rd-doc-ic { width: 30px; height: 30px; border-radius: var(--radius-md); flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--color-navy) 8%, transparent); color: var(--color-navy); }
 .rd-doc-info { min-width: 0; flex: 1; }
-.rd-doc-name { font-size: var(--text-sm); font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Long filenames WRAP to the next line (overflow-wrap:anywhere also breaks
+   space-less names like scan_2026_08_12_long_name.pdf). The old ellipsis
+   never applied — this is a span, and inline elements ignore overflow. */
+.rd-doc-name { display: block; font-size: var(--text-sm); font-weight: 600; color: var(--text-primary); white-space: normal; overflow-wrap: anywhere; line-height: 1.35; }
 .rd-doc-sub { font-size: var(--text-xs); color: var(--text-muted); margin-top: 1px; }
 .rd-doc-empty { font-size: var(--text-xs); color: var(--text-muted); border: 1px dashed var(--border-default); border-radius: var(--radius-md); padding: 12px; text-align: center; }
 .rd-doc-viewer { border: 1px solid var(--border-default); border-radius: var(--radius-lg); background: var(--bg-card); box-shadow: var(--shadow-sm); overflow: hidden; position: sticky; top: 16px; height: calc(100vh - 200px); min-height: 520px; display: flex; }
