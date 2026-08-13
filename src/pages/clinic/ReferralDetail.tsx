@@ -652,8 +652,8 @@ function InsurancePA({ referral, insurance, priorAuth, reloadOnUpdate, referralI
               <div className="rd-dl-row"><div className="dk">PA Status</div><div className="dv">
                 {!paStatus ? <span className="rd-pa-pill" style={paPillStyle("pending")}>Pending</span>
                   : paStatus === "approved" ? <span style={paPillStyle("approved")}>Approved</span>
-                  : paStatus === "denied" && referral.appeal_outcome === "level2" ? <span style={paPillStyle("denied")}>Level 2 — with your insurer</span>
-                  : paStatus === "denied" && referral.appeal_outcome === "final" ? <span style={paPillStyle("denied")}>Denied — final</span>
+                  : paStatus === "denied" && referral.appeal_outcome === "level2" ? <span style={paPillStyle("denied")}>Level 2</span>
+                  : paStatus === "denied" && referral.appeal_outcome === "final" ? <span style={paPillStyle("denied")}>Final Denial</span>
                   : paStatus === "denied" ? <span style={paPillStyle("denied")}>Denied</span>
                   : paStatus === "appeal" ? <span style={paPillStyle("denied")}>In Appeal</span>
                   : paStatus === "processing" ? <span style={paPillStyle("processing")}>PA In Progress</span>
