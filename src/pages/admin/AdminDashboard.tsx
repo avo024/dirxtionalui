@@ -197,7 +197,7 @@ export default function AdminDashboard() {
                     <td><span className="dh-pt"><span className="dh-pt-nm">{r.patient_name}</span></span></td>
                     <td className="dh-muted-cell">{r.clinic_name || "—"}</td>
                     <td><span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>{r.drug || r.drug_requested || "—"}{r.is_bridge_program && <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 600, padding: "1px 6px", borderRadius: 9999, background: "var(--color-teal-50)", color: "var(--color-teal-700)" }}><Zap size={10} />Bridge</span>}</span></td>
-                    <td><ClinicPABadge status={r.pa_status} /></td>
+                    <td><ClinicPABadge status={r.pa_status} appealOutcome={r.appeal_outcome} /></td>
                     <td><span style={{ display: "inline-flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}><StatusBadge status={r.status} />{r.insurance_expired && <ExpiredTag />}</span></td>
                     <td className="dh-muted-cell">{r.created_at ? formatDateShort(r.created_at) : "—"}</td>
                     <td className="r" onClick={(e) => e.stopPropagation()}><button className="rw-btn primary sm" onClick={() => navigate(`/admin/referrals/${r.id}`)}><ClipboardCheck size={14} />Review</button></td>

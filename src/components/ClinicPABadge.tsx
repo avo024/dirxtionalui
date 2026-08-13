@@ -11,12 +11,20 @@ const paStatusConfig: Record<string, { label: string; className: string }> = {
 
 interface ClinicPABadgeProps {
   status: string | null | undefined;
+  /** referral.appeal_outcome — refines a denied PA's label ("PA Level 2" /
+   *  "PA Denied — Final") so the pill tells the real situation at a glance. */
+  appealOutcome?: string | null;
   className?: string;
 }
 
-export function ClinicPABadge({ status, className }: ClinicPABadgeProps) {
+export function ClinicPABadge({ status, appealOutcome, className }: ClinicPABadgeProps) {
   if (!status) return null;
-  const config = paStatusConfig[status];
+  let config = paStatusConfig[status];
+  if (status === "denied" && appealOutcome === "level2") {
+    config = { label: "PA Level 2", className: "bg-muted text-muted-foreground" };
+  } else if (status === "denied" && appealOutcome === "final") {
+    config = { label: "PA Denied — Final", className: "bg-destructive/10 text-destructive" };
+  }
   if (!config) return null;
 
   return (

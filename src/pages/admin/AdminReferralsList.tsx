@@ -295,7 +295,7 @@ export default function AdminReferralsList() {
                   <td className="dh-muted-cell">{r.clinic_name || "—"}</td>
                   <td><span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>{r.drug || r.drug_requested || "—"}{r.is_bridge_program && <BridgeTag />}</span></td>
                   <td><span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                    <ClinicPABadge status={r.pa_status} />
+                    <ClinicPABadge status={r.pa_status} appealOutcome={r.appeal_outcome} />
                     {paView && <ClockChip r={r} />}
                     {r.pa_status === "appeal" && <UrgentTag />}
                   </span></td>
