@@ -76,6 +76,12 @@ function NextStepStrip({ referral, referralId }: { referral: any; referralId: st
       ? "Appeal follow-up is DUE — check the payer and record the outcome below."
       : "Level-1 appeal in progress — record the outcome when the payer responds.";
   }
+  else if (paRelevant && pa === "denied" && referral.appeal_outcome === "level2") {
+    tone = "done"; text = "Level 2 handoff — the insurer works with the clinic directly; nothing for us to do here.";
+  }
+  else if (paRelevant && pa === "denied" && referral.appeal_outcome === "final") {
+    tone = "done"; text = "Appeal decision is final — the clinic has bridge/cash options; archive when done.";
+  }
   else if (paRelevant && pa === "denied") { tone = "urgent"; text = "PA denied — start an appeal or reject the referral."; }
   else if (paRelevant && pa === "submitted") {
     const due = isOverdue(referral.pa_submitted_at);
