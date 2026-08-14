@@ -812,6 +812,14 @@ export const adminApi = {
     return handleResponse(response);
   },
 
+  async deletePALetter(referralId: string): Promise<{ message: string }> {
+    const response = await fetch(`${API_BASE_URL}/admin/referrals/${referralId}/pa/letter`, {
+      method: 'DELETE',
+      headers: await getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
   async uploadPALetter(referralId: string, file: File): Promise<{ id: string; doc_type: string; filename: string }> {
     const formData = new FormData();
     formData.append('file', file);
