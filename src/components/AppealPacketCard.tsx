@@ -254,6 +254,23 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
     setBuilderOpen(true);
   };
 
+  const [packetPreviewLoading, setPacketPreviewLoading] = useState(false);
+  const handlePacketPdfPreview = async () => {
+    setPacketPreviewLoading(true);
+    try {
+      await flushSave();
+      const blob = await adminApi.previewAppealPacketPdf(referralId);
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank", "noopener");
+      // Give the new tab time to grab the blob before revoking.
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (err: any) {
+      toast({ title: "Couldn't build the packet preview", description: err.message, variant: "destructive" });
+    } finally {
+      setPacketPreviewLoading(false);
+    }
+  };
+
   const handlePreview = async () => {
     setPreviewLoading(true);
     try {
@@ -571,6 +588,9 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <button className="rw-btn outline sm" disabled={previewLoading} onClick={handlePreview}>
                 {previewLoading ? <Loader2 size={13} className="animate-spin" /> : <Eye size={13} />}Preview letter
+              </button>
+              <button className="rw-btn outline sm" disabled={packetPreviewLoading} onClick={handlePacketPdfPreview} title="Cover page + letters + attached documents, merged — exactly what the payer's fax prints">
+                {packetPreviewLoading ? <Loader2 size={13} className="animate-spin" /> : <FileText size={13} />}Preview whole packet
               </button>
               <button className="rw-btn primary sm" disabled={sending || !faxNumber.trim()} onClick={() => setSendConfirmOpen(true)}>
                 <Send size={13} />Fax the packet
