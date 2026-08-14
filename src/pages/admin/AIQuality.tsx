@@ -14,7 +14,16 @@ import "../clinic/dashboard.css";
 import "../clinic/referrals.css";
 import "./aiq.css";
 
-const DAY_OPTIONS = [7, 14, 30, 90] as const;
+function monthOptions() {
+  const opts: { value: string; label: string }[] = [];
+  const now = new Date();
+  for (let i = 0; i < 6; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const label = d.toLocaleString("default", { month: "long", year: "numeric" });
+    opts.push({ value: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`, label: i === 0 ? `${label} · this month` : label });
+  }
+  return opts;
+}
 
 type SortKey =
   | "field_path"
@@ -48,14 +57,17 @@ const STAT_TONE: Record<string, { fg: string; bg: string }> = {
 
 export default function AIQuality() {
   const { user } = useAuth();
-  const [days, setDays] = useState<number>(7);
+  const [month, setMonth] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  });
   const [formType, setFormType] = useState<string>("");
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("edit_count");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
-  const overview = useAIQualityOverview(days, formType || undefined);
-  const feed = useAIQualityCorrections({ days, limit: 20 });
+  const overview = useAIQualityOverview({ month, formType: formType || undefined });
+  const feed = useAIQualityCorrections({ month, limit: 20 });
 
   // Defensive client-side role gate (AdminLayout already enforces this).
   if (user && user.role !== "internal_admin") {
@@ -118,11 +130,14 @@ export default function AIQuality() {
           </p>
         </div>
         <div className="aiq-head-r">
-          <div className="aiq-window">
-            {DAY_OPTIONS.map((d) => (
-              <button key={d} className={`aiq-window-btn${days === d ? " on" : ""}`} onClick={() => setDays(d)}>{d}d</button>
-            ))}
-          </div>
+          <select
+            className="rl-select"
+            style={{ border: "1px solid var(--border-default)", borderRadius: "var(--radius-md)", height: 38, padding: "0 10px", background: "#fff" }}
+            value={month}
+            onChange={(e) => setMonth(e.target.value)}
+          >
+            {monthOptions().map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+          </select>
           <div className="rl-statusdd">
             <FileText size={15} />
             <select className="rl-select" value={formType || "all"} onChange={(e) => setFormType(e.target.value === "all" ? "" : e.target.value)}>
@@ -280,7 +295,9 @@ export default function AIQuality() {
                 ))}
               </div>
             ) : (
-              <p className="aiq-empty">No corrections in the last {days} days.</p>
+              <p className="aiq-empty">
+                No corrections in {monthOptions().find((m) => m.value === month)?.label ?? "this month"}.
+              </p>
             )}
           </div>
         </>

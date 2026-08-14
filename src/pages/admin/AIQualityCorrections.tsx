@@ -1,31 +1,45 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Loader2, Search, Check, ChevronDown } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAIQualityCorrections } from "@/hooks/useAIQuality";
 import { CorrectionRow } from "@/components/admin/CorrectionRow";
-import type { AIQualityCorrection } from "@/lib/aiQualityApi";
+import { dismissCorrection, restoreCorrection, type AIQualityCorrection } from "@/lib/aiQualityApi";
 import "../clinic/wizard.css";
 import "../clinic/dashboard.css";
 import "../clinic/referrals.css";
 import "./aiq.css";
 
-const DAY_OPTIONS = [7, 14, 30, 90] as const;
+function monthOptions() {
+  const opts: { value: string; label: string }[] = [];
+  const now = new Date();
+  for (let i = 0; i < 6; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const label = d.toLocaleString("default", { month: "long", year: "numeric" });
+    opts.push({ value: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`, label: i === 0 ? `${label} · this month` : label });
+  }
+  return opts;
+}
 
 export default function AIQualityCorrections() {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const initialHighConf = searchParams.get("high_conf_only") === "true";
   const initialField = searchParams.get("field") ?? "";
+  const queryClient = useQueryClient();
 
-  const [days, setDays] = useState<number>(7);
+  const [month, setMonth] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  });
   const [field, setField] = useState(initialField);
   const [highConfOnly, setHighConfOnly] = useState(initialHighConf);
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [accumulated, setAccumulated] = useState<AIQualityCorrection[]>([]);
 
   const query = useAIQualityCorrections({
-    days,
+    month,
     field: field || undefined,
     highConfOnly,
     limit: 50,
@@ -36,7 +50,7 @@ export default function AIQualityCorrections() {
   useEffect(() => {
     setAccumulated([]);
     setCursor(undefined);
-  }, [days, field, highConfOnly]);
+  }, [month, field, highConfOnly]);
 
   // Append new page when query data lands.
   useEffect(() => {
@@ -50,6 +64,34 @@ export default function AIQualityCorrections() {
       });
     }
   }, [query.data]);
+
+  const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
+
+  function applyDismissedState(id: string, dismissedAt: string | null) {
+    setAccumulated((prev) => prev.map((c) => (c.id === id ? { ...c, dismissed_at: dismissedAt } : c)));
+  }
+
+  const dismissMutation = useMutation({
+    mutationFn: (id: string) => dismissCorrection(id),
+    onMutate: (id) => setPendingIds((prev) => new Set(prev).add(id)),
+    onSuccess: (_res, id) => {
+      applyDismissedState(id, new Date().toISOString());
+      queryClient.invalidateQueries({ queryKey: ["ai-quality"] });
+    },
+    onSettled: (_res, _err, id) =>
+      setPendingIds((prev) => { const next = new Set(prev); next.delete(id); return next; }),
+  });
+
+  const restoreMutation = useMutation({
+    mutationFn: (id: string) => restoreCorrection(id),
+    onMutate: (id) => setPendingIds((prev) => new Set(prev).add(id)),
+    onSuccess: (_res, id) => {
+      applyDismissedState(id, null);
+      queryClient.invalidateQueries({ queryKey: ["ai-quality"] });
+    },
+    onSettled: (_res, _err, id) =>
+      setPendingIds((prev) => { const next = new Set(prev); next.delete(id); return next; }),
+  });
 
   if (user && user.role !== "internal_admin") {
     return <Navigate to="/clinic/dashboard" replace />;
@@ -75,11 +117,14 @@ export default function AIQualityCorrections() {
       {/* Filter bar */}
       <div className="aiq-card aiq-card-pad">
         <div className="aiq-filterbar">
-          <div className="aiq-window">
-            {DAY_OPTIONS.map((d) => (
-              <button key={d} className={`aiq-window-btn${days === d ? " on" : ""}`} onClick={() => setDays(d)}>{d}d</button>
-            ))}
-          </div>
+          <select
+            className="rl-select"
+            style={{ border: "1px solid var(--border-default)", borderRadius: "var(--radius-md)", height: 38, padding: "0 10px", background: "#fff" }}
+            value={month}
+            onChange={(e) => setMonth(e.target.value)}
+          >
+            {monthOptions().map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+          </select>
           <div className="aiq-tbl-search" style={{ width: 280 }}>
             <span className="rl-search-ic"><Search size={15} /></span>
             <input placeholder="Filter by field path…" value={field} onChange={(e) => setField(e.target.value)} />
@@ -106,7 +151,14 @@ export default function AIQualityCorrections() {
       ) : (
         <div className="aiq-corr-list">
           {accumulated.map((c, i) => (
-            <CorrectionRow key={c.id ?? `${c.referral_id}-${c.field_path}-${c.edited_at}-${i}`} correction={c} />
+            <CorrectionRow
+              key={c.id ?? `${c.referral_id}-${c.field_path}-${c.edited_at}-${i}`}
+              correction={c}
+              dismissable
+              busy={!!c.id && pendingIds.has(c.id)}
+              onDismiss={(id) => dismissMutation.mutate(id)}
+              onRestore={(id) => restoreMutation.mutate(id)}
+            />
           ))}
         </div>
       )}
