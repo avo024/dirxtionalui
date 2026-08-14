@@ -626,6 +626,17 @@ export const adminApi = {
   },
 
   // ── Return an approved referral to review ────────────────────────
+  // Reset a sent referral for resend (failed fax / delivery issue) — clears
+  // the delivery-issue flag; the admin then re-sends via the normal Send flow.
+  async resendReferral(id: string, reason?: string): Promise<{ status: string; message: string }> {
+    const response = await fetch(`${API_BASE_URL}/admin/referrals/${id}/resend`, {
+      method: 'POST',
+      headers: await getHeaders(),
+      body: JSON.stringify(reason ? { reason } : {}),
+    });
+    return handleResponse(response);
+  },
+
   async unapproveReferral(id: string, reason?: string): Promise<{ status: string; message: string }> {
     const response = await fetch(`${API_BASE_URL}/admin/referrals/${id}/unapprove`, {
       method: 'POST',
