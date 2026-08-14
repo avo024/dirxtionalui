@@ -26,7 +26,7 @@ const FILTERS = [
 // first); the rest filter the month-scoped load client-side as before.
 // Server-side views (all-time, filtered by the backend): the two PA tabs plus
 // the dashboard's task-replies drill-in (not a visible tab — reached via card).
-const PA_VIEWS = new Set(["pa_pending", "appeal", "task_replies"]);
+const PA_VIEWS = new Set(["pa_pending", "appeal", "task_replies", "delivery_issues"]);
 function matchesFilter(r: any, f: string) {
   if (f === "all") return true;
   if (f === "needs_review")
@@ -65,6 +65,9 @@ function ClockChip({ r }: { r: any }) {
   );
 }
 
+const DeliveryIssueTag = () => (
+  <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 9999, background: "color-mix(in srgb, var(--color-error) 14%, transparent)", color: "var(--color-error)" }}><AlertTriangle size={10} />DELIVERY ISSUE</span>
+);
 const UrgentTag = () => (
   <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 9999, background: "color-mix(in srgb, var(--color-error) 14%, transparent)", color: "var(--color-error)" }}><AlertTriangle size={10} />URGENT</span>
 );
@@ -226,6 +229,13 @@ export default function AdminReferralsList() {
         </div>
       </div>
 
+      {activeFilter === "delivery_issues" && (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, padding: "9px 13px", borderRadius: "var(--radius-md)", background: "color-mix(in srgb, var(--color-error) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--color-error) 35%, transparent)", fontSize: 13, fontWeight: 600, color: "var(--color-error)" }}>
+          <AlertTriangle size={15} />
+          Referrals with reported delivery issues — check with the pharmacy, then reset for resend or resolve the case
+          <button className="rw-btn outline sm" style={{ marginLeft: "auto" }} onClick={() => handleFilter("needs_review")}>Back to queue</button>
+        </div>
+      )}
       {activeFilter === "task_replies" && (
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, padding: "9px 13px", borderRadius: "var(--radius-md)", background: "color-mix(in srgb, var(--color-warning) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--color-warning) 35%, transparent)", fontSize: 13, fontWeight: 600, color: "#92610B" }}>
           <ClipboardCheck size={15} />
@@ -299,7 +309,7 @@ export default function AdminReferralsList() {
                     {paView && <ClockChip r={r} />}
                     {r.pa_status === "appeal" && <UrgentTag />}
                   </span></td>
-                  <td><span style={{ display: "inline-flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}><StatusBadge status={r.status} />{r.insurance_expired && <ExpiredTag />}{(r.open_task_count ?? 0) > 0 && <TaskTag n={r.open_task_count} />}</span></td>
+                  <td><span style={{ display: "inline-flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}><StatusBadge status={r.status} />{r.insurance_expired && <ExpiredTag />}{r.delivery_issue_at && <DeliveryIssueTag />}{(r.open_task_count ?? 0) > 0 && <TaskTag n={r.open_task_count} />}</span></td>
                   <td className="dh-muted-cell">{r.pharmacy_name || "—"}</td>
                   <td className="dh-muted-cell">{r.created_at ? formatDateShort(r.created_at) : "—"}</td>
                   <td className="r" onClick={(e) => e.stopPropagation()}>

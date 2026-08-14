@@ -69,6 +69,10 @@ function NextStepStrip({ referral, referralId }: { referral: any; referralId: st
 
   if (s === "processing") { tone = "wait"; text = "AI is extracting the documents — nothing to do here yet."; }
   else if (s === "rejected") { tone = "wait"; text = "Waiting on the clinic to fix and resubmit."; }
+  else if (s === "sent_to_pharmacy" && referral.delivery_issue_at) {
+    tone = "urgent";
+    text = "Delivery issue reported — the clinic says the pharmacy never received it. Check with the pharmacy, then Reset for resend or resolve the case.";
+  }
   else if (s === "sent_to_pharmacy") { tone = "done"; text = "Sent to the pharmacy — done unless a delivery issue comes in."; }
   else if (paRelevant && pa === "appeal") {
     tone = "urgent";
@@ -162,6 +166,7 @@ export default function AdminReferralReview() {
   const [rejectOpen, setRejectOpen] = useState(false);
   const [deliverOpen, setDeliverOpen] = useState(false);
   const [returnOpen, setReturnOpen] = useState(false);
+  const [resendOpen, setResendOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [rejecting, setRejecting] = useState(false);
   const [editedData, setEditedData] = useState<any>(null);
@@ -1188,6 +1193,12 @@ export default function AdminReferralReview() {
                 </>
               );
             })()}
+            {referral.status === 'sent_to_pharmacy' && (
+              <button className={referral.delivery_issue_at ? "rw-btn arr-btn-reject" : "rw-btn outline"} onClick={() => setResendOpen(true)}
+                title="Reset this sent referral so it can be delivered again (failed fax / delivery issue)">
+                <RefreshCw size={15} />Reset for resend
+              </button>
+            )}
             {referral.status === 'approved_to_send' && (
               (() => {
                 // Approval evidence = uploaded letter OR a recorded approval with
@@ -1217,6 +1228,25 @@ export default function AdminReferralReview() {
           </div>
         </div>
       )}
+
+      {/* Reset-for-resend modal — failed fax / delivery issue */}
+      <ConfirmModal
+        open={resendOpen}
+        onOpenChange={setResendOpen}
+        title="Reset for resend?"
+        description="Moves this referral back to Ready to Send so you can send it to the pharmacy again (clears any delivery-issue flag). The clinic briefly sees 'Ready to send' until it's re-sent — expected."
+        confirmLabel="Reset for resend"
+        onConfirm={async () => {
+          try {
+            await adminApi.resendReferral(id!);
+            const data = await adminApi.getReferral(id!);
+            setReferral({ ...data, drug: data.drug_requested, blocked: data.preferred_pharmacy_blocked });
+            toast({ title: "Ready to resend", description: "Use Send to Pharmacy when you're ready." });
+          } catch (e: any) {
+            toast({ title: "Couldn't reset", description: e.message, variant: "destructive" });
+          }
+        }}
+      />
 
       {/* Return-to-review modal — reverse an approval before it's sent */}
       <ConfirmModal

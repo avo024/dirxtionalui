@@ -122,6 +122,23 @@ export default function AdminDashboard() {
         </Link>
       )}
 
+      {/* Delivery issues — the pharmacy says it never arrived; highest urgency */}
+      {(paCounts.delivery_issues ?? 0) > 0 && (
+        <Link to="/admin/referrals?filter=delivery_issues" className="dh-action-card destructive" style={{ marginBottom: 14 }}>
+          <StatIcon tone="destructive" icon={AlertTriangle} size={20} />
+          <div className="dh-action-meta">
+            <div className="dh-action-head">
+              <span className="dh-action-val num">{paCounts.delivery_issues}</span>
+              <span className="dh-action-lbl">Delivery issue{paCounts.delivery_issues === 1 ? "" : "s"}</span>
+            </div>
+            <span className="dh-action-sub">
+              The clinic reports the pharmacy never received it — check with the pharmacy, then reset for resend or resolve the case
+            </span>
+          </div>
+          <span className="dh-action-arrow"><ArrowRight size={16} /></span>
+        </Link>
+      )}
+
       {/* Task replies to review — the clinic answered; an admin needs to
           review the reply/upload and mark the task complete. */}
       {(paCounts.tasks_awaiting_review ?? 0) > 0 && (
