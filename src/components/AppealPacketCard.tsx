@@ -33,7 +33,7 @@ const LETTER_KIND_LABELS: Record<string, string> = {
   appeal_lmn: "Appeal + medical necessity letter",
 };
 
-const prettifyDocType = (t: string) => t.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+const prettifyDocType = (t?: string | null) => (t || "document").replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 const humanizeToken = (t: string) => t.replace(/_/g, " ");
 
 type PacketKind = "appeal" | "appeal_lmn";
