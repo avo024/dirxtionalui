@@ -218,3 +218,7 @@ That's the loop. Same as the backend, just with the extra build + CloudFront inv
 - **`dist/`** (local builds) — also in `.gitignore`
 - **`package-lock.json` mods that just show as "modified" with no real diff** — those are noise from `npm install` on different machines; `git checkout -- package-lock.json` to revert
 - **`lovable-tagger` package + the `componentTagger()` plugin call in `vite.config.ts`** — only active in dev mode, harmless to leave. If you want to clean it up later, just remove from `vite.config.ts` plugins array and uninstall the package. Not urgent.
+
+## Model Usage Policy (Alex, 2026-08-14)
+
+- Thinking/design/debug-strategy → main model (Fable/Opus tier). Coding/implementation/mechanical sweeps → delegate to **Sonnet** subagents (Agent tool, `model: "sonnet"`) when the spec is clear. Fable audits every Sonnet diff before PR.

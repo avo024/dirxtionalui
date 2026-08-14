@@ -20,17 +20,19 @@ const phiSafeOptions = {
   retry: 1,
 };
 
-export function useAIQualityOverview(days: number, formType?: string) {
+export function useAIQualityOverview(args: { month?: string; days?: number; formType?: string }) {
+  const { month, days, formType } = args;
   return useQuery<AIQualityOverview>({
-    queryKey: ["ai-quality", "overview", days, formType ?? ""],
-    queryFn: () => getOverview({ days, formType }),
+    queryKey: ["ai-quality", "overview", month ?? "", days ?? "", formType ?? ""],
+    queryFn: () => getOverview({ month, days, formType }),
     ...phiSafeOptions,
     refetchOnWindowFocus: true,
   });
 }
 
 export function useAIQualityCorrections(args: {
-  days: number;
+  month?: string;
+  days?: number;
   field?: string;
   highConfOnly?: boolean;
   limit?: number;
@@ -40,7 +42,8 @@ export function useAIQualityCorrections(args: {
     queryKey: [
       "ai-quality",
       "corrections",
-      args.days,
+      args.month ?? "",
+      args.days ?? "",
       args.field ?? "",
       !!args.highConfOnly,
       args.limit ?? 50,

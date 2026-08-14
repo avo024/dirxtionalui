@@ -74,6 +74,7 @@ export interface AIQualityCorrection {
   prompt_version?: string | null;
   edited_at: string;
   edited_by_role?: string | null;
+  dismissed_at?: string | null;
 }
 
 export interface AIQualityCorrectionsResponse {
@@ -104,25 +105,29 @@ export interface AIQualityReferralDetail {
 // ---- Endpoints -------------------------------------------------------------
 
 export async function getOverview(params: {
-  days: number;
+  month?: string;
+  days?: number;
   formType?: string;
 }): Promise<AIQualityOverview> {
   const qs = new URLSearchParams();
-  qs.set("days", String(params.days));
+  if (params.month) qs.set("month", params.month);
+  else qs.set("days", String(params.days ?? 7));
   if (params.formType) qs.set("form_type", params.formType);
   const res = await noStoreFetch(`${API_BASE_URL}/admin/extraction-quality?${qs}`);
   return handle(res);
 }
 
 export async function getCorrections(params: {
-  days: number;
+  month?: string;
+  days?: number;
   field?: string;
   highConfOnly?: boolean;
   limit?: number;
   cursor?: string;
 }): Promise<AIQualityCorrectionsResponse> {
   const qs = new URLSearchParams();
-  qs.set("days", String(params.days));
+  if (params.month) qs.set("month", params.month);
+  else qs.set("days", String(params.days ?? 7));
   if (params.field) qs.set("field", params.field);
   if (params.highConfOnly) qs.set("high_conf_only", "true");
   qs.set("limit", String(params.limit ?? 50));
@@ -136,6 +141,30 @@ export async function getCorrections(params: {
 export async function getReferralQuality(id: string): Promise<AIQualityReferralDetail> {
   const res = await noStoreFetch(
     `${API_BASE_URL}/admin/extraction-quality/referral/${encodeURIComponent(id)}`,
+  );
+  return handle(res);
+}
+
+export async function dismissCorrection(correctionId: string): Promise<{ id: string; dismissed: boolean }> {
+  const res = await fetch(
+    `${API_BASE_URL}/admin/extraction-quality/corrections/${encodeURIComponent(correctionId)}/dismiss`,
+    {
+      method: "POST",
+      headers: await getHeaders(),
+      cache: "no-store",
+    },
+  );
+  return handle(res);
+}
+
+export async function restoreCorrection(correctionId: string): Promise<{ id: string; dismissed: boolean }> {
+  const res = await fetch(
+    `${API_BASE_URL}/admin/extraction-quality/corrections/${encodeURIComponent(correctionId)}/restore`,
+    {
+      method: "POST",
+      headers: await getHeaders(),
+      cache: "no-store",
+    },
   );
   return handle(res);
 }
