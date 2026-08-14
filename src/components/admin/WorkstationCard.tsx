@@ -21,6 +21,7 @@ export function WorkstationCard({
   onToggle,
   children,
   id,
+  bare = false,
 }: {
   title: string;
   summary?: ReactNode;       // collapsed one-liner — carries the card's status
