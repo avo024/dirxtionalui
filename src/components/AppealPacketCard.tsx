@@ -428,18 +428,37 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
             </div>
           </div>
 
-          {/* 2.5 Fill in the blanks — anything the letter still can't say */}
+          {/* 2.5 Letter details — anything the letter can't pull from the
+              referral. A field STAYS editable after it's filled (typos must
+              be fixable), so the list is "ever-blank for this draft", not
+              "currently blank". */}
           {(() => {
             const severityKeys = new Set(severityFields.map((f) => f.key));
-            const blanks = missingFields.filter(
-              (k) => !BLANK_EXCLUDED.has(k) && !severityKeys.has(k) && !(fieldValues[k] || "").trim()
-            );
+            const candidates = new Set<string>();
+            missingFields.forEach((k) => {
+              if (!BLANK_EXCLUDED.has(k) && !severityKeys.has(k)) candidates.add(k);
+            });
+            // Fields Mari already answered (saved in the draft) stay visible.
+            Object.keys(fieldValues).forEach((k) => {
+              if (BLANK_FIELD_LABELS[k] && !severityKeys.has(k) && (fieldValues[k] || "").trim()) candidates.add(k);
+            });
+            const blanks = Array.from(candidates);
             if (blanks.length === 0) return null;
+            const emptyCount = blanks.filter((k) => !(fieldValues[k] || "").trim()).length;
+            const warn = emptyCount > 0;
             return (
-              <div style={{ background: "color-mix(in srgb, var(--color-warning) 7%, transparent)", border: "1px solid color-mix(in srgb, var(--color-warning) 30%, transparent)", borderRadius: "var(--radius-md)", padding: "12px 14px" }}>
-                <p className="arr-sub" style={{ margin: "0 0 2px", color: "var(--color-warning)" }}>Still blank — the letter can't say these yet</p>
+              <div style={{
+                background: warn ? "color-mix(in srgb, var(--color-warning) 7%, transparent)" : "var(--color-stone-50, transparent)",
+                border: `1px solid ${warn ? "color-mix(in srgb, var(--color-warning) 30%, transparent)" : "var(--border-default)"}`,
+                borderRadius: "var(--radius-md)", padding: "12px 14px",
+              }}>
+                <p className="arr-sub" style={{ margin: "0 0 2px", color: warn ? "var(--color-warning)" : "var(--text-muted)" }}>
+                  {warn ? "Letter details — some are still blank" : "Letter details you added"}
+                </p>
                 <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "0 0 10px" }}>
-                  Anything left empty prints as ______ in the letter. Fill them here — they save with the draft.
+                  {warn
+                    ? "Anything left empty prints as ______ in the letter. Fill them here — they save with the draft."
+                    : "These save with the draft — edit any of them anytime before sending."}
                 </p>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {blanks.map((k) => {
