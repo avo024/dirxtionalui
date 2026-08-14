@@ -475,7 +475,7 @@ function PAWorkflowCard({ referral, paInfo, referralId, onPALetterChange }: { re
           <p className="text-sm font-medium mt-1">{paNumber || "—"}</p>
         </div>
         <div>
-          <Label className="text-xs text-muted-foreground">Reference Number</Label>
+          <Label className="text-xs text-muted-foreground">CMM Access Key / Ref #</Label>
           <p className="text-sm font-medium mt-1">{refNumber || "—"}</p>
         </div>
         <div>
@@ -598,8 +598,8 @@ function PAWorkflowCard({ referral, paInfo, referralId, onPALetterChange }: { re
                     <Input value={paNumber} onChange={(e) => setPaNumber(e.target.value)} placeholder="Enter PA number" maxLength={50} className="h-8 text-sm" />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Reference Number</Label>
-                    <Input value={refNumber} onChange={(e) => setRefNumber(e.target.value)} placeholder="Enter ref number" maxLength={50} className="h-8 text-sm" />
+                    <Label className="text-xs text-muted-foreground">CMM Access Key / Ref #</Label>
+                    <Input value={refNumber} onChange={(e) => setRefNumber(e.target.value)} placeholder="CoverMyMeds key (clinic can look the PA up with it)" maxLength={50} className="h-8 text-sm" />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">PA Start Date</Label>
