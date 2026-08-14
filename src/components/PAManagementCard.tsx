@@ -37,6 +37,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { adminApi } from "@/lib/api";
 import { todayLocalISO } from "@/lib/dateUtils";
+import { ChronoSelect } from "@/components/ui/chrono-select";
 import type { Referral, ReferralPAInfo } from "@/data/mockData";
 
 export type PADecisionStatus = "not_started" | "processing" | "approved" | "denied";
@@ -409,14 +410,6 @@ function PAWorkflowCard({ referral, paInfo, referralId, onPALetterChange }: { re
     toast({ title: "PA Status Updated", description: `PA status set to ${value}.` });
   };
 
-  // Quick-set expiration relative to the start date (the common cases).
-  const setExpirationFromStart = (months: number) => {
-    const base = startDate ?? new Date();
-    if (!startDate) setStartDate(base);
-    const exp = new Date(base);
-    exp.setMonth(exp.getMonth() + months);
-    setExpirationDate(exp);
-  };
 
   const handleSendDenialToClinic = async () => {
     if (!denialReason.trim()) {
@@ -624,27 +617,21 @@ function PAWorkflowCard({ referral, paInfo, referralId, onPALetterChange }: { re
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">PA Start Date</Label>
-                    <Input
-                      type="date"
-                      value={toDateInputValue(startDate)}
-                      onChange={(e) => setStartDate(fromDateInputValue(e.target.value))}
+                    <ChronoSelect
+                      value={startDate}
+                      onChange={setStartDate}
+                      placeholder="Select date"
                       className="h-8 text-sm"
                     />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">PA Expiration Date</Label>
-                    <div className="flex items-center gap-1.5">
-                      <Input
-                        type="date"
-                        value={toDateInputValue(expirationDate)}
-                        onChange={(e) => setExpirationDate(fromDateInputValue(e.target.value))}
-                        className="h-8 text-sm"
-                      />
-                      <Button type="button" variant="outline" size="sm" className="h-8 px-2 text-xs whitespace-nowrap"
-                        title="6 months from the start date" onClick={() => setExpirationFromStart(6)}>+6 mo</Button>
-                      <Button type="button" variant="outline" size="sm" className="h-8 px-2 text-xs whitespace-nowrap"
-                        title="1 year from the start date" onClick={() => setExpirationFromStart(12)}>+1 yr</Button>
-                    </div>
+                    <ChronoSelect
+                      value={expirationDate}
+                      onChange={setExpirationDate}
+                      placeholder="Select date"
+                      className="h-8 text-sm"
+                    />
                   </div>
                 </div>
               </div>
