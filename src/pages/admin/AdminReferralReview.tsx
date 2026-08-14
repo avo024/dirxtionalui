@@ -30,6 +30,7 @@ import { useAdminProfile } from "@/hooks/useAdminProfile";
 import { AdminRejectModal, FLAGGABLE_FIELDS, type RejectPayload } from "@/components/AdminRejectModal";
 import { EligibilityPanel } from "@/components/EligibilityPanel";
 import { PAAppealCard } from "@/components/PAAppealCard";
+import { AppealPacketCard } from "@/components/AppealPacketCard";
 import { ReferralTasksCard } from "@/components/ReferralTasksCard";
 import "../clinic/wizard.css";
 import "./admin-referral-review.css";
@@ -64,7 +65,7 @@ function NextStepStrip({ referral, referralId }: { referral: any; referralId: st
   // flags — derive overdue locally (same 72h rule).
   const isOverdue = (iso?: string | null) => !!iso && Date.now() > new Date(iso).getTime() + 72 * 3600_000;
 
-  let tone: "work" | "wait" | "urgent" | "done" = "wait";
+  let tone: "work" | "wait" | "urgent" | "done" | "amber" = "wait";
   let text = "";
 
   if (s === "processing") { tone = "wait"; text = "AI is extracting the documents — nothing to do here yet."; }
@@ -74,6 +75,10 @@ function NextStepStrip({ referral, referralId }: { referral: any; referralId: st
     text = "Delivery issue reported — the clinic says the pharmacy never received it. Check with the pharmacy, then Reset for resend or resolve the case.";
   }
   else if (s === "sent_to_pharmacy") { tone = "done"; text = "Sent to the pharmacy — done unless a delivery issue comes in."; }
+  else if (paRelevant && pa === "appeal" && !referral.appeal_started_at) {
+    tone = "amber";
+    text = "Appeal open — packet not sent yet. Build and fax the appeal packet below.";
+  }
   else if (paRelevant && pa === "appeal") {
     tone = "urgent";
     text = isOverdue(referral.appeal_started_at)
@@ -108,6 +113,7 @@ function NextStepStrip({ referral, referralId }: { referral: any; referralId: st
     wait:   { bg: "color-mix(in srgb, var(--text-muted) 7%, transparent)", fg: "var(--text-muted)", border: "var(--border-default)" },
     urgent: { bg: "color-mix(in srgb, var(--color-error) 8%, transparent)", fg: "var(--color-error)", border: "color-mix(in srgb, var(--color-error) 35%, transparent)" },
     done:   { bg: "color-mix(in srgb, var(--color-success) 8%, transparent)", fg: "var(--color-success)", border: "color-mix(in srgb, var(--color-success) 30%, transparent)" },
+    amber:  { bg: "color-mix(in srgb, var(--color-warning) 8%, transparent)", fg: "var(--color-warning)", border: "color-mix(in srgb, var(--color-warning) 35%, transparent)" },
   };
   const t = style[tone];
   return (
@@ -117,7 +123,7 @@ function NextStepStrip({ referral, referralId }: { referral: any; referralId: st
       background: t.bg, border: `1px solid ${t.border}`, color: t.fg,
       fontSize: 13.5, fontWeight: 600,
     }}>
-      {tone === "urgent" ? <AlertTriangle size={15} /> : <ArrowLeft size={15} style={{ transform: "rotate(225deg)" }} />}
+      {tone === "urgent" || tone === "amber" ? <AlertTriangle size={15} /> : <ArrowLeft size={15} style={{ transform: "rotate(225deg)" }} />}
       <span style={{ flex: 1 }}>
         Next step: {text}
         {openTaskCount > 0 && <span style={{ fontWeight: 500 }}> · Also waiting on the clinic for {openTaskCount} task{openTaskCount === 1 ? "" : "s"}.</span>}
@@ -647,6 +653,18 @@ export default function AdminReferralReview() {
                   const mapped = { ...data, drug: data.drug_requested, blocked: data.preferred_pharmacy_blocked };
                   setReferral(mapped);
                 }} />
+
+                {/* Appeal packet builder — assembles + faxes the level-1 appeal packet */}
+                <AppealPacketCard
+                  referralId={id!}
+                  paStatus={referral?.pa_status}
+                  appealStartedAt={referral?.appeal_started_at}
+                  onChanged={async () => {
+                    const data = await adminApi.getReferral(id!);
+                    const mapped = { ...data, drug: data.drug_requested, blocked: data.preferred_pharmacy_blocked };
+                    setReferral(mapped);
+                  }}
+                />
 
                 {/* Clinic tasks + share-a-document (admin ↔ clinic on this referral) */}
                 <ReferralTasksCard

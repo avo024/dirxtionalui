@@ -491,6 +491,73 @@ export interface ReferralTask {
   document_count: number;
 }
 
+// ── Appeal packet (fax builder) ─────────────────────────────────
+export interface AppealPacketFieldDef {
+  key: string;
+  label: string;
+}
+
+export interface AppealPacketDrugRegistry {
+  drug_name: string;
+  single_appeal: boolean;
+  has_bridge: boolean;
+  bridge_duration_months: number | null;
+  bridge_notes: string | null;
+}
+
+export interface AppealPacketDocument {
+  id: string;
+  doc_type: string;
+  filename: string;
+}
+
+export interface AppealPacket {
+  id: string | null;
+  kind: 'appeal' | 'lmn' | 'appeal_lmn';
+  status: string;
+  template_key: string | null;
+  template_title: string | null;
+  indication: string | null;
+  field_values: Record<string, string>;
+  included_document_ids: string[];
+  fax_number: string | null;
+  is_expedited: boolean;
+}
+
+export interface AppealPacketResponse {
+  packet: AppealPacket;
+  fields: Record<string, string>;
+  missing_fields: string[];
+  indication_options: string[];
+  severity_fields: AppealPacketFieldDef[];
+  drug_registry: AppealPacketDrugRegistry | null;
+  documents: AppealPacketDocument[];
+}
+
+export interface AppealPacketLetter {
+  kind: string;
+  template_key: string;
+  text: string;
+  missing_tokens: string[];
+}
+
+export interface AppealPacketPreviewResponse {
+  letters: AppealPacketLetter[];
+}
+
+export interface AppealPacketSendResponse {
+  message: string;
+  provider_fax_id: string;
+  page_count: number;
+  skipped_documents: string[];
+  submitted_at: string;
+}
+
+export interface AppealPacketMarkSubmittedResponse {
+  message: string;
+  submitted_at: string;
+}
+
 export const adminApi = {
   async getReferrals(filters?: { status?: string; month?: string; archived?: boolean; view?: string }): Promise<any> {
     const params = new URLSearchParams();
@@ -588,6 +655,59 @@ export const adminApi = {
       method: 'POST',
       headers: await getHeaders(),
       body: JSON.stringify({ outcome }),
+    });
+    return handleResponse(response);
+  },
+
+  // ── Appeal packet (fax builder) ───────────────────────────────────
+  async getAppealPacket(referralId: string): Promise<AppealPacketResponse> {
+    const response = await fetch(`${API_BASE_URL}/admin/referrals/${referralId}/appeal-packet`, {
+      headers: await getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  async saveAppealPacket(referralId: string, data: {
+    kind: 'appeal' | 'lmn' | 'appeal_lmn';
+    indication?: string | null;
+    field_values: Record<string, string>;
+    included_document_ids: string[];
+    fax_number?: string | null;
+    is_expedited: boolean;
+  }): Promise<AppealPacketResponse> {
+    const response = await fetch(`${API_BASE_URL}/admin/referrals/${referralId}/appeal-packet`, {
+      method: 'PUT',
+      headers: await getHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  async previewAppealPacket(referralId: string, data?: {
+    field_values?: Record<string, string>;
+    indication?: string;
+    kind?: 'appeal' | 'lmn' | 'appeal_lmn';
+  }): Promise<AppealPacketPreviewResponse> {
+    const response = await fetch(`${API_BASE_URL}/admin/referrals/${referralId}/appeal-packet/preview`, {
+      method: 'POST',
+      headers: await getHeaders(),
+      body: JSON.stringify(data || {}),
+    });
+    return handleResponse(response);
+  },
+
+  async sendAppealPacket(referralId: string, faxNumber?: string): Promise<AppealPacketSendResponse> {
+    const response = await fetch(`${API_BASE_URL}/admin/referrals/${referralId}/appeal-packet/send`, {
+      method: 'POST',
+      headers: await getHeaders(),
+      body: JSON.stringify(faxNumber ? { fax_number: faxNumber } : {}),
+    });
+    return handleResponse(response);
+  },
+
+  async markAppealPacketSubmitted(referralId: string): Promise<AppealPacketMarkSubmittedResponse> {
+    const response = await fetch(`${API_BASE_URL}/admin/referrals/${referralId}/appeal-packet/mark-submitted`, {
+      method: 'POST', headers: await getHeaders(),
     });
     return handleResponse(response);
   },
