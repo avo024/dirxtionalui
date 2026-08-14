@@ -20,12 +20,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ChronoSelect } from "@/components/ui/chrono-select";
+// Native date inputs replaced the ChronoSelect popover — the year is typeable
+// and every change commits instantly (the popover dropped year edits on close).
+const toDateInputValue = (d?: Date) => {
+  if (!d || isNaN(d.getTime())) return "";
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+const fromDateInputValue = (v: string): Date | undefined => {
+  if (!v) return undefined;
+  const [y, m, d] = v.split("-").map(Number);
+  return new Date(y, m - 1, d); // local time — avoids the UTC off-by-one
+};
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { adminApi } from "@/lib/api";
+import { todayLocalISO } from "@/lib/dateUtils";
 import type { Referral, ReferralPAInfo } from "@/data/mockData";
 
 export type PADecisionStatus = "not_started" | "processing" | "approved" | "denied";
@@ -267,10 +278,12 @@ function PAWorkflowCard({ referral, paInfo, referralId, onPALetterChange }: { re
     if (paData.denial_reason) setDenialReason(paData.denial_reason);
     if (paData.notes) setPaNotes(paData.notes);
     if (paData.submitted_date || paData.decision_date) {
-      setStartDate(new Date(paData.submitted_date || paData.decision_date));
+      // Parse yyyy-mm-dd as LOCAL time — new Date("2030-08-30") is UTC and
+      // renders a day early in US timezones.
+      setStartDate(fromDateInputValue(String(paData.submitted_date || paData.decision_date).slice(0, 10)));
     }
     if (paData.expiration_date || referral.pa_expiration_date) {
-      setExpirationDate(new Date(paData.expiration_date || referral.pa_expiration_date));
+      setExpirationDate(fromDateInputValue(String(paData.expiration_date || referral.pa_expiration_date).slice(0, 10)));
     }
     if (paData.file_name) {
       setUploadedFile({
@@ -316,8 +329,8 @@ function PAWorkflowCard({ referral, paInfo, referralId, onPALetterChange }: { re
         }
         await adminApi.recordPADecision(referral.id, {
           decision: 'approved',
-          decision_date: new Date().toISOString().split('T')[0],
-          expiration_date: expirationDate.toISOString().split('T')[0],
+          decision_date: todayLocalISO(),
+          expiration_date: toDateInputValue(expirationDate),
           pa_number: paNumber,
           ref_number: refNumber,
           approval_duration: "",
@@ -332,7 +345,7 @@ function PAWorkflowCard({ referral, paInfo, referralId, onPALetterChange }: { re
         }
         await adminApi.recordPADecision(referral.id, {
           decision: 'denied',
-          decision_date: new Date().toISOString().split('T')[0],
+          decision_date: todayLocalISO(),
           denial_reason: denialReason,
         });
         toast({ title: "PA Denied", description: "PA denial has been recorded." });
@@ -340,8 +353,8 @@ function PAWorkflowCard({ referral, paInfo, referralId, onPALetterChange }: { re
         setTimeout(() => window.location.reload(), 1000);
       } else {
         const submissionDate = startDate
-          ? startDate.toISOString().split('T')[0]
-          : new Date().toISOString().split('T')[0];
+          ? toDateInputValue(startDate)
+          : todayLocalISO();
         await adminApi.submitPA(referral.id, submissionDate);
         if (!startDate) setStartDate(new Date());
         toast({ title: "PA Submitted", description: "Prior authorization submission date saved." });
@@ -360,8 +373,8 @@ function PAWorkflowCard({ referral, paInfo, referralId, onPALetterChange }: { re
       }
       await adminApi.recordPADecision(referral.id, {
         decision: 'approved',
-        decision_date: new Date().toISOString().split('T')[0],
-        expiration_date: expirationDate.toISOString().split('T')[0],
+        decision_date: todayLocalISO(),
+        expiration_date: toDateInputValue(expirationDate),
         pa_number: paNumber,
         ref_number: refNumber,
         approval_duration: "",
@@ -393,7 +406,7 @@ function PAWorkflowCard({ referral, paInfo, referralId, onPALetterChange }: { re
     try {
       await adminApi.recordPADecision(referral.id, {
         decision: 'denied',
-        decision_date: new Date().toISOString().split('T')[0],
+        decision_date: todayLocalISO(),
         denial_reason: denialReason,
       });
       toast({ title: "PA Denied", description: `PA denial has been recorded with reason: ${denialReason}` });
@@ -590,22 +603,20 @@ function PAWorkflowCard({ referral, paInfo, referralId, onPALetterChange }: { re
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">PA Start Date</Label>
-                    <ChronoSelect
-                      value={startDate}
-                      onChange={setStartDate}
-                      placeholder="Select date"
+                    <Input
+                      type="date"
+                      value={toDateInputValue(startDate)}
+                      onChange={(e) => setStartDate(fromDateInputValue(e.target.value))}
                       className="h-8 text-sm"
-                      yearRange={[2024, 2030]}
                     />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">PA Expiration Date</Label>
-                    <ChronoSelect
-                      value={expirationDate}
-                      onChange={setExpirationDate}
-                      placeholder="Select date"
+                    <Input
+                      type="date"
+                      value={toDateInputValue(expirationDate)}
+                      onChange={(e) => setExpirationDate(fromDateInputValue(e.target.value))}
                       className="h-8 text-sm"
-                      yearRange={[2024, 2030]}
                     />
                   </div>
                 </div>
