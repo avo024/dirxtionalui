@@ -1,5 +1,25 @@
 import { formatDistanceToNow, format } from "date-fns";
 
+/**
+ * Parse a date string SAFELY for display:
+ * - Date-only strings ("2030-08-30", e.g. pa_expiration_date, patient_dob)
+ *   are parsed as LOCAL time. `new Date("2030-08-30")` is UTC midnight, which
+ *   renders as Aug 29 in US timezones — the classic off-by-one-day bug.
+ * - Full timestamps pass through to `new Date` unchanged.
+ */
+export function parseLocalDate(dateStr: string): Date {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dateStr).trim());
+  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return new Date(dateStr);
+}
+
+/** Today's date as yyyy-mm-dd in LOCAL time (toISOString flips to tomorrow
+ *  after ~6-7 PM US time — never use it for date-only fields). */
+export function todayLocalISO(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 export function getGreeting(): string {
   const hour = new Date().getHours();
   if (hour < 12) return "Good morning";
@@ -22,7 +42,7 @@ export function getFormattedDate(date: Date = new Date()): string {
 
 export function formatDateShort(dateStr: string): string {
   try {
-    return format(new Date(dateStr), "MMM d, yyyy");
+    return format(parseLocalDate(dateStr), "MMM d, yyyy");
   } catch {
     return dateStr;
   }
@@ -30,7 +50,7 @@ export function formatDateShort(dateStr: string): string {
 
 export function formatDateTime(dateStr: string): string {
   try {
-    return format(new Date(dateStr), "MMM d, yyyy 'at' h:mm a");
+    return format(parseLocalDate(dateStr), "MMM d, yyyy 'at' h:mm a");
   } catch {
     return dateStr;
   }
@@ -44,7 +64,7 @@ export function formatDateTime(dateStr: string): string {
  */
 export function formatDateForTable(dateStr: string): string {
   try {
-    const date = new Date(dateStr);
+    const date = parseLocalDate(dateStr);
     if (isNaN(date.getTime())) return dateStr;
     const now = new Date();
     const isSameDay =

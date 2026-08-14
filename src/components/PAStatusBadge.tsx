@@ -1,6 +1,7 @@
 import { Shield, AlertTriangle, XCircle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { parseLocalDate } from "@/lib/dateUtils";
 
 const paConfig: Record<string, { label: string; className: string; icon: React.ElementType }> = {
   active: { label: "PA Active", className: "bg-success/10 text-success", icon: Shield },
@@ -34,7 +35,7 @@ export function PAStatusBadge({ status, expirationDate, className }: PAStatusBad
   const Icon = config.icon;
 
   const tooltipText = expirationDate
-    ? `${config.label} — Expires: ${new Date(expirationDate).toLocaleDateString()}`
+    ? `${config.label} — Expires: ${parseLocalDate(expirationDate).toLocaleDateString()}`
     : config.label;
 
   return (

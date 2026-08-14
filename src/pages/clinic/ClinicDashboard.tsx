@@ -16,7 +16,7 @@ import { useSupportUnread } from "@/components/support/useSupportUnread";
 import { OVERVIEW_SEEN_KEY } from "@/components/tutorials/tours";
 import { ClinicSettingsModal } from "@/components/ClinicSettingsModal";
 import { mapReferralsFromBackend } from "@/lib/dataMapper";
-import { getGreeting, getFormattedDate, formatDateShort } from "@/lib/dateUtils";
+import { getGreeting, getFormattedDate, formatDateShort, parseLocalDate } from "@/lib/dateUtils";
 import "./wizard.css";
 import "./dashboard.css";
 
@@ -86,7 +86,7 @@ export default function ClinicDashboard() {
 
   const isExpiringSoon = (p: any) => {
     if (!p.pa_expiration_date) return false;
-    const days = Math.ceil((new Date(p.pa_expiration_date).getTime() - Date.now()) / 86400000);
+    const days = Math.ceil((parseLocalDate(p.pa_expiration_date).getTime() - Date.now()) / 86400000);
     return days <= 30 && days > 0;
   };
   const patientsExpiringPA = patients.filter(isExpiringSoon);

@@ -5,7 +5,7 @@ import {
   Loader2, Pencil, Save, X, Eye, AlertTriangle, Check,
 } from "lucide-react";
 import { clinicApi } from "@/lib/api";
-import { formatDateShort } from "@/lib/dateUtils";
+import { formatDateShort, parseLocalDate } from "@/lib/dateUtils";
 import { toast } from "sonner";
 import "./wizard.css";
 import "./patient.css";
@@ -25,7 +25,7 @@ const formatDateForInput = (s: string | null | undefined): string => {
   return d.toISOString().split("T")[0];
 };
 const getAge = (dob: string) => {
-  const b = new Date(dob);
+  const b = parseLocalDate(dob);
   const t = new Date();
   let age = t.getFullYear() - b.getFullYear();
   const m = t.getMonth() - b.getMonth();
@@ -43,7 +43,7 @@ function getDrugPABadge(drug: any): { label: string; tone: Tone } {
   if (drug.pa_status === "denied") return { label: "PA Denied", tone: "error" };
   if (["pending", "submitted", "processing"].includes(drug.pa_status)) return { label: "PA Pending", tone: "warning" };
   if (drug.pa_status === "approved" && drug.pa_expiration_date) {
-    const exp = new Date(drug.pa_expiration_date);
+    const exp = parseLocalDate(drug.pa_expiration_date);
     if (exp < today) return { label: "PA Expired", tone: "error" };
     const days = Math.ceil((exp.getTime() - today.getTime()) / 86400000);
     if (days <= 30) return { label: "PA Expiring Soon", tone: "warning" };
@@ -137,8 +137,8 @@ export default function PatientDetail() {
 
   const sortedMedications = useMemo(() => [...medications].sort((a, b) => {
     if (a.is_active !== b.is_active) return a.is_active ? -1 : 1;
-    const ad = a.pa_expiration_date ? new Date(a.pa_expiration_date).getTime() : Infinity;
-    const bd = b.pa_expiration_date ? new Date(b.pa_expiration_date).getTime() : Infinity;
+    const ad = a.pa_expiration_date ? parseLocalDate(a.pa_expiration_date).getTime() : Infinity;
+    const bd = b.pa_expiration_date ? parseLocalDate(b.pa_expiration_date).getTime() : Infinity;
     return ad - bd;
   }), [medications]);
 
@@ -241,7 +241,7 @@ function TabHistory({ medsLoading, medications, referrals, navigate, patientId }
   const today = new Date();
   const activeDrugs = medications.filter((m: any) => m.is_active);
   const drug = [...activeDrugs].sort((a, b) => new Date(b.last_filled || b.created_at || 0).getTime() - new Date(a.last_filled || a.created_at || 0).getTime())[0] || null;
-  const exp = drug?.pa_expiration_date ? new Date(drug.pa_expiration_date) : null;
+  const exp = drug?.pa_expiration_date ? parseLocalDate(drug.pa_expiration_date) : null;
   const isExpired = exp && exp < today;
   const days = exp ? Math.ceil((exp.getTime() - today.getTime()) / 86400000) : null;
   const isExpiringSoon = days !== null && days > 0 && days <= 30;

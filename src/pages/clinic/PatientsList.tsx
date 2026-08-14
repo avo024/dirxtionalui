@@ -7,7 +7,7 @@ import {
 import { PAStatusBadge } from "@/components/PAStatusBadge";
 import { clinicApi } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
-import { formatDateShort } from "@/lib/dateUtils";
+import { formatDateShort, parseLocalDate } from "@/lib/dateUtils";
 import "./wizard.css";
 import "./dashboard.css";
 import "./referrals.css";
@@ -39,7 +39,7 @@ function pageWindow(total: number, cur: number): (number | "…")[] {
   return out;
 }
 function getAge(dob: string) {
-  const b = new Date(dob), t = new Date();
+  const b = parseLocalDate(dob), t = new Date();
   let age = t.getFullYear() - b.getFullYear();
   const m = t.getMonth() - b.getMonth();
   if (m < 0 || (m === 0 && t.getDate() < b.getDate())) age--;
