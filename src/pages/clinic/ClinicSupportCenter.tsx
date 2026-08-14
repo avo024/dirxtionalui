@@ -16,6 +16,7 @@ import { getRelativeTime, formatDateTime } from "@/lib/dateUtils";
 import { SupportStatusBadge } from "@/components/SupportStatusBadge";
 import { TutorialsMenu } from "@/components/tutorials/TutorialsMenu";
 import { useTour } from "@/components/tutorials/useTour";
+import { useSupportUnread } from "@/components/support/useSupportUnread";
 import "./wizard.css";
 import "./dashboard.css";
 import "./referral-detail.css";
@@ -39,6 +40,13 @@ export default function ClinicSupportCenter() {
   const caseParam = searchParams.get("case");
   const [view, setView] = useState<View>(() => caseParam ? { name: "case", id: caseParam } : { name: "panel" });
   const { runTour } = useTour();
+  const { bump } = useSupportUnread();
+
+  // Visiting Help & Support always clears the unread pill — not just the
+  // dashboard banner path (that's the only place bump() was previously wired).
+  useEffect(() => {
+    bump();
+  }, [bump]);
 
   // Keep the case view in the URL (?case=...) so browser back/forward — e.g.
   // case -> open referral -> back — restores exactly where you were.

@@ -5,6 +5,7 @@ import {
   Loader2, Pencil, Save, X, Eye, AlertTriangle, Check,
 } from "lucide-react";
 import { clinicApi } from "@/lib/api";
+import { mapReferralsFromBackend } from "@/lib/dataMapper";
 import { formatDateShort, parseLocalDate } from "@/lib/dateUtils";
 import { toast } from "sonner";
 import "./wizard.css";
@@ -132,7 +133,7 @@ export default function PatientDetail() {
   }, [id]);
   useEffect(() => {
     if (!id) return;
-    clinicApi.getReferrals().then((data) => setReferrals((data.items || []).filter((r: any) => r.patient_id === id))).catch(() => setReferrals([]));
+    clinicApi.getReferrals().then((data) => setReferrals(mapReferralsFromBackend(data.items || []).filter((r: any) => r.patient_id === id))).catch(() => setReferrals([]));
   }, [id]);
 
   const sortedMedications = useMemo(() => [...medications].sort((a, b) => {

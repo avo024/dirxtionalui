@@ -337,23 +337,42 @@ export default function CreateReferral() {
 
       const referral = await clinicApi.createReferral(referralPayload);
 
+      // A failed upload must never be silent — the referral would sit in the
+      // admin queue missing documents with no signal to anyone.
+      const failedUploads: string[] = [];
+      let succeededUploads = 0;
       if (uploadedFiles.length > 0) {
         for (const f of uploadedFiles) {
           if (f.file) {
             const docType = isPacket ? "packet" : (f.zone || "additional");
             try {
               await clinicApi.uploadDocument(referral.id, f.file, docType);
+              succeededUploads++;
             } catch (err) {
               console.error("File upload failed:", err);
+              failedUploads.push(f.file.name);
             }
           }
         }
       }
+      if (failedUploads.length > 0) {
+        toast({
+          title: `${failedUploads.length} document${failedUploads.length === 1 ? "" : "s"} failed to upload`,
+          description: `${failedUploads.join(", ")} — open this referral from your dashboard to attach ${failedUploads.length === 1 ? "it" : "them"}.`,
+          variant: "destructive",
+          duration: 12000,
+        });
+      }
 
-      try {
-        await clinicApi.finalizeReferral(referral.id);
-      } catch (err) {
-        console.warn("Finalize call failed (admin can retry manually):", err);
+      // Only kick off AI extraction if at least one document made it up (or
+      // none were expected). With zero documents there is nothing to extract.
+      if (succeededUploads > 0 || failedUploads.length === 0) {
+        try {
+          await clinicApi.finalizeReferral(referral.id);
+        } catch (err) {
+          console.warn("Finalize call failed (admin can retry manually):", err);
+          toast({ title: "Referral submitted, but processing didn't start", description: "Our team will pick it up — no action needed unless they reach out.", duration: 9000 });
+        }
       }
 
       setSubmitting(false);

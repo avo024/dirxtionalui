@@ -188,21 +188,33 @@ export default function AdminReferralReview() {
     if (!id) return;
     setAttachingNote(true);
     try {
-      await adminApi.uploadAdminDocument(id, file, "team_document");
-      const content = `📎 Attached document: ${file.name}`;
-      const result = await adminApi.addReferralNote(id, content);
-      const fallbackName = adminProfile && (adminProfile.first_name || adminProfile.last_name)
-        ? `${adminProfile.first_name || ''} ${adminProfile.last_name || ''}`.trim()
-        : 'Admin';
-      setNotes((prev) => [...prev, { id: result.id, author_type: 'admin', author_name: fallbackName, content, created_at: new Date().toISOString(), ...result }]);
+      // Upload failure is a real failure — nothing was shared or noted.
+      try {
+        await adminApi.uploadAdminDocument(id, file, "team_document");
+      } catch (err: any) {
+        toast({ title: "Attach failed", description: err.message, variant: "destructive" });
+        return;
+      }
+
+      // Upload succeeded — a note-post failure is a partial failure, not a
+      // total one. The document is already shared with the clinic.
+      try {
+        const content = `📎 Attached document: ${file.name}`;
+        const result = await adminApi.addReferralNote(id, content);
+        const fallbackName = adminProfile && (adminProfile.first_name || adminProfile.last_name)
+          ? `${adminProfile.first_name || ''} ${adminProfile.last_name || ''}`.trim()
+          : 'Admin';
+        setNotes((prev) => [...prev, { id: result.id, author_type: 'admin', author_name: fallbackName, content, created_at: new Date().toISOString(), ...result }]);
+        toast({ title: "Document attached", description: `${file.name} — saved to Documents, shared with the clinic, noted in the timeline.` });
+        setTimeout(() => notesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+      } catch (err: any) {
+        toast({ title: "Document attached — but the note failed to post", description: err.message, variant: "destructive" });
+      }
+
       try {
         const docsRes = await adminApi.getReferralDocuments(id);
         setDocuments(docsRes.items || docsRes || []);
       } catch { /* list refresh is best-effort */ }
-      toast({ title: "Document attached", description: `${file.name} — saved to Documents, shared with the clinic, noted in the timeline.` });
-      setTimeout(() => notesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
-    } catch (err: any) {
-      toast({ title: "Attach failed", description: err.message, variant: "destructive" });
     } finally {
       setAttachingNote(false);
       if (noteFileRef.current) noteFileRef.current.value = "";
@@ -637,7 +649,16 @@ export default function AdminReferralReview() {
                 }} />
 
                 {/* Clinic tasks + share-a-document (admin ↔ clinic on this referral) */}
-                <ReferralTasksCard referralId={id!} adminFirstName={adminProfile?.first_name} />
+                <ReferralTasksCard
+                  referralId={id!}
+                  adminFirstName={adminProfile?.first_name}
+                  onShared={async () => {
+                    try {
+                      const docsRes = await adminApi.getReferralDocuments(id!);
+                      setDocuments(docsRes.items || docsRes || []);
+                    } catch { /* list refresh is best-effort */ }
+                  }}
+                />
 
                 {/* Card 5: Diagnosis & Clinical */}
                 <div className="arr-card">
@@ -1118,7 +1139,7 @@ export default function AdminReferralReview() {
                     rows={2}
                     className="flex-1 min-h-[60px]"
                     onDragOver={(e) => e.preventDefault()}
-                    onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files?.[0]; if (f) attachViaNote(f); }}
+                    onDrop={(e) => { e.preventDefault(); if (attachingNote) return; const f = e.dataTransfer.files?.[0]; if (f) attachViaNote(f); }}
                   />
                   <Button
                     size="icon"

@@ -11,9 +11,10 @@ import { getRelativeTime } from "@/lib/dateUtils";
  * here. Also hosts the admin document upload (appeal outcomes, payer
  * letters) — those docs appear to the clinic as "From your Dirxctional team".
  */
-export function ReferralTasksCard({ referralId, adminFirstName }: {
+export function ReferralTasksCard({ referralId, adminFirstName, onShared }: {
   referralId: string;
   adminFirstName?: string | null;
+  onShared?: () => void | Promise<void>;
 }) {
   const [tasks, setTasks] = useState<ReferralTask[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,6 +76,7 @@ export function ReferralTasksCard({ referralId, adminFirstName }: {
       await adminApi.uploadAdminDocument(referralId, pendingFile, docType);
       toast({ title: "Document shared", description: "The clinic sees it under “From your Dirxctional team”." });
       setPendingFile(null);
+      await onShared?.();
     } catch (e: any) {
       toast({ title: "Upload failed", description: e.message, variant: "destructive" });
     } finally {
@@ -153,9 +155,9 @@ export function ReferralTasksCard({ referralId, adminFirstName }: {
                   </span>
                 )}
               </div>
-              <p style={{ fontSize: 13, color: "var(--text-body)", margin: "6px 0 0", lineHeight: 1.5 }}>{t.instructions}</p>
+              <p style={{ fontSize: 13, color: "var(--text-body)", margin: "6px 0 0", lineHeight: 1.5, overflowWrap: "anywhere" }}>{t.instructions}</p>
               {t.clinic_response && (
-                <p style={{ fontSize: 12.5, margin: "6px 0 0", padding: "7px 9px", borderRadius: "var(--radius-md)", background: "var(--color-teal-50)", color: "var(--color-teal-700)", lineHeight: 1.5 }}>
+                <p style={{ fontSize: 12.5, margin: "6px 0 0", padding: "7px 9px", borderRadius: "var(--radius-md)", background: "var(--color-teal-50)", color: "var(--color-teal-700)", lineHeight: 1.5, overflowWrap: "anywhere" }}>
                   Clinic: {t.clinic_response}
                 </p>
               )}
