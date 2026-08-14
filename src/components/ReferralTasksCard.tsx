@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { ClipboardList, Plus, Check, X, FileText, Upload, Loader2 } from "lucide-react";
+import { ClipboardList, Plus, Check, X, FileText, Upload, Loader2, Send } from "lucide-react";
 import { adminApi, type ReferralTask } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { getRelativeTime } from "@/lib/dateUtils";
@@ -64,17 +64,28 @@ export function ReferralTasksCard({ referralId, adminFirstName }: {
     } catch (e: any) { toast({ title: "Error", description: e.message, variant: "destructive" }); }
   };
 
-  const uploadDoc = async (file: File) => {
+  // Sharing is clinic-visible PHI — never auto-send on file pick. The file
+  // stages first (name, size, preview) and only "Share with clinic" sends.
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+
+  const confirmShare = async () => {
+    if (!pendingFile) return;
     setUploading(true);
     try {
-      await adminApi.uploadAdminDocument(referralId, file, docType);
+      await adminApi.uploadAdminDocument(referralId, pendingFile, docType);
       toast({ title: "Document shared", description: "The clinic sees it under “From your Dirxctional team”." });
+      setPendingFile(null);
     } catch (e: any) {
       toast({ title: "Upload failed", description: e.message, variant: "destructive" });
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
     }
+  };
+
+  const cancelShare = () => {
+    setPendingFile(null);
+    if (fileRef.current) fileRef.current.value = "";
   };
 
   const pill = (status: string) => {
@@ -158,19 +169,45 @@ export function ReferralTasksCard({ referralId, adminFirstName }: {
         </div>
       )}
 
-      {/* Share a document back to the clinic (appeal outcomes, payer letters) */}
-      <div style={{ marginTop: 12, paddingTop: 10, borderTop: "1px solid var(--border-default)", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        <select value={docType} onChange={(e) => setDocType(e.target.value as any)}
-          style={{ font: "inherit", fontSize: 12, color: "var(--text-body)", border: "1px solid var(--border-default)", borderRadius: "var(--radius-md)", padding: "6px 8px", background: "#fff" }}>
-          <option value="team_document">Document for the clinic</option>
-          <option value="appeal_document">Appeal document</option>
-          <option value="payer_correspondence">Payer correspondence</option>
-        </select>
-        <button className="rw-btn outline sm" disabled={uploading} onClick={() => fileRef.current?.click()}>
-          {uploading ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}Share with clinic
-        </button>
+      {/* Share a document back to the clinic (appeal outcomes, payer letters).
+          Two-step: pick → staged preview → confirm. Never auto-sends. */}
+      <div style={{ marginTop: 12, paddingTop: 10, borderTop: "1px solid var(--border-default)" }}>
+        {!pendingFile ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <select value={docType} onChange={(e) => setDocType(e.target.value as any)}
+              style={{ font: "inherit", fontSize: 12, color: "var(--text-body)", border: "1px solid var(--border-default)", borderRadius: "var(--radius-md)", padding: "6px 8px", background: "#fff" }}>
+              <option value="team_document">Document for the clinic</option>
+              <option value="appeal_document">Appeal document</option>
+              <option value="payer_correspondence">Payer correspondence</option>
+            </select>
+            <button className="rw-btn outline sm" onClick={() => fileRef.current?.click()}>
+              <Upload size={13} />Share with clinic…
+            </button>
+          </div>
+        ) : (
+          <div style={{ border: "1px solid var(--color-teal-100)", background: "var(--color-teal-50)", borderRadius: "var(--radius-md)", padding: "10px 12px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <FileText size={14} style={{ color: "var(--color-teal-700)", flexShrink: 0 }} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", overflowWrap: "anywhere" }}>{pendingFile.name}</span>
+              <span style={{ fontSize: 11.5, color: "var(--text-muted)" }}>{(pendingFile.size / 1024 / 1024).toFixed(2)} MB</span>
+              <button type="button" onClick={() => window.open(URL.createObjectURL(pendingFile), "_blank")}
+                style={{ font: "inherit", fontSize: 11.5, fontWeight: 600, color: "var(--color-teal-700)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
+                Preview
+              </button>
+            </div>
+            <p style={{ fontSize: 11.5, color: "var(--color-teal-700)", margin: "6px 0 8px" }}>
+              Will be shared as “{docType === "appeal_document" ? "Appeal document" : docType === "payer_correspondence" ? "Payer correspondence" : "Document for the clinic"}” — the clinic sees it under “From your Dirxctional team”.
+            </p>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button className="rw-btn primary sm" disabled={uploading} onClick={confirmShare}>
+                {uploading ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}Share with clinic
+              </button>
+              <button className="rw-btn outline sm" disabled={uploading} onClick={cancelShare}>Cancel</button>
+            </div>
+          </div>
+        )}
         <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif" style={{ display: "none" }}
-          onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadDoc(f); }} />
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) setPendingFile(f); }} />
       </div>
     </div>
   );
