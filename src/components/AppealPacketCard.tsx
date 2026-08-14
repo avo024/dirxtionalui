@@ -34,6 +34,37 @@ const LETTER_KIND_LABELS: Record<string, string> = {
 };
 
 const prettifyDocType = (t?: string | null) => (t || "document").replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
+// Fill-in-the-blanks: every letter field that can end up empty gets a plain-
+// language inline input right in the builder — Mari never hunts for where a
+// blank lives. Fields with dedicated sections above are excluded.
+const BLANK_FIELD_LABELS: Record<string, { label: string; hint?: string; textarea?: boolean }> = {
+  payer_address: { label: "Insurance company's mailing address", hint: "It's printed on the denial letter, near the appeals instructions." },
+  tb_attestation: { label: "TB screening statement", hint: "Example: Tuberculosis was ruled out by a negative QuantiFERON test on July 1, 2026.", textarea: true },
+  plan_name: { label: "Insurance plan name" },
+  member_id: { label: "Member ID" },
+  group_number: { label: "Group number" },
+  patient_name: { label: "Patient's name" },
+  patient_dob: { label: "Patient's date of birth" },
+  patient_address: { label: "Patient's address" },
+  practice_name: { label: "Practice name" },
+  practice_address: { label: "Practice address" },
+  provider_name: { label: "Doctor's name" },
+  provider_npi: { label: "Doctor's NPI" },
+  provider_specialty: { label: "Doctor's specialty" },
+  provider_phone: { label: "Office phone" },
+  provider_fax: { label: "Office fax" },
+  drug_name: { label: "Drug name" },
+  drug_generic: { label: "Drug's generic name" },
+  dose_frequency: { label: "Dose and frequency" },
+  diagnosis: { label: "Diagnosis" },
+  icd10: { label: "ICD-10 code" },
+};
+// Handled by their own sections, or harmless when empty — never shown as blanks.
+const BLANK_EXCLUDED = new Set([
+  "denial_reason", "denial_date", "case_reference", "treatment_history",
+  "clinical_justification", "letter_date", "appeals_department", "severity_insert",
+]);
 const humanizeToken = (t: string) => t.replace(/_/g, " ");
 
 type PacketKind = "appeal" | "appeal_lmn";
@@ -81,6 +112,7 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
   const [faxNumber, setFaxNumber] = useState("");
   const [isExpedited, setIsExpedited] = useState(true);
 
+  const [missingFields, setMissingFields] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -115,7 +147,11 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
     const merged: Record<string, string> = {};
     for (const key of fixedKeys) merged[key] = pv[key] ?? fields[key] ?? "";
     for (const f of data.severity_fields || []) merged[f.key] = pv[f.key] ?? fields[f.key] ?? "";
+    // Keep every other saved value too (fill-in-the-blanks answers must
+    // survive leave-and-return, not just the named sections above).
+    for (const k of Object.keys(pv)) if (!(k in merged)) merged[k] = pv[k] ?? "";
     setFieldValues(merged);
+    setMissingFields(data.missing_fields || []);
 
     setIncludedDocIds(p.included_document_ids || []);
     setFaxNumber(p.fax_number || "");
@@ -152,6 +188,7 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
     setSeverityFields(resp.severity_fields || []);
     setIndicationOptions(resp.indication_options || []);
     setDocuments(resp.documents || []);
+    setMissingFields(resp.missing_fields || []);
   };
 
   const saveDraft = async (overrides?: Partial<FormSnapshot>) => {
@@ -391,6 +428,41 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
             </div>
           </div>
 
+          {/* 2.5 Fill in the blanks — anything the letter still can't say */}
+          {(() => {
+            const severityKeys = new Set(severityFields.map((f) => f.key));
+            const blanks = missingFields.filter(
+              (k) => !BLANK_EXCLUDED.has(k) && !severityKeys.has(k) && !(fieldValues[k] || "").trim()
+            );
+            if (blanks.length === 0) return null;
+            return (
+              <div style={{ background: "color-mix(in srgb, var(--color-warning) 7%, transparent)", border: "1px solid color-mix(in srgb, var(--color-warning) 30%, transparent)", borderRadius: "var(--radius-md)", padding: "12px 14px" }}>
+                <p className="arr-sub" style={{ margin: "0 0 2px", color: "var(--color-warning)" }}>Still blank — the letter can't say these yet</p>
+                <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "0 0 10px" }}>
+                  Anything left empty prints as ______ in the letter. Fill them here — they save with the draft.
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {blanks.map((k) => {
+                    const def = BLANK_FIELD_LABELS[k] || { label: k.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) };
+                    return (
+                      <div key={k} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                        <Label className="text-xs text-muted-foreground">{def.label}</Label>
+                        {def.textarea ? (
+                          <Textarea rows={2} value={fieldValues[k] || ""} onChange={(e) => updateField(k, e.target.value)} className="text-sm" placeholder={def.hint} />
+                        ) : (
+                          <Input value={fieldValues[k] || ""} onChange={(e) => updateField(k, e.target.value)} className="h-8 text-sm" />
+                        )}
+                        {def.hint && !def.textarea && (
+                          <p style={{ fontSize: 11, color: "var(--text-muted)", margin: 0 }}>{def.hint}</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
+
           {/* 3. What goes in the packet */}
           <div>
             <p className="arr-sub" style={{ margin: "0 0 10px" }}>What goes in the packet</p>
@@ -493,7 +565,16 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
         open={sendConfirmOpen}
         onOpenChange={setSendConfirmOpen}
         title="Fax the appeal packet?"
-        description={`Fax the appeal packet to ${faxNumber}? This starts the 72-hour follow-up clock.`}
+        description={(() => {
+          const severityKeys = new Set(severityFields.map((f) => f.key));
+          const blanks = missingFields.filter(
+            (k) => !BLANK_EXCLUDED.has(k) && !severityKeys.has(k) && !(fieldValues[k] || "").trim()
+          );
+          const base = `Fax the appeal packet to ${faxNumber}? This starts the 72-hour follow-up clock.`;
+          if (blanks.length === 0) return base;
+          const names = blanks.map((k) => (BLANK_FIELD_LABELS[k]?.label || k.replace(/_/g, " "))).slice(0, 4).join(", ");
+          return `${base}\n\n⚠ The letter still has ${blanks.length} blank${blanks.length === 1 ? "" : "s"} (${names}${blanks.length > 4 ? "…" : ""}) — they'll print as ______.`;
+        })()}
         confirmLabel={sending ? "Faxing…" : "Fax the packet"}
         onConfirm={handleSend}
       />
