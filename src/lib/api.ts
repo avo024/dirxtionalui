@@ -509,6 +509,7 @@ export interface AppealPacketDocument {
   id: string;
   doc_type: string;
   filename: string;
+  uploaded_at?: string | null;
 }
 
 export interface AppealPacket {
