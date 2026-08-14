@@ -112,7 +112,9 @@ export default function ClinicDashboard() {
   };
   const actionStats = [STAT.attention, STAT.expiring]; // needs-first: red before amber
   const mutedStats = [STAT.in_review, STAT.sent];
-  const alertCount = (paExpiringSoonCount > 0 ? 1 : 0) + rejectedReferrals.length + (openTaskCount > 0 ? 1 : 0);
+  // PA-expiring is a heads-up, not an action item — it lives in its own
+  // stat box (+ the Patients page), never in the needs-attention drawer.
+  const alertCount = rejectedReferrals.length + (openTaskCount > 0 ? 1 : 0);
 
   const patientName = (p: any) => p.full_name || `${p.first_name || ""} ${p.last_name || ""}`.trim();
 
@@ -191,7 +193,7 @@ export default function ClinicDashboard() {
           <button className="dh-collapse-trig" onClick={() => setAlertsOpen((o) => !o)}>
             <span className="dh-collapse-ic"><AlertTriangle size={16} /></span>
             <span className="dh-collapse-t">Needs attention <span className="dh-collapse-n">{alertCount}</span></span>
-            <span className="dh-collapse-peek">{rejectedReferrals.length} to fix{openTaskCount > 0 ? ` · ${openTaskCount} request${openTaskCount === 1 ? "" : "s"}` : ""} · {paExpiringSoonCount} PA expiring</span>
+            <span className="dh-collapse-peek">{rejectedReferrals.length} to fix{openTaskCount > 0 ? ` · ${openTaskCount} request${openTaskCount === 1 ? "" : "s"}` : ""}</span>
             <span className="dh-collapse-chev"><ChevronDown size={16} /></span>
           </button>
           {alertsOpen && (
@@ -212,16 +214,6 @@ export default function ClinicDashboard() {
                   <div className="dh-alert-body">
                     <p className="dh-alert-t">{openTaskCount} request{openTaskCount > 1 ? "s" : ""} from your Dirxctional team</p>
                     <p className="dh-alert-s">Open the referral with the amber “Action needed” card to reply or upload.</p>
-                  </div>
-                  <span className="dh-alert-arrow"><ArrowRight size={16} /></span>
-                </Link>
-              )}
-              {patientsExpiringPA.length > 0 && (
-                <Link to="/clinic/patients?filter=expiring" className="dh-alert warn">
-                  <span className="dh-alert-ic"><AlertTriangle size={16} /></span>
-                  <div className="dh-alert-body">
-                    <p className="dh-alert-t">{patientsExpiringPA.length} patient{patientsExpiringPA.length > 1 ? "s" : ""} with PA expiring in the next 30 days</p>
-                    <p className="dh-alert-s">{patientsExpiringPA.map(patientName).join(", ")}</p>
                   </div>
                   <span className="dh-alert-arrow"><ArrowRight size={16} /></span>
                 </Link>
