@@ -394,7 +394,28 @@ function PAWorkflowCard({ referral, paInfo, referralId, onPALetterChange }: { re
 
   const handleStatusChange = (value: PADecisionStatus) => {
     setPaDecisionStatus(value);
+    // Smart defaults — PAs almost always run a year from the decision, so
+    // picking "approved" pre-fills Start = today, Expiration = +1 year
+    // (both editable; never overwrites values already entered).
+    if (value === "approved") {
+      const start = startDate ?? new Date();
+      if (!startDate) setStartDate(start);
+      if (!expirationDate) {
+        const exp = new Date(start);
+        exp.setFullYear(exp.getFullYear() + 1);
+        setExpirationDate(exp);
+      }
+    }
     toast({ title: "PA Status Updated", description: `PA status set to ${value}.` });
+  };
+
+  // Quick-set expiration relative to the start date (the common cases).
+  const setExpirationFromStart = (months: number) => {
+    const base = startDate ?? new Date();
+    if (!startDate) setStartDate(base);
+    const exp = new Date(base);
+    exp.setMonth(exp.getMonth() + months);
+    setExpirationDate(exp);
   };
 
   const handleSendDenialToClinic = async () => {
@@ -612,12 +633,18 @@ function PAWorkflowCard({ referral, paInfo, referralId, onPALetterChange }: { re
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">PA Expiration Date</Label>
-                    <Input
-                      type="date"
-                      value={toDateInputValue(expirationDate)}
-                      onChange={(e) => setExpirationDate(fromDateInputValue(e.target.value))}
-                      className="h-8 text-sm"
-                    />
+                    <div className="flex items-center gap-1.5">
+                      <Input
+                        type="date"
+                        value={toDateInputValue(expirationDate)}
+                        onChange={(e) => setExpirationDate(fromDateInputValue(e.target.value))}
+                        className="h-8 text-sm"
+                      />
+                      <Button type="button" variant="outline" size="sm" className="h-8 px-2 text-xs whitespace-nowrap"
+                        title="6 months from the start date" onClick={() => setExpirationFromStart(6)}>+6 mo</Button>
+                      <Button type="button" variant="outline" size="sm" className="h-8 px-2 text-xs whitespace-nowrap"
+                        title="1 year from the start date" onClick={() => setExpirationFromStart(12)}>+1 yr</Button>
+                    </div>
                   </div>
                 </div>
               </div>
