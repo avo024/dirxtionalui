@@ -26,6 +26,14 @@ export function mapReferralFromBackend(raw: Record<string, any>): Referral {
     ...rest
   } = raw;
 
+  // pa_data is a JSONB blob (object, or a JSON string on some paths) — surface
+  // its display fields as flat props. Without this, referral.pa_number /
+  // pa_denial_reason never existed and their rows silently never rendered.
+  let paData: Record<string, any> = {};
+  const rawPa = raw.pa_data;
+  if (rawPa && typeof rawPa === "object") paData = rawPa;
+  else if (typeof rawPa === "string") { try { paData = JSON.parse(rawPa); } catch { /* leave empty */ } }
+
   return {
     ...rest,
     drug: drug_requested ?? rest.drug ?? "",
@@ -34,6 +42,9 @@ export function mapReferralFromBackend(raw: Record<string, any>): Referral {
     patient_dob: patient_dob ?? rest.patient_dob ?? "",
     latest_admin_note_at: raw.latest_admin_note_at ?? null,
     latest_clinic_note_at: raw.latest_clinic_note_at ?? null,
+    pa_number: paData.pa_number ?? rest.pa_number ?? null,           // payer approval #
+    pa_reference: paData.reference_number ?? paData.ref_number ?? null, // CMM access key
+    pa_denial_reason: paData.denial_reason ?? rest.pa_denial_reason ?? null,
   } as unknown as Referral;
 }
 

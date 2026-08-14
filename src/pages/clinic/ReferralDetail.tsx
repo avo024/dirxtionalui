@@ -662,7 +662,11 @@ function InsurancePA({ referral, insurance, priorAuth, reloadOnUpdate, referralI
               </div></div>
               {/* CMM reference shows whenever it exists — the clinic can look
                   the PA up in CoverMyMeds themselves at any stage. */}
-              {referral.pa_number && <DlRow label="PA / CMM Number" value={referral.pa_number} mono />}
+              {/* Payer approval # (issued on approval) vs CMM access key
+                  (issued at request creation — lets the office look the PA up
+                  in CoverMyMeds at any stage). Different things, both shown. */}
+              {referral.pa_number && <DlRow label="PA Approval #" value={referral.pa_number} mono />}
+              {referral.pa_reference && <DlRow label="CMM Access Key" value={referral.pa_reference} mono />}
               {paStatus === "approved" && referral.pa_expiration_date && <DlRow label="PA Expires" value={formatDateShort(referral.pa_expiration_date)} />}
               {paStatus === "denied" && referral.pa_denial_reason && <DlRow label="Denial Reason" value={referral.pa_denial_reason} />}
               <DlRow label="PA Handled By" value={priorAuth.handled_by_us ? "Dirxctional" : "Clinic"} />
