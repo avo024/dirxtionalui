@@ -225,16 +225,28 @@ export default function ReferralDetail() {
     if (!id) return;
     setAttachingNote(true);
     try {
-      await clinicApi.uploadDocument(id, file, "other");
-      const content = `📎 Attached document: ${file.name}`;
-      const result = await clinicApi.addReferralNote(id, content);
-      setNotes((prev) => [...prev, { id: result.id, author_type: "clinic", author_name: "You", content, created_at: new Date().toISOString(), ...result }]);
+      // Upload failure is a real failure — nothing was saved or noted.
+      try {
+        await clinicApi.uploadDocument(id, file, "other");
+      } catch (err: any) {
+        toast({ title: "Attach failed", description: err.message, variant: "destructive" });
+        return;
+      }
+
+      // Upload succeeded — a note-post failure is a partial failure, not a
+      // total one. The document is already saved to Documents.
+      try {
+        const content = `📎 Attached document: ${file.name}`;
+        const result = await clinicApi.addReferralNote(id, content);
+        setNotes((prev) => [...prev, { id: result.id, author_type: "clinic", author_name: "You", content, created_at: new Date().toISOString(), ...result }]);
+        toast({ title: "Document attached", description: `${file.name} — saved to Documents, noted in the timeline.` });
+        setTimeout(() => notesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 50);
+      } catch (err: any) {
+        toast({ title: "Document attached — but the note failed to post", description: err.message, variant: "destructive" });
+      }
+
       const d = await clinicApi.getReferralDocuments(id).catch(() => ({ items: [] }));
       setDocuments(d.items || []);
-      toast({ title: "Document attached", description: `${file.name} — saved to Documents, noted in the timeline.` });
-      setTimeout(() => notesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 50);
-    } catch (err: any) {
-      toast({ title: "Attach failed", description: err.message, variant: "destructive" });
     } finally {
       setAttachingNote(false);
       if (noteFileRef.current) noteFileRef.current.value = "";
@@ -363,8 +375,12 @@ export default function ReferralDetail() {
             <p className="rd-banner-text">{referral.status === "sent_to_pharmacy" ? "This referral has been sent to the pharmacy." : "This referral is approved and on its way to the pharmacy."}</p>
             <div className="rd-banner-cols">
               <div className="rd-banner-col"><p className="bk">Pharmacy</p><div className="bv">{referral.pharmacy_name}</div></div>
-              {referral.pharmacy_location && <div className="rd-banner-col"><p className="bk">Location</p><div className="bv">{referral.pharmacy_location}</div></div>}
-              {referral.pharmacy_contact && <div className="rd-banner-col"><p className="bk">Contact</p><div className="bv">{referral.pharmacy_contact}</div></div>}
+              {[referral.pharmacy_city, referral.pharmacy_state].filter(Boolean).join(", ") && (
+                <div className="rd-banner-col"><p className="bk">Location</p><div className="bv">{[referral.pharmacy_city, referral.pharmacy_state].filter(Boolean).join(", ")}</div></div>
+              )}
+              {(referral.pharmacy_phone || referral.pharmacy_email) && (
+                <div className="rd-banner-col"><p className="bk">Contact</p><div className="bv">{referral.pharmacy_phone || referral.pharmacy_email}</div></div>
+              )}
             </div>
             {referral.status === "sent_to_pharmacy" && (
               <DeliveryIssueReporter referralId={id!} onReported={loadData} />
@@ -538,7 +554,7 @@ export default function ReferralDetail() {
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) attachViaNote(f); }} />
               <textarea placeholder="Add a note about this referral... (or attach a document with the clip)" value={newNote} onChange={(e) => setNewNote(e.target.value)} rows={2}
                 onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files?.[0]; if (f) attachViaNote(f); }} />
+                onDrop={(e) => { e.preventDefault(); if (attachingNote) return; const f = e.dataTransfer.files?.[0]; if (f) attachViaNote(f); }} />
               <button className="rw-btn primary" onClick={addNote} disabled={!newNote.trim() || sendingNote}>
                 {sendingNote ? <span className="rw-spin"><Loader2 size={15} /></span> : <Send size={15} />}
               </button>
@@ -1008,7 +1024,7 @@ function ClinicTasksPanel({ tasks, referralId, onChanged }: { tasks: any[]; refe
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {open.map((t) => (
           <div key={t.id} style={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "var(--radius)", padding: "12px 14px" }}>
-            <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.55 }}>{t.instructions}</p>
+            <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.55, overflowWrap: "anywhere" }}>{t.instructions}</p>
             <p style={{ margin: "4px 0 10px", fontSize: 11.5, color: "hsl(var(--muted-foreground))" }}>
               {t.created_by} · {formatDateShort(t.created_at)}
               {t.document_count > 0 && ` · ${t.document_count} document${t.document_count === 1 ? "" : "s"} uploaded`}

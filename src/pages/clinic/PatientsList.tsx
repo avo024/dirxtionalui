@@ -19,10 +19,16 @@ const FILTERS = [
   { value: "expiring", short: "Expiring", long: "PA Expiring Soon" },
 ];
 
+function isExpiringSoon(p: any): boolean {
+  if (!p.pa_expiration_date) return false;
+  const daysLeft = Math.ceil((parseLocalDate(p.pa_expiration_date).getTime() - Date.now()) / 86400000);
+  return daysLeft > 0 && daysLeft <= 30;
+}
+
 function matchesFilter(p: any, filter: string) {
   if (filter === "active") return p.pa_status === "approved" && p.last_drug;
   if (filter === "inactive") return !p.pa_status || p.pa_status === "none" || p.pa_status === "expired";
-  if (filter === "expiring") return p.pa_status === "expiring";
+  if (filter === "expiring") return isExpiringSoon(p);
   return true;
 }
 
