@@ -32,6 +32,8 @@ import { EligibilityPanel } from "@/components/EligibilityPanel";
 import { PAAppealCard } from "@/components/PAAppealCard";
 import { AppealPacketCard } from "@/components/AppealPacketCard";
 import { ReferralTasksCard } from "@/components/ReferralTasksCard";
+import { WorkstationCard } from "@/components/admin/WorkstationCard";
+import { computeWorkstationPlan, ALL_WORKSTATION_CARDS, type WorkstationCardKey } from "@/lib/workstationStage";
 import "../clinic/wizard.css";
 import "./admin-referral-review.css";
 
@@ -167,6 +169,27 @@ export default function AdminReferralReview() {
   const notesDeepLink = searchParams.get("tab") === "notes";
   const [referral, setReferral] = useState<any>(null);
   const [documents, setDocuments] = useState<any[]>([]);
+  // Workstation collapse state — the stage brain sets the table once per
+  // referral load; after that Mari's clicks always win (refetches never
+  // re-fold cards she opened).
+  const [wsOpen, setWsOpen] = useState<Record<string, boolean> | null>(null);
+  useEffect(() => { setWsOpen(null); }, [id]);
+  useEffect(() => {
+    if (!referral || wsOpen !== null) return;
+    const plan = computeWorkstationPlan({
+      status: referral.status,
+      paStatus: referral.pa_status,
+      paRequired: referral.pa_required,
+      insuranceExpired: referral.insurance_expired,
+      isBridgeProgram: referral.is_bridge_program,
+    });
+    const initial: Record<string, boolean> = {};
+    ALL_WORKSTATION_CARDS.forEach((k) => { initial[k] = plan.open.includes(k); });
+    setWsOpen(initial);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [referral, wsOpen]);
+  const wsIsOpen = (k: WorkstationCardKey) => wsOpen?.[k] ?? true;
+  const wsToggle = (k: WorkstationCardKey) => setWsOpen((prev) => ({ ...(prev || {}), [k]: !(prev?.[k] ?? true) }));
   const [loading, setLoading] = useState(true);
   const [approveOpen, setApproveOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
@@ -578,22 +601,25 @@ export default function AdminReferralReview() {
               {/* ── Tab 1: Summary ── */}
               <TabsContent value="summary" className="space-y-3">
                 {/* Card 1: Patient */}
-                <div className="arr-card">
-                  <div className="arr-card-head"><span className="hi"><User size={15} /></span><h3>Patient</h3></div>
+                <WorkstationCard title="Patient" open={wsIsOpen("patient")} onToggle={() => wsToggle("patient")}
+                  summary={[[patient.first_name, patient.last_name].filter(Boolean).join(" "), patient.dob && `DOB ${formatDateShort(patient.dob)}`].filter(Boolean).join(" · ") || "—"}>
                   <SummaryField label="Name" value={[patient.first_name, patient.last_name].filter(Boolean).join(" ") || null} confidence={getConf("patient.first_name")} isCritical />
                   <SummaryField label="DOB" value={patient.dob} confidence={getConf("patient.dob")} isCritical />
                   <SummaryField label="Phone" value={patient.phone_primary || patient.phone} confidence={getConf("patient.phone_primary")} />
                   <SummaryField label="Address" value={addressLine || null} />
-                </div>
+                </WorkstationCard>
 
                 {/* Card 2: Insurance */}
-                <div className={cn("arr-card", referral.insurance_expired && "warn")}>
-                  <div className="arr-card-head">
-                    <span className="hi"><CreditCard size={15} /></span><h3>Insurance</h3>
-                    {referral.insurance_expired && (
-                      <span className="he"><span className="arr-badge-expired"><AlertTriangle size={10} />Expired</span></span>
-                    )}
-                  </div>
+                <WorkstationCard title="Insurance" open={wsIsOpen("insurance")} onToggle={() => wsToggle("insurance")}
+                  tone={referral.insurance_expired ? "warn" : "neutral"}
+                  summary={referral.insurance_expired
+                    ? "⚠ Coverage expired — needs attention"
+                    : referral.is_bridge_program
+                      ? "Bridge Program"
+                      : [insurance.primary_plan_name || insurance.primary_insurance_name, insurance.primary_member_id && `ID ${insurance.primary_member_id}`].filter(Boolean).join(" · ") || "—"}>
+                  {referral.insurance_expired && (
+                    <span className="arr-badge-expired" style={{ marginBottom: 8, display: "inline-flex" }}><AlertTriangle size={10} />Expired</span>
+                  )}
                   {referral.is_bridge_program ? (
                     <div className="arr-bridge">
                       <span className="bi"><Shield size={16} /></span>
@@ -614,14 +640,14 @@ export default function AdminReferralReview() {
                       <SummaryField label="RxPCN" value={insurance.primary_rxpcn} />
                     </>
                   )}
-                </div>
+                </WorkstationCard>
 
                 {/* Insurance Eligibility (Availity check from AI extraction) */}
                 <EligibilityPanel referral={referral} referralId={id!} />
 
                 {/* Card 3: Medication */}
-                <div className="arr-card">
-                  <div className="arr-card-head"><span className="hi"><Pill size={15} /></span><h3>Medication</h3></div>
+                <WorkstationCard title="Medication" open={wsIsOpen("medication")} onToggle={() => wsToggle("medication")}
+                  summary={[drugDisplay, referral.is_bridge_program ? "Bridge — no PA" : referral.pa_required ? "PA required" : "No PA required"].filter(Boolean).join(" · ") || "—"}>
                   <SummaryField label="Drug" value={drugDisplay || null} confidence={getConf("clinical.drug_requested")} isCritical />
                   <SummaryField label="Dose" value={clinical.dose_amount} />
                   <SummaryField label="Frequency" value={clinical.dose_frequency || clinical.frequency} />
@@ -635,17 +661,23 @@ export default function AdminReferralReview() {
                       <span className="arr-chip-pa no">No PA Required</span>
                     )}
                   </div>
-                </div>
+                </WorkstationCard>
 
                 {/* Card 4: PA Management */}
-                {referral.is_bridge_program ? (
-                  <div className="arr-card bridge">
-                    <div className="arr-card-head"><span className="hi"><Shield size={15} /></span><h3>Prior Authorization</h3></div>
-                    <p className="text-sm" style={{ color: "var(--color-teal-700)" }}>PA not required for Bridge Program referrals</p>
-                  </div>
-                ) : (
-                  <PAManagementCard referral={referral} paInfo={paInfo} referralId={id!} onPALetterChange={handlePALetterChange} />
-                )}
+                <WorkstationCard title="Prior Authorization" open={wsIsOpen("pa")} onToggle={() => wsToggle("pa")} bare
+                  tone={referral.pa_status === "denied" ? "urgent" : referral.pa_status === "submitted" ? "active" : referral.pa_status === "approved" ? "done" : "neutral"}
+                  summary={referral.is_bridge_program
+                    ? "Not required — Bridge Program"
+                    : ({ pending: "Being prepared", submitted: `Filed — waiting on the payer${referral.pa_submitted_at ? ` since ${formatDateShort(referral.pa_submitted_at)}` : ""}`,
+                        approved: "Approved — verify details before sending", denied: "Denied — see the appeal cards below", appeal: "In appeal" } as Record<string, string>)[referral.pa_status] || (referral.pa_required ? "Not started" : "Not required")}>
+                  {referral.is_bridge_program ? (
+                    <div style={{ padding: "4px 18px 16px" }}>
+                      <p className="text-sm" style={{ color: "var(--color-teal-700)" }}>PA not required for Bridge Program referrals</p>
+                    </div>
+                  ) : (
+                    <PAManagementCard referral={referral} paInfo={paInfo} referralId={id!} onPALetterChange={handlePALetterChange} />
+                  )}
+                </WorkstationCard>
 
                 {/* Level-1 appeal controls (denied → start; in appeal → outcomes) */}
                 <PAAppealCard referral={referral} referralId={id!} onChanged={async () => {
@@ -679,8 +711,8 @@ export default function AdminReferralReview() {
                 />
 
                 {/* Card 5: Diagnosis & Clinical */}
-                <div className="arr-card">
-                  <div className="arr-card-head"><span className="hi"><Stethoscope size={15} /></span><h3>Diagnosis &amp; Clinical</h3></div>
+                <WorkstationCard title="Diagnosis & Clinical" open={wsIsOpen("clinical")} onToggle={() => wsToggle("clinical")}
+                  summary={[clinical.diagnosis_icd10_primary || clinical.diagnosis_icd10, clinical.diagnosis_description].filter(Boolean).join(" · ") || "—"}>
                   <SummaryField label="ICD-10" value={clinical.diagnosis_icd10_primary || clinical.diagnosis_icd10} confidence={getConf("clinical.diagnosis_icd10_primary")} isCritical />
                   <SummaryField label="Description" value={clinical.diagnosis_description} />
                   {clinical.clinical_justification && (
@@ -710,16 +742,16 @@ export default function AdminReferralReview() {
                       </div>
                     </div>
                   )}
-                </div>
+                </WorkstationCard>
 
                 {/* Card 6: Prescriber */}
-                <div className="arr-card">
-                  <div className="arr-card-head"><span className="hi"><UserRound size={15} /></span><h3>Prescriber</h3></div>
+                <WorkstationCard title="Prescriber" open={wsIsOpen("prescriber")} onToggle={() => wsToggle("prescriber")}
+                  summary={[provider.name, provider.npi && `NPI ${provider.npi}`].filter(Boolean).join(" · ") || "—"}>
                   <SummaryField label="Name" value={provider.name} />
                   <SummaryField label="NPI" value={provider.npi} confidence={getConf("provider.npi")} isCritical />
                   <SummaryField label="Phone" value={provider.phone} />
                   <SummaryField label="Fax" value={provider.fax} />
-                </div>
+                </WorkstationCard>
               </TabsContent>
 
               {/* ── Tab 2: All Fields ── */}

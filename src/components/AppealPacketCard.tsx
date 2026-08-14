@@ -256,6 +256,9 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
   const handleMarkSubmitted = async () => {
     setMarkingSubmitted(true);
     try {
+      // Flush any pending autosave first — a debounced PUT landing after the
+      // draft flips to sent would create a stray new draft and reopen the builder.
+      await flushSave();
       await adminApi.markAppealPacketSubmitted(referralId);
       toast({ title: "Marked as submitted", description: "The 72-hour follow-up clock is running." });
       setJustSubmitted(true);
