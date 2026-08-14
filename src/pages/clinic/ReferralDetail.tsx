@@ -645,6 +645,31 @@ function InsurancePA({ referral, insurance, priorAuth, reloadOnUpdate, referralI
 
       <div className="rd-status-card">
         <p className="rd-sub-label">Prior Authorization</p>
+        {/* CMM access key — front and center, self-explanatory: the clinic can
+            open this exact PA in CoverMyMeds at any stage with this key. */}
+        {referral.pa_reference && (
+          <div style={{ margin: "8px 0 12px", padding: "11px 13px", borderRadius: "var(--radius-md)", background: "var(--color-teal-50)", border: "1px solid var(--color-teal-100)" }}>
+            <p style={{ margin: 0, fontSize: 10.5, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: "var(--color-teal-700)" }}>
+              CoverMyMeds Access Key
+            </p>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "5px 0 6px" }}>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 16, fontWeight: 700, letterSpacing: ".04em", color: "var(--text-primary)" }}>
+                {referral.pa_reference}
+              </span>
+              <button
+                type="button"
+                title="Copy key"
+                onClick={() => { navigator.clipboard?.writeText(referral.pa_reference); toast({ title: "Key copied" }); }}
+                style={{ display: "inline-flex", background: "none", border: "1px solid var(--color-teal-100)", borderRadius: 6, padding: "3px 6px", cursor: "pointer", color: "var(--color-teal-700)" }}
+              >
+                <Copy size={13} />
+              </button>
+            </div>
+            <p style={{ margin: 0, fontSize: 11.5, lineHeight: 1.5, color: "var(--color-teal-700)" }}>
+              Track this prior authorization yourself anytime: enter this key at <b>covermymeds.com</b> along with the patient's last name and date of birth.
+            </p>
+          </div>
+        )}
         <div className="rd-dl">
           <DlRow label="PA Required" value={referral.pa_required ? "Yes" : "No"} />
           {referral.pa_required && (
@@ -666,7 +691,6 @@ function InsurancePA({ referral, insurance, priorAuth, reloadOnUpdate, referralI
                   (issued at request creation — lets the office look the PA up
                   in CoverMyMeds at any stage). Different things, both shown. */}
               {referral.pa_number && <DlRow label="PA Approval #" value={referral.pa_number} mono />}
-              {referral.pa_reference && <DlRow label="CMM Access Key" value={referral.pa_reference} mono />}
               {paStatus === "approved" && referral.pa_expiration_date && <DlRow label="PA Expires" value={formatDateShort(referral.pa_expiration_date)} />}
               {paStatus === "denied" && referral.pa_denial_reason && <DlRow label="Denial Reason" value={referral.pa_denial_reason} />}
               <DlRow label="PA Handled By" value={priorAuth.handled_by_us ? "Dirxctional" : "Clinic"} />
