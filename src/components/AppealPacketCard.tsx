@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { FileText, Send, Eye, CheckCircle2, AlertTriangle, Loader2, Check } from "lucide-react";
+import { formatDateShort } from "@/lib/dateUtils";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -253,6 +254,23 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
     setBuilderOpen(true);
   };
 
+  const [packetPreviewLoading, setPacketPreviewLoading] = useState(false);
+  const handlePacketPdfPreview = async () => {
+    setPacketPreviewLoading(true);
+    try {
+      await flushSave();
+      const blob = await adminApi.previewAppealPacketPdf(referralId);
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank", "noopener");
+      // Give the new tab time to grab the blob before revoking.
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (err: any) {
+      toast({ title: "Couldn't build the packet preview", description: err.message, variant: "destructive" });
+    } finally {
+      setPacketPreviewLoading(false);
+    }
+  };
+
   const handlePreview = async () => {
     setPreviewLoading(true);
     try {
@@ -504,10 +522,28 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
                       checked={includedDocIds.includes(doc.id)}
                       onCheckedChange={(checked) => toggleDoc(doc.id, !!checked)}
                     />
-                    <Label htmlFor={`packet-doc-${doc.id}`} className="text-sm font-normal">
+                    <Label htmlFor={`packet-doc-${doc.id}`} className="text-sm font-normal" style={{ minWidth: 0, flex: 1 }}>
                       {doc.filename}
-                      <span style={{ display: "block", fontSize: 11, color: "var(--text-muted)" }}>{prettifyDocType(doc.doc_type)}</span>
+                      <span style={{ display: "block", fontSize: 11, color: "var(--text-muted)" }}>
+                        {prettifyDocType(doc.doc_type)}
+                        {doc.uploaded_at ? ` · added ${formatDateShort(doc.uploaded_at)}` : ""}
+                      </span>
                     </Label>
+                    <button
+                      type="button"
+                      title="Peek at this document"
+                      onClick={async () => {
+                        try {
+                          const res = await adminApi.getDocumentUrl(doc.id);
+                          if (res?.url) window.open(res.url, "_blank", "noopener");
+                        } catch (err: any) {
+                          toast({ title: "Couldn't open document", description: err.message, variant: "destructive" });
+                        }
+                      }}
+                      style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-teal)", padding: 2, flexShrink: 0 }}
+                    >
+                      <Eye size={14} />
+                    </button>
                   </div>
                 ))}
               </div>
@@ -522,8 +558,25 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
             <p className="arr-sub" style={{ margin: "0 0 10px" }}>Send it</p>
             <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 12 }}>
               <Label className="text-xs text-muted-foreground">Insurance company's fax number</Label>
-              <Input value={faxNumber} onChange={(e) => setFaxNumber(e.target.value)} className="h-8 text-sm" placeholder="(555) 555-5555" />
-              <p style={{ fontSize: 11, color: "var(--text-muted)", margin: 0 }}>It's printed on the denial letter.</p>
+              <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
+                <span style={{
+                  fontSize: 13, fontWeight: 600, color: "var(--text-muted)",
+                  border: "1px solid hsl(var(--border))", borderRight: "none",
+                  borderRadius: "6px 0 0 6px", padding: "0 8px", height: 32,
+                  display: "inline-flex", alignItems: "center",
+                  background: "var(--color-stone-50, hsl(var(--muted)))",
+                }}>+1</span>
+                <Input
+                  value={faxNumber}
+                  onChange={(e) => setFaxNumber(e.target.value)}
+                  className="h-8 text-sm"
+                  style={{ borderRadius: "0 6px 6px 0" }}
+                  placeholder="(555) 555-5555"
+                />
+              </div>
+              <p style={{ fontSize: 11, color: "var(--text-muted)", margin: 0 }}>
+                It's printed on the denial letter. Any format works — we add the +1 and clean it up automatically.
+              </p>
             </div>
             <div className="flex items-center gap-3 mb-4">
               <Switch checked={isExpedited} onCheckedChange={setIsExpedited} id="packet-expedited" />
@@ -535,6 +588,9 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <button className="rw-btn outline sm" disabled={previewLoading} onClick={handlePreview}>
                 {previewLoading ? <Loader2 size={13} className="animate-spin" /> : <Eye size={13} />}Preview letter
+              </button>
+              <button className="rw-btn outline sm" disabled={packetPreviewLoading} onClick={handlePacketPdfPreview} title="Cover page + letters + attached documents, merged — exactly what the payer's fax prints">
+                {packetPreviewLoading ? <Loader2 size={13} className="animate-spin" /> : <FileText size={13} />}Preview whole packet
               </button>
               <button className="rw-btn primary sm" disabled={sending || !faxNumber.trim()} onClick={() => setSendConfirmOpen(true)}>
                 <Send size={13} />Fax the packet

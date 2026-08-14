@@ -509,6 +509,7 @@ export interface AppealPacketDocument {
   id: string;
   doc_type: string;
   filename: string;
+  uploaded_at?: string | null;
 }
 
 export interface AppealPacket {
@@ -694,6 +695,19 @@ export const adminApi = {
       body: JSON.stringify(data || {}),
     });
     return handleResponse(response);
+  },
+
+  async previewAppealPacketPdf(referralId: string): Promise<Blob> {
+    const response = await fetch(`${API_BASE_URL}/admin/referrals/${referralId}/appeal-packet/preview-pdf`, {
+      method: 'POST',
+      headers: await getHeaders(),
+    });
+    if (!response.ok) {
+      let msg = 'Could not build the packet preview';
+      try { msg = (await response.json()).error || msg; } catch { /* keep default */ }
+      throw new Error(msg);
+    }
+    return response.blob();
   },
 
   async sendAppealPacket(referralId: string, faxNumber?: string): Promise<AppealPacketSendResponse> {
