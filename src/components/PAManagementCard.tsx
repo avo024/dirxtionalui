@@ -209,16 +209,30 @@ function PALetterSection({ referralId, onPALetterChange }: { referralId: string;
 
   // Case B: Own letter
   if (letter) {
+    const handleDelete = async () => {
+      if (!window.confirm("Remove this PA letter from the referral? (Use this for wrong uploads — the referral can still send with a recorded PA number.)")) return;
+      setUploading(true);
+      try {
+        await adminApi.deletePALetter(referralId);
+        toast({ title: "PA letter removed" });
+        await fetchLetterInfo();
+      } catch (err: any) {
+        toast({ title: "Couldn't remove letter", description: err.message, variant: "destructive" });
+      } finally {
+        setUploading(false);
+      }
+    };
     return (
       <div className="rounded-lg border border-success/40 bg-success/5 p-4 space-y-3">
         <div className="flex items-center gap-2">
           <CheckCircle className="h-4 w-4 text-success" />
           <span className="text-sm font-medium text-foreground">PA letter on file</span>
         </div>
-        <div className="flex items-center gap-2">
-          <FileText className="h-4 w-4 text-muted-foreground" />
-          <div>
-            <p className="text-sm font-medium text-foreground">{letter.filename}</p>
+        <div className="flex items-center gap-2 min-w-0">
+          <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+          <div className="min-w-0">
+            {/* Long filenames wrap inside the box instead of overflowing */}
+            <p className="text-sm font-medium text-foreground break-all">{letter.filename}</p>
             <p className="text-xs text-muted-foreground">
               Uploaded {format(new Date(letter.uploaded_at), "MMM d, yyyy")}
             </p>
@@ -233,6 +247,16 @@ function PALetterSection({ referralId, onPALetterChange }: { referralId: string;
           >
             {uploading ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Upload className="h-3.5 w-3.5 mr-1.5" />}
             Replace
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-destructive hover:text-destructive"
+            onClick={handleDelete}
+            disabled={uploading}
+          >
+            <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+            Remove
           </Button>
         </div>
         <input ref={fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif" className="hidden" onChange={handleFileChange} />
