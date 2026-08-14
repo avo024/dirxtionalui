@@ -153,7 +153,14 @@ export function DeliveryConfirmModal({
   const isBridgeProgram = !!referral?.is_bridge_program;
   const hasPALetter = !isBridgeProgram && (paLetterInfo?.has_letter ?? false);
   const paRequired = !isBridgeProgram && (paLetterInfo?.drug_requires_pa ?? false);
-  const paMissing = paRequired && !hasPALetter;
+  // Approval evidence = uploaded letter OR a recorded approval with the PA
+  // number (CMM often issues a number, no letter — nothing exists to attach;
+  // the number prints in the fax cover sheet's PA-approved box instead).
+  const paData = typeof referral?.pa_data === "string"
+    ? (() => { try { return JSON.parse(referral.pa_data); } catch { return {}; } })()
+    : (referral?.pa_data || {});
+  const hasApprovalNumber = referral?.pa_status === "approved" && !!paData?.pa_number;
+  const paMissing = paRequired && !hasPALetter && !hasApprovalNumber;
   const alwaysIncludedCount = 1 + (hasPALetter ? 1 : 0);
   const totalAttachments = alwaysIncludedCount + includedDocIds.size;
 
@@ -280,11 +287,20 @@ export function DeliveryConfirmModal({
               </div>
             )}
 
-            {/* PA letter missing warning */}
+            {/* Approved by number, no letter — informational, not a blocker */}
+            {paRequired && !hasPALetter && hasApprovalNumber && (
+              <div className="flex items-center gap-2 text-sm">
+                <Check className="h-4 w-4 text-success shrink-0" />
+                <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <span>PA approved by number <span className="text-xs text-muted-foreground">— prints on the fax cover sheet (no letter to attach)</span></span>
+              </div>
+            )}
+
+            {/* No approval evidence at all — blocks sending */}
             {paMissing && (
               <div className="flex items-center gap-2 rounded-md bg-destructive/10 border border-destructive/30 px-3 py-2 mt-1">
                 <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
-                <span className="text-xs text-destructive">PA letter missing — upload one in the PA Management section before sending.</span>
+                <span className="text-xs text-destructive">PA approval required — upload the letter or record the approval with its PA number in PA Management.</span>
               </div>
             )}
 
