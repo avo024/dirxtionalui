@@ -7,6 +7,7 @@ import {
   Heart, ArrowRight, Printer, Download, Paperclip, ClipboardList,
 } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
+import type { ReferralStatus } from "@/types";
 import { clinicApi } from "@/lib/api";
 import { mapReferralFromBackend } from "@/lib/dataMapper";
 import { formatDateTime, formatDateShort } from "@/lib/dateUtils";
@@ -609,7 +610,7 @@ function StatusProgress({ status, desc }: { status: string; desc: string }) {
   const stopped = rejected || closed;
   return (
     <div className="rd-status-card">
-      <div className="rd-status-top"><StatusBadge status={status} size="lg" showIcon /></div>
+      <div className="rd-status-top"><StatusBadge status={status as ReferralStatus} size="lg" showIcon /></div>
       <p className="rd-status-desc">{desc}</p>
       <div className="rd-prog">
         {steps.map((s, i) => {

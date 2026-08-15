@@ -6,6 +6,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useAIQualityReferral } from "@/hooks/useAIQuality";
 import { StatusBadge } from "@/components/StatusBadge";
+import type { ReferralStatus } from "@/types";
 import { getRelativeTime } from "@/lib/dateUtils";
 import { renderFieldValue } from "@/lib/aiQualityFormat";
 import type { AIQualityCorrection, AIQualityReferralDocument } from "@/lib/aiQualityApi";
@@ -80,7 +81,7 @@ export default function AIQualityReferral() {
       <div className="aiq-ref-head">
         <Link className="aiq-back" to="/admin/ai-quality"><ArrowLeft size={15} />Back</Link>
         <span className="aiq-ref-id">{data.referral.id}</span>
-        <StatusBadge status={data.referral.status} />
+        <StatusBadge status={data.referral.status as ReferralStatus} />
         <div className="aiq-ref-meta">
           <span className="aiq-chip"><span className="k">prompt</span><span className="v">{data.referral.prompt_version || "unknown"}</span></span>
           <span className="aiq-chip"><Clock size={12} style={{ color: "var(--color-stone-400)" }} /><span className="k">updated</span><span>{getRelativeTime(data.referral.updated_at)}</span></span>
