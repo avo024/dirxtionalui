@@ -513,6 +513,18 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
                 <Label htmlFor="packet-kind-appeal-lmn" className="text-sm font-normal">Appeal letter + medical necessity letter</Label>
               </div>
             </RadioGroup>
+            {/* Mari's rule of thumb (2026-08-14): the letter choice follows the
+                denial reason — encode the judgment so it travels to PA hire #2. */}
+            <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "0 0 12px", lineHeight: 1.5 }}>
+              Which one? If the denial says the drug is <b>not on their formulary</b>, lean on the
+              medical necessity letter. For <b>step-therapy or missing-documentation</b> denials, the
+              appeal letter answers it directly. When unsure, send both.
+              {(fieldValues.denial_reason || "").toLowerCase().includes("formulary") && kind === "appeal" && (
+                <span style={{ display: "block", marginTop: 4, color: "var(--color-warning)", fontWeight: 600 }}>
+                  This denial mentions the formulary — consider including the medical necessity letter.
+                </span>
+              )}
+            </p>
             {documents.length > 0 && (
               <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 6 }}>
                 {documents.map((doc) => (
