@@ -499,6 +499,7 @@ export interface AppealPacketFieldDef {
 
 export interface AppealPacketDrugRegistry {
   drug_name: string;
+  appeal_notes?: string | null;
   single_appeal: boolean;
   has_bridge: boolean;
   bridge_duration_months: number | null;

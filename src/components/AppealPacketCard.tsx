@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConfirmModal } from "@/components/ConfirmModal";
-import { adminApi, type AppealPacketResponse, type AppealPacketFieldDef, type AppealPacketDocument, type AppealPacketLetter } from "@/lib/api";
+import { adminApi, type AppealPacketResponse, type AppealPacketFieldDef, type AppealPacketDocument, type AppealPacketLetter, type AppealPacketDrugRegistry } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 // arr-card styling lives with the admin review page; this card only renders there.
 import "@/pages/admin/admin-referral-review.css";
@@ -103,6 +103,7 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
   const [severityFields, setSeverityFields] = useState<AppealPacketFieldDef[]>([]);
   const [indicationOptions, setIndicationOptions] = useState<string[]>([]);
   const [documents, setDocuments] = useState<AppealPacketDocument[]>([]);
+  const [drugRegistry, setDrugRegistry] = useState<AppealPacketDrugRegistry | null>(null);
   const resolvedFieldsRef = useRef<Record<string, string>>({}); // prefill hints from GET only
 
   // Editable form state.
@@ -134,6 +135,7 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
     const p = data.packet;
     resolvedFieldsRef.current = data.fields || {};
     setPacketId(p.id);
+    setDrugRegistry(data.drug_registry ?? null);
     setSeverityFields(data.severity_fields || []);
     setIndicationOptions(data.indication_options || []);
     setDocuments(data.documents || []);
@@ -186,6 +188,7 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
 
   const applyServerMeta = (resp: AppealPacketResponse) => {
     setPacketId(resp.packet.id);
+    setDrugRegistry(resp.drug_registry ?? null);
     setSeverityFields(resp.severity_fields || []);
     setIndicationOptions(resp.indication_options || []);
     setDocuments(resp.documents || []);
@@ -388,6 +391,12 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
       ) : (
         // ── State C: builder open ──
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          {drugRegistry?.appeal_notes && (
+            <div style={{ background: "color-mix(in srgb, var(--color-warning) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--color-warning) 30%, transparent)", borderRadius: "var(--radius-md)", padding: "10px 14px", fontSize: 12.5, color: "var(--color-warning)", fontWeight: 600 }}>
+              ⚠ {drugRegistry.drug_name}: {drugRegistry.appeal_notes}
+            </div>
+          )}
+
           {/* 1. The denial */}
           <div>
             <p className="arr-sub" style={{ margin: "0 0 10px" }}>The denial</p>
