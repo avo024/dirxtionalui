@@ -1010,6 +1010,15 @@ function ClinicTasksPanel({ tasks, referralId, onChanged }: { tasks: any[]; refe
     }
   };
 
+  const viewAttachment = async (docId: string) => {
+    try {
+      const res = await clinicApi.getReferralDocumentUrl(referralId, docId);
+      window.open(res.url, "_blank");
+    } catch (e: any) {
+      toast({ title: "Couldn't open document", description: e.message, variant: "destructive" });
+    }
+  };
+
   return (
     <div style={{
       border: "1px solid hsl(var(--warning) / 0.5)", background: "hsl(var(--warning) / 0.08)",
@@ -1025,10 +1034,29 @@ function ClinicTasksPanel({ tasks, referralId, onChanged }: { tasks: any[]; refe
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {open.map((t) => (
           <div key={t.id} style={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "var(--radius)", padding: "12px 14px" }}>
+            {(t.attachments?.length ?? 0) > 0 && (
+              <div style={{ margin: "0 0 10px" }}>
+                <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 600, color: "hsl(var(--muted-foreground))", textTransform: "uppercase", letterSpacing: 0.3 }}>
+                  Attached for you:
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {t.attachments.map((a: any) => (
+                    <button key={a.id} type="button" onClick={() => viewAttachment(a.id)}
+                      style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", textAlign: "left", font: "inherit", fontSize: 13, padding: "8px 10px", borderRadius: "var(--radius)", border: "1px solid var(--color-teal-100)", background: "var(--color-teal-50)", color: "var(--color-teal-700)", cursor: "pointer" }}>
+                      <Paperclip size={14} style={{ flexShrink: 0 }} />
+                      <span style={{ flex: 1, overflowWrap: "anywhere", fontWeight: 600 }}>{a.filename}</span>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 600, flexShrink: 0 }}>
+                        <Download size={12} />View / Download
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.55, overflowWrap: "anywhere" }}>{t.instructions}</p>
             <p style={{ margin: "4px 0 10px", fontSize: 11.5, color: "hsl(var(--muted-foreground))" }}>
               {t.created_by} · {formatDateShort(t.created_at)}
-              {t.document_count > 0 && ` · ${t.document_count} document${t.document_count === 1 ? "" : "s"} uploaded`}
+              {(t.response_documents?.length ?? 0) > 0 && ` · ${t.response_documents.length} document${t.response_documents.length === 1 ? "" : "s"} uploaded`}
             </p>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <input
@@ -1042,7 +1070,7 @@ function ClinicTasksPanel({ tasks, referralId, onChanged }: { tasks: any[]; refe
                 {busy === t.id ? <Loader2 size={14} className="rw-spin" /> : <Send size={14} />}Reply
               </button>
               <button className="rw-btn outline sm" disabled={busy === t.id} onClick={() => fileRefs.current[t.id]?.click()}>
-                <Upload size={14} />Upload document
+                <Upload size={14} />{(t.attachments?.length ?? 0) > 0 ? "Upload the completed copy" : "Upload document"}
               </button>
               <input ref={(el) => { fileRefs.current[t.id] = el; }} type="file" accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif" style={{ display: "none" }}
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadForTask(t.id, f); }} />
