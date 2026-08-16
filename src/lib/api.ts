@@ -478,6 +478,12 @@ export interface SupportCaseDetail {
   messages: SupportMessage[];
 }
 
+export interface TaskDocument {
+  id: string;
+  filename: string;
+  doc_type: string;
+}
+
 export interface ReferralTask {
   id: string;
   referral_id: string;
@@ -489,6 +495,10 @@ export interface ReferralTask {
   responded_at: string | null;
   completed_at: string | null;
   document_count: number;
+  /** Docs the admin attached at creation — the form/letter the clinic needs. */
+  attachments: TaskDocument[];
+  /** Docs the clinic uploaded back in response. */
+  response_documents: TaskDocument[];
 }
 
 // ── Appeal packet (fax builder) ─────────────────────────────────
@@ -735,7 +745,7 @@ export const adminApi = {
     return handleResponse(response);
   },
 
-  async createTask(referralId: string, data: { instructions: string; created_by: string }): Promise<{ task: ReferralTask }> {
+  async createTask(referralId: string, data: { instructions: string; created_by: string; attachment_document_ids?: string[] }): Promise<{ task: ReferralTask }> {
     const response = await fetch(`${API_BASE_URL}/admin/referrals/${referralId}/tasks`, {
       method: 'POST',
       headers: await getHeaders(),
