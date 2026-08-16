@@ -570,6 +570,89 @@ export interface AppealPacketMarkSubmittedResponse {
   submitted_at: string;
 }
 
+// ── Manufacturer assistance enrollment (denied-referral bridge programs) ──
+export interface EnrollmentFormFile {
+  file: string;
+  label: string | null;
+  calibrated: boolean;
+}
+
+export interface EnrollmentEligibilityWarning {
+  code: string;
+  message: string;
+}
+
+export interface EnrollmentConsentEvent {
+  signer?: string;
+  [key: string]: unknown;
+}
+
+export interface EnrollmentProgram {
+  id: string;
+  program_name: string;
+  manufacturer: string;
+  bridge_kind: 'free_drug' | 'cost_share' | 'none' | string;
+  bridge_terms: string | null;
+  bridge_duration_months: number | null;
+  appeal_linkage: string | null;
+  age_max: number | null;
+  commercial_only: boolean;
+  state_exclusions: string[];
+  rems: boolean;
+  routing_mode: 'fax_to_program' | 'fax_to_specialty_pharmacy' | 'hub_runs_enrollment' | string;
+  submission_fax: string | null;
+  submission_phone: string | null;
+  portal_url: string | null;
+  eprescribe_target: string | null;
+  consent_events: EnrollmentConsentEvent[];
+  notes: string | null;
+  last_verified_on: string | null;
+  form_files: EnrollmentFormFile[];
+  eligibility_warnings: EnrollmentEligibilityWarning[];
+}
+
+export interface EnrollmentDraft {
+  id: string;
+  program_id: string;
+  form_file: string;
+  status: 'draft' | 'awaiting_signatures' | 'sent';
+  field_values: Record<string, string>;
+  commercial_confirmed: boolean;
+  fax_number: string;
+  assistance_ends_on: string | null;
+  signature_task_id: string | null;
+  signed_document_id: string | null;
+  submitted_via: string | null;
+  submitted_at: string | null;
+  updated_at: string | null;
+}
+
+export interface EnrollmentResponse {
+  programs: EnrollmentProgram[];
+  draft: EnrollmentDraft | null;
+  field_values: Record<string, string>;
+  missing_fields: string[];
+}
+
+export interface EnrollmentSendForSignaturesResponse {
+  message: string;
+  task_id: string;
+  document_id: string;
+  status: string;
+}
+
+export interface EnrollmentSubmitResponse {
+  message: string;
+  provider_fax_id: string;
+  page_count: number;
+  submitted_at: string | null;
+}
+
+export interface EnrollmentMarkSubmittedResponse {
+  message: string;
+  submitted_at: string;
+}
+
 export const adminApi = {
   async getReferrals(filters?: { status?: string; month?: string; archived?: boolean; view?: string }): Promise<any> {
     const params = new URLSearchParams();
@@ -733,6 +816,72 @@ export const adminApi = {
   async markAppealPacketSubmitted(referralId: string): Promise<AppealPacketMarkSubmittedResponse> {
     const response = await fetch(`${API_BASE_URL}/admin/referrals/${referralId}/appeal-packet/mark-submitted`, {
       method: 'POST', headers: await getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  // ── Manufacturer assistance enrollment ────────────────────────────
+  async getEnrollment(referralId: string): Promise<EnrollmentResponse> {
+    const response = await fetch(`${API_BASE_URL}/admin/referrals/${referralId}/enrollment`, {
+      headers: await getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  async saveEnrollment(referralId: string, data: {
+    program_id: string;
+    form_file: string;
+    field_values: Record<string, string>;
+    commercial_confirmed: boolean;
+    fax_number?: string | null;
+    assistance_ends_on?: string | null;
+  }): Promise<EnrollmentResponse> {
+    const response = await fetch(`${API_BASE_URL}/admin/referrals/${referralId}/enrollment`, {
+      method: 'PUT',
+      headers: await getHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  async previewEnrollmentPdf(referralId: string): Promise<Blob> {
+    const response = await fetch(`${API_BASE_URL}/admin/referrals/${referralId}/enrollment/preview-pdf`, {
+      method: 'POST',
+      headers: await getHeaders(),
+    });
+    if (!response.ok) {
+      let msg = 'Could not build the enrollment preview';
+      try { msg = (await response.json()).error || msg; } catch { /* keep default */ }
+      throw new Error(msg);
+    }
+    return response.blob();
+  },
+
+  async sendEnrollmentForSignatures(referralId: string): Promise<EnrollmentSendForSignaturesResponse> {
+    const response = await fetch(`${API_BASE_URL}/admin/referrals/${referralId}/enrollment/send-for-signatures`, {
+      method: 'POST', headers: await getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  async submitEnrollment(referralId: string, data?: {
+    signed_document_id?: string | null;
+    fax_number?: string | null;
+    assistance_ends_on?: string | null;
+  }): Promise<EnrollmentSubmitResponse> {
+    const response = await fetch(`${API_BASE_URL}/admin/referrals/${referralId}/enrollment/submit`, {
+      method: 'POST',
+      headers: await getHeaders(),
+      body: JSON.stringify(data || {}),
+    });
+    return handleResponse(response);
+  },
+
+  async markEnrollmentSubmitted(referralId: string, data?: { assistance_ends_on?: string | null }): Promise<EnrollmentMarkSubmittedResponse> {
+    const response = await fetch(`${API_BASE_URL}/admin/referrals/${referralId}/enrollment/mark-submitted`, {
+      method: 'POST',
+      headers: await getHeaders(),
+      body: JSON.stringify(data || {}),
     });
     return handleResponse(response);
   },
