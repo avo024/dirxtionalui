@@ -31,6 +31,7 @@ import { AdminRejectModal, FLAGGABLE_FIELDS, type RejectPayload } from "@/compon
 import { EligibilityPanel } from "@/components/EligibilityPanel";
 import { PAAppealCard } from "@/components/PAAppealCard";
 import { AppealPacketCard } from "@/components/AppealPacketCard";
+import { EnrollmentCard } from "@/components/EnrollmentCard";
 import { ReferralTasksCard } from "@/components/ReferralTasksCard";
 import { WorkstationCard } from "@/components/admin/WorkstationCard";
 import { computeWorkstationPlan, ALL_WORKSTATION_CARDS, type WorkstationCardKey } from "@/lib/workstationStage";
@@ -691,6 +692,19 @@ export default function AdminReferralReview() {
                   referralId={id!}
                   paStatus={referral?.pa_status}
                   appealStartedAt={referral?.appeal_started_at}
+                  onChanged={async () => {
+                    const data = await adminApi.getReferral(id!);
+                    const mapped = { ...data, drug: data.drug_requested, blocked: data.preferred_pharmacy_blocked };
+                    setReferral(mapped);
+                  }}
+                />
+
+                {/* Manufacturer assistance enrollment builder — bridge programs for
+                    a denied-referral patient, from the first denial onward */}
+                <EnrollmentCard
+                  referralId={id!}
+                  paStatus={referral?.pa_status}
+                  status={referral?.status}
                   onChanged={async () => {
                     const data = await adminApi.getReferral(id!);
                     const mapped = { ...data, drug: data.drug_requested, blocked: data.preferred_pharmacy_blocked };
