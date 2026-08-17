@@ -622,6 +622,7 @@ export interface EnrollmentDraft {
   assistance_ends_on: string | null;
   signature_task_id: string | null;
   signed_document_id: string | null;
+  adjusted_document?: { id: string; filename: string; uploaded_at: string | null } | null;
   submitted_via: string | null;
   submitted_at: string | null;
   updated_at: string | null;
@@ -632,6 +633,11 @@ export interface EnrollmentResponse {
   draft: EnrollmentDraft | null;
   field_values: Record<string, string>;
   missing_fields: string[];
+  // Blank tokens the form itself marks "(optional)" — shown as quiet
+  // fine-to-leave-blank inputs, never chased like missing_fields.
+  optional_blank_fields?: string[];
+  // False when the selected form has no calibrated fill map yet.
+  form_fillable?: boolean;
 }
 
 export interface EnrollmentSendForSignaturesResponse {
@@ -882,6 +888,27 @@ export const adminApi = {
       method: 'POST',
       headers: await getHeaders(),
       body: JSON.stringify(data || {}),
+    });
+    return handleResponse(response);
+  },
+
+  // Admin's own edited copy of the manufacturer form — replaces the
+  // generated fill for preview/signatures/fax once attached.
+  async uploadAdjustedEnrollment(referralId: string, file: File): Promise<EnrollmentResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await fetch(`${API_BASE_URL}/admin/referrals/${referralId}/enrollment/upload-adjusted`, {
+      method: 'POST',
+      headers: await getAuthHeaders(),
+      body: formData,
+    });
+    return handleResponse(response);
+  },
+
+  async removeAdjustedEnrollment(referralId: string): Promise<EnrollmentResponse> {
+    const response = await fetch(`${API_BASE_URL}/admin/referrals/${referralId}/enrollment/upload-adjusted`, {
+      method: 'DELETE',
+      headers: await getHeaders(),
     });
     return handleResponse(response);
   },

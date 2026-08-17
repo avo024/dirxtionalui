@@ -2,7 +2,11 @@ import { useEffect, useState, useRef } from "react";
 import { ClipboardList, Plus, Check, X, FileText, Upload, Loader2, Send, Paperclip, Eye, ChevronDown } from "lucide-react";
 import { adminApi, type ReferralTask, type TaskDocument } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
-import { getRelativeTime } from "@/lib/dateUtils";
+import { getRelativeTime, formatDateShort } from "@/lib/dateUtils";
+
+// Mirrors AppealPacketCard's prettifyDocType — humanize a doc_type token
+// ("chart_notes" -> "Chart Notes") for the existing-document picker.
+const prettifyDocType = (t?: string | null) => (t || "document").replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
 /**
  * Admin tasks panel — "we need something from the clinic on this referral"
@@ -30,7 +34,7 @@ export function ReferralTasksCard({ referralId, adminFirstName, onShared }: {
   // in `attachments` and gets sent as attachment_document_ids on create.
   const [attachments, setAttachments] = useState<TaskDocument[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [existingDocs, setExistingDocs] = useState<{ id: string; original_filename: string; doc_type: string }[] | null>(null);
+  const [existingDocs, setExistingDocs] = useState<{ id: string; original_filename: string; doc_type: string; uploaded_at?: string | null }[] | null>(null);
   const [loadingDocs, setLoadingDocs] = useState(false);
   const [attachUploading, setAttachUploading] = useState(false);
   const attachFileRef = useRef<HTMLInputElement>(null);
@@ -83,7 +87,7 @@ export function ReferralTasksCard({ referralId, adminFirstName, onShared }: {
     }
   };
 
-  const toggleExistingDoc = (doc: { id: string; original_filename: string; doc_type: string }) => {
+  const toggleExistingDoc = (doc: { id: string; original_filename: string; doc_type: string; uploaded_at?: string | null }) => {
     setAttachments((cur) =>
       cur.some((a) => a.id === doc.id)
         ? cur.filter((a) => a.id !== doc.id)
@@ -97,7 +101,7 @@ export function ReferralTasksCard({ referralId, adminFirstName, onShared }: {
       const res = await adminApi.uploadAdminDocument(referralId, file, "team_document");
       setAttachments((cur) => [...cur, { id: res.id, filename: res.filename, doc_type: res.doc_type }]);
       // Keep the existing-docs list in sync so it doesn't look missing if reopened.
-      setExistingDocs((cur) => (cur ? [...cur, { id: res.id, original_filename: res.filename, doc_type: res.doc_type }] : cur));
+      setExistingDocs((cur) => (cur ? [...cur, { id: res.id, original_filename: res.filename, doc_type: res.doc_type, uploaded_at: new Date().toISOString() }] : cur));
     } catch (e: any) {
       toast({ title: "Upload failed", description: e.message, variant: "destructive" });
     } finally {
@@ -230,10 +234,16 @@ export function ReferralTasksCard({ referralId, adminFirstName, onShared }: {
                     const selected = attachments.some((a) => a.id === d.id);
                     return (
                       <button key={d.id} type="button" onClick={() => toggleExistingDoc(d)}
-                        style={{ display: "flex", alignItems: "center", gap: 6, width: "100%", textAlign: "left", font: "inherit", fontSize: 12.5, padding: "5px 6px", borderRadius: "var(--radius-sm)", border: "none", cursor: "pointer", background: selected ? "var(--color-teal-50)" : "transparent", color: selected ? "var(--color-teal-700)" : "var(--text-body)" }}>
-                        <FileText size={12} style={{ flexShrink: 0 }} />
-                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.original_filename}</span>
-                        {selected && <Check size={12} style={{ marginLeft: "auto", flexShrink: 0 }} />}
+                        style={{ display: "flex", alignItems: "flex-start", gap: 6, width: "100%", textAlign: "left", font: "inherit", padding: "5px 6px", borderRadius: "var(--radius-sm)", border: "none", cursor: "pointer", background: selected ? "var(--color-teal-50)" : "transparent", color: selected ? "var(--color-teal-700)" : "var(--text-body)" }}>
+                        <FileText size={12} style={{ flexShrink: 0, marginTop: 2 }} />
+                        <span style={{ minWidth: 0, flex: 1 }}>
+                          <span style={{ display: "block", fontSize: 12.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.original_filename}</span>
+                          <span style={{ display: "block", fontSize: 11, color: selected ? "var(--color-teal-700)" : "var(--text-muted)" }}>
+                            {prettifyDocType(d.doc_type)}
+                            {d.uploaded_at ? ` · added ${formatDateShort(d.uploaded_at)}` : ""}
+                          </span>
+                        </span>
+                        {selected && <Check size={12} style={{ marginLeft: "auto", flexShrink: 0, marginTop: 2 }} />}
                       </button>
                     );
                   })
