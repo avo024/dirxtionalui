@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { ClipboardList, Plus, Check, X, FileText, Upload, Loader2, Send, Paperclip, Eye, ChevronDown } from "lucide-react";
+import { ClipboardList, Plus, Check, X, FileText, Upload, Loader2, Send, Paperclip, Eye, ChevronDown, Pencil } from "lucide-react";
 import { adminApi, type ReferralTask, type TaskDocument } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { getRelativeTime, formatDateShort } from "@/lib/dateUtils";
@@ -38,6 +38,16 @@ export function ReferralTasksCard({ referralId, adminFirstName, onShared }: {
   const [loadingDocs, setLoadingDocs] = useState(false);
   const [attachUploading, setAttachUploading] = useState(false);
   const attachFileRef = useRef<HTMLInputElement>(null);
+
+  // Inline edit (open tasks only) — instructions + add-only attachments.
+  // Reuses `existingDocs` (same referral doc list) so it doesn't refetch.
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
+  const [editAttachments, setEditAttachments] = useState<TaskDocument[]>([]);
+  const [editPickerOpen, setEditPickerOpen] = useState(false);
+  const [editAttachUploading, setEditAttachUploading] = useState(false);
+  const editAttachFileRef = useRef<HTMLInputElement>(null);
 
   const actor = (adminFirstName || "").trim() || "Dirxctional team";
 
@@ -137,6 +147,79 @@ export function ReferralTasksCard({ referralId, adminFirstName, onShared }: {
       toast({ title: "Task cancelled" });
       await load();
     } catch (e: any) { toast({ title: "Error", description: e.message, variant: "destructive" }); }
+  };
+
+  const startEdit = (task: ReferralTask) => {
+    setEditingTaskId(task.id);
+    setEditDraft(task.instructions);
+    setEditAttachments([]);
+    setEditPickerOpen(false);
+  };
+
+  const cancelEdit = () => {
+    setEditingTaskId(null);
+    setEditDraft("");
+    setEditAttachments([]);
+    setEditPickerOpen(false);
+  };
+
+  const openEditPicker = async () => {
+    setEditPickerOpen((v) => !v);
+    if (!existingDocs) {
+      setLoadingDocs(true);
+      try {
+        const res = await adminApi.getReferralDocuments(referralId);
+        setExistingDocs(res.items || []);
+      } catch {
+        setExistingDocs([]);
+      } finally {
+        setLoadingDocs(false);
+      }
+    }
+  };
+
+  const toggleEditExistingDoc = (doc: { id: string; original_filename: string; doc_type: string; uploaded_at?: string | null }) => {
+    setEditAttachments((cur) =>
+      cur.some((a) => a.id === doc.id)
+        ? cur.filter((a) => a.id !== doc.id)
+        : [...cur, { id: doc.id, filename: doc.original_filename, doc_type: doc.doc_type }]
+    );
+  };
+
+  const uploadNewEditAttachment = async (file: File) => {
+    setEditAttachUploading(true);
+    try {
+      const res = await adminApi.uploadAdminDocument(referralId, file, "team_document");
+      setEditAttachments((cur) => [...cur, { id: res.id, filename: res.filename, doc_type: res.doc_type }]);
+      setExistingDocs((cur) => (cur ? [...cur, { id: res.id, original_filename: res.filename, doc_type: res.doc_type, uploaded_at: new Date().toISOString() }] : cur));
+    } catch (e: any) {
+      toast({ title: "Upload failed", description: e.message, variant: "destructive" });
+    } finally {
+      setEditAttachUploading(false);
+      if (editAttachFileRef.current) editAttachFileRef.current.value = "";
+    }
+  };
+
+  const removeEditAttachment = (id: string) => {
+    setEditAttachments((cur) => cur.filter((a) => a.id !== id));
+  };
+
+  const saveEdit = async (taskId: string) => {
+    if (!editDraft.trim()) return;
+    setEditSaving(true);
+    try {
+      const res = await adminApi.editTask(taskId, {
+        instructions: editDraft.trim(),
+        add_attachment_document_ids: editAttachments.map((a) => a.id),
+      });
+      setTasks((cur) => cur.map((t) => (t.id === taskId ? res.task : t)));
+      cancelEdit();
+      toast({ title: "Task updated" });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setEditSaving(false);
+    }
   };
 
   // Sharing is clinic-visible PHI — never auto-send on file pick. The file
@@ -272,15 +355,18 @@ export function ReferralTasksCard({ referralId, adminFirstName, onShared }: {
         </p>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {tasks.map((t) => (
+          {tasks.map((t) => {
+            const isEditing = editingTaskId === t.id;
+            return (
             <div key={t.id} style={{ border: "1px solid var(--border-default)", borderRadius: "var(--radius-md)", padding: "9px 11px", opacity: t.status === "cancelled" ? 0.6 : 1 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 {pill(t.status)}
                 <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
                   {t.created_by} · {t.created_at ? getRelativeTime(t.created_at) : ""}
                 </span>
-                {t.status === "open" && (
+                {t.status === "open" && !isEditing && (
                   <span style={{ marginLeft: "auto", display: "inline-flex", gap: 6 }}>
+                    <button className="rw-btn outline sm" title="Edit task" onClick={() => startEdit(t)}><Pencil size={13} /></button>
                     <button className="rw-btn outline sm" title="Mark complete (after reviewing their response)" onClick={() => complete(t.id)}><Check size={13} /></button>
                     <button className="rw-btn outline sm" title="Cancel task" onClick={() => cancel(t.id)}><X size={13} /></button>
                   </span>
@@ -300,7 +386,80 @@ export function ReferralTasksCard({ referralId, adminFirstName, onShared }: {
                   ))}
                 </div>
               )}
-              <p style={{ fontSize: 13, color: "var(--text-body)", margin: "6px 0 0", lineHeight: 1.5, overflowWrap: "anywhere" }}>{t.instructions}</p>
+              {isEditing ? (
+                <div style={{ marginTop: 6 }}>
+                  <textarea
+                    value={editDraft}
+                    onChange={(e) => setEditDraft(e.target.value)}
+                    style={{ width: "100%", boxSizing: "border-box", font: "inherit", fontSize: 13, color: "var(--text-body)", border: "1px solid var(--border-default)", borderRadius: "var(--radius-md)", padding: "8px 10px", minHeight: 70, resize: "vertical" }}
+                  />
+
+                  {/* Add-only: existing attachments above just display; this only adds new ones. */}
+                  <div style={{ marginTop: 8 }}>
+                    {editAttachments.length > 0 && (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 6 }}>
+                        {editAttachments.map((a) => (
+                          <span key={a.id} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, padding: "3px 8px", borderRadius: 9999, background: "var(--color-teal-50)", color: "var(--color-teal-700)" }}>
+                            <Paperclip size={11} />
+                            <span style={{ maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.filename}</span>
+                            <button type="button" onClick={() => removeEditAttachment(a.id)} title="Remove attachment"
+                              style={{ display: "inline-flex", background: "none", border: "none", cursor: "pointer", color: "inherit", padding: 0 }}>
+                              <X size={11} />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <button type="button" className="rw-btn outline sm" onClick={openEditPicker}>
+                        <Paperclip size={13} />Attach existing document<ChevronDown size={12} />
+                      </button>
+                      <button type="button" className="rw-btn outline sm" disabled={editAttachUploading} onClick={() => editAttachFileRef.current?.click()}>
+                        {editAttachUploading ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}Upload new
+                      </button>
+                      <input ref={editAttachFileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif" style={{ display: "none" }}
+                        onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadNewEditAttachment(f); }} />
+                    </div>
+                    {editPickerOpen && (
+                      <div style={{ marginTop: 6, border: "1px solid var(--border-default)", borderRadius: "var(--radius-md)", padding: 6, maxHeight: 160, overflowY: "auto" }}>
+                        {loadingDocs ? (
+                          <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "4px 6px" }}>Loading documents…</p>
+                        ) : !existingDocs || existingDocs.length === 0 ? (
+                          <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "4px 6px" }}>No documents on this referral yet.</p>
+                        ) : (
+                          existingDocs.map((d) => {
+                            const alreadyAttached = t.attachments?.some((a) => a.id === d.id);
+                            const selected = editAttachments.some((a) => a.id === d.id);
+                            return (
+                              <button key={d.id} type="button" disabled={alreadyAttached} onClick={() => toggleEditExistingDoc(d)}
+                                style={{ display: "flex", alignItems: "flex-start", gap: 6, width: "100%", textAlign: "left", font: "inherit", padding: "5px 6px", borderRadius: "var(--radius-sm)", border: "none", cursor: alreadyAttached ? "default" : "pointer", opacity: alreadyAttached ? 0.55 : 1, background: selected ? "var(--color-teal-50)" : "transparent", color: selected ? "var(--color-teal-700)" : "var(--text-body)" }}>
+                                <FileText size={12} style={{ flexShrink: 0, marginTop: 2 }} />
+                                <span style={{ minWidth: 0, flex: 1 }}>
+                                  <span style={{ display: "block", fontSize: 12.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.original_filename}</span>
+                                  <span style={{ display: "block", fontSize: 11, color: selected ? "var(--color-teal-700)" : "var(--text-muted)" }}>
+                                    {alreadyAttached ? "Already attached" : prettifyDocType(d.doc_type)}
+                                    {!alreadyAttached && d.uploaded_at ? ` · added ${formatDateShort(d.uploaded_at)}` : ""}
+                                  </span>
+                                </span>
+                                {selected && <Check size={12} style={{ marginLeft: "auto", flexShrink: 0, marginTop: 2 }} />}
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                    <button className="rw-btn primary sm" disabled={editSaving || !editDraft.trim()} onClick={() => saveEdit(t.id)}>
+                      {editSaving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}Save
+                    </button>
+                    <button className="rw-btn outline sm" disabled={editSaving} onClick={cancelEdit}>Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <p style={{ fontSize: 13, color: "var(--text-body)", margin: "6px 0 0", lineHeight: 1.5, overflowWrap: "anywhere" }}>{t.instructions}</p>
+              )}
               {t.clinic_response && (
                 <p style={{ fontSize: 12.5, margin: "6px 0 0", padding: "7px 9px", borderRadius: "var(--radius-md)", background: "var(--color-teal-50)", color: "var(--color-teal-700)", lineHeight: 1.5, overflowWrap: "anywhere" }}>
                   Clinic: {t.clinic_response}
@@ -312,7 +471,8 @@ export function ReferralTasksCard({ referralId, adminFirstName, onShared }: {
                 </p>
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

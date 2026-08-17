@@ -946,6 +946,15 @@ export const adminApi = {
     return handleResponse(response);
   },
 
+  async editTask(taskId: string, data: { instructions: string; add_attachment_document_ids?: string[] }): Promise<{ task: ReferralTask }> {
+    const response = await fetch(`${API_BASE_URL}/admin/tasks/${taskId}`, {
+      method: 'PATCH',
+      headers: await getHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
   // ── Return an approved referral to review ────────────────────────
   // Reset a sent referral for resend (failed fax / delivery issue) — clears
   // the delivery-issue flag; the admin then re-sends via the normal Send flow.
