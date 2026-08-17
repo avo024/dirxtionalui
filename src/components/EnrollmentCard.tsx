@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Pill, Send, Eye, CheckCircle2, AlertTriangle, ShieldAlert, Ban, Loader2, Check, FileText } from "lucide-react";
+import { Pill, Send, Eye, CheckCircle2, AlertTriangle, ShieldAlert, Ban, Loader2, Check, FileText, Upload } from "lucide-react";
 import { formatDateShort } from "@/lib/dateUtils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -74,6 +74,8 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged }: {
   const [draft, setDraft] = useState<EnrollmentDraft | null>(null);
   const [resolvedFieldValues, setResolvedFieldValues] = useState<Record<string, string>>({});
   const [missingFields, setMissingFields] = useState<string[]>([]);
+  const [optionalBlankFields, setOptionalBlankFields] = useState<string[]>([]);
+  const [formFillable, setFormFillable] = useState(true);
   const [sentSummary, setSentSummary] = useState<SentSummary | null>(null);
 
   // Editable builder state (only meaningful once a draft exists).
@@ -92,6 +94,12 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged }: {
   const [startingProgramId, setStartingProgramId] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
 
+  // Admin's own edited copy of the form, in place of the auto-fill.
+  const [uploadingAdjusted, setUploadingAdjusted] = useState(false);
+  const [removeAdjustedConfirmOpen, setRemoveAdjustedConfirmOpen] = useState(false);
+  const [removingAdjusted, setRemovingAdjusted] = useState(false);
+  const adjustedFileRef = useRef<HTMLInputElement>(null);
+
   const [sendSigConfirmOpen, setSendSigConfirmOpen] = useState(false);
   const [sendingForSig, setSendingForSig] = useState(false);
 
@@ -109,6 +117,8 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged }: {
     setPrograms(data.programs || []);
     setResolvedFieldValues(data.field_values || {});
     setMissingFields(data.missing_fields || []);
+    setOptionalBlankFields(data.optional_blank_fields || []);
+    setFormFillable(data.form_fillable !== false);
     setDraft(data.draft);
     if (data.draft) {
       setProgramId(data.draft.program_id);
@@ -267,6 +277,34 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged }: {
     }
   };
 
+  const handleUploadAdjusted = async (file: File) => {
+    setUploadingAdjusted(true);
+    try {
+      const resp = await adminApi.uploadAdjustedEnrollment(referralId, file);
+      applyResponse(resp);
+      toast({ title: "Using your uploaded copy" });
+    } catch (err: any) {
+      toast({ title: "Couldn't upload your copy", description: err.message, variant: "destructive" });
+    } finally {
+      setUploadingAdjusted(false);
+      if (adjustedFileRef.current) adjustedFileRef.current.value = "";
+    }
+  };
+
+  const handleRemoveAdjusted = async () => {
+    setRemovingAdjusted(true);
+    try {
+      const resp = await adminApi.removeAdjustedEnrollment(referralId);
+      applyResponse(resp);
+      toast({ title: "Removed — back to the auto-filled form" });
+      setRemoveAdjustedConfirmOpen(false);
+    } catch (err: any) {
+      toast({ title: "Couldn't remove your copy", description: err.message, variant: "destructive" });
+    } finally {
+      setRemovingAdjusted(false);
+    }
+  };
+
   const handleSendForSignatures = async () => {
     setSendingForSig(true);
     try {
@@ -381,6 +419,7 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged }: {
   const blankCandidates = new Set<string>(missingFields);
   Object.keys(fieldValues).forEach((k) => { if ((fieldValues[k] || "").trim()) blankCandidates.add(k); });
   const blanks = Array.from(blankCandidates);
+  const optionalBlanks = optionalBlankFields.filter((k) => !blankCandidates.has(k));
   const prefilledEntries = Object.entries(resolvedFieldValues).filter(([k, v]) => !!v && !blankCandidates.has(k));
 
   return (
@@ -578,12 +617,66 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged }: {
                     </div>
                   ))}
                 </div>
+                {optionalBlanks.length > 0 && (
+                  <div style={{ marginTop: 10 }}>
+                    <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 8px" }}>
+                      Optional on this form — fine to leave blank
+                    </p>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 10, opacity: 0.85 }}>
+                      {optionalBlanks.map((k) => (
+                        <div key={k} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                          <Label className="text-xs text-muted-foreground">{humanizeToken(k)} (optional)</Label>
+                          <Input value={fieldValues[k] || ""} onChange={(e) => updateField(k, e.target.value)} className="h-8 text-sm" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
+            )}
+            {!formFillable && (
+              <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "0 0 10px", display: "flex", alignItems: "center", gap: 6 }}>
+                <AlertTriangle size={13} style={{ flexShrink: 0 }} />
+                This form isn&apos;t set up for auto-fill yet — preview will show it blank. You can still send it to the clinic as an attachment.
+              </p>
             )}
 
             <button className="rw-btn outline sm" disabled={previewLoading} onClick={handlePreview}>
               {previewLoading ? <Loader2 size={13} className="animate-spin" /> : <Eye size={13} />}Preview the filled form
             </button>
+
+            {draft?.adjusted_document ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+                <FileText size={13} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
+                <span style={{ fontSize: 12.5, color: "var(--text-body)" }}>
+                  Using your uploaded copy: {draft.adjusted_document.filename}
+                  {draft.adjusted_document.uploaded_at ? ` · ${formatDateShort(draft.adjusted_document.uploaded_at)}` : ""}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setRemoveAdjustedConfirmOpen(true)}
+                  style={{ font: "inherit", fontSize: 12, color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <div style={{ marginTop: 8 }}>
+                <button className="rw-btn outline sm" disabled={uploadingAdjusted} onClick={() => adjustedFileRef.current?.click()}>
+                  {uploadingAdjusted ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}Upload adjusted copy
+                </button>
+                <input
+                  ref={adjustedFileRef}
+                  type="file"
+                  accept="application/pdf"
+                  style={{ display: "none" }}
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUploadAdjusted(f); }}
+                />
+              </div>
+            )}
+            <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "6px 0 0" }}>
+              Downloaded the form and fixed something in the PDF? Upload your copy — it's what gets sent for signatures and faxed.
+            </p>
           </div>
 
           {/* 3. Signatures */}
@@ -657,6 +750,15 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged }: {
         description="Use this when you enrolled the patient through the manufacturer's portal, e-prescribe, or another way outside our fax pipeline."
         confirmLabel={markingSubmitted ? "Saving…" : "Mark as submitted"}
         onConfirm={handleMarkSubmitted}
+      />
+
+      <ConfirmModal
+        open={removeAdjustedConfirmOpen}
+        onOpenChange={setRemoveAdjustedConfirmOpen}
+        title="Remove your uploaded copy?"
+        description="This switches back to the auto-filled form. Your uploaded file stays on file for the record."
+        confirmLabel={removingAdjusted ? "Removing…" : "Remove"}
+        onConfirm={handleRemoveAdjusted}
       />
     </div>
   );
