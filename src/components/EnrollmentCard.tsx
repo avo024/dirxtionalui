@@ -490,7 +490,12 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged }: {
                   ⚠ Requires an appeal on file — {program.appeal_linkage}
                 </p>
               )}
-              {program.bridge_kind !== "none" && (
+              {/* Enrollable when the program has a form — bridge or not:
+                  Stelara withMe (savings + benefits investigation) and the
+                  Otezla START form are bridge_kind "none" but very much
+                  enrollable. Gating on bridge_kind hid the button (Alex's
+                  Round-3 catch, 2026-08-18). */}
+              {(program.form_files?.length ?? 0) > 0 && (
                 <button
                   className="rw-btn primary sm"
                   style={{ marginTop: 10 }}
