@@ -1,0 +1,32 @@
+/* Admin Fax Center — inbound fax inbox + outbound fax traffic log.
+   Builds on referrals.css (rl-), dashboard.css (dh-table), wizard.css (rw-btn). Prefix: fx-. */
+
+.fx-toolbar { justify-content: flex-start; }
+
+.fx-table-wrap { overflow-x: auto; }
+.fx-table { min-width: 760px; }
+.fx-nowrap { white-space: nowrap; color: var(--text-muted); }
+
+/* Kind chip — referral / appeal / enrollment */
+.fx-kind { display: inline-flex; align-items: center; font-size: var(--text-xs); font-weight: 600;
+  color: var(--text-body); background: var(--bg-muted, var(--color-stone-100)); border: 1px solid var(--border-default);
+  padding: 2px 9px; border-radius: 9999px; white-space: nowrap; }
+.fx-kind.referral { color: var(--color-navy); background: color-mix(in srgb, var(--color-navy) 8%, transparent);
+  border-color: color-mix(in srgb, var(--color-navy) 25%, transparent); }
+.fx-kind.appeal { color: #92610B; background: color-mix(in srgb, var(--color-warning, #d97706) 12%, transparent);
+  border-color: color-mix(in srgb, var(--color-warning, #d97706) 30%, transparent); }
+.fx-kind.enrollment { color: var(--color-teal-700); background: var(--color-teal-50); border-color: var(--color-teal-100); }
+
+.fx-counterparty { color: var(--text-body); font-weight: 500; }
+.fx-referral-link { display: inline-flex; align-items: center; gap: 4px; color: var(--color-teal-700); font-weight: 600; text-decoration: none; }
+.fx-referral-link:hover { text-decoration: underline; }
+
+/* Row actions — View PDF / Mark reviewed / Link to referral, right-aligned */
+.fx-row-actions { display: inline-flex; align-items: center; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+
+.fx-link-form { display: inline-flex; align-items: center; gap: 6px; }
+.fx-link-input { width: 130px; height: 34px; padding: 0 10px; font-family: var(--font-sans); font-size: var(--text-xs);
+  color: var(--text-body); background: #fff; border: 1px solid var(--border-default); border-radius: var(--radius-md);
+  outline: none; transition: border-color .15s, box-shadow .15s; }
+.fx-link-input::placeholder { color: var(--color-stone-400); }
+.fx-link-input:focus { border-color: var(--color-teal); box-shadow: var(--glow-teal); }

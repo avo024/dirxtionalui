@@ -1247,6 +1247,40 @@ export const adminApi = {
     }
     return response.status === 204 ? null : response.json().catch(() => null);
   },
+
+  // ── Fax Center — all outbound fax traffic + the inbound fax inbox ──
+  async getFaxes(): Promise<AdminFaxesResponse> {
+    const response = await fetch(`${API_BASE_URL}/admin/faxes`, {
+      headers: await getHeaders(),
+    });
+    return handleResponse<AdminFaxesResponse>(response);
+  },
+
+  async getInboundFaxPDF(id: string): Promise<Blob> {
+    const response = await fetch(`${API_BASE_URL}/admin/faxes/inbound/${id}/download`, {
+      headers: await getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to get fax PDF');
+    return response.blob();
+  },
+
+  async reviewInboundFax(id: string, reviewedBy: string): Promise<{ ok: boolean }> {
+    const response = await fetch(`${API_BASE_URL}/admin/faxes/inbound/${id}/review`, {
+      method: 'POST',
+      headers: await getHeaders(),
+      body: JSON.stringify({ reviewed_by: reviewedBy }),
+    });
+    return handleResponse(response);
+  },
+
+  async linkInboundFax(id: string, referralId: string): Promise<{ ok: boolean }> {
+    const response = await fetch(`${API_BASE_URL}/admin/faxes/inbound/${id}/link`, {
+      method: 'POST',
+      headers: await getHeaders(),
+      body: JSON.stringify({ referral_id: referralId }),
+    });
+    return handleResponse(response);
+  },
 };
 
 export interface AdminClinic {
@@ -1270,6 +1304,44 @@ export interface AdminInvite {
   expires_at: string;
   used_at?: string | null;
   revoked_at?: string | null;
+}
+
+// ============================================================================
+// FAX CENTER
+// ============================================================================
+
+export type AdminFaxOutboundKind = 'referral' | 'appeal' | 'enrollment';
+
+export interface AdminFaxOutbound {
+  id: string;
+  kind: AdminFaxOutboundKind;
+  referral_id: string | null;
+  counterparty: string;
+  provider_fax_id: string | null;
+  status: string;
+  page_count: number | null;
+  error_detail: string | null;
+  at: string;
+}
+
+export interface AdminFaxInbound {
+  id: string;
+  provider_fax_id: string | null;
+  from_number: string | null;
+  to_number: string | null;
+  page_count: number | null;
+  has_pdf: boolean;
+  status: 'new' | 'reviewed';
+  linked_referral_id: string | null;
+  linked_patient_name: string | null;
+  reviewed_by: string | null;
+  received_at: string;
+}
+
+export interface AdminFaxesResponse {
+  outbound: AdminFaxOutbound[];
+  inbound: AdminFaxInbound[];
+  inbound_new_count: number;
 }
 
 // ============================================================================

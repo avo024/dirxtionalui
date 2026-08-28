@@ -43,6 +43,7 @@ import AIQualityReferral from "@/pages/admin/AIQualityReferral";
 import AIQualityCorrections from "@/pages/admin/AIQualityCorrections";
 import AdminSupportList from "@/pages/admin/AdminSupportList";
 import AdminSupportDetail from "@/pages/admin/AdminSupportDetail";
+import FaxCenter from "@/pages/admin/FaxCenter";
 import ClinicSupportCenter from "@/pages/clinic/ClinicSupportCenter";
 
 const queryClient = new QueryClient();
@@ -96,6 +97,7 @@ const App = () => (
               <Route path="ai-quality" element={<AIQuality />} />
               <Route path="ai-quality/corrections" element={<AIQualityCorrections />} />
               <Route path="ai-quality/referral/:id" element={<AIQualityReferral />} />
+              <Route path="faxes" element={<FaxCenter />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />

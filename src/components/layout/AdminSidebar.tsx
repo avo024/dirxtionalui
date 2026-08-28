@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { LayoutDashboard, FileText, Building2, Hospital, LogOut, LineChart, MessageSquare, BarChart3 } from "lucide-react";
+import { LayoutDashboard, FileText, Building2, Hospital, LogOut, LineChart, MessageSquare, BarChart3, Printer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { adminApi } from "@/lib/api";
@@ -18,6 +18,7 @@ const navItems = [
   { label: "Pharmacies", icon: Building2, path: "/admin/pharmacies" },
   { label: "Clinics", icon: Hospital, path: "/admin/clinics" },
   { label: "Support", icon: MessageSquare, path: "/admin/support" },
+  { label: "Fax Center", icon: Printer, path: "/admin/faxes" },
   // Add-on Requests hidden until add-ons exist (Services is hidden on the clinic side too).
   // { label: "Add-on Requests", icon: Inbox, path: "/admin/addon-requests" },
   // Invites retired — folded into Clinic Detail as "Team & Invites" (clinic-scoped).
@@ -45,6 +46,13 @@ export function AdminSidebar() {
   });
   const pendingAddonCount = pendingRequests?.requests.length ?? 0;
 
+  const { data: faxes } = useQuery({
+    queryKey: ["admin", "faxes", "sidebar-count"],
+    queryFn: () => adminApi.getFaxes(),
+    staleTime: 60 * 1000,
+  });
+  const inboundNewFaxCount = faxes?.inbound_new_count ?? 0;
+
   return (
     <aside className="w-60 shrink-0 border-r border-sidebar-border bg-sidebar flex flex-col h-screen sticky top-0">
       {/* Logo */}
@@ -69,6 +77,7 @@ export function AdminSidebar() {
           const badgeCount =
             item.label === "All Referrals" ? needsReviewCount :
             item.label === "Add-on Requests" ? pendingAddonCount :
+            item.label === "Fax Center" ? inboundNewFaxCount :
             0;
           return (
             <Link
