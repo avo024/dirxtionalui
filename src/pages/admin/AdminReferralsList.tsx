@@ -1,104 +1,43 @@
-import { useState, useEffect, useMemo } from "react";
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { ChevronDown, ChevronLeft, ChevronRight, ExternalLink, MoreHorizontal, RotateCcw, Search, Trash2 } from "lucide-react";
 import {
-  Search, Loader2, ListFilter, ChevronsUpDown, ChevronUp, ChevronDown,
-  ChevronLeft, ChevronRight, ClipboardCheck, AlertTriangle, Zap, Archive, RotateCcw,
-} from "lucide-react";
-import { StatusBadge } from "@/components/StatusBadge";
-import { ClinicPABadge } from "@/components/ClinicPABadge";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
+import { QueueList } from "@/components/patterns/QueueList";
+import { QueueRow } from "@/components/patterns/QueueRow";
+import { FilterToolbar } from "@/components/patterns/FilterToolbar";
 import { adminApi } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
-import { formatDateShort } from "@/lib/dateUtils";
-import "../clinic/wizard.css";
-import "../clinic/dashboard.css";
-import "../clinic/referrals.css";
+import { resolveNextAction, ballKey, groupKey, type NextAction } from "@/lib/nextAction";
+import { toNextActionInput, toQueueRow, type QueueRowData } from "@/lib/queueRows";
 
-const FILTERS = [
-  { value: "all", short: "All", long: "All" },
-  { value: "needs_review", short: "Needs Review", long: "Needs Review" },
-  { value: "pa_pending", short: "PA Pending", long: "PA Pending" },
-  { value: "approved_to_send", short: "Ready to Send", long: "Ready to Send" },
-  { value: "appeal", short: "First Appeal", long: "First Appeal" },
-  { value: "rejected", short: "Rejected", long: "Rejected" },
-  { value: "sent_to_pharmacy", short: "Sent", long: "Sent" },
-];
-// PA-workflow tabs are server-side views (all time, triage-sorted oldest clock
-// first); the rest filter the month-scoped load client-side as before.
-// Server-side views (all-time, filtered by the backend): the two PA tabs plus
-// the dashboard's task-replies drill-in (not a visible tab — reached via card).
-const PA_VIEWS = new Set(["pa_pending", "appeal", "task_replies", "delivery_issues"]);
-function matchesFilter(r: any, f: string) {
-  if (f === "all") return true;
-  if (f === "needs_review")
-    // A filed or in-appeal PA has its own home (PA Pending / First Appeal),
-    // and a handed-off/final appeal is out of our hands entirely — Needs
-    // Review holds only work nobody has moved forward yet.
-    return (r.status === "ready_for_review" || r.status === "processing")
-      && !["submitted", "appeal"].includes(r.pa_status)
-      && !(r.pa_status === "denied" && ["level2", "final"].includes(r.appeal_outcome));
-  if (f === "pa_pending") return ["pending", "submitted"].includes(r.pa_status) && !["sent_to_pharmacy", "rejected"].includes(r.status);
-  if (f === "appeal") return r.pa_status === "appeal";
-  return r.status === f;
-}
+type Tab = "us" | "others" | "all";
+type GroupBy = "action" | "clinic" | "none";
 
-// 72h follow-up clock: countdown from PA submission (or appeal start) — flips
-// to a red OVERDUE chip once the backend says follow-up is due. It's OUR
-// follow-up discipline (expedited-appeal SLA), labeled as such — not a payer
-// deadline breach.
-function ClockChip({ r }: { r: any }) {
-  const startIso = r.pa_status === "appeal" ? r.appeal_started_at : r.pa_submitted_at;
-  const overdue = r.pa_status === "appeal" ? r.appeal_followup_due : r.pa_followup_due;
-  if (!startIso) return null;
-  if (overdue) {
-    return (
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 9999, background: "color-mix(in srgb, var(--color-error) 14%, transparent)", color: "var(--color-error)" }}>
-        <AlertTriangle size={10} />FOLLOW-UP DUE
-      </span>
-    );
-  }
-  const msLeft = new Date(startIso).getTime() + 72 * 3600_000 - Date.now();
-  const hrs = Math.max(0, Math.floor(msLeft / 3600_000));
-  return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 600, padding: "1px 7px", borderRadius: 9999, background: "var(--color-teal-50)", color: "var(--color-teal-700)" }}>
-      check in {hrs}h
-    </span>
-  );
-}
-
-const DeliveryIssueTag = () => (
-  <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 9999, background: "color-mix(in srgb, var(--color-error) 14%, transparent)", color: "var(--color-error)" }}><AlertTriangle size={10} />DELIVERY ISSUE</span>
-);
-const UrgentTag = () => (
-  <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 9999, background: "color-mix(in srgb, var(--color-error) 14%, transparent)", color: "var(--color-error)" }}><AlertTriangle size={10} />URGENT</span>
-);
-const TaskTag = ({ n }: { n: number }) => (
-  <span title={`${n} open task${n === 1 ? "" : "s"} with the clinic`} style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 600, padding: "1px 6px", borderRadius: 9999, background: "color-mix(in srgb, var(--color-warning) 16%, transparent)", color: "#92610B" }}>
-    <ClipboardCheck size={10} />{n} task{n === 1 ? "" : "s"}
-  </span>
-);
-const PA_RANK: Record<string, number> = { processing: 0, denied: 1, submitted: 2, pending: 3, approved: 4 };
-const paRank = (s: string) => (s in PA_RANK ? PA_RANK[s] : 5);
-
-type Sort = { col: "pa" | "status" | "created"; dir: "asc" | "desc" } | null;
 const PAGE_SIZE = 25;
 
-function pageWindow(total: number, cur: number): (number | "…")[] {
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-  const out: (number | "…")[] = [1];
-  const lo = Math.max(2, cur - 1), hi = Math.min(total - 1, cur + 1);
-  if (lo > 2) out.push("…");
-  for (let i = lo; i <= hi; i++) out.push(i);
-  if (hi < total - 1) out.push("…");
-  out.push(total);
-  return out;
-}
+// Existing admin statuses (mockData.ReferralStatus), used for the status
+// dropdown. "Any status" is the default — on the work tabs it filters within
+// the tab; on All it's a plain equality filter passed nowhere server-side
+// (the All query is month/archived-scoped only, status filters client-side).
+const STATUS_OPTIONS: { value: string; label: string }[] = [
+  { value: "any", label: "Any status" },
+  { value: "uploaded", label: "Uploaded" },
+  { value: "processing", label: "Processing" },
+  { value: "ready_for_review", label: "Needs review" },
+  { value: "approved_to_send", label: "Ready to send" },
+  { value: "sent_to_pharmacy", label: "Sent" },
+  { value: "rejected", label: "Rejected" },
+  { value: "closed", label: "Closed" },
+];
 
-const ExpiredTag = () => (
-  <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 600, padding: "1px 6px", borderRadius: 9999, background: "color-mix(in srgb, var(--color-warning) 16%, transparent)", color: "#92610B" }}><AlertTriangle size={10} />Ins. Expired</span>
-);
-const BridgeTag = () => (
-  <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 600, padding: "1px 6px", borderRadius: 9999, background: "var(--color-teal-50)", color: "var(--color-teal-700)" }}><Zap size={10} />Bridge</span>
-);
+const BALL_ORDER = ["Payer", "Clinic", "Manufacturer", "Pharmacy", "System"] as const;
 
 function monthOptions() {
   const opts: { value: string; label: string }[] = [];
@@ -112,246 +51,546 @@ function monthOptions() {
   return opts;
 }
 
+function pageWindow(total: number, cur: number): (number | "…")[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const out: (number | "…")[] = [1];
+  const lo = Math.max(2, cur - 1), hi = Math.min(total - 1, cur + 1);
+  if (lo > 2) out.push("…");
+  for (let i = lo; i <= hi; i++) out.push(i);
+  if (hi < total - 1) out.push("…");
+  out.push(total);
+  return out;
+}
+
+/** Overdue first, then due soonest, then oldest last-activity — flow-script §2. */
+function sortRows(rows: QueueRowData[]): QueueRowData[] {
+  return [...rows].sort((a, b) => {
+    if (a.next.overdue !== b.next.overdue) return a.next.overdue ? -1 : 1;
+    const ad = a.next.dueAt ? a.next.dueAt.getTime() : Infinity;
+    const bd = b.next.dueAt ? b.next.dueAt.getTime() : Infinity;
+    if (ad !== bd) return ad - bd;
+    const au = a.raw.updated_at ? new Date(a.raw.updated_at).getTime() : 0;
+    const bu = b.raw.updated_at ? new Date(b.raw.updated_at).getTime() : 0;
+    return au - bu;
+  });
+}
+
+/** Due soonest — flow-script §2 default sort for Waiting on others. */
+function sortByDueSoonest(rows: QueueRowData[]): QueueRowData[] {
+  return [...rows].sort((a, b) => {
+    const ad = a.next.dueAt ? a.next.dueAt.getTime() : Infinity;
+    const bd = b.next.dueAt ? b.next.dueAt.getTime() : Infinity;
+    return ad - bd;
+  });
+}
+
+interface Group {
+  key: string;
+  rows: QueueRowData[];
+}
+
+/** Interrupt groups first, then groups containing an overdue row, then the rest alphabetically. */
+function orderActionGroups(groups: Group[]): Group[] {
+  return [...groups].sort((a, b) => {
+    const aInterrupt = a.rows.some((r) => !!r.next.interrupt);
+    const bInterrupt = b.rows.some((r) => !!r.next.interrupt);
+    if (aInterrupt !== bInterrupt) return aInterrupt ? -1 : 1;
+    const aOverdue = a.rows.some((r) => r.next.overdue);
+    const bOverdue = b.rows.some((r) => r.next.overdue);
+    if (aOverdue !== bOverdue) return aOverdue ? -1 : 1;
+    return a.key.localeCompare(b.key);
+  });
+}
+
+function CountBadge({ n }: { n: number }) {
+  return <span className="ml-1.5 text-xs font-semibold text-muted-foreground tabular-nums">{n}</span>;
+}
+
+/** Small overflow menu: Open in new tab, Archive/Restore. */
+function RowMenu({ id, archived, onArchive, onUnarchive }: { id: string; archived: boolean; onArchive: () => void; onUnarchive: () => void }) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          aria-label="More options"
+          className="rounded-md p-1 text-muted-foreground hover:bg-muted"
+        >
+          <MoreHorizontal width={16} height={16} strokeWidth={1.75} aria-hidden="true" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => window.open(`/admin/referrals/${id}`, "_blank", "noopener,noreferrer")}>
+          <ExternalLink className="mr-2 h-4 w-4" /> Open in new tab
+        </DropdownMenuItem>
+        {archived ? (
+          <DropdownMenuItem onClick={onUnarchive}>
+            <RotateCcw className="mr-2 h-4 w-4" /> Restore
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem onClick={onArchive}>
+            <Trash2 className="mr-2 h-4 w-4" /> Archive
+          </DropdownMenuItem>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function GroupHeader({ label, count, overdueCount, expanded, onToggle }: { label: string; count: number; overdueCount: number; expanded: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm font-semibold text-foreground bg-muted/40 border-b border-border hover:bg-muted/60"
+    >
+      <ChevronDown width={14} height={14} strokeWidth={1.75} className={expanded ? "" : "-rotate-90"} aria-hidden="true" />
+      <span>{label}</span>
+      <span className="inline-flex items-center rounded-full bg-muted px-1.5 text-[11px] font-bold text-muted-foreground">{count}</span>
+      {overdueCount > 0 && <span className="text-xs font-semibold text-destructive">{overdueCount} overdue</span>}
+    </button>
+  );
+}
+
+function RowSkeletons() {
+  return (
+    <QueueList>
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="flex items-center gap-6 px-4 py-3 border-b last:border-b-0 border-border">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-4 w-48 flex-1" />
+          <Skeleton className="h-4 w-10" />
+        </div>
+      ))}
+    </QueueList>
+  );
+}
+
+function EmptyState({ onClear }: { onClear: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
+      <Search className="h-8 w-8 text-muted-foreground" />
+      <p className="text-sm font-semibold text-foreground">No referrals found</p>
+      <p className="text-sm text-muted-foreground">Try adjusting your filters</p>
+      <button type="button" onClick={onClear} className="mt-2 text-sm font-medium text-primary hover:underline">
+        Clear filters
+      </button>
+    </div>
+  );
+}
+
 export default function AdminReferralsList() {
-  const location = useLocation();
   const navigate = useNavigate();
-  const [referrals, setReferrals] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  // Triage-first: land on Needs Review (the incoming queue) — same pattern as
-  // the support queue landing on Open. Deep links (?filter=) still win.
-  const [searchParams] = useSearchParams();
-  const [activeFilter, setActiveFilter] = useState(searchParams.get("filter") || "needs_review");
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // ── Deep-link resolution (flow-script §2, dashboard ?filter= links) ──
+  const initialFilter = searchParams.get("filter");
+  const STATUS_DEEP_LINKS: Record<string, string> = {
+    needs_review: "ready_for_review",
+    approved_to_send: "approved_to_send",
+    sent_to_pharmacy: "sent_to_pharmacy",
+    rejected: "rejected",
+  };
+  const US_DEEP_LINKS = new Set(["delivery_issues", "task_replies", "pa_pending", "appeal"]);
+
+  const initialTab: Tab = (() => {
+    const t = searchParams.get("tab") as Tab | null;
+    if (t === "us" || t === "others" || t === "all") return t;
+    if (initialFilter && STATUS_DEEP_LINKS[initialFilter]) return "all";
+    if (initialFilter && US_DEEP_LINKS.has(initialFilter)) return "us";
+    return "us";
+  })();
+
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>(() => {
+    if (initialFilter && STATUS_DEEP_LINKS[initialFilter]) return STATUS_DEEP_LINKS[initialFilter];
+    if (initialFilter === "delivery_issues") return "sent_to_pharmacy"; // flow-script: dropdown shows "Sent"
+    return "any";
+  });
   const [clinicFilter, setClinicFilter] = useState("all");
-  const [sort, setSort] = useState<Sort>(null);
-  const [page, setPage] = useState(1);
+  const [groupBy, setGroupBy] = useState<GroupBy>("action");
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+
   const [month, setMonth] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   });
   const [showArchived, setShowArchived] = useState(false);
+  const [page, setPage] = useState(1);
 
-  const [paCounts, setPaCounts] = useState<any>({});
-  // PA-view rows live in their own state so switching to a PA tab never
-  // replaces the month-scoped base load — the other tabs' badges count from
-  // the base load, so overwriting it zeroed every count (the tab-count bug).
-  const [viewRows, setViewRows] = useState<any[]>([]);
-  const paView = PA_VIEWS.has(activeFilter);
+  // ── Data: work tabs load ALL-TIME, non-archived rows (work is not
+  // month-scoped — flow-script §2). All tab loads its own month/archived-
+  // scoped query. ──
+  const [workRows, setWorkRows] = useState<any[]>([]);
+  const [workLoading, setWorkLoading] = useState(true);
+  const [allRows, setAllRows] = useState<any[]>([]);
+  const [allLoading, setAllLoading] = useState(false);
 
   useEffect(() => {
-    const mapRows = (response: any) =>
-      (response.items || []).map((r: any) => ({ ...r, drug: r.drug_requested, dob: r.patient_dob }));
-    const fetchReferrals = async () => {
-      try {
-        setLoading(true);
-        // Base month-scoped load ALWAYS runs (feeds tab counts + non-PA tabs);
-        // the active PA tab additionally fetches its all-time server view.
-        const [base, view] = await Promise.all([
-          adminApi.getReferrals({ month: search.trim() ? "all" : month, archived: showArchived }),
-          paView ? adminApi.getReferrals({ view: activeFilter, month: "all" }) : Promise.resolve(null),
-        ]);
-        setReferrals(mapRows(base));
-        setViewRows(view ? mapRows(view) : []);
-      } catch (err: any) {
-        toast({ title: "Error", description: err.message || "Failed to load referrals", variant: "destructive" });
-      } finally { setLoading(false); }
+    let cancelled = false;
+    setWorkLoading(true);
+    adminApi
+      .getReferrals({ month: "all", archived: false })
+      .then((res) => {
+        if (cancelled) return;
+        setWorkRows(res.items || []);
+      })
+      .catch((err: any) => toast({ title: "Error", description: err.message || "Failed to load referrals", variant: "destructive" }))
+      .finally(() => !cancelled && setWorkLoading(false));
+    return () => {
+      cancelled = true;
     };
-    const fetchCounts = () =>
-      adminApi.getReferralCounts().then(setPaCounts).catch(() => { /* badges just won't show */ });
-    fetchReferrals();
-    fetchCounts();
-    const handleFocus = () => { fetchReferrals(); fetchCounts(); };
-    window.addEventListener("focus", handleFocus);
-    return () => window.removeEventListener("focus", handleFocus);
-  }, [location.key, month, showArchived, paView, activeFilter, search.trim() === "" ? "m" : "all"]);
+  }, []);
 
-  const clinics = useMemo(() => [...new Set(referrals.map((r: any) => r.clinic_name).filter(Boolean))], [referrals]);
-  // PA tabs count all-time from the counts endpoint (the local load is
-  // month-scoped, so counting rows would undercount them).
-  const filterCount = (value: string) => {
-    if (value === "pa_pending") return paCounts.pa_pending ?? 0;
-    if (value === "appeal") return paCounts.appeal ?? 0;
-    return referrals.filter((r) => matchesFilter(r, value)).length;
-  };
-  const overdueCount = (value: string) =>
-    value === "pa_pending" ? (paCounts.pa_followup_due ?? 0)
-      : value === "appeal" ? (paCounts.appeal_followup_due ?? 0) : 0;
+  useEffect(() => {
+    if (tab !== "all") return;
+    let cancelled = false;
+    setAllLoading(true);
+    adminApi
+      .getReferrals({ month, archived: showArchived })
+      .then((res) => {
+        if (cancelled) return;
+        setAllRows(res.items || []);
+      })
+      .catch((err: any) => toast({ title: "Error", description: err.message || "Failed to load referrals", variant: "destructive" }))
+      .finally(() => !cancelled && setAllLoading(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [tab, month, showArchived]);
 
-  const filtered = useMemo(() => {
-    // PA tabs display their all-time server view; other tabs the month load.
-    const source = paView ? viewRows : referrals;
-    const base = source.filter((r: any) => {
-      const q = search.toLowerCase();
-      if (!((r.patient_name || "").toLowerCase().includes(q) || (r.id || "").toLowerCase().includes(q))) return false;
-      if (clinicFilter !== "all" && r.clinic_name !== clinicFilter) return false;
-      return paView || matchesFilter(r, activeFilter);
+  // Sanity-tooltip counts only, per spec — nothing else reads this.
+  const [counts, setCounts] = useState<any>({});
+  useEffect(() => {
+    adminApi.getReferralCounts().then(setCounts).catch(() => {});
+  }, []);
+
+  const now = useMemo(() => new Date(), [workRows]);
+
+  const workQueueRows: QueueRowData[] = useMemo(
+    () => workRows.map((r) => toQueueRow(r, resolveNextAction(toNextActionInput(r, now)))),
+    [workRows, now],
+  );
+
+  const usRows = useMemo(() => workQueueRows.filter((r) => r.next.tab === "us"), [workQueueRows]);
+  const othersRows = useMemo(() => workQueueRows.filter((r) => r.next.tab === "others"), [workQueueRows]);
+
+  const clinics = useMemo(
+    () => [...new Set([...workRows, ...allRows].map((r: any) => r.clinic_name).filter(Boolean))] as string[],
+    [workRows, allRows],
+  );
+
+  const applySearchAndFilters = (rows: QueueRowData[]) => {
+    const q = search.trim().toLowerCase();
+    return rows.filter((r) => {
+      if (q && !((r.raw.patient_name || "").toLowerCase().includes(q) || (r.raw.id || "").toLowerCase().includes(q))) return false;
+      if (statusFilter !== "any" && r.raw.status !== statusFilter) return false;
+      if (clinicFilter !== "all" && r.raw.clinic_name !== clinicFilter) return false;
+      return true;
     });
-    // All is priority-stacked: closed referrals (nothing left to do) sink to
-    // the bottom; everything else keeps recency order.
-    if (!sort && activeFilter === "all") {
-      return [...base].sort((a: any, b: any) =>
-        (a.status === "closed" ? 1 : 0) - (b.status === "closed" ? 1 : 0));
+  };
+
+  const filteredUsRows = useMemo(() => applySearchAndFilters(usRows), [usRows, search, statusFilter, clinicFilter]);
+  const filteredOthersRows = useMemo(() => applySearchAndFilters(othersRows), [othersRows, search, statusFilter, clinicFilter]);
+
+  // ── Grouping: Waiting on us ──
+  const usGroups: Group[] | null = useMemo(() => {
+    if (groupBy === "none") return null;
+    const key = groupBy === "clinic" ? (r: QueueRowData) => r.raw.clinic_name || "No clinic" : (r: QueueRowData) => groupKey(r.next);
+    const map = new Map<string, QueueRowData[]>();
+    for (const r of filteredUsRows) {
+      const k = key(r);
+      if (!map.has(k)) map.set(k, []);
+      map.get(k)!.push(r);
     }
-    if (!sort) return base;
-    const dir = sort.dir === "asc" ? 1 : -1;
-    return [...base].sort((a: any, b: any) => {
-      let av: any, bv: any;
-      if (sort.col === "created") { av = new Date(a.created_at || 0).getTime(); bv = new Date(b.created_at || 0).getTime(); }
-      else if (sort.col === "pa") { av = paRank(a.pa_status); bv = paRank(b.pa_status); }
-      else { av = a.status || ""; bv = b.status || ""; }
-      return av < bv ? -dir : av > bv ? dir : 0;
-    });
-  }, [referrals, viewRows, paView, search, clinicFilter, activeFilter, sort]);
+    const groups: Group[] = [...map.entries()].map(([k, rows]) => ({ key: k, rows: sortRows(rows) }));
+    return orderActionGroups(groups);
+  }, [filteredUsRows, groupBy]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const usFlat: QueueRowData[] = useMemo(() => sortRows(filteredUsRows), [filteredUsRows]);
+
+  // ── Grouping: Waiting on others (fixed ball order) ──
+  const othersGroups: Group[] = useMemo(() => {
+    const map = new Map<string, QueueRowData[]>();
+    for (const r of filteredOthersRows) {
+      const k = ballKey(r.next) ?? "Other";
+      if (!map.has(k)) map.set(k, []);
+      map.get(k)!.push(r);
+    }
+    const ordered: Group[] = [];
+    for (const k of BALL_ORDER) {
+      if (map.has(k)) ordered.push({ key: k, rows: sortByDueSoonest(map.get(k)!) });
+    }
+    const leftover = [...map.keys()].filter((k) => !(BALL_ORDER as readonly string[]).includes(k));
+    for (const k of leftover) ordered.push({ key: k, rows: sortByDueSoonest(map.get(k)!) });
+    return ordered;
+  }, [filteredOthersRows]);
+
+  // ── All tab: flat, newest first, client-side status/clinic/search filter, paginated ──
+  const allQueueRows: QueueRowData[] = useMemo(
+    () => allRows.map((r) => toQueueRow(r, resolveNextAction(toNextActionInput(r, now)))),
+    [allRows, now],
+  );
+  const filteredAllRows = useMemo(() => {
+    const rows = applySearchAndFilters(allQueueRows);
+    return [...rows].sort((a, b) => new Date(b.raw.created_at || 0).getTime() - new Date(a.raw.created_at || 0).getTime());
+  }, [allQueueRows, search, statusFilter, clinicFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredAllRows.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
-  const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const paginatedAllRows = filteredAllRows.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
-  const handleFilter = (v: string) => { setActiveFilter(v); setPage(1); };
-  const onSort = (col: "pa" | "status" | "created") =>
-    setSort((s) => (!s || s.col !== col ? { col, dir: "asc" } : s.dir === "asc" ? { col, dir: "desc" } : null));
-  const SortTh = ({ col, children }: { col: "pa" | "status" | "created"; children: React.ReactNode }) => {
-    const active = sort?.col === col;
-    const Icon = !active ? ChevronsUpDown : sort!.dir === "asc" ? ChevronUp : ChevronDown;
-    return <th><button className="rl-sortbtn" onClick={() => onSort(col)}>{children}<span className={`rl-caret${active ? " on" : ""}`}><Icon size={13} /></span></button></th>;
+  // ── Tab switching persists in the URL ──
+  const handleTabChange = (v: string) => {
+    const t = v as Tab;
+    setTab(t);
+    setPage(1);
+    const next = new URLSearchParams(searchParams);
+    next.set("tab", t);
+    next.delete("filter");
+    setSearchParams(next, { replace: true });
   };
 
-  if (loading) {
-    return <div className="rw-page" style={{ display: "flex", justifyContent: "center", padding: 64 }}><span className="rw-spin" style={{ color: "var(--color-teal)" }}><Loader2 size={26} /></span></div>;
-  }
+  const clearFilters = () => {
+    setSearch("");
+    setStatusFilter("any");
+    setClinicFilter("all");
+  };
+
+  const archiveRow = async (id: string, list: "work" | "all") => {
+    try {
+      await adminApi.archiveReferral(id);
+      if (list === "work") setWorkRows((prev) => prev.filter((r) => r.id !== id));
+      else setAllRows((prev) => prev.filter((r) => r.id !== id));
+      toast({ title: "Referral archived" });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+  };
+  const unarchiveRow = async (id: string) => {
+    try {
+      await adminApi.unarchiveReferral(id);
+      setAllRows((prev) => prev.filter((r) => r.id !== id));
+      toast({ title: "Referral restored" });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const toggleGroup = (key: string) =>
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+
+  const renderRowWithMenu = (r: QueueRowData, list: "work" | "all") => (
+    <QueueRow
+      key={r.id}
+      verb={r.verb}
+      due={r.due}
+      urgency={r.urgency}
+      patient={r.patient}
+      drug={r.drug}
+      bridge={r.bridge}
+      clinic={r.clinic}
+      stage={r.stage}
+      stageTone={r.stageTone}
+      signal={r.signal}
+      extra={r.extra}
+      assignee={r.assignee}
+      onClick={() => navigate(`/admin/referrals/${r.id}`)}
+      menu={
+        <RowMenu
+          id={r.id}
+          archived={list === "all" && showArchived}
+          onArchive={() => archiveRow(r.id, list)}
+          onUnarchive={() => unarchiveRow(r.id)}
+        />
+      }
+    />
+  );
+
+  const loading = tab === "all" ? allLoading : workLoading;
+
+  const footerHint =
+    tab === "us"
+      ? "Interrupts first, then actions with overdue rows, then the rest by due. Overdue rows first inside each group."
+      : tab === "others"
+        ? "Grouped by who has the ball. Rows move to Waiting on us when their clock expires."
+        : "Newest first · month-scoped.";
 
   return (
-    <div className="rw-page rl-page rw-fade">
-      <div className="rl-header">
-        <div>
-          <h1 className="rl-h1 serif">All Referrals</h1>
-          <p className="rl-sub">Manage and review referrals from all clinics</p>
-        </div>
+    <div className="p-6 space-y-4">
+      <div>
+        <h1 className="text-2xl font-semibold">Referrals</h1>
+        <p className="text-sm text-muted-foreground">Manage and review referrals from all clinics</p>
       </div>
 
-      {activeFilter === "delivery_issues" && (
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, padding: "9px 13px", borderRadius: "var(--radius-md)", background: "color-mix(in srgb, var(--color-error) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--color-error) 35%, transparent)", fontSize: 13, fontWeight: 600, color: "var(--color-error)" }}>
-          <AlertTriangle size={15} />
-          Referrals with reported delivery issues — check with the pharmacy, then reset for resend or resolve the case
-          <button className="rw-btn outline sm" style={{ marginLeft: "auto" }} onClick={() => handleFilter("needs_review")}>Back to queue</button>
-        </div>
-      )}
-      {activeFilter === "task_replies" && (
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, padding: "9px 13px", borderRadius: "var(--radius-md)", background: "color-mix(in srgb, var(--color-warning) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--color-warning) 35%, transparent)", fontSize: 13, fontWeight: 600, color: "#92610B" }}>
-          <ClipboardCheck size={15} />
-          Showing referrals with task replies to review — wherever they sit in the pipeline
-          <button className="rw-btn outline sm" style={{ marginLeft: "auto" }} onClick={() => handleFilter("needs_review")}>Back to queue</button>
-        </div>
-      )}
-      <div className="rl-toolbar">
-        <div className="rl-seg-wrap">
-          <div className="rl-seg">
-            {FILTERS.map((f) => (
-              <button key={f.value} className={`rl-seg-btn${activeFilter === f.value ? " on" : ""}`} onClick={() => handleFilter(f.value)}>
-                {f.short}<span className="rl-seg-n num">{filterCount(f.value)}</span>
-                {overdueCount(f.value) > 0 && (
-                  <span className="num" title="follow-up due" style={{ marginLeft: 4, fontSize: 10, fontWeight: 700, padding: "0 5px", borderRadius: 9999, background: "color-mix(in srgb, var(--color-error) 14%, transparent)", color: "var(--color-error)" }}>
-                    {overdueCount(f.value)}!
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-          <div className="rl-statusdd">
-            <ListFilter size={15} />
-            <select className="rl-select" value={activeFilter} onChange={(e) => handleFilter(e.target.value)}>
-              {FILTERS.map((f) => <option key={f.value} value={f.value}>{f.long} ({filterCount(f.value)})</option>)}
-            </select>
-          </div>
-        </div>
-        <div className="rl-search">
-          <span className="rl-search-ic"><Search size={16} /></span>
-          <input className="rl-search-input" placeholder="Search by patient name or ID..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
-        </div>
-        <select className="rl-select" style={{ border: "1px solid var(--border-default)", borderRadius: "var(--radius-md)", height: 38, padding: "0 10px", background: "#fff" }}
-          value={clinicFilter} onChange={(e) => { setClinicFilter(e.target.value); setPage(1); }}>
-          <option value="all">All Clinics</option>
-          {clinics.map((c: any) => <option key={c} value={c}>{c}</option>)}
-        </select>
-        <select className="rl-select" style={{ border: "1px solid var(--border-default)", borderRadius: "var(--radius-md)", height: 38, padding: "0 10px", background: "#fff" }}
-          value={month} disabled={!!search.trim() || showArchived}
-          title={search.trim() ? "Search looks across all time" : undefined}
-          onChange={(e) => { setMonth(e.target.value); setPage(1); }}>
-          {monthOptions().map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
-        </select>
-        <button className={`rw-btn sm ${showArchived ? "primary" : "outline"}`} onClick={() => { setShowArchived(v => !v); setPage(1); }}>
-          <Archive size={14} />{showArchived ? "Back to referrals" : "Archived"}
-        </button>
-      </div>
+      <Tabs value={tab} onValueChange={handleTabChange}>
+        <TabsList className="h-auto bg-transparent p-0 gap-6 rounded-none justify-start border-b border-border w-full">
+          <TabsTrigger
+            value="us"
+            className="rounded-none border-b-2 border-transparent bg-transparent px-1 pb-2.5 pt-0 shadow-none data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-primary data-[state=active]:text-foreground text-muted-foreground"
+          >
+            Waiting on us
+            <CountBadge n={usRows.length} />
+          </TabsTrigger>
+          <TabsTrigger
+            value="others"
+            className="rounded-none border-b-2 border-transparent bg-transparent px-1 pb-2.5 pt-0 shadow-none data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-primary data-[state=active]:text-foreground text-muted-foreground"
+          >
+            Waiting on others
+            <CountBadge n={othersRows.length} />
+          </TabsTrigger>
+          <TabsTrigger
+            value="all"
+            className="rounded-none border-b-2 border-transparent bg-transparent px-1 pb-2.5 pt-0 shadow-none data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-primary data-[state=active]:text-foreground text-muted-foreground"
+          >
+            All
+            <CountBadge n={filteredAllRows.length} />
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
 
-      {filtered.length > 0 ? (
-        <div className="dh-table-wrap">
-          <table className="dh-table">
-            <thead>
-              <tr>
-                <th>ID</th><th>Patient</th><th>Clinic</th><th>Drug</th>
-                <SortTh col="pa">PA Status</SortTh>
-                <SortTh col="status">Status</SortTh>
-                <th>Pharmacy</th>
-                <SortTh col="created">Created</SortTh>
-                <th className="r">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginated.map((r: any) => (
-                <tr key={r.id} onClick={() => navigate(`/admin/referrals/${r.id}`)}>
-                  <td><span className="dh-id">{(r.id || "").toUpperCase()}</span></td>
-                  <td><span className="dh-pt"><span className="dh-pt-nm">{r.patient_name}</span></span></td>
-                  <td className="dh-muted-cell">{r.clinic_name || "—"}</td>
-                  <td><span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>{r.drug || r.drug_requested || "—"}{r.is_bridge_program && <BridgeTag />}</span></td>
-                  <td><span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                    <ClinicPABadge status={r.pa_status} appealOutcome={r.appeal_outcome} />
-                    {paView && <ClockChip r={r} />}
-                    {r.pa_status === "appeal" && <UrgentTag />}
-                  </span></td>
-                  <td><span style={{ display: "inline-flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}><StatusBadge status={r.status} />{r.insurance_expired && <ExpiredTag />}{r.delivery_issue_at && <DeliveryIssueTag />}{(r.open_task_count ?? 0) > 0 && <TaskTag n={r.open_task_count} />}</span></td>
-                  <td className="dh-muted-cell">{r.pharmacy_name || "—"}</td>
-                  <td className="dh-muted-cell">{r.created_at ? formatDateShort(r.created_at) : "—"}</td>
-                  <td className="r" onClick={(e) => e.stopPropagation()}>
-                    {showArchived ? (
-                      <button className="rw-btn outline sm" onClick={async () => {
-                        try { await adminApi.unarchiveReferral(r.id); setReferrals((prev) => prev.filter((x: any) => x.id !== r.id)); toast({ title: "Referral restored" }); }
-                        catch (e: any) { toast({ title: "Error", description: e.message, variant: "destructive" }); }
-                      }}><RotateCcw size={14} />Unarchive</button>
+      <FilterToolbar
+        search={search}
+        onSearch={(v) => { setSearch(v); setPage(1); }}
+        searchPlaceholder="Search by patient name or ID…"
+        selects={[
+          {
+            options: STATUS_OPTIONS.map((s) => s.label),
+            value: STATUS_OPTIONS.find((s) => s.value === statusFilter)?.label,
+            onChange: (label) => {
+              const opt = STATUS_OPTIONS.find((s) => s.label === label);
+              setStatusFilter(opt?.value ?? "any");
+              setPage(1);
+            },
+            width: "170px",
+          },
+          {
+            options: ["All Clinics", ...clinics],
+            value: clinicFilter === "all" ? "All Clinics" : clinicFilter,
+            onChange: (v) => { setClinicFilter(v === "All Clinics" ? "all" : v); setPage(1); },
+            width: "180px",
+          },
+          ...(tab === "us"
+            ? [
+                {
+                  options: ["Group by: Action", "Group by: Clinic", "Group by: None"],
+                  value: `Group by: ${groupBy === "action" ? "Action" : groupBy === "clinic" ? "Clinic" : "None"}`,
+                  onChange: (v: string) => {
+                    setGroupBy(v.endsWith("Action") ? "action" : v.endsWith("Clinic") ? "clinic" : "none");
+                  },
+                  width: "170px",
+                },
+              ]
+            : []),
+          ...(tab === "all"
+            ? [
+                {
+                  options: monthOptions().map((m) => m.label),
+                  value: monthOptions().find((m) => m.value === month)?.label,
+                  onChange: (label: string) => {
+                    const opt = monthOptions().find((m) => m.label === label);
+                    setMonth(opt?.value ?? month);
+                    setPage(1);
+                  },
+                  width: "190px",
+                },
+              ]
+            : []),
+        ]}
+        trailing={
+          tab === "all" ? (
+            <button
+              type="button"
+              onClick={() => { setShowArchived((v) => !v); setPage(1); }}
+              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-md border border-input bg-background text-sm font-medium hover:bg-muted"
+            >
+              {showArchived ? "Back to referrals" : "Archived"}
+            </button>
+          ) : undefined
+        }
+      />
+
+      {loading ? (
+        <RowSkeletons />
+      ) : tab === "all" ? (
+        filteredAllRows.length === 0 ? (
+          <EmptyState onClear={clearFilters} />
+        ) : (
+          <>
+            <QueueList>{paginatedAllRows.map((r) => renderRowWithMenu(r, "all"))}</QueueList>
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between pt-2">
+                <span className="text-xs text-muted-foreground">
+                  Showing {(safePage - 1) * PAGE_SIZE + 1}-{Math.min(safePage * PAGE_SIZE, filteredAllRows.length)} of {filteredAllRows.length}
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <button type="button" disabled={safePage === 1} onClick={() => setPage(safePage - 1)} className="inline-flex items-center gap-1 h-8 px-2 rounded-md border border-input text-sm disabled:opacity-40">
+                    <ChevronLeft width={15} height={15} /> Prev
+                  </button>
+                  {pageWindow(totalPages, safePage).map((n, i) =>
+                    n === "…" ? (
+                      <span key={`e${i}`} className="px-1 text-muted-foreground">…</span>
                     ) : (
-                      <button className="rw-btn primary sm" onClick={() => navigate(`/admin/referrals/${r.id}`)}><ClipboardCheck size={14} />Review</button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => setPage(n as number)}
+                        className={`h-8 min-w-8 px-2 rounded-md text-sm ${n === safePage ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+                      >
+                        {n}
+                      </button>
+                    ),
+                  )}
+                  <button type="button" disabled={safePage === totalPages} onClick={() => setPage(safePage + 1)} className="inline-flex items-center gap-1 h-8 px-2 rounded-md border border-input text-sm disabled:opacity-40">
+                    Next <ChevronRight width={15} height={15} />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )
+      ) : tab === "us" ? (
+        filteredUsRows.length === 0 ? (
+          <EmptyState onClear={clearFilters} />
+        ) : usGroups ? (
+          <div className="space-y-3">
+            {usGroups.map((g) => {
+              const isCollapsed = collapsed.has(g.key);
+              const overdueCount = g.rows.filter((r) => r.next.overdue).length;
+              return (
+                <QueueList key={g.key}>
+                  <GroupHeader label={g.key} count={g.rows.length} overdueCount={overdueCount} expanded={!isCollapsed} onToggle={() => toggleGroup(g.key)} />
+                  {!isCollapsed && g.rows.map((r) => renderRowWithMenu(r, "work"))}
+                </QueueList>
+              );
+            })}
+          </div>
+        ) : (
+          <QueueList>{usFlat.map((r) => renderRowWithMenu(r, "work"))}</QueueList>
+        )
+      ) : filteredOthersRows.length === 0 ? (
+        <EmptyState onClear={clearFilters} />
       ) : (
-        <div className="dh-empty">
-          <div className="dh-empty-ic sm"><Search size={20} /></div>
-          <p className="rl-empty-t">No referrals found</p>
-          <p className="rl-empty-s">Try adjusting your filters</p>
-          <button className="rw-btn outline sm" onClick={() => { setSearch(""); setActiveFilter("all"); setClinicFilter("all"); }}>Clear Filters</button>
+        <div className="space-y-3">
+          {othersGroups.map((g) => {
+            const isCollapsed = collapsed.has(g.key);
+            return (
+              <QueueList key={g.key}>
+                <GroupHeader label={g.key} count={g.rows.length} overdueCount={0} expanded={!isCollapsed} onToggle={() => toggleGroup(g.key)} />
+                {!isCollapsed && g.rows.map((r) => renderRowWithMenu(r, "work"))}
+              </QueueList>
+            );
+          })}
         </div>
       )}
 
-      {filtered.length > 0 && (
-        <div className="rl-pag">
-          <div className="rl-pag-meta"><span>Showing {(safePage - 1) * PAGE_SIZE + 1}-{Math.min(safePage * PAGE_SIZE, filtered.length)} of {filtered.length} referrals</span></div>
-          <div className="rl-pag-ctrl">
-            <button className="rw-btn outline sm" disabled={safePage === 1} onClick={() => setPage(safePage - 1)}><ChevronLeft size={15} />Prev</button>
-            <div className="rl-pg-window">
-              {pageWindow(totalPages, safePage).map((n, i) => (
-                n === "…" ? <span key={`e${i}`} className="rl-pg-ell">…</span>
-                  : <button key={n} className={`rl-pg-num${n === safePage ? " on" : ""}`} onClick={() => setPage(n as number)}>{n}</button>
-              ))}
-            </div>
-            <span className="rl-pg-xy">Page {safePage} of {totalPages}</span>
-            <button className="rw-btn outline sm" disabled={safePage === totalPages} onClick={() => setPage(safePage + 1)}>Next<ChevronRight size={15} /></button>
-          </div>
-        </div>
-      )}
+      <p className="text-xs text-muted-foreground">{footerHint}</p>
     </div>
   );
 }

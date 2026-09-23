@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { AlertTriangle, MoreHorizontal, User, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { StageChip } from "@/components/StageChip";
@@ -26,6 +26,8 @@ interface QueueRowProps {
   assignee?: string | null;
   onClick?: () => void;
   onMore?: () => void;
+  /** Overrides the default overflow button with a caller-supplied menu trigger (e.g. a DropdownMenu), still hover-revealed. */
+  menu?: ReactNode;
   className?: string;
 }
 
@@ -50,6 +52,7 @@ export function QueueRow({
   assignee,
   onClick,
   onMore,
+  menu,
   className,
 }: QueueRowProps) {
   const [expanded, setExpanded] = useState(false);
@@ -139,17 +142,18 @@ export function QueueRow({
 
       {/* RIGHT: overflow + assignee */}
       <div className="flex items-center gap-2 justify-self-end self-center">
-        <button
-          type="button"
-          aria-label="More options"
-          onClick={(e) => {
-            e.stopPropagation();
-            onMore?.();
-          }}
-          className="opacity-0 group-hover:opacity-100 transition-opacity rounded-md p-1 text-muted-foreground hover:bg-muted"
-        >
-          <MoreHorizontal width={16} height={16} strokeWidth={1.75} aria-hidden="true" />
-        </button>
+        <div className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+          {menu ?? (
+            <button
+              type="button"
+              aria-label="More options"
+              onClick={() => onMore?.()}
+              className="rounded-md p-1 text-muted-foreground hover:bg-muted"
+            >
+              <MoreHorizontal width={16} height={16} strokeWidth={1.75} aria-hidden="true" />
+            </button>
+          )}
+        </div>
         {assignee ? (
           <span
             title={assignee}
