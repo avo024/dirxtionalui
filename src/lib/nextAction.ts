@@ -594,35 +594,38 @@ export function ballKey(next: NextAction): "Payer" | "Clinic" | "Manufacturer" |
  * `ClinicPABadge status={pa_status} appealOutcome={appeal_outcome}` in
  * AdminReferralsList.tsx). Flagged for Alex — see final report.
  */
-export function clinicView(next: NextAction): { status: string; paStatus: string | null } {
+export function clinicView(next: NextAction): { status: string; paStatus: string | null; appealOutcome: "won" | "level2" | "final" | null } {
   switch (next.stage) {
     case "processing":
-      return { status: "processing", paStatus: null };
+      return { status: "processing", paStatus: null, appealOutcome: null };
     case "review":
-      return { status: "ready_for_review", paStatus: null };
+      return { status: "ready_for_review", paStatus: null, appealOutcome: null };
     case "pa_pending":
-      return { status: "ready_for_review", paStatus: "pending" };
+      return { status: "ready_for_review", paStatus: "pending", appealOutcome: null };
     case "pa_submitted":
-      return { status: "ready_for_review", paStatus: "submitted" };
+      return { status: "ready_for_review", paStatus: "submitted", appealOutcome: null };
     case "pa_approved":
     case "appeal_won":
-      return { status: "ready_for_review", paStatus: "approved" };
+      return { status: "ready_for_review", paStatus: "approved", appealOutcome: null };
     case "pa_denied":
-      return { status: "ready_for_review", paStatus: "denied" };
+      return { status: "ready_for_review", paStatus: "denied", appealOutcome: null };
     case "appeal_build":
     case "appeal_sent":
+      return { status: "ready_for_review", paStatus: "appeal", appealOutcome: null };
+    // flow-script §10: level 2 / final close the referral; ClinicPABadge shows "PA Level 2" / "PA Final" via appealOutcome
     case "appeal_level2":
+      return { status: "closed", paStatus: "denied", appealOutcome: "level2" };
     case "appeal_final":
-      return { status: "ready_for_review", paStatus: "appeal" };
+      return { status: "closed", paStatus: "denied", appealOutcome: "final" };
     case "ready_to_send":
-      return { status: "approved_to_send", paStatus: null };
+      return { status: "approved_to_send", paStatus: null, appealOutcome: null };
     case "sent":
-      return { status: "sent_to_pharmacy", paStatus: null };
+      return { status: "sent_to_pharmacy", paStatus: null, appealOutcome: null };
     case "rejected":
-      return { status: "rejected", paStatus: null };
+      return { status: "rejected", paStatus: null, appealOutcome: null };
     case "closed":
     default:
-      return { status: "closed", paStatus: null };
+      return { status: "closed", paStatus: null, appealOutcome: null };
   }
 }
 

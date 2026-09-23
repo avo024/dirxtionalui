@@ -335,28 +335,34 @@ describe("resolveNextAction — interrupts (flow-script §5)", () => {
 });
 
 describe("clinicView — flow-script §10 (raw values only, no new labels)", () => {
+  it("level 2 / final close the referral and carry the appeal outcome for ClinicPABadge", () => {
+    const l2 = resolveNextAction({ status: "closed", pa_status: "denied", appeal_outcome: "level2" } as NextActionInput);
+    expect(clinicView(l2)).toEqual({ status: "closed", paStatus: "denied", appealOutcome: "level2" });
+    const fin = resolveNextAction({ status: "closed", pa_status: "denied", appeal_outcome: "final" } as NextActionInput);
+    expect(clinicView(fin)).toEqual({ status: "closed", paStatus: "denied", appealOutcome: "final" });
+  });
   it("review", () => {
     const r = resolveNextAction(base({ status: "ready_for_review", pa_required: true }));
-    expect(clinicView(r)).toEqual({ status: "ready_for_review", paStatus: null });
+    expect(clinicView(r)).toEqual({ status: "ready_for_review", paStatus: null, appealOutcome: null });
   });
 
   it("pa_submitted", () => {
     const r = resolveNextAction(base({ status: "ready_for_review", pa_status: "submitted" }));
-    expect(clinicView(r)).toEqual({ status: "ready_for_review", paStatus: "submitted" });
+    expect(clinicView(r)).toEqual({ status: "ready_for_review", paStatus: "submitted", appealOutcome: null });
   });
 
   it("appeal_level2", () => {
-    const r = resolveNextAction(base({ status: "closed", pa_status: "appeal", appeal_outcome: "level2" }));
-    expect(clinicView(r)).toEqual({ status: "ready_for_review", paStatus: "appeal" });
+    const r = resolveNextAction(base({ status: "closed", pa_status: "denied", appeal_outcome: "level2" }));
+    expect(clinicView(r)).toEqual({ status: "closed", paStatus: "denied", appealOutcome: "level2" });
   });
 
   it("ready_to_send", () => {
     const r = resolveNextAction(base({ status: "approved_to_send" }));
-    expect(clinicView(r)).toEqual({ status: "approved_to_send", paStatus: null });
+    expect(clinicView(r)).toEqual({ status: "approved_to_send", paStatus: null, appealOutcome: null });
   });
 
   it("sent", () => {
     const r = resolveNextAction(base({ status: "sent_to_pharmacy" }));
-    expect(clinicView(r)).toEqual({ status: "sent_to_pharmacy", paStatus: null });
+    expect(clinicView(r)).toEqual({ status: "sent_to_pharmacy", paStatus: null, appealOutcome: null });
   });
 });
