@@ -14,11 +14,47 @@ import { QueueRow } from "@/components/patterns/QueueRow";
 import { FilterToolbar } from "@/components/patterns/FilterToolbar";
 import { adminApi } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
-import { resolveNextAction, ballKey, groupKey, type NextAction } from "@/lib/nextAction";
+import { resolveNextAction, ballKey, groupKey, stageLabelForQueue, type NextAction } from "@/lib/nextAction";
 import { toNextActionInput, toQueueRow, type QueueRowData } from "@/lib/queueRows";
 
 type Tab = "us" | "others" | "all";
-type GroupBy = "action" | "clinic" | "none";
+type GroupBy = "action" | "stage" | "clinic" | "none";
+
+// flow-script stage order, used both for "Group by: Stage" ordering and the
+// stage filter dropdown on the work tabs (Alex, phase 3b follow-up).
+const STAGE_ORDER = [
+  "Review",
+  "PA pending",
+  "PA submitted",
+  "PA approved",
+  "PA denied",
+  "Appeal",
+  "Level 2",
+  "Appeal final",
+  "Enrollment",
+  "Ready to send",
+  "Sent",
+  "Rejected",
+  "Closed",
+  "Processing",
+] as const;
+
+const STAGE_FILTER_OPTIONS: { value: string; label: string }[] = [
+  { value: "any", label: "Any stage" },
+  ...STAGE_ORDER.map((s) => ({ value: s, label: s })),
+];
+
+/** flow-script stage order first, unknown labels alphabetically after. */
+function orderStageGroups(groups: Group[]): Group[] {
+  return [...groups].sort((a, b) => {
+    const ai = STAGE_ORDER.indexOf(a.key as (typeof STAGE_ORDER)[number]);
+    const bi = STAGE_ORDER.indexOf(b.key as (typeof STAGE_ORDER)[number]);
+    if (ai === -1 && bi === -1) return a.key.localeCompare(b.key);
+    if (ai === -1) return 1;
+    if (bi === -1) return -1;
+    return ai - bi;
+  });
+}
 
 const PAGE_SIZE = 25;
 
@@ -209,6 +245,13 @@ export default function AdminReferralsList() {
     return "any";
   });
   const [clinicFilter, setClinicFilter] = useState("all");
+  // Stage filter for the work tabs (Waiting on us / Waiting on others) —
+  // separate from `statusFilter`, which stays raw-status and All-tab-only.
+  const [stageFilter, setStageFilter] = useState<string>(() => {
+    if (initialFilter === "pa_pending") return "PA pending";
+    if (initialFilter === "appeal") return "Appeal";
+    return "any";
+  });
   const [groupBy, setGroupBy] = useState<GroupBy>("action");
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
@@ -281,6 +324,18 @@ export default function AdminReferralsList() {
     [workRows, allRows],
   );
 
+  // Work tabs (Waiting on us / Waiting on others) filter by resolved stage,
+  // not raw status — the raw-status dropdown stays All-tab-only.
+  const applyWorkFilters = (rows: QueueRowData[]) => {
+    const q = search.trim().toLowerCase();
+    return rows.filter((r) => {
+      if (q && !((r.raw.patient_name || "").toLowerCase().includes(q) || (r.raw.id || "").toLowerCase().includes(q))) return false;
+      if (stageFilter !== "any" && stageLabelForQueue(r.next.stage) !== stageFilter) return false;
+      if (clinicFilter !== "all" && r.raw.clinic_name !== clinicFilter) return false;
+      return true;
+    });
+  };
+
   const applySearchAndFilters = (rows: QueueRowData[]) => {
     const q = search.trim().toLowerCase();
     return rows.filter((r) => {
@@ -291,13 +346,16 @@ export default function AdminReferralsList() {
     });
   };
 
-  const filteredUsRows = useMemo(() => applySearchAndFilters(usRows), [usRows, search, statusFilter, clinicFilter]);
-  const filteredOthersRows = useMemo(() => applySearchAndFilters(othersRows), [othersRows, search, statusFilter, clinicFilter]);
+  const filteredUsRows = useMemo(() => applyWorkFilters(usRows), [usRows, search, stageFilter, clinicFilter]);
+  const filteredOthersRows = useMemo(() => applyWorkFilters(othersRows), [othersRows, search, stageFilter, clinicFilter]);
 
   // ── Grouping: Waiting on us ──
   const usGroups: Group[] | null = useMemo(() => {
     if (groupBy === "none") return null;
-    const key = groupBy === "clinic" ? (r: QueueRowData) => r.raw.clinic_name || "No clinic" : (r: QueueRowData) => groupKey(r.next);
+    const key =
+      groupBy === "clinic" ? (r: QueueRowData) => r.raw.clinic_name || "No clinic" :
+      groupBy === "stage" ? (r: QueueRowData) => stageLabelForQueue(r.next.stage) :
+      (r: QueueRowData) => groupKey(r.next);
     const map = new Map<string, QueueRowData[]>();
     for (const r of filteredUsRows) {
       const k = key(r);
@@ -305,7 +363,7 @@ export default function AdminReferralsList() {
       map.get(k)!.push(r);
     }
     const groups: Group[] = [...map.entries()].map(([k, rows]) => ({ key: k, rows: sortRows(rows) }));
-    return orderActionGroups(groups);
+    return groupBy === "stage" ? orderStageGroups(groups) : orderActionGroups(groups);
   }, [filteredUsRows, groupBy]);
 
   const usFlat: QueueRowData[] = useMemo(() => sortRows(filteredUsRows), [filteredUsRows]);
@@ -355,6 +413,7 @@ export default function AdminReferralsList() {
   const clearFilters = () => {
     setSearch("");
     setStatusFilter("any");
+    setStageFilter("any");
     setClinicFilter("all");
   };
 
@@ -460,16 +519,27 @@ export default function AdminReferralsList() {
         onSearch={(v) => { setSearch(v); setPage(1); }}
         searchPlaceholder="Search by patient name or ID…"
         selects={[
-          {
-            options: STATUS_OPTIONS.map((s) => s.label),
-            value: STATUS_OPTIONS.find((s) => s.value === statusFilter)?.label,
-            onChange: (label) => {
-              const opt = STATUS_OPTIONS.find((s) => s.label === label);
-              setStatusFilter(opt?.value ?? "any");
-              setPage(1);
-            },
-            width: "170px",
-          },
+          tab === "all"
+            ? {
+                options: STATUS_OPTIONS.map((s) => s.label),
+                value: STATUS_OPTIONS.find((s) => s.value === statusFilter)?.label,
+                onChange: (label: string) => {
+                  const opt = STATUS_OPTIONS.find((s) => s.label === label);
+                  setStatusFilter(opt?.value ?? "any");
+                  setPage(1);
+                },
+                width: "170px",
+              }
+            : {
+                options: STAGE_FILTER_OPTIONS.map((s) => s.label),
+                value: STAGE_FILTER_OPTIONS.find((s) => s.value === stageFilter)?.label,
+                onChange: (label: string) => {
+                  const opt = STAGE_FILTER_OPTIONS.find((s) => s.label === label);
+                  setStageFilter(opt?.value ?? "any");
+                  setPage(1);
+                },
+                width: "170px",
+              },
           {
             options: ["All Clinics", ...clinics],
             value: clinicFilter === "all" ? "All Clinics" : clinicFilter,
@@ -479,10 +549,10 @@ export default function AdminReferralsList() {
           ...(tab === "us"
             ? [
                 {
-                  options: ["Group by: Action", "Group by: Clinic", "Group by: None"],
-                  value: `Group by: ${groupBy === "action" ? "Action" : groupBy === "clinic" ? "Clinic" : "None"}`,
+                  options: ["Group by: Action", "Group by: Stage", "Group by: Clinic", "Group by: List"],
+                  value: `Group by: ${groupBy === "action" ? "Action" : groupBy === "stage" ? "Stage" : groupBy === "clinic" ? "Clinic" : "List"}`,
                   onChange: (v: string) => {
-                    setGroupBy(v.endsWith("Action") ? "action" : v.endsWith("Clinic") ? "clinic" : "none");
+                    setGroupBy(v.endsWith("Action") ? "action" : v.endsWith("Stage") ? "stage" : v.endsWith("Clinic") ? "clinic" : "none");
                   },
                   width: "170px",
                 },
