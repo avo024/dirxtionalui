@@ -27,9 +27,20 @@ export function toNextActionInput(row: any, now?: Date): NextActionInput {
     open_task_count: row.open_task_count,
     created_at: row.created_at,
     updated_at: row.updated_at,
-    // Not returned by the backend today (flow-script §14 #2) — omitted:
-    // enrollment, openTasks, latestTaskReplyAt, unreadInboundFaxes,
-    // oldestOpenTaskCreatedAt, latestInboundFaxAt.
+    // Queue signals added by the backend branch design/system-v2-backend
+    // (flow-script §14 #2). Each is optional; older API responses simply
+    // leave them undefined and the resolver treats them as "unknown".
+    openTasks: row.open_task_count ?? undefined,
+    latestTaskReplyAt: row.latest_task_reply_at ?? null,
+    oldestOpenTaskCreatedAt: row.oldest_open_task_created_at ?? null,
+    unreadInboundFaxes: row.unread_inbound_fax_count ?? undefined,
+    enrollment: row.enrollment_status
+      ? {
+          status: row.enrollment_status,
+          hasForm: row.enrollment_has_form ?? undefined,
+          signatureTaskCompleted: row.enrollment_signature_task_completed ?? undefined,
+        }
+      : undefined,
     now,
   };
 }
