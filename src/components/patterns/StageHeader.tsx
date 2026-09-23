@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { ChevronDown, File, Pencil, Pin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { StageChip } from "@/components/StageChip";
 
 interface StageHeaderProps {
@@ -17,6 +18,8 @@ interface StageHeaderProps {
   docCount?: number;
   onDocuments?: () => void;
   onMore?: () => void;
+  /** When given, the More button opens this menu itself (same list the ActionBar uses). */
+  moreItems?: Array<{ label: string; onClick?: () => void } | "-">;
   /** Interrupt/context badge shown beside the stage chip, e.g. "Fix delivery issue". */
   badge?: ReactNode;
   className?: string;
@@ -39,6 +42,7 @@ export function StageHeader({
   docCount,
   onDocuments,
   onMore,
+  moreItems,
   badge,
   className,
 }: StageHeaderProps) {
@@ -87,10 +91,21 @@ export function StageHeader({
           <File width={16} height={16} strokeWidth={1.75} aria-hidden="true" />
           Documents{typeof docCount === "number" ? ` (${docCount})` : ""}
         </Button>
-        <Button variant="outline" size="sm" onClick={onMore}>
+        {moreItems && moreItems.length > 0 ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">More <ChevronDown width={16} height={16} strokeWidth={1.75} aria-hidden="true" /></Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {moreItems.map((m, i) => m === "-" ? <DropdownMenuSeparator key={`s${i}`} /> : <DropdownMenuItem key={m.label} onClick={m.onClick}>{m.label}</DropdownMenuItem>)}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+                  <Button variant="outline" size="sm" onClick={onMore}>
           More
           <ChevronDown width={16} height={16} strokeWidth={1.75} aria-hidden="true" />
         </Button>
+        )}
       </div>
     </header>
   );

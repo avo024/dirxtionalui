@@ -617,7 +617,7 @@ export default function AdminReferralWorkstation() {
   const secondaryLabel = next.secondary;
 
   const primarySpec = next.primary
-    ? { label: primaryLabel ?? next.primary, onClick: actionFor(next.primary), disabled: !actionFor(next.primary) && next.primary !== "Mark handled" ? false : undefined }
+    ? { label: primaryLabel ?? next.primary, onClick: actionFor(next.primary), disabled: next.primary === "Mark handled" } // Mark handled: no endpoint yet (enrollment outcomes)
     : null;
   const secondarySpec = secondaryLabel
     ? { label: secondaryLabel, onClick: actionFor(secondaryLabel) }
@@ -1018,12 +1018,7 @@ export default function AdminReferralWorkstation() {
         onEditHandoff={openHandoffEditor}
         docCount={documents.length}
         onDocuments={() => setSheetOpen(true)}
-        onMore={() => {
-          // ActionBar's More dropdown is the primary surface; the header
-          // button opens the same list via a lightweight native menu.
-          const el = document.getElementById("ws-more-trigger");
-          el?.click();
-        }}
+        moreItems={moreItems}
         badge={next.interrupt ? <StageChip label={next.interrupt.verb} tone={undefined} variant="soft" /> : undefined}
       />
 
@@ -1110,7 +1105,6 @@ export default function AdminReferralWorkstation() {
         next={nextInQueueSpec}
       />
       {/* Hidden trigger so the header's "More" button can open the same menu. */}
-      <button id="ws-more-trigger" className="hidden" aria-hidden="true" />
 
       <input
         ref={letterInputRef}
