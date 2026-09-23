@@ -530,13 +530,12 @@ function buildTrack(input: NextActionInput, now: Date): EnrollmentTrack | null {
   const stage = detectEnrollmentStage(input.enrollment);
   const cfg = enrollmentTrackConfig(stage);
 
-  // flow-script §6: the clinic-task clock (2 business days from the oldest
-  // open task) is the only clock defined today for enr_awaiting — the
-  // proposed 3-day "signature chase" clock is unconfirmed by Mari (§6, §12
-  // Q3), so it is not implemented. Guessed — flag for Alex.
+  // flow-script §6: signature-chase clock = 48 hours from the signature
+  // task's creation (Alex, 2026-09-23). The task's created_at arrives as
+  // oldestOpenTaskCreatedAt (the signature task is the open task here).
   let dueAt: Date | null = null;
   if (stage === "enr_awaiting" && input.oldestOpenTaskCreatedAt) {
-    dueAt = addBusinessDays(new Date(input.oldestOpenTaskCreatedAt), 2);
+    dueAt = new Date(new Date(input.oldestOpenTaskCreatedAt).getTime() + 48 * 60 * 60 * 1000);
   }
 
   return { stage, dueAt, ...cfg };

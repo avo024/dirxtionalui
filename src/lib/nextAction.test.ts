@@ -218,6 +218,13 @@ describe("resolveNextAction — flow-script §4 enrollment track", () => {
     expect(r.track?.secondary).toBeNull();
   });
 
+  it("signature-chase clock is 48h from the signature task (flow-script §6)", () => {
+    const now = new Date("2026-09-23T12:00:00Z");
+    const r = resolveNextAction(base({ status: "ready_for_review", is_bridge_program: true, enrollment: { status: "awaiting_signatures" }, oldestOpenTaskCreatedAt: "2026-09-21T09:00:00Z", now }));
+    expect(r.track?.stage).toBe("enr_awaiting");
+    expect(r.track?.dueAt?.toISOString()).toBe("2026-09-23T09:00:00.000Z");
+  });
+
   it("awaiting_signatures, not signed (enr_awaiting)", () => {
     const r = resolveNextAction(base({ status: "closed", enrollment: { status: "awaiting_signatures", signatureTaskCompleted: false } }));
     expect(r.track?.stage).toBe("enr_awaiting");
