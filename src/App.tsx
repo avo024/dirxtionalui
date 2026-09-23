@@ -32,6 +32,7 @@ import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminInsights from "@/pages/admin/AdminInsights";
 import AdminReferralsList from "@/pages/admin/AdminReferralsList";
 import AdminReferralReview from "@/pages/admin/AdminReferralReview";
+import AdminReferralWorkstation from "@/pages/admin/AdminReferralWorkstation";
 import PharmaciesList from "@/pages/admin/PharmaciesList";
 import PharmacyDetail from "@/pages/admin/PharmacyDetail";
 import AdminInvites from "@/pages/admin/AdminInvites";
@@ -85,7 +86,8 @@ const App = () => (
             <Route path="/admin" element={<AdminLayout />}>
               <Route path="dashboard" element={<AdminDashboard />} />
               <Route path="insights" element={<AdminInsights />} />
-              <Route path="referrals/:id" element={<AdminReferralReview />} />
+              <Route path="referrals/:id" element={<AdminReferralWorkstation />} />
+              <Route path="referrals/:id/legacy" element={<AdminReferralReview />} />
               <Route path="referrals" element={<AdminReferralsList />} />
               <Route path="support/:caseId" element={<AdminSupportDetail />} />
               <Route path="support" element={<AdminSupportList />} />

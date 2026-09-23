@@ -1,0 +1,1329 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Loader2, AlertTriangle, ExternalLink } from "lucide-react";
+import { adminApi } from "@/lib/api";
+import { toast } from "@/hooks/use-toast";
+import { useAdminProfile } from "@/hooks/useAdminProfile";
+import { formatDateShort, todayLocalISO } from "@/lib/dateUtils";
+
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+
+import { StageHeader } from "@/components/patterns/StageHeader";
+import { DocumentsSheet } from "@/components/patterns/DocumentsSheet";
+import { ActionBar } from "@/components/patterns/ActionBar";
+import { MessageThread } from "@/components/patterns/MessageThread";
+import { DefinitionList } from "@/components/patterns/DefinitionList";
+import { StageChip } from "@/components/StageChip";
+import { StatusBadge } from "@/components/StatusBadge";
+import { PAStatusBadge } from "@/components/PAStatusBadge";
+
+import { ConfirmModal } from "@/components/ConfirmModal";
+import { DeliveryConfirmModal } from "@/components/DeliveryConfirmModal";
+import { AdminRejectModal, FLAGGABLE_FIELDS, type RejectPayload } from "@/components/AdminRejectModal";
+import { DocumentViewer } from "@/components/DocumentViewer";
+import { PAAppealCard } from "@/components/PAAppealCard";
+import { AppealPacketCard } from "@/components/AppealPacketCard";
+import { EnrollmentCard } from "@/components/EnrollmentCard";
+import { ReferralTasksCard } from "@/components/ReferralTasksCard";
+import { getDisplayAuthor } from "@/lib/noteAuthor";
+
+import { resolveNextAction, stageLabelForQueue, type NextAction } from "@/lib/nextAction";
+import { toNextActionInput } from "@/lib/queueRows";
+
+// ── small helpers ──────────────────────────────────────────────────
+
+function mapReferral(data: any) {
+  return { ...data, drug: data.drug_requested, blocked: data.preferred_pharmacy_blocked };
+}
+
+/** "Thu 9:41 AM" for a due date, matching nextAction's own formatting. */
+function formatWhen(d: Date | string | null | undefined): string {
+  if (!d) return "";
+  const date = typeof d === "string" ? new Date(d) : d;
+  return date.toLocaleString(undefined, { weekday: "short", hour: "numeric", minute: "2-digit" });
+}
+
+function relTime(d: string | null | undefined): string {
+  if (!d) return "";
+  const ms = Date.now() - new Date(d).getTime();
+  const mins = Math.round(ms / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.round(hrs / 24)}d ago`;
+}
+
+/** Pick the newest of several {label, time} candidates for the header's "Last:" line. */
+function lastEventFor(referral: any): { label: string; time: string } | null {
+  const candidates: Array<{ label: string; iso?: string | null }> = [
+    { label: "Referral received", iso: referral.created_at },
+    { label: "PA submitted on CoverMyMeds", iso: referral.pa_submitted_at },
+    { label: "Appeal packet faxed", iso: referral.appeal_started_at },
+    { label: "Delivery reported", iso: referral.delivery_issue_at },
+    { label: "Updated", iso: referral.updated_at },
+  ];
+  let best: { label: string; iso: string } | null = null;
+  for (const c of candidates) {
+    if (!c.iso) continue;
+    if (!best || new Date(c.iso).getTime() >= new Date(best.iso).getTime()) {
+      best = { label: c.label, iso: c.iso };
+    }
+  }
+  if (!best) return null;
+  return { label: best.label, time: relTime(best.iso) };
+}
+
+// ── page ───────────────────────────────────────────────────────────
+
+export default function AdminReferralWorkstation() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const notesDeepLink = searchParams.get("tab") === "notes";
+  const { data: adminProfile } = useAdminProfile();
+
+  const [referral, setReferral] = useState<any>(null);
+  const [documents, setDocuments] = useState<any[]>([]);
+  const [notes, setNotes] = useState<any[]>([]);
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const reload = useCallback(async () => {
+    if (!id) return;
+    const [refData, docsRes, notesRes, tasksRes] = await Promise.all([
+      adminApi.getReferral(id),
+      adminApi.getReferralDocuments(id).catch(() => ({ items: [] })),
+      adminApi.getReferralNotes(id).catch(() => ({ items: [] })),
+      adminApi.getTasks(id).catch(() => ({ items: [] })),
+    ]);
+    setReferral(mapReferral(refData));
+    setDocuments(docsRes.items || docsRes || []);
+    setNotes(notesRes.items || []);
+    setTasks(tasksRes.items || []);
+  }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    setLoading(true);
+    reload()
+      .catch((err: any) => toast({ title: "Error", description: err.message || "Failed to load referral", variant: "destructive" }))
+      .finally(() => setLoading(false));
+  }, [id, reload]);
+
+  // Deep-linked from a note bell — clear the unread flag.
+  useEffect(() => {
+    if (notesDeepLink && id) localStorage.setItem(`notes_last_viewed_${id}`, new Date().toISOString());
+  }, [id, notesDeepLink]);
+
+  const next: NextAction | null = useMemo(() => {
+    if (!referral) return null;
+    return resolveNextAction(toNextActionInput(referral));
+  }, [referral]);
+
+  // ── Documents sheet ──────────────────────────────────────────────
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [activeDocId, setActiveDocId] = useState<string | undefined>(undefined);
+  const stageKey = next?.stage ?? "processing";
+  const [pinned, setPinned] = useState(false);
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem(`ws.docs.pinned.${stageKey}`);
+      setPinned(v === "true");
+    } catch {
+      setPinned(false);
+    }
+  }, [stageKey]);
+  const setPinnedPersist = (v: boolean) => {
+    setPinned(v);
+    try {
+      localStorage.setItem(`ws.docs.pinned.${stageKey}`, String(v));
+    } catch {
+      // localStorage unavailable — pin just won't persist across reloads
+    }
+  };
+  const isSplit = next?.layout === "split";
+  const isWideEnough = useIsWideViewport(1200);
+  const showDocked = isSplit && isWideEnough;
+
+  // Default document per stage — best-effort match by doc_type/filename.
+  useEffect(() => {
+    if (!referral || documents.length === 0) {
+      setActiveDocId(undefined);
+      return;
+    }
+    const byType = (pred: (d: any) => boolean) => documents.find(pred);
+    let picked: any = null;
+    const stage = next?.stage;
+    if (stage === "pa_denied") {
+      picked =
+        byType((d) => /denial|pa_letter/i.test(d.doc_type || "")) ||
+        [...documents].filter((d) => /fax/i.test(d.doc_type || "")).sort((a, b) => new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime())[0];
+    } else if (stage === "pa_approved" || stage === "appeal_won") {
+      picked = byType((d) => /pa_letter|approval/i.test(d.doc_type || ""));
+    } else if (stage === "ready_to_send" || stage === "sent") {
+      picked = byType((d) => /generated_referral_pdf/i.test(d.doc_type || ""));
+    } else {
+      picked = byType((d) => /referral|prescription/i.test(d.doc_type || ""));
+    }
+    setActiveDocId((picked || documents[0])?.id);
+  }, [referral, documents, next?.stage]);
+
+  useEffect(() => {
+    // Split stages: sheet is already open (and pinned by default) per flow-script §8.
+    if (isSplit) setSheetOpen(true);
+  }, [isSplit, stageKey]);
+
+  // ── Handoff note ─────────────────────────────────────────────────
+  const [handoffOpen, setHandoffOpen] = useState(false);
+  const [handoffDraft, setHandoffDraft] = useState("");
+  const [savingHandoff, setSavingHandoff] = useState(false);
+  const openHandoffEditor = () => {
+    setHandoffDraft(referral?.admin_handoff_note || "");
+    setHandoffOpen(true);
+  };
+  const saveHandoff = async () => {
+    if (!id) return;
+    setSavingHandoff(true);
+    try {
+      await adminApi.setHandoffNote(id, handoffDraft.trim() || null);
+      setHandoffOpen(false);
+      await reload();
+    } catch (e: any) {
+      toast({ title: "Couldn't save handoff note", description: e.message, variant: "destructive" });
+    } finally {
+      setSavingHandoff(false);
+    }
+  };
+
+  // ── Request from clinic ──────────────────────────────────────────
+  const [requestOpen, setRequestOpen] = useState(false);
+  const [requestDraft, setRequestDraft] = useState("");
+  const [requestSending, setRequestSending] = useState(false);
+  const openTaskCount = tasks.filter((t) => t.status === "open").length;
+  const sendRequest = async () => {
+    if (!id || !requestDraft.trim()) return;
+    setRequestSending(true);
+    try {
+      const actor = (adminProfile?.first_name || "").trim() || "Dirxctional team";
+      await adminApi.createTask(id, { instructions: requestDraft.trim(), created_by: actor });
+      toast({ title: "Task sent to the clinic", description: "They've been emailed — replies land here." });
+      setRequestDraft("");
+      setRequestOpen(false);
+      await reload();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setRequestSending(false);
+    }
+  };
+
+  // ── Dialogs: confirm actions shared with the legacy page ─────────
+  const [approveOpen, setApproveOpen] = useState(false);
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [rejecting, setRejecting] = useState(false);
+  const [deliverOpen, setDeliverOpen] = useState(false);
+  const [returnOpen, setReturnOpen] = useState(false);
+  const [resendOpen, setResendOpen] = useState(false);
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [reExtracting, setReExtracting] = useState(false);
+  const [paLetterInfo, setPaLetterInfo] = useState<any>(null);
+
+  useEffect(() => {
+    if (!id) return;
+    adminApi.getPALetterInfo(id).then(setPaLetterInfo).catch(() => setPaLetterInfo(null));
+  }, [id, referral?.pa_status]);
+
+  // ── PA dialogs ────────────────────────────────────────────────────
+  const [filedOpen, setFiledOpen] = useState(false);
+  const [filedDate, setFiledDate] = useState(todayLocalISO());
+  const [filedCmmKey, setFiledCmmKey] = useState("");
+  const [filedNotes, setFiledNotes] = useState("");
+  const [filing, setFiling] = useState(false);
+
+  const [decisionOpen, setDecisionOpen] = useState(false);
+  const [decisionOutcome, setDecisionOutcome] = useState<"approved" | "denied">("approved");
+  const [decisionPaNumber, setDecisionPaNumber] = useState("");
+  const [decisionStart, setDecisionStart] = useState(todayLocalISO());
+  const [decisionExpiration, setDecisionExpiration] = useState("");
+  const [decisionDenialReason, setDecisionDenialReason] = useState("");
+  const [decisionNotes, setDecisionNotes] = useState("");
+  const [decisionFile, setDecisionFile] = useState<File | null>(null);
+  const [recordingDecision, setRecordingDecision] = useState(false);
+
+  const [nextInQueue, setNextInQueue] = useState<string | null>(null);
+
+  const computeNextInQueue = useCallback(async () => {
+    if (!id) return null;
+    try {
+      const res = await adminApi.getReferrals({ month: "all", archived: false });
+      const rows: any[] = res.items || res || [];
+      const candidates = rows
+        .filter((r) => r.id !== id)
+        .map((r) => ({ row: r, next: resolveNextAction(toNextActionInput(r)) }))
+        .filter((c) => c.next.tab === "us");
+      candidates.sort((a, b) => {
+        if (!!a.next.overdue !== !!b.next.overdue) return a.next.overdue ? -1 : 1;
+        const aDue = a.next.dueAt?.getTime() ?? Infinity;
+        const bDue = b.next.dueAt?.getTime() ?? Infinity;
+        if (aDue !== bDue) return aDue - bDue;
+        return new Date(a.row.created_at).getTime() - new Date(b.row.created_at).getTime();
+      });
+      return candidates[0]?.row.id ?? null;
+    } catch {
+      return null;
+    }
+  }, [id]);
+
+  const handOff = async (message: string) => {
+    const nextId = await computeNextInQueue();
+    setNextInQueue(nextId);
+    toast({ title: "Moved to Waiting on others", description: message });
+    await reload();
+  };
+
+  // ── Action handlers ───────────────────────────────────────────────
+  const handleApprove = async () => {
+    if (!id) return;
+    try {
+      await adminApi.makeDecision(id, "approve");
+      toast({ title: "Referral approved", description: `${referral.patient_name}'s referral has been approved.` });
+      setApproveOpen(false);
+      await reload();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const handleReject = async (payload: RejectPayload) => {
+    if (!id) return;
+    setRejecting(true);
+    try {
+      await adminApi.makeDecision(id, "reject", payload.reason, {
+        missing_documents: payload.missing_documents,
+        flagged_fields: payload.flagged_fields,
+      });
+      toast({ title: "Referral rejected", description: "The clinic has been notified with the recovery checklist." });
+      setRejectOpen(false);
+      navigate("/admin/referrals");
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setRejecting(false);
+    }
+  };
+
+  const handleReExtract = async () => {
+    if (!id) return;
+    setReExtracting(true);
+    try {
+      await adminApi.processReferral(id);
+      toast({ title: "Re-extraction started" });
+      setTimeout(() => reload(), 3000);
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setReExtracting(false);
+    }
+  };
+
+  const handleArchive = async () => {
+    if (!id) return;
+    try {
+      await adminApi.archiveReferral(id);
+      toast({ title: "Referral archived" });
+      navigate("/admin/referrals");
+    } catch (e: any) {
+      toast({ title: "Couldn't archive", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const handlePreviewPDF = async () => {
+    if (!id) return;
+    try {
+      const blob = await adminApi.getReferralPDF(id, true);
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const submitFiledOnCmm = async () => {
+    if (!id) return;
+    setFiling(true);
+    try {
+      await adminApi.submitPA(id, filedDate);
+      // The submit-PA endpoint only accepts a date (flow-script §3 assumed a
+      // CMM key/notes field that does not exist on the backend yet) — until
+      // that lands, the key/notes are preserved as an admin note so nothing
+      // typed here is lost. Flagged for Alex in the final report.
+      if (filedCmmKey.trim() || filedNotes.trim()) {
+        const parts = [];
+        if (filedCmmKey.trim()) parts.push(`CMM key/ref: ${filedCmmKey.trim()}`);
+        if (filedNotes.trim()) parts.push(filedNotes.trim());
+        await adminApi.addReferralNote(id, `PA filed on CoverMyMeds — ${parts.join(" · ")}`).catch(() => {});
+      }
+      setFiledOpen(false);
+      setFiledCmmKey("");
+      setFiledNotes("");
+      const due = new Date(Date.now() + 72 * 3600_000);
+      await handOff(`Clock started · check by ${formatWhen(due)}`);
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setFiling(false);
+    }
+  };
+
+  const submitDecision = async () => {
+    if (!id) return;
+    setRecordingDecision(true);
+    try {
+      if (decisionOutcome === "approved") {
+        if (!decisionPaNumber.trim() || !decisionExpiration) {
+          toast({ title: "Missing information", description: "PA number and expiration date are required.", variant: "destructive" });
+          setRecordingDecision(false);
+          return;
+        }
+        await adminApi.recordPADecision(id, {
+          decision: "approved",
+          decision_date: decisionStart,
+          expiration_date: decisionExpiration,
+          pa_number: decisionPaNumber,
+          approval_duration: "",
+        });
+        if (decisionFile) {
+          await adminApi.uploadPALetter(id, decisionFile).catch((e: any) =>
+            toast({ title: "Decision recorded — letter upload failed", description: e.message, variant: "destructive" }),
+          );
+        }
+        toast({ title: "PA approved", description: "Recorded — verify and approve to send." });
+      } else {
+        if (!decisionDenialReason.trim()) {
+          toast({ title: "Reason required", description: "Please provide a denial reason.", variant: "destructive" });
+          setRecordingDecision(false);
+          return;
+        }
+        await adminApi.recordPADecision(id, {
+          decision: "denied",
+          decision_date: decisionStart,
+          denial_reason: decisionDenialReason,
+        });
+        toast({ title: "PA denied", description: "Denial recorded." });
+      }
+      if (decisionNotes.trim()) {
+        await adminApi.addReferralNote(id, `PA decision note: ${decisionNotes.trim()}`).catch(() => {});
+      }
+      setDecisionOpen(false);
+      await reload();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setRecordingDecision(false);
+    }
+  };
+
+  const letterInputRef = useRef<HTMLInputElement>(null);
+  const uploadLetter = async (file: File) => {
+    if (!id) return;
+    try {
+      await adminApi.uploadPALetter(id, file);
+      toast({ title: "Letter uploaded" });
+      const info = await adminApi.getPALetterInfo(id);
+      setPaLetterInfo(info);
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+  };
+  const deleteLetter = async () => {
+    if (!id) return;
+    if (!window.confirm("Delete the PA letter on file?")) return;
+    try {
+      await adminApi.deletePALetter(id);
+      toast({ title: "Letter deleted" });
+      const info = await adminApi.getPALetterInfo(id);
+      setPaLetterInfo(info);
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const enrollmentRef = useRef<HTMLDivElement>(null);
+  const appealPacketRef = useRef<HTMLDivElement>(null);
+  const appealOutcomesRef = useRef<HTMLDivElement>(null);
+  const scrollTo = (ref: React.RefObject<HTMLDivElement>) => ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+
+  // ── Notes composer ────────────────────────────────────────────────
+  const [noteDraft, setNoteDraft] = useState("");
+  const [sendingNote, setSendingNote] = useState(false);
+  const sendNote = async () => {
+    if (!id || !noteDraft.trim()) return;
+    setSendingNote(true);
+    try {
+      await adminApi.addReferralNote(id, noteDraft.trim());
+      setNoteDraft("");
+      await reload();
+      localStorage.setItem(`notes_last_viewed_${id}`, new Date().toISOString());
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message || "Failed to add note", variant: "destructive" });
+    } finally {
+      setSendingNote(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-3" />
+          <p className="text-muted-foreground">Loading referral...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!referral || !next) {
+    return (
+      <div className="text-center py-20">
+        <p className="text-muted-foreground">Referral not found</p>
+        <Button variant="outline" className="mt-4" onClick={() => navigate("/admin/referrals")}>Back</Button>
+      </div>
+    );
+  }
+
+  const data = referral.extracted_data || {};
+  const conf = data?.meta?.confidence || data?.confidence || {};
+  const patient = data.patient || {};
+  const insurance = data.insurance || {};
+  const clinical = data.clinical || {};
+  const provider = data.provider || {};
+
+  const last = lastEventFor(referral);
+  const isEnrollmentLed = !!next.track && next.verb === next.track.verb;
+  const stageLabel = isEnrollmentLed ? "Enrollment" : stageLabelForQueue(next.stage);
+  const stageTone = isEnrollmentLed ? ("teal" as const) : undefined;
+
+  // ── Interrupt banner ──────────────────────────────────────────────
+  let interruptExplain = "";
+  if (next.interrupt) {
+    switch (next.interrupt.key) {
+      case "delivery_issue":
+        interruptExplain = referral.delivery_issue_at
+          ? `Reported ${relTime(referral.delivery_issue_at)} — the clinic says the pharmacy never received it.`
+          : "The clinic reports a delivery issue.";
+        break;
+      case "insurance_expired":
+        interruptExplain = "Insurance on file has expired.";
+        break;
+      case "inbound_fax":
+        interruptExplain = `${referral.unread_inbound_fax_count ?? 1} unread fax(es) linked to this referral.`;
+        break;
+      case "clinic_replied":
+        interruptExplain = referral.latest_task_reply_at
+          ? `Clinic replied ${relTime(referral.latest_task_reply_at)}.`
+          : "The clinic replied to a task.";
+        break;
+      case "extraction_stuck":
+        interruptExplain = "Processing for over 15 minutes.";
+        break;
+    }
+  }
+
+  // ── ActionBar status text ─────────────────────────────────────────
+  const overdue = !!next.overdue;
+  const dueStr = next.dueAt ? formatWhen(next.dueAt) : null;
+  let statusText: string;
+  if (next.interrupt) {
+    statusText = `${next.interrupt.verb} — then ${next.verb ?? "continue"}`;
+  } else if (next.waitingOn === "us") {
+    statusText = `Waiting on us · ${next.verb ?? ""}`;
+  } else if (next.waitingOn) {
+    const who = { payer: "payer", clinic: "clinic", manufacturer: "manufacturer", pharmacy: "pharmacy", system: "system" }[next.waitingOn] ?? next.waitingOn;
+    statusText = `Waiting on ${who}${dueStr ? ` · due ${dueStr}` : ""}`;
+  } else {
+    statusText = next.stage === "sent" ? "Delivered. Monitoring." : "Nothing to do.";
+  }
+  const tone: "success" | "warning" | "destructive" | undefined = overdue
+    ? "destructive"
+    : next.interrupt
+      ? "warning"
+      : next.stage === "sent"
+        ? "success"
+        : undefined;
+
+  // ── More menu (shared by header + action bar) ────────────────────
+  const moreItems: Array<{ label: string; onClick?: () => void } | "-"> = [];
+  for (const item of next.more) {
+    if (item === "Archive") moreItems.push({ label: "Archive", onClick: () => setArchiveOpen(true) });
+    else if (item === "Re-extract") moreItems.push({ label: "Re-extract", onClick: handleReExtract });
+    else if (item === "Open CoverMyMeds") moreItems.push({ label: "Open CoverMyMeds", onClick: () => window.open("https://www.covermymeds.com", "_blank") });
+    else if (item === "Reject") moreItems.push({ label: "Reject", onClick: () => setRejectOpen(true) });
+    else if (item === "Replace letter") moreItems.push({ label: "Replace letter", onClick: () => letterInputRef.current?.click() });
+    else if (item === "Delete letter") moreItems.push({ label: "Delete letter", onClick: deleteLetter });
+    else if (item === "Resend packet") moreItems.push({ label: "Resend packet", onClick: () => scrollTo(appealPacketRef) });
+    else if (item === "Preview PDF") moreItems.push({ label: "Preview PDF", onClick: handlePreviewPDF });
+    else if (item === "Return to review") moreItems.push({ label: "Return to review", onClick: () => setReturnOpen(true) });
+  }
+  moreItems.push("-", { label: "Legacy view", onClick: () => navigate(`/admin/referrals/${id}/legacy`) });
+
+  // ── Primary / secondary handlers ──────────────────────────────────
+  function actionFor(label: string | null): (() => void) | undefined {
+    if (!label) return undefined;
+    switch (label) {
+      case "Approve":
+        return () => setApproveOpen(true);
+      case "Submit PA":
+      case "File PA on CoverMyMeds":
+        return () => setFiledOpen(true);
+      case "Reject":
+        return () => setRejectOpen(true);
+      case "Filed on CoverMyMeds":
+        return () => setFiledOpen(true);
+      case "Record decision":
+        return () => setDecisionOpen(true);
+      case "Upload letter (then View letter)":
+      case "Upload letter":
+        return () => letterInputRef.current?.click();
+      case "View letter":
+        return () => activeDocId && setSheetOpen(true);
+      case "Start appeal":
+        return () => scrollTo(appealOutcomesRef);
+      case "Start bridge enrollment":
+        return () => scrollTo(enrollmentRef);
+      case "Fax packet":
+      case "Preview":
+        return () => scrollTo(appealPacketRef);
+      case "Record outcome (won / level 2 / final)":
+        return () => scrollTo(appealOutcomesRef);
+      case "Deliver":
+        return () => setDeliverOpen(true);
+      case "Return to review":
+        return () => setReturnOpen(true);
+      case "Reset for resend":
+        return () => setResendOpen(true);
+      case "Re-extract":
+        return handleReExtract;
+      case "Mark handled":
+        return undefined; // no endpoint today — disabled below
+      default:
+        return undefined;
+    }
+  }
+
+  const primaryLabel = next.primary === "Submit PA" ? "File PA on CoverMyMeds" : next.primary;
+  const secondaryLabel = next.secondary;
+
+  const primarySpec = next.primary
+    ? { label: primaryLabel ?? next.primary, onClick: actionFor(next.primary), disabled: !actionFor(next.primary) && next.primary !== "Mark handled" ? false : undefined }
+    : null;
+  const secondarySpec = secondaryLabel
+    ? { label: secondaryLabel, onClick: actionFor(secondaryLabel) }
+    : null;
+
+  const nextInQueueSpec = nextInQueue
+    ? { label: "Next in queue", onClick: () => navigate(`/admin/referrals/${nextInQueue}`) }
+    : null;
+
+  // ── stage cards ────────────────────────────────────────────────────
+  function fieldRows(fields: Array<[string, any, { mono?: boolean; copy?: boolean; confPath?: string }?]>) {
+    return fields.map(([label, value, opts]) => ({
+      label,
+      value: value ?? undefined,
+      mono: opts?.mono,
+      copy: opts?.copy,
+      confidence: opts?.confPath ? conf[opts.confPath] : undefined,
+    }));
+  }
+
+  function renderStageCards() {
+    const cards: JSX.Element[] = [];
+    const key = next.stage;
+
+    const patientCard = (
+      <DefinitionList
+        key="patient"
+        title="Patient"
+        rows={fieldRows([
+          ["Name", [patient.first_name, patient.last_name].filter(Boolean).join(" "), { confPath: "patient.first_name" }],
+          ["DOB", patient.dob && formatDateShort(patient.dob), { confPath: "patient.dob" }],
+          ["Phone", patient.phone_primary || patient.phone],
+          ["Address", [patient.address, patient.city, patient.state, patient.zip].filter(Boolean).join(", ")],
+        ])}
+      />
+    );
+    const insuranceCard = (
+      <DefinitionList
+        key="insurance"
+        title="Insurance"
+        rows={
+          referral.is_bridge_program
+            ? [{ label: "Coverage", value: "Bridge Program" }]
+            : fieldRows([
+                ["Plan", insurance.primary_plan_name || insurance.primary_insurance_name],
+                ["Member ID", insurance.primary_member_id, { mono: true, copy: true }],
+                ["Group #", insurance.primary_group_number, { mono: true, copy: true }],
+                ["RxBIN", insurance.primary_rxbin, { mono: true, copy: true }],
+                ["RxPCN", insurance.primary_rxpcn, { mono: true, copy: true }],
+              ])
+        }
+      />
+    );
+    const medicationCard = (
+      <DefinitionList
+        key="medication"
+        title="Medication"
+        rows={fieldRows([
+          ["Drug", clinical.brand_name || clinical.drug_requested, { confPath: "clinical.drug_requested" }],
+          ["Generic", clinical.generic_name],
+          ["Dose", clinical.dose_amount],
+          ["Frequency", clinical.dose_frequency || clinical.frequency],
+          ["Route", clinical.route || clinical.administration],
+          ["PA path", referral.is_bridge_program ? "Bridge — no PA" : referral.pa_required ? `PA required${referral.pa_required_reason ? `: ${referral.pa_required_reason}` : ""}` : "No PA required"],
+        ])}
+      />
+    );
+    const clinicalCard = (
+      <DefinitionList
+        key="clinical"
+        title="Clinical"
+        rows={fieldRows([
+          ["ICD-10", clinical.diagnosis_icd10_primary || clinical.diagnosis_icd10, { mono: true, copy: true, confPath: "clinical.diagnosis_icd10_primary" }],
+          ["Description", clinical.diagnosis_description],
+          ["Clinical justification", clinical.clinical_justification],
+          ["Prior treatments", (clinical.prior_failed_medications || []).map((m: any) => (typeof m === "string" ? m : m?.name || String(m))).join(", ")],
+        ])}
+      />
+    );
+    const prescriberCard = (
+      <DefinitionList
+        key="prescriber"
+        title="Prescriber"
+        rows={fieldRows([
+          ["Name", provider.name],
+          ["NPI", provider.npi, { mono: true, copy: true, confPath: "provider.npi" }],
+          ["Phone", provider.phone],
+          ["Fax", provider.fax],
+        ])}
+      />
+    );
+
+    switch (key) {
+      case "processing":
+        cards.push(medicationCard);
+        break;
+      case "review":
+        cards.push(medicationCard, clinicalCard, patientCard, prescriberCard);
+        if (referral.insurance_expired) cards.push(insuranceCard);
+        break;
+      case "pa_pending":
+        cards.push(
+          <DefinitionList
+            key="cmm_worksheet"
+            title="CoverMyMeds worksheet"
+            action={
+              <Button variant="outline" size="sm" asChild>
+                <a href="https://www.covermymeds.com" target="_blank" rel="noreferrer">
+                  <ExternalLink width={14} height={14} strokeWidth={1.75} />
+                  Open CoverMyMeds
+                </a>
+              </Button>
+            }
+            rows={[
+              { label: "Patient name", value: [patient.first_name, patient.last_name].filter(Boolean).join(" "), copy: true },
+              { label: "Date of birth", value: patient.dob && formatDateShort(patient.dob), copy: true },
+              { label: "Member ID", value: insurance.primary_member_id, mono: true, copy: true },
+              { label: "Group", value: insurance.primary_group_number, mono: true, copy: true },
+              { label: "BIN / PCN", value: [insurance.primary_rxbin, insurance.primary_rxpcn].filter(Boolean).join(" / "), mono: true, copy: true },
+              { label: "Prescriber + NPI", value: [provider.name, provider.npi].filter(Boolean).join(" · "), copy: true },
+              { label: "Drug", value: clinical.brand_name || clinical.drug_requested, copy: true },
+              { label: "Dose", value: clinical.dose_amount, copy: true },
+              { label: "Quantity", value: clinical.quantity, copy: true },
+              { label: "ICD-10", value: clinical.diagnosis_icd10_primary || clinical.diagnosis_icd10, mono: true, copy: true },
+              { label: "Prior treatments", value: (clinical.prior_failed_medications || []).map((m: any) => (typeof m === "string" ? m : m?.name || String(m))).join(", "), copy: true },
+              { label: "Clinical notes", value: clinical.clinical_justification, copy: true },
+            ]}
+          />,
+        );
+        if (referral.insurance_expired) cards.push(insuranceCard);
+        break;
+      case "pa_submitted": {
+        const dueAt = referral.pa_submitted_at ? new Date(new Date(referral.pa_submitted_at).getTime() + 72 * 3600_000) : null;
+        cards.push(
+          <DefinitionList
+            key="pa"
+            title="PA"
+            rows={[
+              { label: "Status", value: <PAStatusBadge status="submitted" /> },
+              { label: "Payer", value: insurance.primary_insurance_name || insurance.primary_plan_name },
+              { label: "Submitted", value: referral.pa_submitted_at && formatDateShort(referral.pa_submitted_at) },
+              { label: "Follow-up due", value: dueAt ? formatWhen(dueAt) : undefined, flag: !!dueAt && dueAt.getTime() < Date.now() },
+              { label: "CMM key", value: referral.pa_data?.reference_number || referral.pa_data?.ref_number, mono: true, copy: true },
+              { label: "Notes", value: referral.pa_data?.notes },
+            ]}
+          />,
+        );
+        break;
+      }
+      case "pa_approved":
+      case "appeal_won":
+        cards.push(
+          <DefinitionList
+            key="pa_letter"
+            title="PA"
+            rows={[
+              { label: "Status", value: <PAStatusBadge status="approved" /> },
+              { label: "PA number", value: referral.pa_data?.pa_number, mono: true, copy: true },
+              { label: "CMM key", value: referral.pa_data?.reference_number || referral.pa_data?.ref_number, mono: true, copy: true },
+              { label: "Start date", value: referral.pa_data?.submitted_date && formatDateShort(referral.pa_data.submitted_date) },
+              { label: "Expiration date", value: (referral.pa_data?.expiration_date || referral.pa_expiration_date) && formatDateShort(referral.pa_data?.expiration_date || referral.pa_expiration_date), flag: !!(referral.pa_data?.expiration_date || referral.pa_expiration_date) && new Date(referral.pa_data?.expiration_date || referral.pa_expiration_date).getTime() < Date.now() },
+              { label: "Letter on file", value: paLetterInfo?.has_letter ? "On file" : "No letter yet" },
+              { label: "Notes", value: referral.pa_data?.notes },
+            ]}
+          />,
+          medicationCard,
+        );
+        break;
+      case "pa_denied":
+        cards.push(
+          <DefinitionList
+            key="pa_denial"
+            title="PA"
+            rows={[
+              { label: "Status", value: <PAStatusBadge status="denied" /> },
+              { label: "Denial reason", value: referral.pa_data?.denial_reason },
+              { label: "Denied", value: referral.pa_data?.decision_date && formatDateShort(referral.pa_data.decision_date) },
+              { label: "CMM key", value: referral.pa_data?.reference_number || referral.pa_data?.ref_number, mono: true, copy: true },
+            ]}
+          />,
+          <DefinitionList
+            key="appeal_fork"
+            title="Appeal fork"
+            rows={[
+              { label: "Appeal", value: referral.pa_data?.denial_reason ? `Refutable if the denial reason (${referral.pa_data.denial_reason}) can be addressed with clinical documentation.` : "Available — see the denial reason above." },
+              { label: "Bridge enrollment", value: "Available when a manufacturer program matches this drug." },
+              { label: "Both", value: "An appeal and a bridge enrollment can run at the same time." },
+            ]}
+          />,
+        );
+        break;
+      case "appeal_build":
+        cards.push(
+          <div key="appeal_packet" ref={appealPacketRef}>
+            <AppealPacketCard referralId={id!} paStatus={referral.pa_status} appealStartedAt={referral.appeal_started_at} onChanged={reload} />
+          </div>,
+          <div key="appeal_outcomes" ref={appealOutcomesRef}>
+            <PAAppealCard referral={referral} referralId={id!} onChanged={reload} />
+          </div>,
+        );
+        break;
+      case "appeal_sent":
+        cards.push(
+          <div key="appeal_outcomes" ref={appealOutcomesRef}>
+            <PAAppealCard referral={referral} referralId={id!} onChanged={reload} />
+          </div>,
+          <div key="appeal_packet" ref={appealPacketRef}>
+            <AppealPacketCard referralId={id!} paStatus={referral.pa_status} appealStartedAt={referral.appeal_started_at} onChanged={reload} />
+          </div>,
+        );
+        break;
+      case "appeal_level2":
+      case "appeal_final":
+        cards.push(
+          <div key="appeal_outcomes" ref={appealOutcomesRef}>
+            <PAAppealCard referral={referral} referralId={id!} onChanged={reload} />
+          </div>,
+        );
+        if (key === "appeal_final") {
+          cards.push(
+            <div key="enrollment" ref={enrollmentRef}>
+              <EnrollmentCard referralId={id!} paStatus={referral.pa_status} status={referral.status} onChanged={reload} />
+            </div>,
+          );
+        }
+        break;
+      case "ready_to_send":
+        cards.push(
+          <DefinitionList
+            key="delivery"
+            title="Delivery summary"
+            rows={[
+              { label: "Pharmacy", value: referral.pharmacy_name },
+              { label: "Packet contents", value: documents.map((d) => d.original_filename).join(", ") },
+              { label: "Delivery issue", value: referral.delivery_issue_at ? `Reported ${formatDateShort(referral.delivery_issue_at)}` : undefined },
+            ]}
+          />,
+        );
+        if (referral.pa_status === "approved") {
+          cards.push(
+            <DefinitionList
+              key="pa_summary"
+              title="PA summary"
+              density="rail"
+              rows={[
+                { label: "PA number", value: referral.pa_data?.pa_number, mono: true },
+                { label: "Expiration", value: (referral.pa_data?.expiration_date || referral.pa_expiration_date) && formatDateShort(referral.pa_data?.expiration_date || referral.pa_expiration_date) },
+                { label: "Letter on file", value: paLetterInfo?.has_letter ? "Yes" : "No" },
+              ]}
+            />,
+          );
+        }
+        cards.push(medicationCard);
+        break;
+      case "sent":
+        cards.push(
+          <DefinitionList
+            key="delivery"
+            title="Delivery summary"
+            rows={[
+              { label: "Pharmacy", value: referral.pharmacy_name },
+              { label: "Packet contents", value: documents.map((d) => d.original_filename).join(", ") },
+              { label: "Sent", value: referral.updated_at && formatDateShort(referral.updated_at) },
+              { label: "Delivery issue", value: referral.delivery_issue_at ? `Reported ${formatDateShort(referral.delivery_issue_at)}` : undefined },
+            ]}
+          />,
+        );
+        if (referral.pa_status === "approved") {
+          cards.push(
+            <DefinitionList
+              key="pa_summary"
+              title="PA summary"
+              density="rail"
+              rows={[
+                { label: "PA number", value: referral.pa_data?.pa_number, mono: true },
+                { label: "Expiration", value: (referral.pa_data?.expiration_date || referral.pa_expiration_date) && formatDateShort(referral.pa_data?.expiration_date || referral.pa_expiration_date) },
+                { label: "Letter on file", value: paLetterInfo?.has_letter ? "Yes" : "No" },
+              ]}
+            />,
+          );
+        }
+        break;
+      case "rejected":
+        cards.push(
+          <DefinitionList
+            key="rejection"
+            title="Rejection"
+            rows={[
+              { label: "Reason", value: referral.rejection_reason },
+              { label: "Missing documents", value: (referral.missing_fields?.missing_documents || []).join(", ") },
+              { label: "Flagged fields", value: (referral.missing_fields?.flagged_fields || []).join(", ") },
+            ]}
+          />,
+          <div key="tasks">
+            <ReferralTasksCard referralId={id!} adminFirstName={adminProfile?.first_name} onShared={reload} />
+          </div>,
+        );
+        break;
+      case "closed":
+        cards.push(
+          <DefinitionList key="status_strip" title="Status" rows={[{ label: "Status", value: <StatusBadge status="closed" variant="outline" context="admin" /> }]} />,
+          <div key="enrollment" ref={enrollmentRef}>
+            <EnrollmentCard referralId={id!} paStatus={referral.pa_status} status={referral.status} onChanged={reload} />
+          </div>,
+        );
+        break;
+    }
+
+    // Enrollment track cards render alongside the referral stage's own cards
+    // whenever the track is live (flow-script §4) and isn't already shown above.
+    if (
+      next.track &&
+      next.track.stage !== "enr_closed" &&
+      !["appeal_final", "closed"].includes(key)
+    ) {
+      if (next.track.cards.some((c) => c.includes("Tasks"))) {
+        cards.push(
+          <div key="tasks-track">
+            <ReferralTasksCard referralId={id!} adminFirstName={adminProfile?.first_name} onShared={reload} />
+          </div>,
+        );
+      }
+      cards.push(
+        <div key="enrollment-track" ref={enrollmentRef}>
+          <EnrollmentCard referralId={id!} paStatus={referral.pa_status} status={referral.status} onChanged={reload} />
+        </div>,
+      );
+    }
+
+    // Always offer Tasks on stages that don't already include it, so open
+    // requests are visible without leaving the workstation.
+    if (key !== "rejected" && !cards.some((c) => (c.key || "").toString().includes("tasks"))) {
+      cards.push(
+        <div key="tasks-always">
+          <ReferralTasksCard referralId={id!} adminFirstName={adminProfile?.first_name} onShared={reload} />
+        </div>,
+      );
+    }
+
+    return cards;
+  }
+
+  // ── All Fields tab (read-only in 4a) ──────────────────────────────
+  const allFieldsCards = [
+    <DefinitionList key="af-patient" title="Patient" rows={fieldRows([
+      ["Name", [patient.first_name, patient.last_name].filter(Boolean).join(" ")],
+      ["DOB", patient.dob && formatDateShort(patient.dob)],
+      ["Phone", patient.phone_primary || patient.phone],
+      ["Address", [patient.address, patient.city, patient.state, patient.zip].filter(Boolean).join(", ")],
+    ])} />,
+    <DefinitionList key="af-insurance" title="Insurance" rows={fieldRows([
+      ["Plan", insurance.primary_plan_name || insurance.primary_insurance_name],
+      ["Member ID", insurance.primary_member_id, { mono: true }],
+      ["Group #", insurance.primary_group_number, { mono: true }],
+      ["RxBIN / RxPCN", [insurance.primary_rxbin, insurance.primary_rxpcn].filter(Boolean).join(" / "), { mono: true }],
+    ])} />,
+    <DefinitionList key="af-medication" title="Medication" rows={fieldRows([
+      ["Drug", clinical.brand_name || clinical.drug_requested],
+      ["Dose", clinical.dose_amount],
+      ["Frequency", clinical.dose_frequency || clinical.frequency],
+      ["Quantity", clinical.quantity],
+    ])} />,
+    <DefinitionList key="af-clinical" title="Clinical" rows={fieldRows([
+      ["ICD-10", clinical.diagnosis_icd10_primary || clinical.diagnosis_icd10, { mono: true }],
+      ["Description", clinical.diagnosis_description],
+      ["Clinical justification", clinical.clinical_justification],
+    ])} />,
+    <DefinitionList key="af-prescriber" title="Prescriber" rows={fieldRows([
+      ["Name", provider.name],
+      ["NPI", provider.npi, { mono: true }],
+      ["Phone", provider.phone],
+      ["Fax", provider.fax],
+    ])} />,
+  ];
+
+  // ── Notes thread ───────────────────────────────────────────────────
+  const threadMessages = [
+    ...(referral.pa_submitted_at ? [{ system: `PA submitted on CoverMyMeds — ${formatDateShort(referral.pa_submitted_at)}` }] : []),
+    ...(referral.appeal_started_at ? [{ system: `Appeal packet faxed — ${formatDateShort(referral.appeal_started_at)}` }] : []),
+    ...notes.map((n) => ({
+      side: n.author_type === "admin" ? ("ours" as const) : ("clinic" as const),
+      name: getDisplayAuthor(n, "admin"),
+      time: new Date(n.created_at).toLocaleString(),
+      body: n.content,
+    })),
+  ];
+
+  return (
+    <div className="-mx-6 -my-8 lg:-mx-8 flex flex-col min-h-[calc(100vh-0px)]">
+      <StageHeader
+        patient={referral.patient_name}
+        stage={stageLabel}
+        stageTone={stageTone}
+        question={next.question}
+        lastEvent={last?.label}
+        lastTime={last?.time}
+        handoff={referral.admin_handoff_note}
+        onEditHandoff={openHandoffEditor}
+        docCount={documents.length}
+        onDocuments={() => setSheetOpen(true)}
+        onMore={() => {
+          // ActionBar's More dropdown is the primary surface; the header
+          // button opens the same list via a lightweight native menu.
+          const el = document.getElementById("ws-more-trigger");
+          el?.click();
+        }}
+        badge={next.interrupt ? <StageChip label={next.interrupt.verb} tone={undefined} variant="soft" /> : undefined}
+      />
+
+      {next.interrupt && (
+        <div className="px-[26px] pt-3">
+          <Alert variant="destructive" className="border-warning/40 bg-warning/10 text-foreground">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>{next.interrupt.verb}</AlertTitle>
+            <AlertDescription>{interruptExplain}</AlertDescription>
+          </Alert>
+        </div>
+      )}
+
+      <div className="flex flex-1 min-h-0">
+        {showDocked && (
+          <DocumentsSheet
+            open
+            pinned
+            onPinnedChange={setPinnedPersist}
+            files={documents.map((d) => d.original_filename)}
+            active={documents.findIndex((d) => d.id === activeDocId)}
+            onSelect={(i) => setActiveDocId(documents[i]?.id)}
+          >
+            <DocumentViewer documents={documents} initialDocId={activeDocId} />
+          </DocumentsSheet>
+        )}
+
+        <div className="flex-1 min-w-0 overflow-y-auto p-6 pb-28">
+          <Tabs defaultValue={notesDeepLink ? "notes" : "stage"}>
+            <TabsList className="mb-4">
+              <TabsTrigger value="stage">{stageLabel}</TabsTrigger>
+              <TabsTrigger value="all-fields">All Fields</TabsTrigger>
+              <TabsTrigger value="notes">Notes ({notes.length})</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="stage" className="space-y-3">
+              {renderStageCards()}
+            </TabsContent>
+
+            <TabsContent value="all-fields" className="space-y-3">
+              <p className="text-xs text-muted-foreground italic">
+                Read-only in this view. To edit extracted fields, use the{" "}
+                <button type="button" className="underline" onClick={() => navigate(`/admin/referrals/${id}/legacy`)}>
+                  legacy page
+                </button>
+                .
+              </p>
+              {allFieldsCards}
+            </TabsContent>
+
+            <TabsContent value="notes">
+              <MessageThread
+                messages={threadMessages}
+                value={noteDraft}
+                onChange={setNoteDraft}
+                onSend={sendNote}
+                placeholder="Add a note about this referral..."
+              />
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
+
+      {!showDocked && (
+        <DocumentsSheet
+          open={sheetOpen}
+          pinned={false}
+          onClose={() => setSheetOpen(false)}
+          files={documents.map((d) => d.original_filename)}
+          active={documents.findIndex((d) => d.id === activeDocId)}
+          onSelect={(i) => setActiveDocId(documents[i]?.id)}
+        >
+          <DocumentViewer documents={documents} initialDocId={activeDocId} />
+        </DocumentsSheet>
+      )}
+
+      <ActionBar
+        status={statusText}
+        tone={tone}
+        request={{ openCount: openTaskCount, onClick: () => setRequestOpen(true) }}
+        secondary={secondarySpec}
+        primary={primarySpec}
+        more={moreItems}
+        next={nextInQueueSpec}
+      />
+      {/* Hidden trigger so the header's "More" button can open the same menu. */}
+      <button id="ws-more-trigger" className="hidden" aria-hidden="true" />
+
+      <input
+        ref={letterInputRef}
+        type="file"
+        accept=".pdf,.jpg,.jpeg,.png,.tiff"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) uploadLetter(f);
+          if (letterInputRef.current) letterInputRef.current.value = "";
+        }}
+      />
+
+      {/* ── Handoff note editor ── */}
+      <Dialog open={handoffOpen} onOpenChange={setHandoffOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Handoff note</DialogTitle>
+            <DialogDescription>Internal-only — never shown to the clinic.</DialogDescription>
+          </DialogHeader>
+          <Textarea value={handoffDraft} onChange={(e) => setHandoffDraft(e.target.value)} rows={4} maxLength={500} placeholder="e.g. Called Dr. Carter's office, chart notes Friday, don't resubmit before then" />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setHandoffOpen(false)}>Cancel</Button>
+            <Button onClick={saveHandoff} disabled={savingHandoff}>{savingHandoff ? "Saving..." : "Save"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Request from clinic ── */}
+      <Dialog open={requestOpen} onOpenChange={setRequestOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Request from clinic</DialogTitle>
+            <DialogDescription>Emails the clinic; their reply lands here.</DialogDescription>
+          </DialogHeader>
+          <Label className="text-xs text-muted-foreground mb-1 block">Instructions</Label>
+          <Textarea value={requestDraft} onChange={(e) => setRequestDraft(e.target.value)} rows={4} placeholder="What do you need from the clinic?" />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRequestOpen(false)}>Cancel</Button>
+            <Button onClick={sendRequest} disabled={!requestDraft.trim() || requestSending}>{requestSending ? "Sending..." : "Send"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Filed on CoverMyMeds ── */}
+      <Dialog open={filedOpen} onOpenChange={setFiledOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Filed on CoverMyMeds</DialogTitle>
+            <DialogDescription>Starts the 72h payer follow-up clock.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1 block">Date filed</Label>
+              <Input type="date" value={filedDate} onChange={(e) => setFiledDate(e.target.value)} />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1 block">CMM access key / ref # (optional)</Label>
+              <Input className="font-mono" value={filedCmmKey} onChange={(e) => setFiledCmmKey(e.target.value)} />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1 block">Notes</Label>
+              <Textarea value={filedNotes} onChange={(e) => setFiledNotes(e.target.value)} rows={2} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setFiledOpen(false)}>Cancel</Button>
+            <Button onClick={submitFiledOnCmm} disabled={filing}>{filing ? "Saving..." : "Filed on CoverMyMeds"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Record decision ── */}
+      <Dialog open={decisionOpen} onOpenChange={setDecisionOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Record decision</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <RadioGroup value={decisionOutcome} onValueChange={(v) => setDecisionOutcome(v as "approved" | "denied")} className="flex gap-4">
+              <label className="flex items-center gap-2 text-sm"><RadioGroupItem value="approved" />Approved</label>
+              <label className="flex items-center gap-2 text-sm"><RadioGroupItem value="denied" />Denied</label>
+            </RadioGroup>
+            {decisionOutcome === "approved" ? (
+              <>
+                <div>
+                  <Label className="text-xs text-muted-foreground mb-1 block">PA number</Label>
+                  <Input value={decisionPaNumber} onChange={(e) => setDecisionPaNumber(e.target.value)} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1 block">Start date</Label>
+                    <Input type="date" value={decisionStart} onChange={(e) => setDecisionStart(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1 block">Expiration date</Label>
+                    <Input type="date" value={decisionExpiration} onChange={(e) => setDecisionExpiration(e.target.value)} />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground mb-1 block">Letter (optional)</Label>
+                  <Input type="file" accept=".pdf,.jpg,.jpeg,.png,.tiff" onChange={(e) => setDecisionFile(e.target.files?.[0] || null)} />
+                </div>
+              </>
+            ) : (
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1 block">Denial reason</Label>
+                <Textarea value={decisionDenialReason} onChange={(e) => setDecisionDenialReason(e.target.value)} rows={2} />
+              </div>
+            )}
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1 block">Notes</Label>
+              <Textarea value={decisionNotes} onChange={(e) => setDecisionNotes(e.target.value)} rows={2} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDecisionOpen(false)}>Cancel</Button>
+            <Button onClick={submitDecision} disabled={recordingDecision}>{recordingDecision ? "Saving..." : "Record decision"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Shared confirm dialogs (same components/behaviour as the legacy page) ── */}
+      <ConfirmModal
+        open={approveOpen}
+        onOpenChange={setApproveOpen}
+        title="Approve Referral"
+        description={`Are you sure you want to approve ${referral.patient_name}'s referral for ${referral.drug}?`}
+        confirmLabel="Approve"
+        variant="success"
+        onConfirm={handleApprove}
+      />
+      <ConfirmModal
+        open={resendOpen}
+        onOpenChange={setResendOpen}
+        title="Reset for resend?"
+        description="Moves this referral back to Ready to Send so you can send it to the pharmacy again."
+        confirmLabel="Reset for resend"
+        onConfirm={async () => {
+          if (!id) return;
+          try {
+            await adminApi.resendReferral(id);
+            toast({ title: "Ready to resend" });
+            await reload();
+          } catch (e: any) {
+            toast({ title: "Couldn't reset", description: e.message, variant: "destructive" });
+          }
+        }}
+      />
+      <ConfirmModal
+        open={returnOpen}
+        onOpenChange={setReturnOpen}
+        title="Return to review?"
+        description="Pulls the referral back to Needs Review so you can fix something before sending."
+        confirmLabel="Return to review"
+        onConfirm={async () => {
+          if (!id) return;
+          try {
+            await adminApi.unapproveReferral(id);
+            toast({ title: "Returned to review" });
+            await reload();
+          } catch (e: any) {
+            toast({ title: "Couldn't return to review", description: e.message, variant: "destructive" });
+          }
+        }}
+      />
+      <ConfirmModal
+        open={archiveOpen}
+        onOpenChange={setArchiveOpen}
+        title="Archive this referral?"
+        description="It will be hidden from the lists — restore anytime from the Archived view."
+        confirmLabel="Archive"
+        onConfirm={handleArchive}
+      />
+      <DeliveryConfirmModal
+        open={deliverOpen}
+        onOpenChange={setDeliverOpen}
+        referralId={id!}
+        referral={referral}
+        documents={documents}
+        paLetterInfo={paLetterInfo}
+        patientName={referral.patient_name}
+        drugName={referral.drug}
+        onDelivered={reload}
+      />
+      <AdminRejectModal
+        open={rejectOpen}
+        onOpenChange={setRejectOpen}
+        submitting={rejecting}
+        onConfirm={handleReject}
+        defaultFlagged={FLAGGABLE_FIELDS.filter((f) => {
+          const [sec, k] = f.path.split(".");
+          const v = (data?.[sec] || {})[k];
+          const empty = v == null || String(v).trim() === "";
+          const c = conf[f.path];
+          return empty || (typeof c === "number" && c < 0.85);
+        }).map((f) => f.path)}
+      />
+    </div>
+  );
+}
+
+function useIsWideViewport(minWidth: number): boolean {
+  const [wide, setWide] = useState(() => typeof window !== "undefined" && window.innerWidth >= minWidth);
+  useEffect(() => {
+    const onResize = () => setWide(window.innerWidth >= minWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [minWidth]);
+  return wide;
+}

@@ -1141,6 +1141,17 @@ export const adminApi = {
     return handleResponse(response);
   },
 
+  // Internal-only handoff line (flow-script §7) — never shown to the clinic.
+  // `note: null` clears it. Backend: design/system-v2-backend commit 8743c08.
+  async setHandoffNote(referralId: string, note: string | null): Promise<{ ok: boolean; admin_handoff_note: string | null }> {
+    const response = await fetch(`${API_BASE_URL}/admin/referrals/${referralId}/handoff-note`, {
+      method: 'PUT',
+      headers: await getHeaders(),
+      body: JSON.stringify({ note }),
+    });
+    return handleResponse(response);
+  },
+
   async getPALetterInfo(referralId: string): Promise<{
     has_letter: boolean;
     drug_requires_pa: boolean;

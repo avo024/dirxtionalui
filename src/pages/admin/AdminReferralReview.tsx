@@ -526,6 +526,15 @@ export default function AdminReferralReview() {
         </button>
         <div className="arr-head-main">
           <div className="arr-name-row">
+            <button
+              type="button"
+              className="rw-btn outline sm"
+              style={{ marginRight: 4 }}
+              onClick={() => navigate(`/admin/referrals/${id}`)}
+              title="Back to the new workstation view"
+            >
+              New workstation
+            </button>
             <h1 className="arr-name serif">{referral.patient_name}</h1>
             <StatusBadge status={referral.status} />
             {documents.length > 0 && (
