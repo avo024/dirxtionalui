@@ -76,7 +76,9 @@ export function toQueueRow(row: any, next: NextAction): QueueRowData {
   const isEnrollmentLed = !!next.track && (next.verb === next.track.verb || (!!row.is_bridge_program && next.stage === "review"));
   return {
     id: row.id,
-    verb: next.verb ?? "",
+    // Parked stages (Level 2 handoff, closed) have no verb — show the stage
+    // as a muted phrase so the action column is never blank.
+    verb: next.verb ?? (next.stage === "appeal_level2" ? "Level 2 handoff · nothing for us" : next.stage === "closed" ? "Closed" : stageLabelForQueue(next.stage)),
     due: formatDueAt(next.dueAt),
     urgency: next.overdue ? "overdue" : next.interrupt ? "attention" : undefined,
     patient: row.patient_name,

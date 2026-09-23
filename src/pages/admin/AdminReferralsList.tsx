@@ -255,10 +255,9 @@ export default function AdminReferralsList() {
   const [groupBy, setGroupBy] = useState<GroupBy>("action");
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
-  const [month, setMonth] = useState(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-  });
+  // All tab defaults to all-time (Alex, live review 2026-09-23: a month-scoped
+  // default showed "All 0" while work tabs showed rows). Month select still offers this month and back.
+  const [month, setMonth] = useState("all");
   const [showArchived, setShowArchived] = useState(false);
   const [page, setPage] = useState(1);
 
