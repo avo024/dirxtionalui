@@ -2,22 +2,29 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft, FileText, Clock, User, Pill, Stethoscope, Shield, Copy, CheckCircle,
-  Send, Upload, Loader2, XCircle, Plus, AlertTriangle, Image, RefreshCw, Sparkles,
-  Circle, Inbox, Search as SearchIcon, Save, X, Pencil, ListChecks, MessageSquareWarning,
-  Heart, ArrowRight, Printer, Download, Paperclip, ClipboardList,
+  Send, Upload, Loader2, XCircle, AlertTriangle, Image, RefreshCw,
+  Circle, Inbox, Save, X, Pencil, ArrowRight, Printer, Paperclip, ClipboardList, Download,
 } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
+import { ClinicPABadge } from "@/components/ClinicPABadge";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { underlineTabsListClass, underlineTabsTriggerClass } from "@/components/patterns/underlineTabs";
+import { DefinitionList } from "@/components/patterns/DefinitionList";
+import { MessageThread } from "@/components/patterns/MessageThread";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { ReferralStatus } from "@/types";
 import { clinicApi } from "@/lib/api";
 import { mapReferralFromBackend } from "@/lib/dataMapper";
 import { formatDateTime, formatDateShort } from "@/lib/dateUtils";
 import { toast } from "@/hooks/use-toast";
-import { getDisplayAuthor, getAuthorInitials } from "@/lib/noteAuthor";
-import { DocumentViewer } from "@/components/DocumentViewer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import "./wizard.css";
-import "./referral-detail.css";
 
 const statusDescriptions: Record<string, string> = {
   uploaded: "Your referral has been received and is awaiting review.",
@@ -28,14 +35,6 @@ const statusDescriptions: Record<string, string> = {
   rejected: "This referral needs your attention before it can proceed.",
   closed: "This referral is closed — see the Prior Authorization section for what happened and what your options are.",
 };
-
-const DOC_CATEGORIES = [
-  { key: "referral_form", label: "Referral Form / Prescription", types: ["referral_form"] },
-  { key: "insurance", label: "Insurance Documents", types: ["insurance_front", "insurance_back"] },
-  { key: "chart_notes", label: "Chart Notes", types: ["chart_notes"] },
-  { key: "other", label: "Other Documents", types: [] as string[] },
-  { key: "team", label: "From your Dirxctional team", types: [] as string[] },
-];
 
 const MISSING_DOC_LABELS: Record<string, string> = {
   referral_form: "Referral form / prescription",
@@ -77,35 +76,23 @@ function eventIcon(t: string) {
   if (["referral_created", "referral_finalized", "referral_resubmitted"].includes(t)) return Send;
   if (t === "document_uploaded") return FileText;
   if (t === "referral_edited_by_clinic") return Pencil;
-  if (t === "ai_extraction_completed" || t === "ai_extraction_completed_auto") return Sparkles;
+  if (t === "ai_extraction_completed" || t === "ai_extraction_completed_auto") return CheckCircle;
   if (["referral_approved", "delivery_completed", "sent_to_pharmacy", "pa_approved", "pa_appeal_won", "task_completed"].includes(t)) return CheckCircle;
   if (["referral_rejected", "referral_rejectd", "delivery_failed", "pa_denied", "pa_appeal_final", "delivery_issue_reported"].includes(t)) return XCircle;
   if (["pa_submitted", "pa_processing", "pa_appeal_started", "pa_appeal_level2"].includes(t)) return Clock;
   if (t === "task_created") return ClipboardList;
   return Circle;
 }
-function eventColor(t: string) {
-  if (["referral_approved", "delivery_completed", "sent_to_pharmacy", "pa_approved", "pa_appeal_won", "task_completed"].includes(t)) return "green";
-  if (["referral_rejected", "referral_rejectd", "pa_denied", "delivery_failed", "pa_appeal_final", "delivery_issue_reported"].includes(t)) return "red";
-  if (["pa_submitted", "pa_processing", "pa_appeal_started", "pa_appeal_level2", "task_created"].includes(t)) return "amber";
-  if (["ai_extraction_completed", "ai_extraction_completed_auto"].includes(t)) return "blue";
-  return "navy";
+function eventColorClass(t: string) {
+  if (["referral_approved", "delivery_completed", "sent_to_pharmacy", "pa_approved", "pa_appeal_won", "task_completed"].includes(t)) return "bg-success/12 text-success";
+  if (["referral_rejected", "referral_rejectd", "pa_denied", "delivery_failed", "pa_appeal_final", "delivery_issue_reported"].includes(t)) return "bg-destructive/12 text-destructive";
+  if (["pa_submitted", "pa_processing", "pa_appeal_started", "pa_appeal_level2", "task_created"].includes(t)) return "bg-warning/15 text-[#B45309]";
+  if (["ai_extraction_completed", "ai_extraction_completed_auto"].includes(t)) return "bg-primary/10 text-primary";
+  return "bg-muted text-muted-foreground";
 }
 function docIcon(filename: string) {
   const ext = filename?.split(".").pop()?.toLowerCase();
   return ["jpg", "jpeg", "png", "tiff", "tif"].includes(ext || "") ? Image : FileText;
-}
-function groupDocuments(docs: any[]) {
-  const grouped: Record<string, any[]> = {};
-  DOC_CATEGORIES.forEach((c) => { grouped[c.key] = []; });
-  docs.forEach((d) => {
-    // Documents the Dirxctional team shared back (PA approval letter, appeal
-    // outcomes, payer letters) get their own group, whatever their type.
-    if (d.from_team) { grouped.team.push(d); return; }
-    const cat = DOC_CATEGORIES.find((c) => c.types.includes(d.doc_type || ""));
-    grouped[cat ? cat.key : "other"].push(d);
-  });
-  return grouped;
 }
 
 // Display field configs (real extracted_data keys)
@@ -132,7 +119,7 @@ const PROVIDER_FIELDS = [
   { k: "phone", label: "Phone" }, { k: "fax", label: "Fax" }, { k: "email", label: "Email" },
   { k: "office_contact", label: "Office Contact Person" }, { k: "requestor", label: "Requestor" }, { k: "signature_date", label: "Signature Date", date: true },
 ];
-// Required-ish fields that get a ⚠ when empty.
+// Required-ish fields that get a flag when empty.
 const IMPORTANT: Record<string, string[]> = {
   patient: ["first_name", "last_name", "dob", "phone"],
   clinical: ["diagnosis_icd10", "drug_requested"],
@@ -156,14 +143,10 @@ export default function ReferralDetail() {
   const [sendingNote, setSendingNote] = useState(false);
   const [resubmitting, setResubmitting] = useState(false);
   const [uploadingCategory, setUploadingCategory] = useState<string | null>(null);
-  const [viewerDocId, setViewerDocId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [tasks, setTasks] = useState<any[]>([]);
   const [attachingNote, setAttachingNote] = useState(false);
-  const notesEndRef = useRef<HTMLDivElement>(null);
   const noteFileRef = useRef<HTMLInputElement>(null);
-
-  const fetchClinicDocUrl = (docId: string) => clinicApi.getReferralDocumentUrl(id!, docId).then((r) => ({ url: r.url }));
 
   const loadData = () => {
     if (!id) return;
@@ -191,10 +174,6 @@ export default function ReferralDetail() {
   useEffect(() => {
     if (tab === "notes" && id) localStorage.setItem(`notes_last_viewed_${id}`, new Date().toISOString());
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
-  // Chat pane: open on the newest message, and follow as new ones arrive.
-  useEffect(() => {
-    if (tab === "notes") notesEndRef.current?.scrollIntoView({ block: "nearest" });
-  }, [tab, notes.length]);
 
   const handleUpload = async (file: File, docType: string) => {
     if (!id) return;
@@ -226,26 +205,20 @@ export default function ReferralDetail() {
     if (!id) return;
     setAttachingNote(true);
     try {
-      // Upload failure is a real failure — nothing was saved or noted.
       try {
         await clinicApi.uploadDocument(id, file, "other");
       } catch (err: any) {
         toast({ title: "Attach failed", description: err.message, variant: "destructive" });
         return;
       }
-
-      // Upload succeeded — a note-post failure is a partial failure, not a
-      // total one. The document is already saved to Documents.
       try {
         const content = `📎 Attached document: ${file.name}`;
         const result = await clinicApi.addReferralNote(id, content);
         setNotes((prev) => [...prev, { id: result.id, author_type: "clinic", author_name: "You", content, created_at: new Date().toISOString(), ...result }]);
         toast({ title: "Document attached", description: `${file.name} — saved to Documents, noted in the timeline.` });
-        setTimeout(() => notesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 50);
       } catch (err: any) {
         toast({ title: "Document attached — but the note failed to post", description: err.message, variant: "destructive" });
       }
-
       const d = await clinicApi.getReferralDocuments(id).catch(() => ({ items: [] }));
       setDocuments(d.items || []);
     } finally {
@@ -263,24 +236,19 @@ export default function ReferralDetail() {
       setNewNote("");
       toast({ title: "Note added" });
       localStorage.setItem(`notes_last_viewed_${id}`, new Date().toISOString());
-      setTimeout(() => notesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 50);
     } catch (err: any) {
       toast({ title: "Error", description: err.message || "Failed to add note", variant: "destructive" });
     } finally { setSendingNote(false); }
   };
 
   if (loading) {
-    return (
-      <div className="rw-page" style={{ display: "flex", justifyContent: "center", padding: 80 }}>
-        <span className="rw-spin" style={{ color: "var(--color-teal)" }}><Loader2 size={26} /></span>
-      </div>
-    );
+    return <div className="rw-page flex justify-center py-20"><Loader2 width={26} height={26} className="animate-spin text-primary" /></div>;
   }
   if (error || !referral) {
     return (
-      <div className="rw-page" style={{ textAlign: "center", padding: 80 }}>
-        <p style={{ color: "var(--text-muted)" }}>{error || "Referral not found"}</p>
-        <button className="rw-btn outline" style={{ marginTop: 16 }} onClick={() => navigate(-1)}>Back to Referrals</button>
+      <div className="rw-page text-center py-20">
+        <p className="text-muted-foreground">{error || "Referral not found"}</p>
+        <Button variant="outline" className="mt-4" onClick={() => navigate(-1)}>Back to Referrals</Button>
       </div>
     );
   }
@@ -288,7 +256,6 @@ export default function ReferralDetail() {
   const data = referral.extracted_data || {};
   const patient = data.patient || {}, clinical = data.clinical || {}, provider = data.provider || {}, insurance = data.insurance || {}, priorAuth = data.prior_auth || {};
   const patientFullName = patient.full_name || `${patient.first_name || ""} ${patient.last_name || ""}`.trim() || "—";
-  const grouped = groupDocuments(documents);
   const rejected = referral.status === "rejected";
   // Highlight ONLY what the admin team explicitly flagged on reject — never fields the
   // AI merely left blank. The clinic fixes exactly what we marked, nothing else.
@@ -297,12 +264,7 @@ export default function ReferralDetail() {
   const flagCount = (sec: string) => [...adminFlaggedSet].filter((p) => p.startsWith(sec + ".")).length;
   const missingDocs: string[] = referral.missing_fields?.missing_documents || [];
   const flaggedFieldPaths: string[] = referral.missing_fields?.flagged_fields || [];
-  // Live fix checklist — each flagged field / missing doc with its resolved state.
   const fieldVal = (path: string) => { const [s, k] = path.split("."); return (data?.[s] || {})[k]; };
-  // Forgiving document rule: clinics rarely name/label files, so we don't try to
-  // match specific doc types. The requested document(s) count as satisfied once the
-  // clinic uploads at least ONE new document after the rejection — the admin
-  // re-reviews everything anyway. Fields, by contrast, are checked exactly.
   const rejectedAt = history
     .filter((e: any) => e.event_type === "referral_rejected")
     .reduce((max: string | null, e: any) => (!max || new Date(e.created_at) > new Date(max) ? e.created_at : max), null as string | null);
@@ -314,41 +276,56 @@ export default function ReferralDetail() {
     ...missingDocs.map((k) => ({ kind: "doc", id: k, label: MISSING_DOC_LABELS[k] || k, done: hasNewDoc })),
     ...flaggedFieldPaths.map((p) => ({ kind: "field", id: p, label: `Correct ${prettyFieldPath(p)}`, done: !isEmpty(fieldVal(p)) })),
   ];
-  // The checklist is GUIDANCE, not a hard gate — the admin re-reviews on resubmit.
-  // Allow resubmit once the clinic has made at least one change since the rejection
-  // (edited a field OR uploaded a document). They needn't satisfy every item — e.g.
-  // if they had the info on hand they can just edit and resubmit, no re-upload needed.
   const editedSinceReject = !!rejectedAt && history.some(
     (e: any) => e.event_type === "referral_edited_by_clinic" && new Date(e.created_at) > new Date(rejectedAt));
   const canResubmit = fixItems.length === 0 || hasNewDoc || editedSinceReject;
 
   const copy = (text: string, label: string) => { navigator.clipboard.writeText(text); toast({ title: "Copied!", description: `${label} copied to clipboard` }); };
-  const activeDocId = viewerDocId || documents[0]?.id || null;
+  const visibleHistory = history.filter((e: any) => VISIBLE_EVENTS.has(e.event_type));
+
+  const downloadDoc = async (docId: string) => {
+    try {
+      const res = await clinicApi.getReferralDocumentUrl(id!, docId);
+      window.open(res.url, "_blank");
+    } catch (e: any) {
+      toast({ title: "Couldn't open document", description: e.message, variant: "destructive" });
+    }
+  };
 
   return (
-    <div className="rw-page rd-page rw-fade">
-      <button className="rd-back" onClick={() => navigate(-1)}><ArrowLeft size={15} />Back to Referrals</button>
+    <div className="rw-page rw-fade">
+      <button className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-4" onClick={() => navigate(-1)}>
+        <ArrowLeft width={15} height={15} strokeWidth={1.75} />Back to Referrals
+      </button>
 
       {/* Header */}
-      <div className="rd-header">
-        <div className="rd-head-l">
-          <div className="rd-name-row">
-            <h1 className="rd-name serif">{referral.patient_name || patientFullName}</h1>
-            <StatusBadge status={referral.status} size="md" showIcon />
-            <span className="rd-idchip">{referral.id.toUpperCase()}<button className="cp" title="Copy ID" onClick={() => copy(referral.id, "Referral ID")}><Copy size={12} /></button></span>
+      <div className="flex items-start justify-between gap-4 flex-wrap mb-5">
+        <div>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h1 className="text-2xl font-semibold serif text-foreground">{referral.patient_name || patientFullName}</h1>
+            <StatusBadge status={referral.status} size="md" showIcon variant="soft" />
+            <span className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-0.5 text-xs font-mono text-muted-foreground">
+              {referral.id.toUpperCase()}
+              <button title="Copy ID" onClick={() => copy(referral.id, "Referral ID")}><Copy width={12} height={12} strokeWidth={1.75} /></button>
+            </span>
+            {referral.pa_status && <ClinicPABadge status={referral.pa_status} appealOutcome={referral.appeal_outcome} />}
           </div>
-          <div className="rd-meta">
-            <b>{referral.drug || "—"}</b><span className="sepbar">·</span><span>Created {formatDateShort(referral.created_at)}</span>
-            {referral.created_by_name && <><span className="sepbar">·</span><span>by {referral.created_by_name}</span></>}
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1.5">
+            <b className="text-foreground font-semibold">{referral.drug || "—"}</b>
+            <span>·</span><span>Created {formatDateShort(referral.created_at)}</span>
+            {referral.created_by_name && <><span>·</span><span>by {referral.created_by_name}</span></>}
           </div>
         </div>
-        <div className="rd-head-actions">
+        <div className="flex items-center gap-2">
           {(referral.status === "ready_for_review" || referral.status === "uploaded") && (
-            <button className="rw-btn outline sm" onClick={() => setEditing(true)}><Pencil size={14} />Edit details</button>
+            <Button size="sm" variant="outline" onClick={() => setEditing(true)}><Pencil width={14} height={14} strokeWidth={1.75} />Edit details</Button>
           )}
-          <button className="rw-btn outline sm" onClick={() => window.print()}><Printer size={14} />Print</button>
+          <Button size="sm" variant="outline" onClick={() => window.print()}><Printer width={14} height={14} strokeWidth={1.75} />Print</Button>
           {(referral.status === "uploaded" || referral.status === "rejected") && (
-            <button className="rw-btn outline sm" title="Hide this referral from your list (reversible from the Archived view)"
+            <Button
+              size="sm"
+              variant="outline"
+              title="Hide this referral from your list (reversible from the Archived view)"
               onClick={async () => {
                 if (!window.confirm("Archive this referral? It will be hidden from your list — you can restore it anytime from the Archived view.")) return;
                 try {
@@ -358,36 +335,50 @@ export default function ReferralDetail() {
                 } catch (e: any) {
                   toast({ title: "Couldn't archive", description: e.message, variant: "destructive" });
                 }
-              }}><Inbox size={14} />Archive</button>
+              }}
+            >
+              <Inbox width={14} height={14} strokeWidth={1.75} />Archive
+            </Button>
           )}
         </div>
       </div>
 
-      {/* Bar C — FixPanel (rejected) or success banner */}
+      {/* FixPanel (rejected) or success banner */}
       {rejected ? (
-        <FixPanel reason={referral.rejection_reason} items={fixItems} canResubmit={canResubmit} resubmitting={resubmitting}
-          onEdit={() => setEditing(true)} onUploadFile={(f: File) => handleUpload(f, "supplemental")} uploading={uploadingCategory === "supplemental"}
-          onResubmit={handleResubmit} />
+        <FixPanel
+          reason={referral.rejection_reason}
+          items={fixItems}
+          canResubmit={canResubmit}
+          resubmitting={resubmitting}
+          onEdit={() => setEditing(true)}
+          onUploadFile={(f: File) => handleUpload(f, "supplemental")}
+          uploading={uploadingCategory === "supplemental"}
+          onResubmit={handleResubmit}
+        />
       ) : (referral.status === "approved_to_send" || referral.status === "sent_to_pharmacy") && referral.pharmacy_name ? (
-        <div className="rd-banner success">
-          <span className="bi"><CheckCircle size={20} /></span>
-          <div className="rd-banner-body">
-            <p className="rd-banner-title">{referral.status === "sent_to_pharmacy" ? "Referral Sent" : "Referral Approved & Sending"}</p>
-            <p className="rd-banner-text">{referral.status === "sent_to_pharmacy" ? "This referral has been sent to the pharmacy." : "This referral is approved and on its way to the pharmacy."}</p>
-            <div className="rd-banner-cols">
-              <div className="rd-banner-col"><p className="bk">Pharmacy</p><div className="bv">{referral.pharmacy_name}</div></div>
+        <Alert variant="success" className="mb-5">
+          <CheckCircle width={18} height={18} strokeWidth={1.75} />
+          <AlertDescription>
+            <p className="font-semibold text-foreground mb-1">
+              {referral.status === "sent_to_pharmacy" ? "Referral Sent" : "Referral Approved & Sending"}
+            </p>
+            <p className="text-sm text-muted-foreground mb-2">
+              {referral.status === "sent_to_pharmacy" ? "This referral has been sent to the pharmacy." : "This referral is approved and on its way to the pharmacy."}
+            </p>
+            <div className="flex flex-wrap gap-6 text-sm">
+              <div><p className="text-xs text-muted-foreground">Pharmacy</p><p className="font-medium text-foreground">{referral.pharmacy_name}</p></div>
               {[referral.pharmacy_city, referral.pharmacy_state].filter(Boolean).join(", ") && (
-                <div className="rd-banner-col"><p className="bk">Location</p><div className="bv">{[referral.pharmacy_city, referral.pharmacy_state].filter(Boolean).join(", ")}</div></div>
+                <div><p className="text-xs text-muted-foreground">Location</p><p className="font-medium text-foreground">{[referral.pharmacy_city, referral.pharmacy_state].filter(Boolean).join(", ")}</p></div>
               )}
               {(referral.pharmacy_phone || referral.pharmacy_email) && (
-                <div className="rd-banner-col"><p className="bk">Contact</p><div className="bv">{referral.pharmacy_phone || referral.pharmacy_email}</div></div>
+                <div><p className="text-xs text-muted-foreground">Contact</p><p className="font-medium text-foreground">{referral.pharmacy_phone || referral.pharmacy_email}</p></div>
               )}
             </div>
             {referral.status === "sent_to_pharmacy" && (
               <DeliveryIssueReporter referralId={id!} onReported={loadData} />
             )}
-          </div>
-        </div>
+          </AlertDescription>
+        </Alert>
       ) : null}
 
       {/* Action needed — open tasks from the Dirxctional team (not a rejection:
@@ -408,161 +399,127 @@ export default function ReferralDetail() {
       )}
 
       {/* Tabs */}
-      <div className="rd-tabs">
-        {[{ k: "overview", label: "Overview", icon: FileText, n: null },
-          { k: "documents", label: "Documents", icon: FileText, n: documents.length },
-          { k: "history", label: "History", icon: Clock, n: history.filter((e) => VISIBLE_EVENTS.has(e.event_type)).length || null },
-          { k: "notes", label: "Notes", icon: Send, n: notes.length || null }].map((t) => (
-          <button key={t.k} className={`rd-tab${tab === t.k ? " active" : ""}`}
-            onClick={() => { setTab(t.k); if (t.k === "notes" && id) localStorage.setItem(`notes_last_viewed_${id}`, new Date().toISOString()); }}>
-            <span className="ti"><t.icon size={15} /></span>{t.label}{t.n != null && <span className="tcount">{t.n}</span>}
-          </button>
-        ))}
-      </div>
+      <Tabs value={tab} onValueChange={(v) => { setTab(v); if (v === "notes" && id) localStorage.setItem(`notes_last_viewed_${id}`, new Date().toISOString()); }}>
+        <TabsList className={underlineTabsListClass}>
+          <TabsTrigger value="overview" className={underlineTabsTriggerClass}>Overview</TabsTrigger>
+          <TabsTrigger value="documents" className={underlineTabsTriggerClass}>Documents ({documents.length})</TabsTrigger>
+          <TabsTrigger value="history" className={underlineTabsTriggerClass}>History ({visibleHistory.length || 0})</TabsTrigger>
+          <TabsTrigger value="notes" className={underlineTabsTriggerClass}>Notes ({notes.length || 0})</TabsTrigger>
+        </TabsList>
 
-      <div className="rd-content">
         {/* OVERVIEW */}
-        {tab === "overview" && (
-          <div className="rd-overview">
-            <div className="rd-ov-main">
-              <InfoCardDL icon={User} title="Patient Information" obj={patient} fields={PATIENT_FIELDS} section="patient" flagCount={flagCount("patient")} isFlagged={isFlagged} onCopy={copy} />
-              <InfoCardDL icon={Pill} title="Clinical Information" obj={clinical} fields={CLINICAL_FIELDS} section="clinical" flagCount={flagCount("clinical")} isFlagged={isFlagged} onCopy={copy} />
-              <InfoCardDL icon={Stethoscope} title="Provider Information" obj={provider} fields={PROVIDER_FIELDS} section="provider" flagCount={flagCount("provider")} isFlagged={isFlagged} onCopy={copy} />
+        <TabsContent value="overview" className="pt-5">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-4 items-start">
+            <div className="flex flex-col gap-4">
+              <InfoCardDL icon={<User width={16} height={16} strokeWidth={1.75} />} title="Patient Information" obj={patient} fields={PATIENT_FIELDS} section="patient" flagCount={flagCount("patient")} isFlagged={isFlagged} />
+              <InfoCardDL icon={<Pill width={16} height={16} strokeWidth={1.75} />} title="Clinical Information" obj={clinical} fields={CLINICAL_FIELDS} section="clinical" flagCount={flagCount("clinical")} isFlagged={isFlagged} />
+              <InfoCardDL icon={<Stethoscope width={16} height={16} strokeWidth={1.75} />} title="Provider Information" obj={provider} fields={PROVIDER_FIELDS} section="provider" flagCount={flagCount("provider")} isFlagged={isFlagged} />
             </div>
-            <div className="rd-rail">
-              <StatusProgress status={referral.status} desc={statusDescriptions[referral.status] || "In progress."} />
+            <div className="flex flex-col gap-4">
+              <StatusCard status={referral.status} desc={statusDescriptions[referral.status] || "In progress."} />
               <InsurancePA referral={referral} insurance={insurance} priorAuth={priorAuth} reloadOnUpdate={loadData} referralId={id!} isFlagged={isFlagged} />
             </div>
           </div>
-        )}
+        </TabsContent>
 
-        {/* DOCUMENTS — split */}
-        {tab === "documents" && (
-          <>
-            <div className="rd-doc-split">
-              <div className="rd-doc-list">
-                {DOC_CATEGORIES.map((cat) => {
-                  const catDocs = grouped[cat.key] || [];
-                  return (
-                    <div className="rd-doc-group" key={cat.key}>
-                      <h4>{cat.label}</h4>
-                      {catDocs.length === 0 ? (
-                        <div className="rd-doc-empty">No {cat.label.toLowerCase()} uploaded</div>
-                      ) : (
-                        <div className="rd-doc-cards">
-                          {catDocs.map((doc: any) => {
-                            const DocIcon = docIcon(doc.original_filename || doc.file_name || "");
-                            return (
-                              <button key={doc.id} className={`rd-doc-card${activeDocId === doc.id ? " active" : ""}`} onClick={() => setViewerDocId(doc.id)}>
-                                <span className="rd-doc-ic"><DocIcon size={15} /></span>
-                                <span className="rd-doc-info">
-                                  <span className="rd-doc-name">{doc.original_filename || doc.file_name || doc.name || "Document"}</span>
-                                  <span className="rd-doc-sub">{formatDateShort(doc.uploaded_at || doc.created_at)}</span>
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="rd-doc-viewer">
-                {activeDocId ? (
-                  <DocumentViewer key={activeDocId} documents={documents} fetchUrl={fetchClinicDocUrl} initialDocId={activeDocId} className="flex-1 min-w-0" />
-                ) : (
-                  <div className="rd-doc-viewer-empty"><FileText size={28} /><span>No documents to preview</span></div>
-                )}
-              </div>
+        {/* DOCUMENTS — flat list, never a side-by-side viewer */}
+        <TabsContent value="documents" className="pt-5">
+          {documents.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 py-16 text-center">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground"><FileText width={20} height={20} strokeWidth={1.75} /></span>
+              <p className="text-sm font-semibold text-foreground">No documents yet</p>
             </div>
-
-            {rejected && (
-              <p className="rd-upload-hint" style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", margin: "14px 2px 0", display: "flex", alignItems: "center", gap: 6 }}>
-                <ListChecks size={13} />To add missing documents, use “Upload documents” in the fix panel on the Overview tab.
-              </p>
-            )}
-          </>
-        )}
+          ) : (
+            <div className="rounded-lg border border-border bg-card overflow-hidden">
+              {documents.map((doc: any) => {
+                const DocIcon = docIcon(doc.original_filename || doc.file_name || "");
+                const isTeam = !!doc.from_team;
+                return (
+                  <div key={doc.id} className="flex items-center gap-3 px-4 py-3 border-b border-border last:border-0">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><DocIcon width={16} height={16} strokeWidth={1.75} /></span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground truncate">{doc.original_filename || doc.file_name || doc.name || "Document"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDateShort(doc.uploaded_at || doc.created_at)}
+                        {doc.doc_type && ` · ${doc.doc_type.replace(/_/g, " ")}`}
+                        {isTeam && " · From your Dirxctional team"}
+                      </p>
+                    </div>
+                    <Button size="sm" variant="outline" onClick={() => downloadDoc(doc.id)}><Download width={14} height={14} strokeWidth={1.75} />Download</Button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {rejected && (
+            <p className="text-xs text-muted-foreground mt-3 flex items-center gap-1.5">
+              <ClipboardList width={13} height={13} strokeWidth={1.75} />To add missing documents, use "Upload documents" in the fix panel above.
+            </p>
+          )}
+        </TabsContent>
 
         {/* HISTORY */}
-        {tab === "history" && (
-          <div className="rd-hist">
-            {history.filter((e) => VISIBLE_EVENTS.has(e.event_type)).length > 0 ? (
-              history.filter((e: any) => VISIBLE_EVENTS.has(e.event_type)).map((event: any, i: number, arr: any[]) => {
+        <TabsContent value="history" className="pt-5">
+          {visibleHistory.length > 0 ? (
+            <div className="flex flex-col">
+              {visibleHistory.map((event: any, i: number, arr: any[]) => {
                 const Icon = eventIcon(event.event_type);
                 let label = eventLabel(event.event_type);
                 if (event.event_type === "document_uploaded" && event.metadata?.filename) label += `: ${event.metadata.filename}`;
                 return (
-                  <div className="rd-hist-row" key={i}>
-                    <span className={`rd-hist-node ${eventColor(event.event_type)}`}><Icon size={16} /></span>
-                    {i < arr.length - 1 && <span className="rd-hist-line" />}
-                    <div className="rd-hist-body">
-                      <div className="rd-hist-label">{label}</div>
-                      {event.event_type === "referral_rejected" && event.metadata?.reason && <div className="rd-hist-reason">{event.metadata.reason}</div>}
-                      <div className="rd-hist-when">{formatDateTime(event.created_at)}</div>
+                  <div key={i} className="flex gap-3">
+                    <div className="flex flex-col items-center">
+                      <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${eventColorClass(event.event_type)}`}><Icon width={15} height={15} strokeWidth={1.75} /></span>
+                      {i < arr.length - 1 && <span className="w-px flex-1 bg-border my-1" />}
                     </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="rd-empty"><span className="ei"><Clock size={28} /></span><p className="t">No history yet</p><p className="s">Events will appear here as the referral progresses.</p></div>
-            )}
-          </div>
-        )}
-
-        {/* NOTES — chat pane: messages scroll inside a capped area, the
-            composer stays anchored beneath it, always visible. */}
-        {tab === "notes" && (
-          <div className="rd-notes">
-            <div className="rd-notes-scroll">
-              {notes.length === 0 && (
-                <div className="rd-notes-empty">
-                  <Send size={20} />
-                  <p>No notes yet — anything you write here stays with this referral, and your Dirxctional team sees it.</p>
-                </div>
-              )}
-              {notes.map((note) => {
-                const isAdmin = note.author_type === "admin";
-                return (
-                  <div key={note.id} className={`rd-note ${isAdmin ? "admin" : "clinic"}`}>
-                    <span className="rd-note-ava">{getAuthorInitials(note, "clinic")}</span>
-                    <div className="rd-note-body">
-                      <div className="rd-note-card">
-                        <div className="rd-note-head">
-                          <span className="rd-note-author">{getDisplayAuthor(note, "clinic")}</span>
-                          <span className="rd-note-when">{formatDateTime(note.created_at)}</span>
-                        </div>
-                        <p className="rd-note-text">{note.content}</p>
-                      </div>
+                    <div className="pb-5 min-w-0">
+                      <p className="text-sm font-medium text-foreground">{label}</p>
+                      {event.event_type === "referral_rejected" && event.metadata?.reason && (
+                        <p className="text-sm text-muted-foreground mt-0.5">{event.metadata.reason}</p>
+                      )}
+                      <p className="text-xs text-muted-foreground mt-0.5">{formatDateTime(event.created_at)}</p>
                     </div>
                   </div>
                 );
               })}
-              <div ref={notesEndRef} />
             </div>
-            <div className="rd-composer">
-              <button
-                className="rw-btn outline"
-                title="Attach a document — it's saved to Documents and noted here"
-                disabled={attachingNote}
-                onClick={() => noteFileRef.current?.click()}
-                style={{ flexShrink: 0 }}
-              >
-                {attachingNote ? <span className="rw-spin"><Loader2 size={15} /></span> : <Paperclip size={15} />}
-              </button>
-              <input ref={noteFileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif" style={{ display: "none" }}
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) attachViaNote(f); }} />
-              <textarea placeholder="Add a note about this referral... (or attach a document with the clip)" value={newNote} onChange={(e) => setNewNote(e.target.value)} rows={2}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => { e.preventDefault(); if (attachingNote) return; const f = e.dataTransfer.files?.[0]; if (f) attachViaNote(f); }} />
-              <button className="rw-btn primary" onClick={addNote} disabled={!newNote.trim() || sendingNote}>
-                {sendingNote ? <span className="rw-spin"><Loader2 size={15} /></span> : <Send size={15} />}
-              </button>
+          ) : (
+            <div className="flex flex-col items-center gap-2 py-16 text-center">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground"><Clock width={20} height={20} strokeWidth={1.75} /></span>
+              <p className="text-sm font-semibold text-foreground">No history yet</p>
+              <p className="text-sm text-muted-foreground">Events will appear here as the referral progresses.</p>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </TabsContent>
+
+        {/* NOTES — the backend already hides PA internals from clinic notes;
+            nothing is stripped here, no system lines are added. */}
+        <TabsContent value="notes" className="pt-5">
+          <MessageThread
+            ours="clinic"
+            messages={notes.map((note: any) => ({
+              side: note.author_type === "admin" ? "ours" : "clinic",
+              name: note.author_type === "admin" ? "Dirxctional Team" : (note.author_name || "You"),
+              time: formatDateTime(note.created_at),
+              body: note.content,
+            }))}
+            value={newNote}
+            onChange={setNewNote}
+            onSend={addNote}
+            onAttach={() => noteFileRef.current?.click()}
+            placeholder="Add a note about this referral… (or attach a document with the clip)"
+            empty="No notes yet — anything you write here stays with this referral, and your Dirxctional team sees it."
+            hint={attachingNote ? "Attaching document…" : sendingNote ? "Sending…" : "Visible to your Dirxctional team"}
+          />
+          <input
+            ref={noteFileRef}
+            type="file"
+            accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif"
+            className="hidden"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) attachViaNote(f); }}
+          />
+        </TabsContent>
+      </Tabs>
 
       {/* Edit drawer */}
       {editing && <EditDrawer referralId={id!} data={data} flaggedSet={adminFlaggedSet} onClose={() => setEditing(false)} onSaved={() => { setEditing(false); loadData(); }} />}
@@ -570,64 +527,30 @@ export default function ReferralDetail() {
   );
 }
 
-/* ── Definition-list info card with ⚠ flags ── */
-function InfoCardDL({ icon: Icon, title, obj, fields, section, flagCount, isFlagged, onCopy }: any) {
-  return (
-    <div className="rd-card">
-      <div className="rd-card-head">
-        <span className="hi"><Icon size={16} /></span><h3>{title}</h3>
-        {flagCount > 0 && <span className="rd-card-flag" title={`${flagCount} field${flagCount > 1 ? "s" : ""} need attention`}><AlertTriangle size={13} />{flagCount}</span>}
-      </div>
-      <div className="rd-dl">
-        {fields.map((f: any) => {
-          const flag = isFlagged ? isFlagged(section, f.k) : ((IMPORTANT[section] || []).includes(f.k) && isEmpty(obj[f.k]));
-          let v = obj[f.k];
-          if (f.bool) v = v ? "Yes" : "No";
-          else if (f.date && v) v = formatDateShort(v);
-          else v = v || "—";
-          return (
-            <div key={f.k} className={`rd-dl-row${flag ? " flagged" : ""}`}>
-              <div className="dk">{f.label}{flag && <span className="rd-flag" title="Missing — please add"><AlertTriangle size={12} /></span>}</div>
-              <div className={`dv${f.mono ? " mono" : ""}`}>
-                <span>{v}</span>
-                {f.copy && obj[f.k] && <button className="rd-copy" title="Copy" onClick={() => onCopy(obj[f.k], f.label)}><Copy size={13} /></button>}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
+/* ── Definition-list info card with flags ── */
+function InfoCardDL({ icon, title, obj, fields, section, flagCount, isFlagged }: any) {
+  const rows = fields.map((f: any) => {
+    const flag = isFlagged ? isFlagged(section, f.k) : ((IMPORTANT[section] || []).includes(f.k) && isEmpty(obj[f.k]));
+    let v = obj[f.k];
+    if (f.bool) v = v ? "Yes" : "No";
+    else if (f.date && v) v = formatDateShort(v);
+    return { label: f.label, value: v || undefined, mono: f.mono, copy: f.copy, flag };
+  });
+  return <DefinitionList title={title} icon={icon} flagged={flagCount} rows={rows} />;
 }
 
-/* ── Status progress with rejected branch ── */
-function StatusProgress({ status, desc }: { status: string; desc: string }) {
-  const steps = [{ key: "received", label: "Received", icon: Inbox }, { key: "review", label: "In Review", icon: SearchIcon }, { key: "sent", label: "Sent", icon: Send }];
-  const cur = status === "sent_to_pharmacy" || status === "approved_to_send" ? 2 : 1;
-  const rejected = status === "rejected";
-  // "closed" = terminal stop at the review step — the PA section explains why.
-  const closed = status === "closed";
-  const stopped = rejected || closed;
+/* ── Status card with plain-language sentence ── */
+function StatusCard({ status, desc }: { status: string; desc: string }) {
   return (
-    <div className="rd-status-card">
-      <div className="rd-status-top"><StatusBadge status={status as ReferralStatus} size="lg" showIcon /></div>
-      <p className="rd-status-desc">{desc}</p>
-      <div className="rd-prog">
-        {steps.map((s, i) => {
-          let cls = i < cur ? "done" : i === cur ? "current" : "todo";
-          if (stopped && i === 1) cls = "rejected";
-          const Icon = s.icon;
-          return (
-            <div key={s.key} className={`rd-prog-step ${cls}`}>
-              <div className="rd-prog-bar" />
-              <div className="rd-prog-node">{stopped && i === 1 ? <X size={15} /> : i < cur ? <CheckCircle size={15} /> : <Icon size={15} />}</div>
-              <div className="rd-prog-lbl">{stopped && i === 1 ? (rejected ? "Rejected" : "Closed") : s.label}</div>
-            </div>
-          );
-        })}
-      </div>
-      {rejected && <div className="rd-prog-note"><ArrowRight size={14} />Flagged for attention at review — fix &amp; resubmit to continue</div>}
-      {closed && <div className="rd-prog-note"><ArrowRight size={14} />Closed after the insurance appeal — see Prior Authorization below for your options</div>}
+    <div className="bg-card border border-border rounded-lg p-4">
+      <div className="mb-2"><StatusBadge status={status as ReferralStatus} size="lg" showIcon variant="soft" /></div>
+      <p className="text-sm text-muted-foreground leading-relaxed">{desc}</p>
+      {status === "rejected" && (
+        <p className="flex items-center gap-1.5 text-xs text-destructive mt-2"><ArrowRight width={14} height={14} strokeWidth={1.75} />Flagged for attention at review — fix &amp; resubmit to continue</p>
+      )}
+      {status === "closed" && (
+        <p className="flex items-center gap-1.5 text-xs text-muted-foreground mt-2"><ArrowRight width={14} height={14} strokeWidth={1.75} />Closed after the insurance appeal — see Prior Authorization below for your options</p>
+      )}
     </div>
   );
 }
@@ -636,108 +559,96 @@ function StatusProgress({ status, desc }: { status: string; desc: string }) {
 function InsurancePA({ referral, insurance, priorAuth, reloadOnUpdate, referralId, isFlagged }: any) {
   if (referral.is_bridge_program) {
     return (
-      <div className="rd-status-card">
-        <div className="rd-card-head"><span className="hi"><Shield size={16} /></span><h3>Insurance &amp; PA</h3></div>
-        <div className="rd-bridge"><span className="bi"><Heart size={18} /></span><div><div className="bt">Bridge Program</div><div className="bs">PA not required</div></div></div>
-      </div>
+      <DefinitionList
+        title="Insurance & PA"
+        icon={<Shield width={16} height={16} strokeWidth={1.75} />}
+        rows={[{ label: "Bridge Program", value: "PA not required" }]}
+      />
     );
   }
   const paStatus = referral.pa_status;
+  const paLabelMap: Record<string, string> = {
+    approved: "Approved", processing: "PA In Progress", submitted: "PA Submitted",
+  };
+  let paLabel: string | undefined;
+  if (!paStatus) paLabel = "Pending";
+  else if (paStatus === "approved") paLabel = "Approved";
+  else if (paStatus === "denied" && referral.appeal_outcome === "level2") paLabel = "Level 2";
+  else if (paStatus === "denied" && referral.appeal_outcome === "final") paLabel = "Final Denial";
+  else if (paStatus === "denied") paLabel = "Denied";
+  else if (paStatus === "appeal") paLabel = "In Appeal";
+  else paLabel = paLabelMap[paStatus] || paStatus;
+
   return (
     <>
-      <div className="rd-status-card">
-        <p className="rd-sub-label">Insurance
-          <span className={`vchk ${referral.insurance_expired ? "bad" : "ok"}`}>{referral.insurance_expired ? <XCircle size={15} /> : <CheckCircle size={15} />}</span>
-          <span style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: referral.insurance_expired ? "var(--color-error)" : "var(--color-success)", textTransform: "none", letterSpacing: 0 }}>{referral.insurance_expired ? "Expired" : "Valid"}</span>
-        </p>
-        <div className="rd-dl">
-          <DlRow label="Has Insurance" value={insurance.has_insurance_card ? "Yes" : "No"} />
-          {(insurance.primary_insurance_name || (isFlagged && isFlagged("insurance", "primary_insurance_name"))) && <DlRow label="Primary Insurance" value={insurance.primary_insurance_name || "—"} flag={!!(isFlagged && isFlagged("insurance", "primary_insurance_name"))} />}
-          <DlRow label="Member ID" value={insurance.primary_member_id || "—"} flag={!!(isFlagged && isFlagged("insurance", "primary_member_id"))} />
-          {insurance.secondary_insurance_name && <DlRow label="Secondary Insurance" value={insurance.secondary_insurance_name} />}
-          {insurance.notes && <DlRow label="Insurance Notes" value={insurance.notes} />}
+      <DefinitionList
+        title="Insurance"
+        icon={<Shield width={16} height={16} strokeWidth={1.75} />}
+        action={
+          referral.insurance_expired ? (
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-destructive"><XCircle width={14} height={14} strokeWidth={1.75} />Expired</span>
+          ) : (
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-success"><CheckCircle width={14} height={14} strokeWidth={1.75} />Valid</span>
+          )
+        }
+        rows={[
+          { label: "Has Insurance", value: insurance.has_insurance_card ? "Yes" : "No" },
+          ...(insurance.primary_insurance_name || isFlagged?.("insurance", "primary_insurance_name")
+            ? [{ label: "Primary Insurance", value: insurance.primary_insurance_name, flag: !!isFlagged?.("insurance", "primary_insurance_name") }]
+            : []),
+          { label: "Member ID", value: insurance.primary_member_id, flag: !!isFlagged?.("insurance", "primary_member_id") },
+          ...(insurance.secondary_insurance_name ? [{ label: "Secondary Insurance", value: insurance.secondary_insurance_name }] : []),
+          ...(insurance.notes ? [{ label: "Insurance Notes", value: insurance.notes }] : []),
+        ]}
+      />
+      {referral.insurance_expired && (
+        <div className="-mt-2">
+          <ExpiredInsuranceBanner referralId={referralId} onUpdated={reloadOnUpdate} />
         </div>
-        {referral.insurance_expired && <ExpiredInsuranceBanner referralId={referralId} onUpdated={reloadOnUpdate} />}
-      </div>
+      )}
 
-      <div className="rd-status-card">
-        <p className="rd-sub-label">Prior Authorization</p>
-        {/* CMM access key — front and center, self-explanatory: the clinic can
-            open this exact PA in CoverMyMeds at any stage with this key. */}
+      <div className="bg-card border border-border rounded-lg p-4">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-foreground mb-2">Prior Authorization</h3>
         {referral.pa_reference && (
-          <div style={{ margin: "8px 0 12px", padding: "11px 13px", borderRadius: "var(--radius-md)", background: "var(--color-teal-50)", border: "1px solid var(--color-teal-100)" }}>
-            <p style={{ margin: 0, fontSize: 10.5, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: "var(--color-teal-700)" }}>
-              CoverMyMeds Access Key
-            </p>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "5px 0 6px" }}>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: 16, fontWeight: 700, letterSpacing: ".04em", color: "var(--text-primary)" }}>
-                {referral.pa_reference}
-              </span>
+          <div className="mb-3 p-3 rounded-md bg-primary/5 border border-primary/15">
+            <p className="text-[10.5px] font-bold tracking-wide uppercase text-primary">CoverMyMeds Access Key</p>
+            <div className="flex items-center gap-2 my-1">
+              <span className="font-mono text-base font-bold tracking-wide text-foreground">{referral.pa_reference}</span>
               <button
                 type="button"
                 title="Copy key"
                 onClick={() => { navigator.clipboard?.writeText(referral.pa_reference); toast({ title: "Key copied" }); }}
-                style={{ display: "inline-flex", background: "none", border: "1px solid var(--color-teal-100)", borderRadius: 6, padding: "3px 6px", cursor: "pointer", color: "var(--color-teal-700)" }}
+                className="inline-flex items-center rounded-md border border-primary/20 px-1.5 py-1 text-primary"
               >
-                <Copy size={13} />
+                <Copy width={13} height={13} strokeWidth={1.75} />
               </button>
             </div>
-            <p style={{ margin: 0, fontSize: 11.5, lineHeight: 1.5, color: "var(--color-teal-700)" }}>
+            <p className="text-[11.5px] leading-relaxed text-primary">
               Track this prior authorization yourself anytime: enter this key at <b>covermymeds.com</b> along with the patient's last name and date of birth.
             </p>
           </div>
         )}
-        <div className="rd-dl">
-          <DlRow label="PA Required" value={referral.pa_required ? "Yes" : "No"} />
-          {referral.pa_required && (
-            <>
-              <div className="rd-dl-row"><div className="dk">PA Status</div><div className="dv">
-                {!paStatus ? <span className="rd-pa-pill" style={paPillStyle("pending")}>Pending</span>
-                  : paStatus === "approved" ? <span style={paPillStyle("approved")}>Approved</span>
-                  : paStatus === "denied" && referral.appeal_outcome === "level2" ? <span style={paPillStyle("denied")}>Level 2</span>
-                  : paStatus === "denied" && referral.appeal_outcome === "final" ? <span style={paPillStyle("denied")}>Final Denial</span>
-                  : paStatus === "denied" ? <span style={paPillStyle("denied")}>Denied</span>
-                  : paStatus === "appeal" ? <span style={paPillStyle("denied")}>In Appeal</span>
-                  : paStatus === "processing" ? <span style={paPillStyle("processing")}>PA In Progress</span>
-                  : paStatus === "submitted" ? <span style={paPillStyle("submitted")}>PA Submitted</span>
-                  : <span style={paPillStyle("pending")}>{paStatus}</span>}
-              </div></div>
-              {/* CMM reference shows whenever it exists — the clinic can look
-                  the PA up in CoverMyMeds themselves at any stage. */}
-              {/* Payer approval # (issued on approval) vs CMM access key
-                  (issued at request creation — lets the office look the PA up
-                  in CoverMyMeds at any stage). Different things, both shown. */}
-              {referral.pa_number && <DlRow label="PA Approval #" value={referral.pa_number} mono />}
-              {paStatus === "approved" && referral.pa_expiration_date && <DlRow label="PA Expires" value={formatDateShort(referral.pa_expiration_date)} />}
-              {paStatus === "denied" && referral.pa_denial_reason && <DlRow label="Denial Reason" value={referral.pa_denial_reason} />}
-              <DlRow label="PA Handled By" value={priorAuth.handled_by_us ? "Dirxctional" : "Clinic"} />
-              {referral.appeal_outcome === "level2" && (
-                <p style={{ fontSize: 12, lineHeight: 1.5, margin: "8px 0 0", padding: "8px 10px", borderRadius: 8, background: "hsl(var(--status-review-bg))", color: "hsl(var(--status-review-fg))" }}>
-                  The insurance company is working with your office directly on this appeal — expect contact from them.
-                </p>
-              )}
-            </>
-          )}
-        </div>
+        <DefinitionList
+          title="PA details"
+          className="border-0 p-0 [&_h3]:hidden [&_.mb-2]:mb-0"
+          rows={[
+            { label: "PA Required", value: referral.pa_required ? "Yes" : "No" },
+            ...(referral.pa_required ? [
+              { label: "PA Status", value: paLabel },
+              ...(referral.pa_number ? [{ label: "PA Approval #", value: referral.pa_number, mono: true }] : []),
+              ...(paStatus === "approved" && referral.pa_expiration_date ? [{ label: "PA Expires", value: formatDateShort(referral.pa_expiration_date) }] : []),
+              ...(paStatus === "denied" && referral.pa_denial_reason ? [{ label: "Denial Reason", value: referral.pa_denial_reason }] : []),
+              { label: "PA Handled By", value: priorAuth.handled_by_us ? "Dirxctional" : "Clinic" },
+            ] : []),
+          ]}
+        />
+        {referral.appeal_outcome === "level2" && (
+          <p className="text-xs leading-relaxed mt-2 p-2 rounded-md bg-status-review-bg text-status-review-fg">
+            The insurance company is working with your office directly on this appeal — expect contact from them.
+          </p>
+        )}
       </div>
     </>
-  );
-}
-function paPillStyle(kind: string): React.CSSProperties {
-  const map: Record<string, [string, string]> = {
-    pending: ["--status-uploaded-bg", "--status-uploaded-fg"], submitted: ["--status-review-bg", "--status-review-fg"],
-    processing: ["--status-processing-bg", "--status-processing-fg"], approved: ["--status-approved-bg", "--status-approved-fg"],
-    denied: ["--status-rejected-bg", "--status-rejected-fg"],
-  };
-  const [bg, fg] = map[kind] || map.pending;
-  return { display: "inline-flex", fontSize: 11, fontWeight: 600, padding: "2px 9px", borderRadius: 9999, background: `hsl(var(${bg}))`, color: `hsl(var(${fg}))` };
-}
-function DlRow({ label, value, mono, flag }: { label: string; value: string; mono?: boolean; flag?: boolean }) {
-  return (
-    <div className={`rd-dl-row${flag ? " flagged" : ""}`}>
-      <div className="dk">{label}{flag && <span className="rd-flag" title="Missing — please add"><AlertTriangle size={12} /></span>}</div>
-      <div className={`dv${mono ? " mono" : ""}`}>{value}</div>
-    </div>
   );
 }
 
@@ -746,70 +657,78 @@ function FixPanel({ reason, items = [], canResubmit, resubmitting, onEdit, onUpl
   const [showUpload, setShowUpload] = useState(false);
   const doneCount = items.filter((i: any) => i.done).length;
   const total = items.length;
-  const docItems = items.filter((i: any) => i.kind === "doc");
+
   return (
-    <div className="rd-fix">
-      <div className="rd-fix-head">
-        <span className="fi"><AlertTriangle size={20} /></span>
-        <div><p className="ft">Referral Needs Attention</p><p className="fs">Resolve the items below, then resubmit for review.</p></div>
-        <span className="he"><StatusBadge status="rejected" size="md" /></span>
-      </div>
-      <div className="rd-fix-grid">
-        <div className="rd-fix-block">
-          <p className="rd-fix-k"><MessageSquareWarning size={14} />What needs attention</p>
-          <div className="rd-fix-reason">{reason || "This referral needs attention. Contact our team for details."}</div>
+    <div className="rounded-lg border border-border bg-card overflow-hidden mb-5">
+      <Alert variant="destructive" className="rounded-none border-0 border-b border-border">
+        <AlertTriangle width={18} height={18} strokeWidth={1.75} />
+        <AlertDescription>
+          <p className="font-semibold text-foreground mb-1">Referral Needs Attention</p>
+          <p>{reason || "This referral needs attention. Contact our team for details."}</p>
+        </AlertDescription>
+      </Alert>
+
+      <div className="p-4">
+        <div className="flex items-center gap-2 mb-2.5">
+          <p className="text-sm font-semibold text-foreground">What's needed</p>
+          {total > 0 && (
+            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-bold ${canResubmit ? "bg-success/13 text-success" : "bg-warning/14 text-[#B45309]"}`}>
+              {doneCount}/{total} resolved
+            </span>
+          )}
         </div>
-        <div className="rd-fix-block">
-          <p className="rd-fix-k">
-            <ListChecks size={14} />What's needed
-            {total > 0 && (
-              <span style={{ marginLeft: "auto", fontSize: 11, fontWeight: 700, padding: "1px 8px", borderRadius: 9999, color: canResubmit ? "var(--color-success)" : "var(--color-warning)", background: canResubmit ? "color-mix(in srgb, var(--color-success) 13%, transparent)" : "color-mix(in srgb, var(--color-warning) 14%, transparent)" }}>{doneCount}/{total} resolved</span>
-            )}
-          </p>
-          <ul className="rd-checklist">
-            {total === 0 && <li className="rd-check-item"><span className="ck"><Circle size={15} /></span><span>Review what needs attention and correct the referral.</span></li>}
-            {items.map((it: any) => (
-              <li className="rd-check-item" key={it.kind + it.id}>
-                <span className="ck" style={it.done ? { color: "var(--color-success)" } : undefined}>{it.done ? <CheckCircle size={15} /> : <Circle size={15} />}</span>
-                <span style={it.done ? { color: "var(--text-muted)", textDecoration: "line-through" } : undefined}>
-                  {it.label}{!it.done && <AlertTriangle size={12} style={{ verticalAlign: "-1px", marginLeft: 4, color: "var(--color-warning)" }} />}
-                </span>
-              </li>
-            ))}
-          </ul>
+        <ul className="flex flex-col gap-2 mb-4">
+          {total === 0 && (
+            <li className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Checkbox checked={false} disabled />Review what needs attention and correct the referral.
+            </li>
+          )}
+          {items.map((it: any) => (
+            <li key={it.kind + it.id} className="flex items-center gap-2 text-sm">
+              <Checkbox checked={!!it.done} disabled />
+              <span className={it.done ? "text-muted-foreground line-through" : "text-foreground"}>{it.label}</span>
+              {!it.done && <AlertTriangle width={12} height={12} strokeWidth={1.75} className="text-warning" />}
+            </li>
+          ))}
+        </ul>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button variant="outline" onClick={onEdit}><Pencil width={15} height={15} strokeWidth={1.75} />Edit referral details</Button>
+          <Button variant="outline" onClick={() => setShowUpload((v: boolean) => !v)}><Upload width={15} height={15} strokeWidth={1.75} />Upload documents</Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span>
+                <Button onClick={onResubmit} disabled={!canResubmit || resubmitting}>
+                  {resubmitting ? <Loader2 width={15} height={15} className="animate-spin" /> : <RefreshCw width={15} height={15} strokeWidth={1.75} />}Resubmit
+                </Button>
+              </span>
+            </TooltipTrigger>
+            {!canResubmit && <TooltipContent>Edit a field or upload a document before resubmitting</TooltipContent>}
+          </Tooltip>
         </div>
-      </div>
-      <div className="rd-fix-actions">
-        <span className="rd-fix-actions-lbl">Fix this referral</span>
-        <button className="rw-btn outline" onClick={onEdit}><Pencil size={15} />Edit details</button>
-        <button className="rw-btn outline" onClick={() => setShowUpload((v: boolean) => !v)}><Upload size={15} />Upload documents</button>
-        <span title={!canResubmit ? "Edit a field or upload a document before resubmitting" : undefined} style={{ display: "inline-flex" }}>
-          <button className="rw-btn primary" onClick={onResubmit} disabled={!canResubmit || resubmitting}>
-            {resubmitting ? <span className="rw-spin"><Loader2 size={15} /></span> : <RefreshCw size={15} />}Resubmit
-          </button>
-        </span>
-      </div>
-      {showUpload && (
-        <div style={{ padding: "18px 24px 22px", borderTop: "1px solid var(--border-default)", background: "var(--bg-muted)" }}>
-          <div style={{ maxWidth: 440, margin: "0 auto" }}>
-            {docItems.length > 0 && (
-              <div style={{ marginBottom: 14 }}>
-                <p style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--text-muted)", margin: "0 0 8px", textTransform: "uppercase", letterSpacing: ".04em", textAlign: "center" }}>Documents requested</p>
-                <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 6, alignItems: "center" }}>
-                  {docItems.map((d: any) => (
-                    <li key={d.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "var(--text-sm)", color: d.done ? "var(--text-muted)" : "var(--text-body)" }}>
-                      <span style={{ color: d.done ? "var(--color-success)" : "var(--color-stone-400)", display: "inline-flex" }}>{d.done ? <CheckCircle size={14} /> : <Circle size={14} />}</span>
-                      <span style={d.done ? { textDecoration: "line-through" } : undefined}>{d.label}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            <UploadZone label="Upload referral packet or any missing document" uploading={uploading} onUpload={onUploadFile} />
-            <p style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", margin: "10px 0 0", textAlign: "center" }}>Adding a document — or editing a field — lets you resubmit.</p>
+
+        {showUpload && (
+          <div className="mt-4 pt-4 border-t border-border">
+            <div className="max-w-[440px] mx-auto flex flex-col gap-3">
+              {items.filter((i: any) => i.kind === "doc").length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide text-center mb-2">Documents requested</p>
+                  <ul className="flex flex-col gap-1.5 items-center">
+                    {items.filter((i: any) => i.kind === "doc").map((d: any) => (
+                      <li key={d.id} className={`flex items-center gap-2 text-sm ${d.done ? "text-muted-foreground line-through" : "text-foreground"}`}>
+                        {d.done ? <CheckCircle width={14} height={14} strokeWidth={1.75} className="text-success" /> : <Circle width={14} height={14} strokeWidth={1.75} />}
+                        {d.label}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <UploadZone label="Upload referral packet or any missing document" uploading={uploading} onUpload={onUploadFile} />
+              <p className="text-xs text-muted-foreground text-center">Adding a document — or editing a field — lets you resubmit.</p>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
@@ -849,37 +768,41 @@ function EditDrawer({ referralId, data, flaggedSet, onClose, onSaved }: any) {
 
   return (
     <>
-      <div className="rd-drawer-scrim" onClick={onClose} />
-      <div className="rd-drawer">
-        <div className="rd-drawer-head">
-          <div><h3>Edit Referral Details</h3><p>Correct any extracted fields, then save — it returns to our team for review.</p></div>
-          <button className="rw-ic-btn" onClick={onClose} aria-label="Close"><X size={18} /></button>
+      <div className="fixed inset-0 z-40 bg-black/40" onClick={onClose} />
+      <div className="fixed right-0 top-0 z-50 h-full w-full max-w-[560px] bg-card border-l border-border flex flex-col">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+          <div><h3 className="text-base font-semibold">Edit Referral Details</h3><p className="text-xs text-muted-foreground mt-0.5">Correct any extracted fields, then save — it returns to our team for review.</p></div>
+          <button className="text-muted-foreground hover:text-foreground" onClick={onClose} aria-label="Close"><X width={18} height={18} strokeWidth={1.75} /></button>
         </div>
-        <div className="rd-drawer-body">
+        <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-5">
           {flaggedSet && flaggedSet.size > 0 && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", marginBottom: 12, borderRadius: "var(--radius-md)", background: "color-mix(in srgb, var(--color-warning) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--color-warning) 35%, transparent)", color: "#92400E", fontSize: "var(--text-sm)", fontWeight: 600 }}>
-              <AlertTriangle size={15} style={{ flexShrink: 0 }} />
+            <div className="flex items-center gap-2 px-3 py-2.5 rounded-md bg-warning/12 border border-warning/35 text-[#92400E] text-sm font-semibold">
+              <AlertTriangle width={15} height={15} strokeWidth={1.75} className="shrink-0" />
               {flaggedSet.size} field{flaggedSet.size > 1 ? "s" : ""} flagged by our team — highlighted below.
             </div>
           )}
           {EDIT_GROUPS.map((g) => (
-            <div className="rd-edit-sect" key={g.section}>
-              <p className="rd-edit-sect-label"><span className="ei"><g.icon size={15} /></span>{g.label}</p>
-              <div className="rd-edit-grid">
+            <div key={g.section}>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 flex items-center gap-1.5"><g.icon width={15} height={15} strokeWidth={1.75} />{g.label}</p>
+              <div className="grid grid-cols-2 gap-3">
                 {g.fields.map((f: any) => {
                   const flag = !!(flaggedSet && flaggedSet.has(`${g.section}.${f.k}`));
                   const v = draft[g.section][f.k];
+                  const span = f.k === "notes" || f.k === "allergies" || f.k === "address";
                   return (
-                    <div key={f.k} className={`rd-efield${f.span || f.k === "notes" || f.k === "allergies" || f.k === "address" ? " span" : ""}`}>
-                      <label className="rd-elabel">{f.label}{flag && <span className="rd-flag" title="Missing — please add"><AlertTriangle size={12} /></span>}</label>
+                    <div key={f.k} className={span ? "col-span-2" : undefined}>
+                      <Label className="text-xs flex items-center gap-1">{f.label}{flag && <AlertTriangle width={12} height={12} strokeWidth={1.75} className="text-warning" />}</Label>
                       {f.bool ? (
-                        <select className="rw-select" value={v ? "Yes" : "No"} onChange={(e) => setField(g.section, f.k, e.target.value === "Yes")}>
-                          <option>No</option><option>Yes</option>
-                        </select>
+                        <Select value={v ? "Yes" : "No"} onValueChange={(val) => setField(g.section, f.k, val === "Yes")}>
+                          <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                          <SelectContent><SelectItem value="No">No</SelectItem><SelectItem value="Yes">Yes</SelectItem></SelectContent>
+                        </Select>
                       ) : f.date ? (
-                        <input className="rw-input" type="date" value={v || ""} onChange={(e) => setField(g.section, f.k, e.target.value)} />
+                        <Input type="date" className="mt-1" value={v || ""} onChange={(e) => setField(g.section, f.k, e.target.value)} />
+                      ) : span ? (
+                        <Textarea className="mt-1" rows={2} value={v || ""} onChange={(e) => setField(g.section, f.k, e.target.value)} />
                       ) : (
-                        <input className={`rw-input${flag ? " rd-input-flag" : ""}`} value={v || ""} onChange={(e) => setField(g.section, f.k, e.target.value)} />
+                        <Input className={`mt-1 ${flag ? "border-warning" : ""}`} value={v || ""} onChange={(e) => setField(g.section, f.k, e.target.value)} />
                       )}
                     </div>
                   );
@@ -888,9 +811,9 @@ function EditDrawer({ referralId, data, flaggedSet, onClose, onSaved }: any) {
             </div>
           ))}
         </div>
-        <div className="rd-drawer-foot">
-          <button className="rw-btn outline" onClick={onClose} disabled={saving}>Cancel</button>
-          <button className="rw-btn primary" onClick={save} disabled={saving}>{saving ? <span className="rw-spin"><Loader2 size={15} /></span> : <Save size={15} />}Save Details</button>
+        <div className="flex justify-end gap-2 px-5 py-4 border-t border-border">
+          <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button onClick={save} disabled={saving}>{saving ? <Loader2 width={15} height={15} className="animate-spin" /> : <Save width={15} height={15} strokeWidth={1.75} />}Save Details</Button>
         </div>
       </div>
     </>
@@ -901,11 +824,14 @@ function EditDrawer({ referralId, data, flaggedSet, onClose, onSaved }: any) {
 function UploadZone({ label, uploading, onUpload }: { label: string; uploading: boolean; onUpload: (f: File) => void }) {
   const ref = useRef<HTMLInputElement>(null);
   return (
-    <div className={`rd-zone${uploading ? " uploading" : ""}`} onClick={() => ref.current?.click()} style={uploading ? { opacity: 0.5, pointerEvents: "none" } : undefined}>
-      <input ref={ref} type="file" className="hidden" style={{ display: "none" }} accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif" onChange={(e) => { const f = e.target.files?.[0]; if (f) onUpload(f); e.target.value = ""; }} />
-      <span className="zi">{uploading ? <span className="rw-spin"><Loader2 size={22} /></span> : <Upload size={22} />}</span>
-      <div className="zt">{label}</div>
-      <div className="zs">Click to upload</div>
+    <div
+      className={`flex flex-col items-center gap-2 rounded-lg border-2 border-dashed border-border p-6 text-center cursor-pointer hover:border-primary/50 transition-colors ${uploading ? "opacity-50 pointer-events-none" : ""}`}
+      onClick={() => ref.current?.click()}
+    >
+      <input ref={ref} type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif" onChange={(e) => { const f = e.target.files?.[0]; if (f) onUpload(f); e.target.value = ""; }} />
+      <span className="text-muted-foreground">{uploading ? <Loader2 width={22} height={22} className="animate-spin" /> : <Upload width={22} height={22} strokeWidth={1.75} />}</span>
+      <div className="text-sm font-medium text-foreground">{label}</div>
+      <div className="text-xs text-muted-foreground">Click to upload</div>
     </div>
   );
 }
@@ -937,30 +863,33 @@ function ExpiredInsuranceBanner({ referralId, onUpdated }: { referralId: string;
     finally { setSaving(false); }
   };
   return (
-    <div style={{ marginTop: 14, borderRadius: "var(--radius-md)", border: "1px solid color-mix(in srgb, var(--color-warning) 38%, transparent)", background: "color-mix(in srgb, var(--color-warning) 8%, transparent)", padding: 13 }}>
-      <div style={{ display: "flex", gap: 9, alignItems: "flex-start" }}>
-        <AlertTriangle size={16} style={{ color: "#B45309", flexShrink: 0, marginTop: 1 }} />
-        <div><p style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "#92400E", margin: 0 }}>Insurance on file has expired</p><p style={{ fontSize: "var(--text-xs)", color: "#B45309", margin: "2px 0 0" }}>Upload a current card or enter the new plan details to continue.</p></div>
+    <div className="mt-3.5 rounded-md border border-warning/40 bg-warning/8 p-3.5">
+      <div className="flex gap-2 items-start">
+        <AlertTriangle width={16} height={16} strokeWidth={1.75} className="text-[#B45309] shrink-0 mt-0.5" />
+        <div>
+          <p className="text-sm font-semibold text-[#92400E]">Insurance on file has expired</p>
+          <p className="text-xs text-[#B45309] mt-0.5">Upload a current card or enter the new plan details to continue.</p>
+        </div>
       </div>
       {!mode && !uploading && (
-        <div style={{ display: "flex", gap: 9, marginTop: 12 }}>
-          <button className="rw-btn primary sm" onClick={() => fileRef.current?.click()}><Upload size={14} />Upload Card</button>
-          <button className="rw-btn outline sm" onClick={() => setMode("manual")}><Pencil size={14} />Enter Manually</button>
-          <input ref={fileRef} type="file" style={{ display: "none" }} accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif" onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = ""; }} />
+        <div className="flex gap-2 mt-3">
+          <Button size="sm" onClick={() => fileRef.current?.click()}><Upload width={14} height={14} strokeWidth={1.75} />Upload Card</Button>
+          <Button size="sm" variant="outline" onClick={() => setMode("manual")}><Pencil width={14} height={14} strokeWidth={1.75} />Enter Manually</Button>
+          <input ref={fileRef} type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif" onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = ""; }} />
         </div>
       )}
-      {uploading && <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "var(--text-sm)", color: "var(--text-muted)", marginTop: 10 }}><span className="rw-spin"><Loader2 size={14} /></span> Uploading and re-extracting...</div>}
+      {uploading && <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2.5"><Loader2 width={14} height={14} className="animate-spin" />Uploading and re-extracting...</div>}
       {mode === "manual" && (
-        <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 9 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9 }}>
+        <div className="mt-3 flex flex-col gap-2.5">
+          <div className="grid grid-cols-2 gap-2.5">
             <div><Label className="text-xs">Plan Name</Label><Input className="h-8 text-sm mt-1" value={form.primary_plan_name} onChange={(e) => setForm((f) => ({ ...f, primary_plan_name: e.target.value }))} /></div>
             <div><Label className="text-xs">Member ID</Label><Input className="h-8 text-sm mt-1" value={form.primary_member_id} onChange={(e) => setForm((f) => ({ ...f, primary_member_id: e.target.value }))} /></div>
             <div><Label className="text-xs">Group #</Label><Input className="h-8 text-sm mt-1" value={form.primary_group_number} onChange={(e) => setForm((f) => ({ ...f, primary_group_number: e.target.value }))} /></div>
             <div><Label className="text-xs">Policyholder</Label><Input className="h-8 text-sm mt-1" value={form.policyholder_name} onChange={(e) => setForm((f) => ({ ...f, policyholder_name: e.target.value }))} /></div>
           </div>
-          <div style={{ display: "flex", gap: 9 }}>
-            <button className="rw-btn primary sm" onClick={saveManual} disabled={saving}>{saving ? <span className="rw-spin"><Loader2 size={14} /></span> : <CheckCircle size={14} />}Save Insurance</button>
-            <button className="rw-btn outline sm" onClick={() => setMode(null)}>Cancel</button>
+          <div className="flex gap-2">
+            <Button size="sm" onClick={saveManual} disabled={saving}>{saving ? <Loader2 width={14} height={14} className="animate-spin" /> : <CheckCircle width={14} height={14} strokeWidth={1.75} />}Save Insurance</Button>
+            <Button size="sm" variant="outline" onClick={() => setMode(null)}>Cancel</Button>
           </div>
         </div>
       )}
@@ -968,10 +897,6 @@ function ExpiredInsuranceBanner({ referralId, onUpdated }: { referralId: string;
   );
 }
 
-/** "Pharmacy didn't receive this?" — clinic-side delivery-issue reporter.
- * One click files the details as a referral note (kept with the patient's
- * record) AND opens a tracked Delivery-issue case in Help & Support, alerting
- * the Dirxctional team urgently. Inline expand — no modal dependencies. */
 /* ── Action-needed panel: open tasks from the Dirxctional team ── */
 function ClinicTasksPanel({ tasks, referralId, onChanged }: { tasks: any[]; referralId: string; onChanged: () => Promise<void> }) {
   const [replies, setReplies] = useState<Record<string, string>>({});
@@ -1019,68 +944,80 @@ function ClinicTasksPanel({ tasks, referralId, onChanged }: { tasks: any[]; refe
     }
   };
 
+  const allSent = open.length === 0;
+
   return (
-    <div style={{
-      border: "1px solid hsl(var(--warning) / 0.5)", background: "hsl(var(--warning) / 0.08)",
-      borderRadius: "var(--radius)", padding: "16px 18px", marginBottom: 16,
-    }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-        <ClipboardList size={17} style={{ color: "hsl(var(--warning))" }} />
-        <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>Action needed from your office</h3>
+    <div className={`rounded-lg border p-4 mb-5 ${allSent ? "border-success/40 bg-success/6" : "border-warning/50 bg-warning/8"}`}>
+      <div className="flex items-center gap-2 mb-1">
+        {allSent ? <CheckCircle width={17} height={17} strokeWidth={1.75} className="text-success" /> : <ClipboardList width={17} height={17} strokeWidth={1.75} className="text-[#B45309]" />}
+        <h3 className="text-sm font-semibold text-foreground">Action needed from your office</h3>
       </div>
-      <p style={{ fontSize: 12.5, color: "hsl(var(--muted-foreground))", margin: "0 0 12px" }}>
+      <p className="text-xs text-muted-foreground mb-3">
         Nothing is wrong with this referral — your Dirxctional team just needs something extra to keep it moving.
       </p>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {open.map((t) => (
-          <div key={t.id} style={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "var(--radius)", padding: "12px 14px" }}>
-            {(t.attachments?.length ?? 0) > 0 && (
-              <div style={{ margin: "0 0 10px" }}>
-                <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 600, color: "hsl(var(--muted-foreground))", textTransform: "uppercase", letterSpacing: 0.3 }}>
-                  Attached for you:
-                </p>
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {t.attachments.map((a: any) => (
-                    <button key={a.id} type="button" onClick={() => viewAttachment(a.id)}
-                      style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", textAlign: "left", font: "inherit", fontSize: 13, padding: "8px 10px", borderRadius: "var(--radius)", border: "1px solid var(--color-teal-100)", background: "var(--color-teal-50)", color: "var(--color-teal-700)", cursor: "pointer" }}>
-                      <Paperclip size={14} style={{ flexShrink: 0 }} />
-                      <span style={{ flex: 1, overflowWrap: "anywhere", fontWeight: 600 }}>{a.filename}</span>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 600, flexShrink: 0 }}>
-                        <Download size={12} />View / Download
-                      </span>
-                    </button>
-                  ))}
+      <div className="flex flex-col gap-2.5">
+        {tasks.map((t) => {
+          const isOpen = t.status === "open";
+          const sent = !isOpen;
+          return (
+            <div key={t.id} className="bg-card border border-border rounded-md p-3.5">
+              {(t.attachments?.length ?? 0) > 0 && (
+                <div className="mb-2.5">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">Attached for you:</p>
+                  <div className="flex flex-col gap-1.5">
+                    {t.attachments.map((a: any) => (
+                      <button
+                        key={a.id}
+                        type="button"
+                        onClick={() => viewAttachment(a.id)}
+                        className="flex items-center gap-2 w-full text-left text-sm px-2.5 py-2 rounded-md border border-primary/20 bg-primary/5 text-primary"
+                      >
+                        <Paperclip width={14} height={14} strokeWidth={1.75} className="shrink-0" />
+                        <span className="flex-1 font-semibold break-words">{a.filename}</span>
+                        <span className="inline-flex items-center gap-1 text-[11.5px] font-semibold shrink-0"><Download width={12} height={12} strokeWidth={1.75} />View / Download</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
-            <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.55, overflowWrap: "anywhere" }}>{t.instructions}</p>
-            <p style={{ margin: "4px 0 10px", fontSize: 11.5, color: "hsl(var(--muted-foreground))" }}>
-              {t.created_by} · {formatDateShort(t.created_at)}
-              {(t.response_documents?.length ?? 0) > 0 && ` · ${t.response_documents.length} document${t.response_documents.length === 1 ? "" : "s"} uploaded`}
-            </p>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <input
-                placeholder="Type a reply…"
-                value={replies[t.id] || ""}
-                onChange={(e) => setReplies((r) => ({ ...r, [t.id]: e.target.value }))}
-                onKeyDown={(e) => { if (e.key === "Enter") sendReply(t.id); }}
-                style={{ flex: "1 1 220px", font: "inherit", fontSize: 13, padding: "7px 10px", borderRadius: "var(--radius)", border: "1px solid hsl(var(--border))", background: "hsl(var(--background))" }}
-              />
-              <button className="rw-btn primary sm" disabled={busy === t.id || !(replies[t.id] || "").trim()} onClick={() => sendReply(t.id)}>
-                {busy === t.id ? <Loader2 size={14} className="rw-spin" /> : <Send size={14} />}Reply
-              </button>
-              <button className="rw-btn outline sm" disabled={busy === t.id} onClick={() => fileRefs.current[t.id]?.click()}>
-                <Upload size={14} />{(t.attachments?.length ?? 0) > 0 ? "Upload the completed copy" : "Upload document"}
-              </button>
-              <input ref={(el) => { fileRefs.current[t.id] = el; }} type="file" accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif" style={{ display: "none" }}
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadForTask(t.id, f); }} />
+              )}
+              <p className="text-sm leading-relaxed break-words">{t.instructions}</p>
+              <p className="text-[11.5px] text-muted-foreground mt-1 mb-2.5">
+                Requested {formatDateShort(t.created_at)} by {t.created_by}
+              </p>
+
+              {sent ? (
+                <div className="rounded-md bg-success/8 border border-success/25 px-3 py-2 text-sm">
+                  {t.clinic_response && <p className="text-foreground mb-1">{t.clinic_response}</p>}
+                  <p className="flex items-center gap-1.5 text-xs font-semibold text-success"><CheckCircle width={13} height={13} strokeWidth={1.75} />Sent · waiting for your Dirxctional team</p>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  <Textarea
+                    rows={2}
+                    className="resize-none"
+                    placeholder="Reply…"
+                    value={replies[t.id] || ""}
+                    onChange={(e) => setReplies((r) => ({ ...r, [t.id]: e.target.value }))}
+                  />
+                  <div className="flex gap-2 flex-wrap">
+                    <Button size="sm" variant="outline" disabled={busy === t.id} onClick={() => fileRefs.current[t.id]?.click()}>
+                      <Upload width={14} height={14} strokeWidth={1.75} />{(t.attachments?.length ?? 0) > 0 ? "Upload the completed copy" : "Upload file"}
+                    </Button>
+                    <input ref={(el) => { fileRefs.current[t.id] = el; }} type="file" accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif" className="hidden"
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadForTask(t.id, f); }} />
+                    <Button size="sm" disabled={busy === t.id || !(replies[t.id] || "").trim()} onClick={() => sendReply(t.id)}>
+                      {busy === t.id ? <Loader2 width={14} height={14} className="animate-spin" /> : <Send width={14} height={14} strokeWidth={1.75} />}Send response
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
-      {done.length > 0 && (
-        <p style={{ margin: "10px 0 0", fontSize: 11.5, color: "hsl(var(--muted-foreground))" }}>
-          ✓ {done.length} earlier request{done.length === 1 ? "" : "s"} completed
+      {done.length > 0 && open.length > 0 && (
+        <p className="text-[11.5px] text-muted-foreground mt-2.5">
+          {done.length} earlier request{done.length === 1 ? "" : "s"} completed
         </p>
       )}
     </div>
@@ -1102,9 +1039,6 @@ function DeliveryIssueReporter({ referralId, onReported }: { referralId: string;
       const res = await clinicApi.reportDeliveryIssue(referralId, body);
       setOpen(false);
       setDetails("");
-      // NOTE: do NOT reload the page here — the parent's loading spinner would
-      // unmount this component and silently eat the confirmation card. The
-      // refresh happens when the user dismisses the confirmation.
       setOpenedCaseId(res.case_id);
     } catch (err: any) {
       toast({ title: "Couldn't send", description: err.message || "Please try again", variant: "destructive" });
@@ -1113,58 +1047,38 @@ function DeliveryIssueReporter({ referralId, onReported }: { referralId: string;
     }
   };
 
-  // Success confirmation — make the moment unmissable: an URGENT case exists,
-  // here's its number, and one click goes straight to it.
   if (openedCaseId) {
     return (
-      <div style={{ marginTop: 12, background: "var(--color-teal-50)", border: "1px solid var(--color-teal-100)", borderRadius: "var(--radius-md)", padding: "16px 18px", maxWidth: 560 }}>
-        <p style={{ fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-teal-700)", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
-          <CheckCircle size={18} /> Urgent case opened — #{openedCaseId.slice(0, 8)}
-        </p>
-        <p style={{ fontSize: "var(--text-sm)", color: "var(--text-body)", margin: "8px 0 0", lineHeight: 1.55 }}>
+      <div className="mt-3 bg-primary/5 border border-primary/15 rounded-md p-4 max-w-[560px]">
+        <p className="text-base font-bold text-primary flex items-center gap-2"><CheckCircle width={18} height={18} strokeWidth={1.75} />Urgent case opened — #{openedCaseId.slice(0, 8)}</p>
+        <p className="text-sm text-foreground mt-2 leading-relaxed">
           Our team has been <b>alerted immediately</b> — delivery issues are a top priority for us.
           Your message is attached to this referral for our team, and your case tracks it from
           here until it's resolved. We'll email you with every update.
         </p>
-        <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-          <button className="rw-btn primary sm" onClick={() => navigate(`/clinic/support?case=${openedCaseId}`)}>
-            View my case<ArrowRight size={14} />
-          </button>
-          <button className="rw-btn outline sm" onClick={() => { setOpenedCaseId(null); onReported(); }}>Stay on this referral</button>
+        <div className="flex gap-2 mt-3">
+          <Button size="sm" onClick={() => navigate(`/clinic/support?case=${openedCaseId}`)}>View my case<ArrowRight width={14} height={14} strokeWidth={1.75} /></Button>
+          <Button size="sm" variant="outline" onClick={() => { setOpenedCaseId(null); onReported(); }}>Stay on this referral</Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div style={{ marginTop: 12 }}>
+    <div className="mt-3">
       {!open ? (
-        <button className="rw-btn outline sm" onClick={() => setOpen(true)}>
-          <MessageSquareWarning size={14} />
-          Pharmacy didn't receive this?
-        </button>
+        <Button size="sm" variant="outline" onClick={() => setOpen(true)}>Pharmacy didn't receive this?</Button>
       ) : (
-        <div style={{ background: "color-mix(in srgb, var(--color-warning) 7%, transparent)", border: "1px solid color-mix(in srgb, var(--color-warning) 30%, transparent)", borderRadius: "var(--radius-md)", padding: "12px 14px", maxWidth: 560 }}>
-          <p style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--text-primary)", margin: "0 0 8px" }}>
-            Tell us what the pharmacy said
-          </p>
-          <textarea
-            className="rw-textarea"
-            rows={3}
-            placeholder='e.g. "Called the pharmacy at 2pm — they have no record of receiving this referral."'
-            value={details}
-            onChange={(e) => setDetails(e.target.value)}
-          />
-          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 8 }}>
-            <button className="rw-btn outline sm" onClick={() => { setOpen(false); setDetails(""); }} disabled={sending}>Cancel</button>
-            <button className="rw-btn primary sm" onClick={submit} disabled={!details.trim() || sending}>
-              {sending ? <span className="rw-spin" style={{ display: "inline-flex" }}><Loader2 size={14} /></span> : <Send size={14} />}
-              Report issue
-            </button>
+        <div className="bg-warning/7 border border-warning/30 rounded-md p-3.5 max-w-[560px]">
+          <p className="text-sm font-semibold text-foreground mb-2">Tell us what the pharmacy said</p>
+          <Textarea rows={3} placeholder='e.g. "Called the pharmacy at 2pm — they have no record of receiving this referral."' value={details} onChange={(e) => setDetails(e.target.value)} />
+          <div className="flex gap-2 justify-end mt-2">
+            <Button size="sm" variant="outline" onClick={() => { setOpen(false); setDetails(""); }} disabled={sending}>Cancel</Button>
+            <Button size="sm" onClick={submit} disabled={!details.trim() || sending}>
+              {sending ? <Loader2 width={14} height={14} className="animate-spin" /> : <Send width={14} height={14} strokeWidth={1.75} />}Report issue
+            </Button>
           </div>
-          <p style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", margin: "8px 0 0" }}>
-            This alerts our team immediately and opens a tracked request you can follow in Help &amp; Support.
-          </p>
+          <p className="text-xs text-muted-foreground mt-2">This alerts our team immediately and opens a tracked request you can follow in Help &amp; Support.</p>
         </div>
       )}
     </div>
