@@ -70,7 +70,10 @@ function formatDueAt(d: Date | null): string | undefined {
 }
 
 export function toQueueRow(row: any, next: NextAction): QueueRowData {
-  const isEnrollmentLed = false; // referral stage always leads the row (nextAction.ts comment); reserved for a future symmetric swap
+  // Enrollment leads the row when its verb won the "+1" swap, or when the
+  // referral is a bridge program whose only live work is the enrollment
+  // (flow-script §4). The chip then reads "Enrollment" in teal.
+  const isEnrollmentLed = !!next.track && (next.verb === next.track.verb || (!!row.is_bridge_program && next.stage === "review"));
   return {
     id: row.id,
     verb: next.verb ?? "",
@@ -80,7 +83,7 @@ export function toQueueRow(row: any, next: NextAction): QueueRowData {
     drug: row.drug || row.drug_requested || "—",
     bridge: !!row.is_bridge_program,
     clinic: row.clinic_name,
-    stage: stageLabelForQueue(next.stage),
+    stage: isEnrollmentLed ? "Enrollment" : stageLabelForQueue(next.stage),
     stageTone: isEnrollmentLed ? "teal" : undefined,
     signal: next.signals.join(" · "),
     extra: next.track
