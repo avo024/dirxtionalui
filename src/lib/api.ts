@@ -717,11 +717,11 @@ export const adminApi = {
     return response.blob();
   },
 
-  async submitPA(id: string, submittedDate: string): Promise<any> {
+  async submitPA(id: string, submittedDate: string, extra?: { ref_number?: string; notes?: string }): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/admin/referrals/${id}/pa/submit`, {
       method: 'POST',
       headers: await getHeaders(),
-      body: JSON.stringify({ submitted_date: submittedDate }),
+      body: JSON.stringify({ submitted_date: submittedDate, ...(extra?.ref_number ? { ref_number: extra.ref_number } : {}), ...(extra?.notes ? { notes: extra.notes } : {}) }),
     });
     return handleResponse(response);
   },

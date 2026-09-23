@@ -360,17 +360,12 @@ export default function AdminReferralWorkstation() {
     if (!id) return;
     setFiling(true);
     try {
-      await adminApi.submitPA(id, filedDate);
-      // The submit-PA endpoint only accepts a date (flow-script §3 assumed a
-      // CMM key/notes field that does not exist on the backend yet) — until
-      // that lands, the key/notes are preserved as an admin note so nothing
-      // typed here is lost. Flagged for Alex in the final report.
-      if (filedCmmKey.trim() || filedNotes.trim()) {
-        const parts = [];
-        if (filedCmmKey.trim()) parts.push(`CMM key/ref: ${filedCmmKey.trim()}`);
-        if (filedNotes.trim()) parts.push(filedNotes.trim());
-        await adminApi.addReferralNote(id, `PA filed on CoverMyMeds — ${parts.join(" · ")}`).catch(() => {});
-      }
+      // CMM key / notes are structured on pa_data by the backend branch
+      // (pa/submit accepts ref_number + notes since design/system-v2-backend).
+      await adminApi.submitPA(id, filedDate, {
+        ref_number: filedCmmKey.trim() || undefined,
+        notes: filedNotes.trim() || undefined,
+      });
       setFiledOpen(false);
       setFiledCmmKey("");
       setFiledNotes("");
