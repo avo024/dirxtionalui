@@ -673,7 +673,12 @@ export default function AdminReferralWorkstation() {
       case "View letter":
         return () => activeDocId && setSheetOpen(true);
       case "Start appeal":
-        return () => scrollTo(appealOutcomesRef);
+        // pa_denied renders no PAAppealCard (flow-script §3), so call the
+        // endpoint directly; the resolver flips the header to appeal_build.
+        return async () => {
+          try { await adminApi.startAppeal(id!); toast({ title: "Appeal started", description: "Build and fax the appeal packet." }); await reload(); }
+          catch (e: any) { toast({ title: "Could not start the appeal", description: e.message, variant: "destructive" }); }
+        };
       case "Start bridge enrollment":
         return () => scrollTo(enrollmentRef);
       case "Fax packet":
