@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { Loader2, AlertTriangle, ExternalLink } from "lucide-react";
+import { Loader2, AlertTriangle, ExternalLink, ChevronRight } from "lucide-react";
 import { adminApi } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { useAdminProfile } from "@/hooks/useAdminProfile";
@@ -14,12 +14,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 import { StageHeader } from "@/components/patterns/StageHeader";
 import { DocumentsSheet } from "@/components/patterns/DocumentsSheet";
 import { ActionBar } from "@/components/patterns/ActionBar";
 import { MessageThread } from "@/components/patterns/MessageThread";
 import { DefinitionList } from "@/components/patterns/DefinitionList";
+import { underlineTabsListClass, underlineTabsTriggerClass } from "@/components/patterns/underlineTabs";
 import { StageChip } from "@/components/StageChip";
 import { StatusBadge } from "@/components/StatusBadge";
 import { PAStatusBadge } from "@/components/PAStatusBadge";
@@ -32,7 +34,9 @@ import { PAAppealCard } from "@/components/PAAppealCard";
 import { AppealPacketCard } from "@/components/AppealPacketCard";
 import { EnrollmentCard } from "@/components/EnrollmentCard";
 import { ReferralTasksCard } from "@/components/ReferralTasksCard";
+import { ExtractionEditor } from "@/components/admin/ExtractionEditor";
 import { getDisplayAuthor } from "@/lib/noteAuthor";
+import { cn } from "@/lib/utils";
 
 import { resolveNextAction, stageLabelForQueue, type NextAction } from "@/lib/nextAction";
 import { toNextActionInput } from "@/lib/queueRows";
@@ -61,24 +65,71 @@ function relTime(d: string | null | undefined): string {
   return `${Math.round(hrs / 24)}d ago`;
 }
 
-/** Pick the newest of several {label, time} candidates for the header's "Last:" line. */
+/**
+ * The header's "Last:" line prefers a real, named event over the generic
+ * "Updated" timestamp — stage-priority order (most-advanced first), not
+ * simply whichever timestamp happens to be newest (phase 4b finding #6).
+ */
 function lastEventFor(referral: any): { label: string; time: string } | null {
-  const candidates: Array<{ label: string; iso?: string | null }> = [
-    { label: "Referral received", iso: referral.created_at },
-    { label: "PA submitted on CoverMyMeds", iso: referral.pa_submitted_at },
-    { label: "Appeal packet faxed", iso: referral.appeal_started_at },
-    { label: "Delivery reported", iso: referral.delivery_issue_at },
-    { label: "Updated", iso: referral.updated_at },
-  ];
-  let best: { label: string; iso: string } | null = null;
-  for (const c of candidates) {
-    if (!c.iso) continue;
-    if (!best || new Date(c.iso).getTime() >= new Date(best.iso).getTime()) {
-      best = { label: c.label, iso: c.iso };
-    }
+  if (referral.status === "rejected") {
+    return { label: "Rejected", time: relTime(referral.updated_at) };
   }
-  if (!best) return null;
-  return { label: best.label, time: relTime(best.iso) };
+  if (referral.status === "sent_to_pharmacy") {
+    const label = referral.pharmacy_name ? `Packet faxed to ${referral.pharmacy_name}` : "Packet faxed to pharmacy";
+    return { label, time: relTime(referral.updated_at) };
+  }
+  if (referral.appeal_started_at) {
+    return { label: "Appeal packet faxed", time: relTime(referral.appeal_started_at) };
+  }
+  if (referral.pa_submitted_at) {
+    return { label: "PA filed on CoverMyMeds", time: relTime(referral.pa_submitted_at) };
+  }
+  if (referral.created_at) {
+    return { label: "Referral received", time: relTime(referral.created_at) };
+  }
+  if (referral.updated_at) {
+    return { label: "Updated", time: relTime(referral.updated_at) };
+  }
+  return null;
+}
+
+/** Measures an element's rendered height, tracking resizes (used to pin the
+ *  docked documents sheet to `calc(100vh - header height)`). */
+function useElementHeight<T extends HTMLElement>(): [React.RefObject<T>, number] {
+  const ref = useRef<T>(null);
+  const [height, setHeight] = useState(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new ResizeObserver((entries) => {
+      const h = entries[0]?.contentRect.height;
+      if (typeof h === "number") setHeight(h);
+    });
+    observer.observe(el);
+    setHeight(el.getBoundingClientRect().height);
+    return () => observer.disconnect();
+  }, [ref.current]); // eslint-disable-line react-hooks/exhaustive-deps
+  return [ref, height];
+}
+
+/** ActionBar's rendered height (sticky bottom-0) — subtracted from the docked
+ *  documents sheet's height so it doesn't run under the fixed action row. */
+const ACTION_BAR_H = 64;
+
+/** One-line collapsed/expandable wrapper for a re-homed card (Enrollment,
+ *  appeal outcomes) that isn't this stage's primary card — flow-script
+ *  build-plan phase 4b finding #2. */
+function CollapsibleSection({ title, defaultOpen, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
+  const [open, setOpen] = useState(!!defaultOpen);
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <CollapsibleTrigger className="flex w-full items-center gap-1.5 rounded-md py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
+        <ChevronRight width={14} height={14} strokeWidth={1.75} className={cn("transition-transform", open && "rotate-90")} aria-hidden="true" />
+        {title}
+      </CollapsibleTrigger>
+      <CollapsibleContent className="pt-2">{children}</CollapsibleContent>
+    </Collapsible>
+  );
 }
 
 // ── page ───────────────────────────────────────────────────────────
@@ -153,6 +204,17 @@ export default function AdminReferralWorkstation() {
   const isWideEnough = useIsWideViewport(1200);
   const showDocked = isSplit && isWideEnough;
 
+  // Header block height (StageHeader + interrupt banner, if any) — the docked
+  // documents sheet is sticky below it at calc(100vh - headerH), so the PDF
+  // area gets a real, non-zero height instead of collapsing inside the
+  // flex chain (phase 4b finding #1).
+  const [headerRef, headerH] = useElementHeight<HTMLDivElement>();
+
+  // Enrollment track summary (program name), for the collapsed section's
+  // one-line header ("Enrollment · <program> · <state>") — fetched lazily,
+  // only while an enrollment track is actually live for this referral.
+  const [enrollmentSummary, setEnrollmentSummary] = useState<{ programName?: string; state?: string } | null>(null);
+
   // Default document per stage — best-effort match by doc_type/filename.
   useEffect(() => {
     if (!referral || documents.length === 0) {
@@ -180,6 +242,24 @@ export default function AdminReferralWorkstation() {
     // Split stages: sheet is already open (and pinned by default) per flow-script §8.
     if (isSplit) setSheetOpen(true);
   }, [isSplit, stageKey]);
+
+  useEffect(() => {
+    if (!id || !next?.track) {
+      setEnrollmentSummary(null);
+      return;
+    }
+    adminApi
+      .getEnrollment(id)
+      .then((res) => {
+        const program = res.programs?.find((p) => p.id === res.draft?.program_id);
+        setEnrollmentSummary({
+          programName: program?.program_name,
+          state: referral?.extracted_data?.patient?.state,
+        });
+      })
+      .catch(() => setEnrollmentSummary(null));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, next?.track?.stage]);
 
   // ── Handoff note ─────────────────────────────────────────────────
   const [handoffOpen, setHandoffOpen] = useState(false);
@@ -505,6 +585,9 @@ export default function AdminReferralWorkstation() {
   const isEnrollmentLed = !!next.track && next.verb === next.track.verb;
   const stageLabel = isEnrollmentLed ? "Enrollment" : stageLabelForQueue(next.stage);
   const stageTone = isEnrollmentLed ? ("teal" as const) : undefined;
+  const enrollmentHeaderLabel = ["Enrollment", enrollmentSummary?.programName, enrollmentSummary?.state]
+    .filter(Boolean)
+    .join(" · ");
 
   // ── Interrupt banner ──────────────────────────────────────────────
   let interruptExplain = "";
@@ -636,6 +719,13 @@ export default function AdminReferralWorkstation() {
       copy: opts?.copy,
       confidence: opts?.confPath ? conf[opts.confPath] : undefined,
     }));
+  }
+
+  /** Drops rows with no value — used on the Delivery summary card so a row
+   *  like "Delivery issue" only appears when there's actually one to show
+   *  (finding #6), instead of DefinitionList's usual "—" placeholder. */
+  function definedRows<T extends { value?: any }>(rows: T[]): T[] {
+    return rows.filter((r) => r.value !== undefined && r.value !== null && r.value !== "");
   }
 
   function renderStageCards() {
@@ -814,9 +904,13 @@ export default function AdminReferralWorkstation() {
           <div key="appeal_packet" ref={appealPacketRef}>
             <AppealPacketCard referralId={id!} paStatus={referral.pa_status} appealStartedAt={referral.appeal_started_at} onChanged={reload} />
           </div>,
-          <div key="appeal_outcomes" ref={appealOutcomesRef}>
-            <PAAppealCard referral={referral} referralId={id!} onChanged={reload} />
-          </div>,
+          // Collapsed while building — the outcome buttons matter once the
+          // packet is sent, not while it's still being assembled (finding #2b).
+          <CollapsibleSection key="appeal_outcomes" title="Appeal outcomes" defaultOpen={false}>
+            <div ref={appealOutcomesRef}>
+              <PAAppealCard referral={referral} referralId={id!} onChanged={reload} />
+            </div>
+          </CollapsibleSection>,
         );
         break;
       case "appeal_sent":
@@ -838,9 +932,11 @@ export default function AdminReferralWorkstation() {
         );
         if (key === "appeal_final") {
           cards.push(
-            <div key="enrollment" ref={enrollmentRef}>
-              <EnrollmentCard referralId={id!} paStatus={referral.pa_status} status={referral.status} onChanged={reload} />
-            </div>,
+            <CollapsibleSection key="enrollment" title={enrollmentHeaderLabel} defaultOpen={isEnrollmentLed}>
+              <div ref={enrollmentRef}>
+                <EnrollmentCard referralId={id!} paStatus={referral.pa_status} status={referral.status} onChanged={reload} />
+              </div>
+            </CollapsibleSection>,
           );
         }
         break;
@@ -849,11 +945,11 @@ export default function AdminReferralWorkstation() {
           <DefinitionList
             key="delivery"
             title="Delivery summary"
-            rows={[
+            rows={definedRows([
               { label: "Pharmacy", value: referral.pharmacy_name },
               { label: "Packet contents", value: documents.map((d) => d.original_filename).join(", ") },
               { label: "Delivery issue", value: referral.delivery_issue_at ? `Reported ${formatDateShort(referral.delivery_issue_at)}` : undefined },
-            ]}
+            ])}
           />,
         );
         if (referral.pa_status === "approved") {
@@ -877,12 +973,12 @@ export default function AdminReferralWorkstation() {
           <DefinitionList
             key="delivery"
             title="Delivery summary"
-            rows={[
+            rows={definedRows([
               { label: "Pharmacy", value: referral.pharmacy_name },
               { label: "Packet contents", value: documents.map((d) => d.original_filename).join(", ") },
               { label: "Sent", value: referral.updated_at && formatDateShort(referral.updated_at) },
               { label: "Delivery issue", value: referral.delivery_issue_at ? `Reported ${formatDateShort(referral.delivery_issue_at)}` : undefined },
-            ]}
+            ])}
           />,
         );
         if (referral.pa_status === "approved") {
@@ -919,15 +1015,19 @@ export default function AdminReferralWorkstation() {
       case "closed":
         cards.push(
           <DefinitionList key="status_strip" title="Status" rows={[{ label: "Status", value: <StatusBadge status="closed" variant="outline" context="admin" /> }]} />,
-          <div key="enrollment" ref={enrollmentRef}>
-            <EnrollmentCard referralId={id!} paStatus={referral.pa_status} status={referral.status} onChanged={reload} />
-          </div>,
+          <CollapsibleSection key="enrollment" title={enrollmentHeaderLabel} defaultOpen={isEnrollmentLed}>
+            <div ref={enrollmentRef}>
+              <EnrollmentCard referralId={id!} paStatus={referral.pa_status} status={referral.status} onChanged={reload} />
+            </div>
+          </CollapsibleSection>,
         );
         break;
     }
 
     // Enrollment track cards render alongside the referral stage's own cards
-    // whenever the track is live (flow-script §4) and isn't already shown above.
+    // whenever the track is live (flow-script §4) and isn't already shown
+    // above. Collapsed unless the enrollment track is what's actually leading
+    // this row (finding #2a) — only the stage's own listed cards stay open.
     if (
       next.track &&
       next.track.stage !== "enr_closed" &&
@@ -941,17 +1041,21 @@ export default function AdminReferralWorkstation() {
         );
       }
       cards.push(
-        <div key="enrollment-track" ref={enrollmentRef}>
-          <EnrollmentCard referralId={id!} paStatus={referral.pa_status} status={referral.status} onChanged={reload} />
-        </div>,
+        <CollapsibleSection key="enrollment-track" title={enrollmentHeaderLabel} defaultOpen={isEnrollmentLed}>
+          <div ref={enrollmentRef}>
+            <EnrollmentCard referralId={id!} paStatus={referral.pa_status} status={referral.status} onChanged={reload} />
+          </div>
+        </CollapsibleSection>,
       );
     }
 
-    // Always offer Tasks on stages that don't already include it, so open
-    // requests are visible without leaving the workstation.
-    if (key !== "rejected" && !cards.some((c) => (c.key || "").toString().includes("tasks"))) {
+    // ClinicTasks only when the stage lists it (rejected, enr_awaiting — both
+    // handled above) or the referral has at least one open task; otherwise
+    // it's absent — the ActionBar's "Request from clinic" covers creating one
+    // (finding #2c).
+    if (key !== "rejected" && !cards.some((c) => (c.key || "").toString().includes("tasks")) && openTaskCount > 0) {
       cards.push(
-        <div key="tasks-always">
+        <div key="tasks-open">
           <ReferralTasksCard referralId={id!} adminFirstName={adminProfile?.first_name} onShared={reload} />
         </div>,
       );
@@ -960,38 +1064,6 @@ export default function AdminReferralWorkstation() {
     return cards;
   }
 
-  // ── All Fields tab (read-only in 4a) ──────────────────────────────
-  const allFieldsCards = [
-    <DefinitionList key="af-patient" title="Patient" rows={fieldRows([
-      ["Name", [patient.first_name, patient.last_name].filter(Boolean).join(" ")],
-      ["DOB", patient.dob && formatDateShort(patient.dob)],
-      ["Phone", patient.phone_primary || patient.phone],
-      ["Address", [patient.address, patient.city, patient.state, patient.zip].filter(Boolean).join(", ")],
-    ])} />,
-    <DefinitionList key="af-insurance" title="Insurance" rows={fieldRows([
-      ["Plan", insurance.primary_plan_name || insurance.primary_insurance_name],
-      ["Member ID", insurance.primary_member_id, { mono: true }],
-      ["Group #", insurance.primary_group_number, { mono: true }],
-      ["RxBIN / RxPCN", [insurance.primary_rxbin, insurance.primary_rxpcn].filter(Boolean).join(" / "), { mono: true }],
-    ])} />,
-    <DefinitionList key="af-medication" title="Medication" rows={fieldRows([
-      ["Drug", clinical.brand_name || clinical.drug_requested],
-      ["Dose", clinical.dose_amount],
-      ["Frequency", clinical.dose_frequency || clinical.frequency],
-      ["Quantity", clinical.quantity],
-    ])} />,
-    <DefinitionList key="af-clinical" title="Clinical" rows={fieldRows([
-      ["ICD-10", clinical.diagnosis_icd10_primary || clinical.diagnosis_icd10, { mono: true }],
-      ["Description", clinical.diagnosis_description],
-      ["Clinical justification", clinical.clinical_justification],
-    ])} />,
-    <DefinitionList key="af-prescriber" title="Prescriber" rows={fieldRows([
-      ["Name", provider.name],
-      ["NPI", provider.npi, { mono: true }],
-      ["Phone", provider.phone],
-      ["Fax", provider.fax],
-    ])} />,
-  ];
 
   // ── Notes thread ───────────────────────────────────────────────────
   const threadMessages = [
@@ -1007,30 +1079,32 @@ export default function AdminReferralWorkstation() {
 
   return (
     <div className="-mx-6 -my-8 lg:-mx-8 flex flex-col min-h-[calc(100vh-0px)]">
-      <StageHeader
-        patient={referral.patient_name}
-        stage={stageLabel}
-        stageTone={stageTone}
-        question={next.question}
-        lastEvent={last?.label}
-        lastTime={last?.time}
-        handoff={referral.admin_handoff_note}
-        onEditHandoff={openHandoffEditor}
-        docCount={documents.length}
-        onDocuments={() => setSheetOpen(true)}
-        moreItems={moreItems}
-        badge={next.interrupt ? <StageChip label={next.interrupt.verb} tone={undefined} variant="soft" /> : undefined}
-      />
+      <div ref={headerRef}>
+        <StageHeader
+          patient={referral.patient_name}
+          stage={stageLabel}
+          stageTone={stageTone}
+          question={next.question}
+          lastEvent={last?.label}
+          lastTime={last?.time}
+          handoff={referral.admin_handoff_note}
+          onEditHandoff={openHandoffEditor}
+          docCount={documents.length}
+          onDocuments={() => setSheetOpen(true)}
+          moreItems={moreItems}
+          badge={next.interrupt ? <StageChip label={next.interrupt.verb} tone="warning" variant="outline" /> : undefined}
+        />
 
-      {next.interrupt && (
-        <div className="px-[26px] pt-3">
-          <Alert variant="destructive" className="border-warning/40 bg-warning/10 text-foreground">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>{next.interrupt.verb}</AlertTitle>
-            <AlertDescription>{interruptExplain}</AlertDescription>
-          </Alert>
-        </div>
-      )}
+        {next.interrupt && (
+          <div className="px-[26px] pt-3">
+            <Alert variant="destructive" className="border-warning/40 bg-warning/10 text-foreground">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>{next.interrupt.verb}</AlertTitle>
+              <AlertDescription>{interruptExplain}</AlertDescription>
+            </Alert>
+          </div>
+        )}
+      </div>
 
       <div className="flex flex-1 min-h-0">
         {showDocked && (
@@ -1041,35 +1115,33 @@ export default function AdminReferralWorkstation() {
             files={documents.map((d) => d.original_filename)}
             active={documents.findIndex((d) => d.id === activeDocId)}
             onSelect={(i) => setActiveDocId(documents[i]?.id)}
+            style={
+              headerH > 0
+                ? { position: "sticky", top: headerH, height: `calc(100vh - ${headerH + ACTION_BAR_H}px)`, alignSelf: "flex-start" }
+                : undefined
+            }
           >
-            <DocumentViewer documents={documents} initialDocId={activeDocId} />
+            <DocumentViewer documents={documents} initialDocId={activeDocId} hideTabs />
           </DocumentsSheet>
         )}
 
         <div className="flex-1 min-w-0 overflow-y-auto p-6 pb-28">
           <Tabs defaultValue={notesDeepLink ? "notes" : "stage"}>
-            <TabsList className="mb-4">
-              <TabsTrigger value="stage">{stageLabel}</TabsTrigger>
-              <TabsTrigger value="all-fields">All Fields</TabsTrigger>
-              <TabsTrigger value="notes">Notes ({notes.length})</TabsTrigger>
+            <TabsList className={underlineTabsListClass}>
+              <TabsTrigger value="stage" className={underlineTabsTriggerClass}>{stageLabel}</TabsTrigger>
+              <TabsTrigger value="all-fields" className={underlineTabsTriggerClass}>All Fields</TabsTrigger>
+              <TabsTrigger value="notes" className={underlineTabsTriggerClass}>Notes ({notes.length})</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="stage" className="space-y-3">
+            <TabsContent value="stage" className="space-y-3 pt-4">
               {renderStageCards()}
             </TabsContent>
 
-            <TabsContent value="all-fields" className="space-y-3">
-              <p className="text-xs text-muted-foreground italic">
-                Read-only in this view. To edit extracted fields, use the{" "}
-                <button type="button" className="underline" onClick={() => navigate(`/admin/referrals/${id}/legacy`)}>
-                  legacy page
-                </button>
-                .
-              </p>
-              {allFieldsCards}
+            <TabsContent value="all-fields" className="space-y-3 pt-4">
+              <ExtractionEditor referral={referral} onSaved={reload} />
             </TabsContent>
 
-            <TabsContent value="notes">
+            <TabsContent value="notes" className="pt-4">
               <MessageThread
                 messages={threadMessages}
                 value={noteDraft}
@@ -1091,7 +1163,7 @@ export default function AdminReferralWorkstation() {
           active={documents.findIndex((d) => d.id === activeDocId)}
           onSelect={(i) => setActiveDocId(documents[i]?.id)}
         >
-          <DocumentViewer documents={documents} initialDocId={activeDocId} />
+          <DocumentViewer documents={documents} initialDocId={activeDocId} hideTabs />
         </DocumentsSheet>
       )}
 

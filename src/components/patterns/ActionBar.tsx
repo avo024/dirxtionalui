@@ -83,7 +83,7 @@ export function ActionBar({ status, tone, icon, request, secondary, primary, mor
         )}
 
         {request && (
-          <Button variant="outline" size="sm" onClick={request.onClick}>
+          <Button variant="outline" onClick={request.onClick}>
             <ClipboardList width={16} height={16} strokeWidth={1.75} aria-hidden="true" />
             Request from clinic
             {typeof request.openCount === "number" && request.openCount > 0 ? ` · ${request.openCount} open` : ""}
@@ -91,7 +91,7 @@ export function ActionBar({ status, tone, icon, request, secondary, primary, mor
         )}
 
         {secondary && (
-          <Button variant="outline" size="sm" onClick={secondary.onClick} disabled={secondary.disabled}>
+          <Button variant="outline" onClick={secondary.onClick} disabled={secondary.disabled}>
             {secondary.icon}
             {secondary.label}
           </Button>
@@ -99,7 +99,6 @@ export function ActionBar({ status, tone, icon, request, secondary, primary, mor
 
         {primary && (
           <Button
-            size="sm"
             variant={primary.variant === "success" ? undefined : "default"}
             className={primary.variant === "success" ? "bg-success text-success-foreground hover:bg-success/90" : undefined}
             onClick={primary.onClick}
@@ -111,7 +110,7 @@ export function ActionBar({ status, tone, icon, request, secondary, primary, mor
         )}
 
         {next && (
-          <Button variant="outline" size="sm" onClick={next.onClick}>
+          <Button variant="outline" onClick={next.onClick}>
             {next.label ?? "Next in queue"}
             <ArrowRight width={16} height={16} strokeWidth={1.75} aria-hidden="true" />
           </Button>

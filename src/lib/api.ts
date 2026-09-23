@@ -570,6 +570,14 @@ export interface AppealPacketMarkSubmittedResponse {
   submitted_at: string;
 }
 
+// ── PA approval letter (phase 4b: moved off the retired PA-card component) ──
+export interface PALetterInfo {
+  has_letter: boolean;
+  drug_requires_pa: boolean;
+  is_fallback: boolean;
+  letter: { id: string; filename: string; uploaded_at: string; from_referral_id: string } | null;
+}
+
 // ── Manufacturer assistance enrollment (denied-referral bridge programs) ──
 export interface EnrollmentFormFile {
   file: string;
@@ -1152,12 +1160,7 @@ export const adminApi = {
     return handleResponse(response);
   },
 
-  async getPALetterInfo(referralId: string): Promise<{
-    has_letter: boolean;
-    drug_requires_pa: boolean;
-    is_fallback: boolean;
-    letter: { id: string; filename: string; uploaded_at: string; from_referral_id: string } | null;
-  }> {
+  async getPALetterInfo(referralId: string): Promise<PALetterInfo> {
     const response = await fetch(`${API_BASE_URL}/admin/referrals/${referralId}/pa/letter`, {
       headers: await getHeaders(),
     });

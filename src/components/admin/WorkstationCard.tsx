@@ -30,7 +30,7 @@ export function WorkstationCard({
   onToggle: () => void;
   children: ReactNode;
   id?: string;
-  bare?: boolean;            // child brings its own card chrome (e.g. PAManagementCard)
+  bare?: boolean;            // child brings its own card chrome
 }) {
   return (
     <div className={`ws-card ws-${tone} ${open ? "ws-open" : ""}`} id={id}>

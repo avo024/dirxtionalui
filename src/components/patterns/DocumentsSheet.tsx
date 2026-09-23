@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { Download, File as FileIcon, Pin, X, ZoomIn } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -17,6 +17,10 @@ interface DocumentsSheetProps {
   page?: number;
   pages?: number;
   className?: string;
+  /** Applied to the outer docked `<aside>` (pinned) or floating `SheetContent`
+   *  — used to give the docked sheet an explicit sticky height tied to the
+   *  page's header height (flow-script §8 / phase 4b finding #1). */
+  style?: CSSProperties;
 }
 
 /**
@@ -37,9 +41,10 @@ export function DocumentsSheet({
   page,
   pages,
   className,
+  style,
 }: DocumentsSheetProps) {
   const body = (
-    <div className={cn("flex h-full flex-col", className)}>
+    <div className={cn("flex h-full min-h-0 flex-col", className)}>
       <div className="flex items-center gap-2 border-b border-border px-4 py-3">
         <h2 className="text-sm font-semibold text-foreground">Documents ({files.length})</h2>
         <div className="ml-auto flex items-center gap-1">
@@ -88,7 +93,7 @@ export function DocumentsSheet({
         </div>
       )}
 
-      <div className="flex-1 overflow-auto bg-[#EEEDEB] p-5">
+      <div className="flex-1 min-h-0 overflow-auto bg-[#EEEDEB] p-5">
         {children ?? (
           <div className="flex h-full min-h-[240px] items-center justify-center rounded-md border border-dashed border-stone-300 bg-white text-muted-foreground">
             <div className="flex flex-col items-center gap-2 text-sm">
@@ -117,12 +122,23 @@ export function DocumentsSheet({
 
   if (pinned) {
     if (!open) return null;
-    return <aside className="w-[480px] shrink-0 h-full border-r border-border bg-card">{body}</aside>;
+    return (
+      <aside
+        className="w-[480px] shrink-0 h-full min-h-0 border-r border-border bg-card overflow-hidden"
+        style={style}
+      >
+        {body}
+      </aside>
+    );
   }
 
   return (
     <Sheet open={open} onOpenChange={(next) => !next && onClose?.()}>
-      <SheetContent side="right" className="w-[480px] sm:max-w-[480px] p-0 [&>button]:hidden">
+      <SheetContent
+        side="right"
+        className="w-[480px] sm:max-w-[480px] p-0 [&>button]:hidden flex flex-col"
+        style={{ height: "100vh", ...style }}
+      >
         {body}
       </SheetContent>
     </Sheet>

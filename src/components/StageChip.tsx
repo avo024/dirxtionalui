@@ -4,8 +4,9 @@ interface StageChipProps {
   label: string;
   /** Visual weight, same three levels as StatusBadge. */
   variant?: "text" | "outline" | "soft";
-  /** Neutral stone by default; "teal" flags the enrollment track. */
-  tone?: "teal";
+  /** Neutral stone by default; "teal" flags the enrollment track, "warning"
+   *  flags an active interrupt (flow-script §5). */
+  tone?: "teal" | "warning";
   size?: "sm" | "md";
   className?: string;
 }
@@ -16,8 +17,8 @@ interface StageChipProps {
  * currently sits, e.g. "PA submitted", "Review", "Enrollment").
  */
 export function StageChip({ label, variant = "text", tone, size = "sm", className }: StageChipProps) {
-  const dotClass = tone === "teal" ? "bg-teal-500" : "bg-stone-400";
-  const textClass = tone === "teal" ? "text-teal-700" : "text-muted-foreground";
+  const dotClass = tone === "teal" ? "bg-teal-500" : tone === "warning" ? "bg-warning" : "bg-stone-400";
+  const textClass = tone === "teal" ? "text-teal-700" : tone === "warning" ? "text-[#B45309]" : "text-muted-foreground";
 
   const sizeClasses = {
     sm: "text-xs gap-1.5",
@@ -50,7 +51,8 @@ export function StageChip({ label, variant = "text", tone, size = "sm", classNam
     return (
       <span
         className={cn(
-          "inline-flex items-center rounded-full border border-border bg-transparent font-medium text-foreground",
+          "inline-flex items-center rounded-full border bg-transparent font-medium",
+          tone === "warning" ? "border-warning/40 text-[#B45309]" : "border-border text-foreground",
           pillSizeClasses[size],
           className,
         )}

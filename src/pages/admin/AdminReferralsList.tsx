@@ -8,6 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { underlineTabsListClass, underlineTabsTriggerClass } from "@/components/patterns/underlineTabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueueList } from "@/components/patterns/QueueList";
 import { QueueRow } from "@/components/patterns/QueueRow";
@@ -488,25 +489,16 @@ export default function AdminReferralsList() {
       </div>
 
       <Tabs value={tab} onValueChange={handleTabChange}>
-        <TabsList className="h-auto bg-transparent p-0 gap-6 rounded-none justify-start border-b border-border w-full">
-          <TabsTrigger
-            value="us"
-            className="rounded-none border-b-2 border-transparent bg-transparent px-1 pb-2.5 pt-0 shadow-none data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-primary data-[state=active]:text-foreground text-muted-foreground"
-          >
+        <TabsList className={underlineTabsListClass}>
+          <TabsTrigger value="us" className={underlineTabsTriggerClass}>
             Waiting on us
             <CountBadge n={usRows.length} />
           </TabsTrigger>
-          <TabsTrigger
-            value="others"
-            className="rounded-none border-b-2 border-transparent bg-transparent px-1 pb-2.5 pt-0 shadow-none data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-primary data-[state=active]:text-foreground text-muted-foreground"
-          >
+          <TabsTrigger value="others" className={underlineTabsTriggerClass}>
             Waiting on others
             <CountBadge n={othersRows.length} />
           </TabsTrigger>
-          <TabsTrigger
-            value="all"
-            className="rounded-none border-b-2 border-transparent bg-transparent px-1 pb-2.5 pt-0 shadow-none data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-primary data-[state=active]:text-foreground text-muted-foreground"
-          >
+          <TabsTrigger value="all" className={underlineTabsTriggerClass}>
             All
             <CountBadge n={filteredAllRows.length} />
           </TabsTrigger>

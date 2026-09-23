@@ -8,7 +8,7 @@ import { adminApi } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
-import type { PALetterInfo } from "@/components/PAManagementCard";
+import type { PALetterInfo } from "@/lib/api";
 
 interface DeliveryConfirmModalProps {
   open: boolean;
