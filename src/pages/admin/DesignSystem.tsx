@@ -26,6 +26,8 @@ import { DocumentsSheet } from "@/components/patterns/DocumentsSheet";
 import { ActionBar } from "@/components/patterns/ActionBar";
 import { MessageThread } from "@/components/patterns/MessageThread";
 
+import { resolveNextAction, type NextActionInput } from "@/lib/nextAction";
+
 /** All sample data below is fake — no real patients, clinics, or PHI. */
 
 function Section({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
@@ -576,6 +578,100 @@ export default function DesignSystem() {
           </div>
         </div>
       </Section>
+
+      {/* ── Resolver (next-action) ──────────────────────────────────── */}
+      <Section
+        title="Resolver"
+        description="src/lib/nextAction.ts — one fixture per major stage, eyeballed here rather than wired into a page yet (UI v2 Phase 2)."
+      >
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs border-collapse">
+            <thead>
+              <tr className="text-left text-muted-foreground border-b border-border">
+                <th className="py-2 pr-4">Fixture</th>
+                <th className="py-2 pr-4">Stage</th>
+                <th className="py-2 pr-4">Verb</th>
+                <th className="py-2 pr-4">Waiting on</th>
+                <th className="py-2 pr-4">Due</th>
+                <th className="py-2 pr-4">Layout</th>
+                <th className="py-2 pr-4">Primary / secondary</th>
+                <th className="py-2 pr-4">Interrupt</th>
+                <th className="py-2 pr-4">Track (+1)</th>
+                <th className="py-2 pr-4">Tab</th>
+                <th className="py-2">Signals</th>
+              </tr>
+            </thead>
+            <tbody>
+              {RESOLVER_FIXTURES.map(({ name, input }) => {
+                const next = resolveNextAction(input);
+                return (
+                  <tr key={name} className="border-b border-border/60 align-top">
+                    <td className="py-2 pr-4 font-medium text-foreground whitespace-nowrap">{name}</td>
+                    <td className="py-2 pr-4"><StageChip label={next.label} /></td>
+                    <td className="py-2 pr-4">{next.verb ?? "—"}</td>
+                    <td className="py-2 pr-4 capitalize">{next.waitingOn ?? "—"}</td>
+                    <td className="py-2 pr-4 whitespace-nowrap">
+                      {next.dueAt ? next.dueAt.toLocaleString() : "—"}
+                      {next.overdue && <span className="ml-1 text-destructive font-semibold">OVERDUE</span>}
+                    </td>
+                    <td className="py-2 pr-4">{next.layout}</td>
+                    <td className="py-2 pr-4">{next.primary ?? "—"} / {next.secondary ?? "—"}</td>
+                    <td className="py-2 pr-4">{next.interrupt ? `${next.interrupt.key}: ${next.interrupt.verb}` : "—"}</td>
+                    <td className="py-2 pr-4">{next.track ? `${next.track.stage}: ${next.track.verb}` : "—"}</td>
+                    <td className="py-2 pr-4">{next.tab}</td>
+                    <td className="py-2 text-muted-foreground">{next.signals.length ? next.signals.join(" · ") : "—"}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </Section>
     </div>
   );
 }
+
+/** Fake fixtures only — no real patients, clinics, or PHI. One per major stage. */
+const RESOLVER_FIXTURES: { name: string; input: NextActionInput }[] = [
+  {
+    name: "Processing",
+    input: { status: "processing", updated_at: new Date(Date.now() - 5 * 60_000).toISOString() },
+  },
+  {
+    name: "Review (PA required)",
+    input: { status: "ready_for_review", pa_required: true, created_at: new Date(Date.now() - 26 * 3600_000).toISOString() },
+  },
+  {
+    name: "PA submitted (overdue)",
+    input: {
+      status: "ready_for_review", pa_status: "submitted",
+      pa_submitted_at: new Date(Date.now() - 80 * 3600_000).toISOString(),
+    },
+  },
+  {
+    name: "PA denied + enrollment draft (+1)",
+    input: {
+      status: "ready_for_review", pa_status: "denied",
+      enrollment: { status: "draft", hasForm: true },
+    },
+  },
+  {
+    name: "Appeal packet sent",
+    input: {
+      status: "ready_for_review", pa_status: "appeal",
+      appeal_started_at: new Date(Date.now() - 20 * 3600_000).toISOString(),
+    },
+  },
+  {
+    name: "Ready to send",
+    input: { status: "approved_to_send" },
+  },
+  {
+    name: "Sent — delivery issue",
+    input: { status: "sent_to_pharmacy", delivery_issue_at: new Date(Date.now() - 3 * 3600_000).toISOString() },
+  },
+  {
+    name: "Closed",
+    input: { status: "closed" },
+  },
+];
