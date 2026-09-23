@@ -20,7 +20,8 @@ export default defineConfig(({ mode }) => ({
     //   VITE_API_URL=/api npm run dev -- --host 0.0.0.0 --port 8080
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        // DEV_API_TARGET lets a second Flask (e.g. a feature branch on :5001) be proxied instead of prod's :5000.
+        target: process.env.DEV_API_TARGET || 'http://localhost:5000',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
         // Flask is behind Talisman (force_https=True). In production, nginx
