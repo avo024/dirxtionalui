@@ -7,6 +7,10 @@ interface DocumentsSheetProps {
   open: boolean;
   /** Docked into the split layout (inline, no overlay) vs a floating overlay sheet. */
   pinned?: boolean;
+  /** Pinned only: fill the width/height of its container (a resizable panel)
+   *  instead of the fixed 480px docked width. The floating sheet always
+   *  keeps 480px regardless of this prop. */
+  fill?: boolean;
   onPinnedChange?: (pinned: boolean) => void;
   onClose?: () => void;
   files: string[];
@@ -24,14 +28,17 @@ interface DocumentsSheetProps {
 }
 
 /**
- * Document viewer. Pinned = docked inline at 480px in a split layout
- * (caller places it beside the cards, no shadow/overlay). Unpinned = a
- * floating shadcn Sheet on the right, same 480px width and internals.
- * The pin toggle is meant to persist per-stage (localStorage, no PHI).
+ * Document viewer. Pinned = docked inline in a split layout (caller places
+ * it beside the cards, no shadow/overlay) — either a fixed 480px aside, or
+ * with `fill` set, stretches to whatever width its container (a resizable
+ * panel) gives it. Unpinned = a floating shadcn Sheet on the right, fixed
+ * 480px width and the same internals. The pin toggle is meant to persist
+ * per-stage (localStorage, no PHI).
  */
 export function DocumentsSheet({
   open,
   pinned,
+  fill,
   onPinnedChange,
   onClose,
   files,
@@ -124,7 +131,10 @@ export function DocumentsSheet({
     if (!open) return null;
     return (
       <aside
-        className="w-[480px] shrink-0 h-full min-h-0 border-r border-border bg-card overflow-hidden"
+        className={cn(
+          "h-full min-h-0 border-r border-border bg-card overflow-hidden",
+          fill ? "w-full" : "w-[480px] shrink-0",
+        )}
         style={style}
       >
         {body}

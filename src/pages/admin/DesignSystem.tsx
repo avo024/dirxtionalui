@@ -24,6 +24,7 @@ import { QueueRow } from "@/components/patterns/QueueRow";
 import { QueueBrief } from "@/components/patterns/QueueBrief";
 import { StageHeader } from "@/components/patterns/StageHeader";
 import { DocumentsSheet } from "@/components/patterns/DocumentsSheet";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { ActionBar } from "@/components/patterns/ActionBar";
 import { MessageThread } from "@/components/patterns/MessageThread";
 
@@ -479,20 +480,28 @@ export default function DesignSystem() {
       </Section>
 
       {/* ── DocumentsSheet ──────────────────────────────────────────── */}
-      <Section title="DocumentsSheet" description="Docked/pinned inline (as it renders in a split-layout stage) beside a placeholder card, plus the floating overlay version.">
-        <div className="flex items-stretch gap-4 h-[360px]">
-          <DocumentsSheet
-            open
-            pinned
-            onPinnedChange={() => {}}
-            files={["Referral.pdf", "Insurance card.pdf", "Chart notes.pdf"]}
-            active={0}
-            page={1}
-            pages={3}
-          />
-          <div className="flex-1 rounded-lg border border-dashed border-border bg-muted/40 flex items-center justify-center text-sm text-muted-foreground">
-            Workstation cards render here, beside the docked sheet
-          </div>
+      <Section title="DocumentsSheet" description="Docked/pinned inline (as it renders in a split-layout stage) as a resizable panel beside a placeholder card, plus the floating overlay version.">
+        <div className="h-[360px] rounded-lg border border-border overflow-hidden">
+          <ResizablePanelGroup direction="horizontal">
+            <ResizablePanel defaultSize={45} minSize={30} maxSize={65}>
+              <DocumentsSheet
+                open
+                pinned
+                fill
+                onPinnedChange={() => {}}
+                files={["Referral.pdf", "Insurance card.pdf", "Chart notes.pdf"]}
+                active={0}
+                page={1}
+                pages={3}
+              />
+            </ResizablePanel>
+            <ResizableHandle withHandle />
+            <ResizablePanel minSize={35}>
+              <div className="h-full bg-muted/40 flex items-center justify-center text-sm text-muted-foreground">
+                Workstation cards render here, beside the docked sheet
+              </div>
+            </ResizablePanel>
+          </ResizablePanelGroup>
         </div>
         <div>
           <Button variant="outline" size="sm" onClick={() => setDocsOpen(true)}>

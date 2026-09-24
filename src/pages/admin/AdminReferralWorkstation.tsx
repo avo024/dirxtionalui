@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 
 import { StageHeader } from "@/components/patterns/StageHeader";
 import { DocumentsSheet } from "@/components/patterns/DocumentsSheet";
@@ -207,6 +208,29 @@ export default function AdminReferralWorkstation() {
   const isSplit = next?.layout === "split";
   const isWideEnough = useIsWideViewport(1200);
   const showDocked = isSplit && isWideEnough;
+
+  // Docked documents panel width (split stages only) — a percentage of the
+  // split's width, resizable via the shadcn/react-resizable-panels handle
+  // and remembered across sessions (no PHI, just a layout preference).
+  const [docsPanelSize, setDocsPanelSize] = useState<number>(() => {
+    try {
+      const raw = localStorage.getItem("ws.docs.width");
+      const n = raw ? Number(raw) : NaN;
+      return Number.isFinite(n) && n >= 30 && n <= 65 ? n : 45;
+    } catch {
+      return 45;
+    }
+  });
+  const handleDocsLayout = useCallback((sizes: number[]) => {
+    const size = sizes[0];
+    if (typeof size !== "number") return;
+    setDocsPanelSize(size);
+    try {
+      localStorage.setItem("ws.docs.width", String(size));
+    } catch {
+      // localStorage unavailable — width just won't persist across reloads
+    }
+  }, []);
 
   // Header block height (StageHeader + interrupt banner, if any) — the docked
   // documents sheet is sticky below it at calc(100vh - headerH), so the PDF
@@ -1224,6 +1248,46 @@ export default function AdminReferralWorkstation() {
     })),
   ];
 
+  // Stage/enrollment/all-fields/notes tabs — rendered inside whichever
+  // container the split layout picks (a resizable panel when docked, a
+  // plain flex-1 column otherwise).
+  const stageTabs = (
+    <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <TabsList className={underlineTabsListClass}>
+        <TabsTrigger value="stage" className={underlineTabsTriggerClass}>{stageLabel}</TabsTrigger>
+        {showSeparateEnrollmentTab && (
+          <TabsTrigger value="enrollment" className={underlineTabsTriggerClass}>Enrollment</TabsTrigger>
+        )}
+        <TabsTrigger value="all-fields" className={underlineTabsTriggerClass}>All Fields</TabsTrigger>
+        <TabsTrigger value="notes" className={underlineTabsTriggerClass}>Notes ({notes.length})</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="stage" className="space-y-3 pt-4">
+        {isEnrollmentLed ? renderEnrollmentTabContent() : renderStageCards()}
+      </TabsContent>
+
+      {showSeparateEnrollmentTab && (
+        <TabsContent value="enrollment" className="space-y-3 pt-4">
+          {renderEnrollmentTabContent()}
+        </TabsContent>
+      )}
+
+      <TabsContent value="all-fields" className="space-y-3 pt-4">
+        <ExtractionEditor referral={referral} onSaved={reload} />
+      </TabsContent>
+
+      <TabsContent value="notes" className="pt-4">
+        <MessageThread
+          messages={threadMessages}
+          value={noteDraft}
+          onChange={setNoteDraft}
+          onSend={sendNote}
+          placeholder="Add a note about this referral..."
+        />
+      </TabsContent>
+    </Tabs>
+  );
+
   return (
     <div className="-mx-6 -my-8 lg:-mx-8 flex flex-col min-h-[calc(100vh-0px)]">
       <div ref={headerRef}>
@@ -1255,60 +1319,34 @@ export default function AdminReferralWorkstation() {
       </div>
 
       <div className="flex flex-1 min-h-0">
-        {showDocked && (
-          <DocumentsSheet
-            open
-            pinned
-            onPinnedChange={setPinnedPersist}
-            files={documents.map((d) => d.original_filename)}
-            active={documents.findIndex((d) => d.id === activeDocId)}
-            onSelect={(i) => setActiveDocId(documents[i]?.id)}
-            style={
-              headerH > 0
-                ? { position: "sticky", top: headerH, height: `calc(100vh - ${headerH + ACTION_BAR_H}px)`, alignSelf: "flex-start" }
-                : undefined
-            }
-          >
-            <DocumentViewer documents={documents} initialDocId={activeDocId} hideTabs />
-          </DocumentsSheet>
+        {showDocked ? (
+          <ResizablePanelGroup direction="horizontal" onLayout={handleDocsLayout} className="flex-1 min-h-0">
+            <ResizablePanel defaultSize={docsPanelSize} minSize={30} maxSize={65} className="min-h-0">
+              <DocumentsSheet
+                open
+                pinned
+                fill
+                onPinnedChange={setPinnedPersist}
+                files={documents.map((d) => d.original_filename)}
+                active={documents.findIndex((d) => d.id === activeDocId)}
+                onSelect={(i) => setActiveDocId(documents[i]?.id)}
+                style={
+                  headerH > 0
+                    ? { position: "sticky", top: headerH, height: `calc(100vh - ${headerH + ACTION_BAR_H}px)`, alignSelf: "flex-start" }
+                    : undefined
+                }
+              >
+                <DocumentViewer documents={documents} initialDocId={activeDocId} hideTabs />
+              </DocumentsSheet>
+            </ResizablePanel>
+            <ResizableHandle withHandle />
+            <ResizablePanel minSize={35} className="min-h-0">
+              <div className="h-full overflow-y-auto p-6 pb-28">{stageTabs}</div>
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        ) : (
+          <div className="flex-1 min-w-0 overflow-y-auto p-6 pb-28">{stageTabs}</div>
         )}
-
-        <div className="flex-1 min-w-0 overflow-y-auto p-6 pb-28">
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className={underlineTabsListClass}>
-              <TabsTrigger value="stage" className={underlineTabsTriggerClass}>{stageLabel}</TabsTrigger>
-              {showSeparateEnrollmentTab && (
-                <TabsTrigger value="enrollment" className={underlineTabsTriggerClass}>Enrollment</TabsTrigger>
-              )}
-              <TabsTrigger value="all-fields" className={underlineTabsTriggerClass}>All Fields</TabsTrigger>
-              <TabsTrigger value="notes" className={underlineTabsTriggerClass}>Notes ({notes.length})</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="stage" className="space-y-3 pt-4">
-              {isEnrollmentLed ? renderEnrollmentTabContent() : renderStageCards()}
-            </TabsContent>
-
-            {showSeparateEnrollmentTab && (
-              <TabsContent value="enrollment" className="space-y-3 pt-4">
-                {renderEnrollmentTabContent()}
-              </TabsContent>
-            )}
-
-            <TabsContent value="all-fields" className="space-y-3 pt-4">
-              <ExtractionEditor referral={referral} onSaved={reload} />
-            </TabsContent>
-
-            <TabsContent value="notes" className="pt-4">
-              <MessageThread
-                messages={threadMessages}
-                value={noteDraft}
-                onChange={setNoteDraft}
-                onSend={sendNote}
-                placeholder="Add a note about this referral..."
-              />
-            </TabsContent>
-          </Tabs>
-        </div>
       </div>
 
       {!showDocked && (

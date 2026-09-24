@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { ZoomIn, ZoomOut, Download, RefreshCw, FileText, ImageIcon } from "lucide-react";
+import { ZoomIn, ZoomOut, Maximize2, Download, RefreshCw, FileText, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -39,6 +39,18 @@ function isImageType(fileType: string): boolean {
 
 function isPdfType(fileType: string): boolean {
   return fileType === "application/pdf";
+}
+
+/** Chrome's built-in PDF viewer reads these as URL fragment params — they
+ *  aren't a real API, just the de-facto hash contract it honors. At 100%
+ *  (our "reset" state) we ask it to fit the page to the pane's width; any
+ *  other value switches to an explicit percentage zoom. toolbar/navpanes
+ *  are suppressed since our own toolbar replaces them. Other browsers'
+ *  native PDF viewers (Firefox's pdf.js, Safari) may ignore some or all of
+ *  these params — there's no cross-browser API for this, only Chrome's. */
+function pdfViewerUrl(url: string, zoomPercent: number): string {
+  const hash = zoomPercent === 100 ? "view=FitH&toolbar=0&navpanes=0" : `zoom=${zoomPercent}&toolbar=0&navpanes=0`;
+  return `${url}#${hash}`;
 }
 
 export function DocumentViewer({ documents, className, fetchUrl: fetchUrlProp, initialDocId, hideTabs }: DocumentViewerProps) {
@@ -134,14 +146,37 @@ export function DocumentViewer({ documents, className, fetchUrl: fetchUrlProp, i
           <span>{activeDoc?.original_filename}</span>
         </div>
         <div className="flex items-center gap-1">
-          {isImage && (
+          {(isImage || isPdf) && (
             <>
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setZoom(Math.max(25, zoom - 25))}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                aria-label="Zoom out"
+                onClick={() => setZoom(Math.max(25, zoom - 25))}
+              >
                 <ZoomOut className="h-4 w-4" />
               </Button>
               <span className="text-xs text-muted-foreground w-10 text-center">{zoom}%</span>
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setZoom(Math.min(300, zoom + 25))}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                aria-label="Zoom in"
+                onClick={() => setZoom(Math.min(300, zoom + 25))}
+              >
                 <ZoomIn className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                aria-label="Fit width"
+                title="Fit width"
+                disabled={zoom === 100}
+                onClick={() => setZoom(100)}
+              >
+                <Maximize2 className="h-4 w-4" />
               </Button>
             </>
           )}
@@ -173,7 +208,12 @@ export function DocumentViewer({ documents, className, fetchUrl: fetchUrlProp, i
         )}
 
         {activeUrl && !loadingUrl && isPdf && (
-          <iframe src={activeUrl} className="w-full h-full border-0" title={activeDoc?.original_filename} />
+          <iframe
+            key={`${activeDocId}-${zoom}`}
+            src={pdfViewerUrl(activeUrl, zoom)}
+            className="w-full h-full border-0"
+            title={activeDoc?.original_filename}
+          />
         )}
 
         {activeUrl && !loadingUrl && isImage && (
