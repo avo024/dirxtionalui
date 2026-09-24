@@ -492,7 +492,11 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged, hideAc
       setMarkSubmittedConfirmOpen(true);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [canSend, blockedReason, draft, needsSignatures, canFinalize, faxReadOnly, faxNumber, programs]);
+  // No dependency array on purpose: the handle is rebuilt every render so the
+  // ActionBar always calls handlers that see the CURRENT kind / field values /
+  // selections. A deps list here caused a stale-closure bug (Preview showed the
+  // previously saved letter kind after switching the radio).
+  }));
 
   if (!paEligible) return null;
   if (loading) {
