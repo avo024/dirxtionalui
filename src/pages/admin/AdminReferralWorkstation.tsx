@@ -1093,7 +1093,9 @@ export default function AdminReferralWorkstation() {
 
         // EligibilityPanel adds the detailed mismatch view directly under the
         // Insurance card — it renders nothing itself when there's no non-skipped result.
-        cards.push(<EligibilityPanel key="eligibility" referral={referral} referralId={id!} />);
+        // The Insurance card already carries the eligibility line + Re-check; the detailed panel
+        // only earns its space when there is mismatch detail to show.
+        if ((referral.eligibility_mismatches?.length ?? 0) > 0) cards.push(<EligibilityPanel key="eligibility" referral={referral} referralId={id!} />);
         break;
       }
       case "pa_pending":
