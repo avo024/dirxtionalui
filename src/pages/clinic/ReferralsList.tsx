@@ -80,10 +80,10 @@ export default function ReferralsList() {
     async function fetchReferrals() {
       try {
         setLoading(true);
-        const response = await clinicApi.getReferrals({
-          month: search.trim() ? "all" : month,
-          archived: showArchived,
-        });
+        // Always load all-time: anything that needs the clinic's action must show
+        // regardless of the month select (Alex, 2026-09-24). The month scope is
+        // applied client-side to the non-action filters below.
+        const response = await clinicApi.getReferrals({ month: "all", archived: showArchived });
         setReferrals(mapReferralsFromBackend((response as any).items || response || []));
       } catch (err) {
         console.error("Failed to fetch referrals:", err);
@@ -96,17 +96,28 @@ export default function ReferralsList() {
     const handleFocus = () => fetchReferrals();
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
-  }, [toast, location.key, month, showArchived, search.trim() === "" ? "m" : "all"]);
+  }, [toast, location.key, showArchived]);
+
+  // Month scope (last-activity month) — client-side; "all" = no scope.
+  const inMonth = (r: any): boolean => {
+    if (month === "all") return true;
+    const d = new Date(r.updated_at || r.created_at || 0);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}` === month;
+  };
+  // Action Needed ignores the month on purpose: a request or rejection from
+  // any month is still the clinic's to answer. Search also ignores it.
+  const scoped = useMemo(() => (search.trim() ? referrals : referrals.filter(inMonth)), [referrals, month, search]);
 
   const getFilterCount = (value: string): number => {
-    if (value === "all") return referrals.length;
+    if (value === "all") return scoped.length;
     if (value === "action_needed") return referrals.filter(isActionNeeded).length;
     const statuses = filterStatusMap[value] || [value];
-    return referrals.filter((r) => statuses.includes(r.status)).length;
+    return scoped.filter((r) => statuses.includes(r.status)).length;
   };
 
   const filtered = useMemo(() => {
-    const base = referrals.filter((r) => {
+    const source = activeFilter === "action_needed" ? referrals : scoped;
+    const base = source.filter((r) => {
       const q = search.toLowerCase();
       const matchesSearch = r.patient_name.toLowerCase().includes(q) || r.drug.toLowerCase().includes(q) || r.id.toLowerCase().includes(q);
       if (!matchesSearch) return false;
