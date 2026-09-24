@@ -425,7 +425,7 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
         )}
         {!saving && (
           <span
-            className="ml-auto inline-flex items-center gap-1 text-[11px] font-semibold text-success transition-opacity duration-[400ms]"
+            className="ml-auto inline-flex items-center gap-1 text-[11px] font-semibold text-success transition-opacity duration-300"
             style={{ opacity: savedFlash ? 1 : 0 }}
           >
             <Check size={11} />Saved
