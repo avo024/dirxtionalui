@@ -18,7 +18,7 @@ export function ClinicLayout() {
   }
 
   if (!isAuthenticated) return <Navigate to="/login" replace />;
-  if (user?.role !== "clinic_user") return <Navigate to="/admin/dashboard" replace />;
+  if (user?.role !== "clinic_user") return <Navigate to="/admin/referrals" replace />;
 
   return (
     <div className="flex min-h-screen w-full">

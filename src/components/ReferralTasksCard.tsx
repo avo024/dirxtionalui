@@ -259,12 +259,12 @@ export function ReferralTasksCard({ referralId, adminFirstName, onShared }: {
   };
 
   return (
-    <div className="arr-card">
-      <div className="arr-card-head">
-        <span className="hi"><ClipboardList size={15} /></span>
-        <h3>Clinic Tasks</h3>
-        <span className="he" style={{ marginLeft: "auto" }}>
-          <button className="rw-btn outline sm" onClick={() => setShowForm((v) => !v)}>
+    <div className="rounded-lg border border-border bg-card shadow-sm p-[var(--density-card-pad)]">
+      <div className="flex items-center gap-2.5 mb-3">
+        <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><ClipboardList size={15} /></span>
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">Clinic Tasks</h3>
+        <span className="ml-auto flex items-center gap-2" style={{ marginLeft: "auto" }}>
+          <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" onClick={() => setShowForm((v) => !v)}>
             <Plus size={13} />New task
           </button>
         </span>
@@ -297,10 +297,10 @@ export function ReferralTasksCard({ referralId, adminFirstName, onShared }: {
               </div>
             )}
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              <button type="button" className="rw-btn outline sm" onClick={openPicker}>
+              <button type="button" className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" onClick={openPicker}>
                 <Paperclip size={13} />Attach existing document<ChevronDown size={12} />
               </button>
-              <button type="button" className="rw-btn outline sm" disabled={attachUploading} onClick={() => attachFileRef.current?.click()}>
+              <button type="button" className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" disabled={attachUploading} onClick={() => attachFileRef.current?.click()}>
                 {attachUploading ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}Upload new
               </button>
               <input ref={attachFileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif" style={{ display: "none" }}
@@ -336,10 +336,10 @@ export function ReferralTasksCard({ referralId, adminFirstName, onShared }: {
           </div>
 
           <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-            <button className="rw-btn primary sm" disabled={creating || !draft.trim()} onClick={create}>
+            <button className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-45 disabled:cursor-not-allowed" disabled={creating || !draft.trim()} onClick={create}>
               {creating ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}Send to clinic
             </button>
-            <button className="rw-btn outline sm" onClick={() => { setShowForm(false); setDraft(""); setAttachments([]); setPickerOpen(false); }}>Cancel</button>
+            <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" onClick={() => { setShowForm(false); setDraft(""); setAttachments([]); setPickerOpen(false); }}>Cancel</button>
           </div>
           <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "6px 0 0" }}>
             The clinic gets one email and an unmissable card on this referral. Don't put patient details in the instructions — they can see the chart.
@@ -366,9 +366,9 @@ export function ReferralTasksCard({ referralId, adminFirstName, onShared }: {
                 </span>
                 {t.status === "open" && !isEditing && (
                   <span style={{ marginLeft: "auto", display: "inline-flex", gap: 6 }}>
-                    <button className="rw-btn outline sm" title="Edit task" onClick={() => startEdit(t)}><Pencil size={13} /></button>
-                    <button className="rw-btn outline sm" title="Mark complete (after reviewing their response)" onClick={() => complete(t.id)}><Check size={13} /></button>
-                    <button className="rw-btn outline sm" title="Cancel task" onClick={() => cancel(t.id)}><X size={13} /></button>
+                    <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" title="Edit task" onClick={() => startEdit(t)}><Pencil size={13} /></button>
+                    <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" title="Mark complete (after reviewing their response)" onClick={() => complete(t.id)}><Check size={13} /></button>
+                    <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" title="Cancel task" onClick={() => cancel(t.id)}><X size={13} /></button>
                   </span>
                 )}
               </div>
@@ -411,10 +411,10 @@ export function ReferralTasksCard({ referralId, adminFirstName, onShared }: {
                       </div>
                     )}
                     <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                      <button type="button" className="rw-btn outline sm" onClick={openEditPicker}>
+                      <button type="button" className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" onClick={openEditPicker}>
                         <Paperclip size={13} />Attach existing document<ChevronDown size={12} />
                       </button>
-                      <button type="button" className="rw-btn outline sm" disabled={editAttachUploading} onClick={() => editAttachFileRef.current?.click()}>
+                      <button type="button" className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" disabled={editAttachUploading} onClick={() => editAttachFileRef.current?.click()}>
                         {editAttachUploading ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}Upload new
                       </button>
                       <input ref={editAttachFileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif" style={{ display: "none" }}
@@ -451,10 +451,10 @@ export function ReferralTasksCard({ referralId, adminFirstName, onShared }: {
                   </div>
 
                   <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                    <button className="rw-btn primary sm" disabled={editSaving || !editDraft.trim()} onClick={() => saveEdit(t.id)}>
+                    <button className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-45 disabled:cursor-not-allowed" disabled={editSaving || !editDraft.trim()} onClick={() => saveEdit(t.id)}>
                       {editSaving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}Save
                     </button>
-                    <button className="rw-btn outline sm" disabled={editSaving} onClick={cancelEdit}>Cancel</button>
+                    <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" disabled={editSaving} onClick={cancelEdit}>Cancel</button>
                   </div>
                 </div>
               ) : (
@@ -487,7 +487,7 @@ export function ReferralTasksCard({ referralId, adminFirstName, onShared }: {
               <option value="appeal_document">Appeal document</option>
               <option value="payer_correspondence">Payer correspondence</option>
             </select>
-            <button className="rw-btn outline sm" onClick={() => fileRef.current?.click()}>
+            <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" onClick={() => fileRef.current?.click()}>
               <Upload size={13} />Share with clinic…
             </button>
           </div>
@@ -506,10 +506,10 @@ export function ReferralTasksCard({ referralId, adminFirstName, onShared }: {
               Will be shared as “{docType === "appeal_document" ? "Appeal document" : docType === "payer_correspondence" ? "Payer correspondence" : "Document for the clinic"}” — the clinic sees it under “From your Dirxctional team”.
             </p>
             <div style={{ display: "flex", gap: 8 }}>
-              <button className="rw-btn primary sm" disabled={uploading} onClick={confirmShare}>
+              <button className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-45 disabled:cursor-not-allowed" disabled={uploading} onClick={confirmShare}>
                 {uploading ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}Share with clinic
               </button>
-              <button className="rw-btn outline sm" disabled={uploading} onClick={cancelShare}>Cancel</button>
+              <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" disabled={uploading} onClick={cancelShare}>Cancel</button>
             </div>
           </div>
         )}

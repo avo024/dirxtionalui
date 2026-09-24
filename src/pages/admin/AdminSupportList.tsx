@@ -8,6 +8,7 @@ import { SupportStatusBadge } from "@/components/SupportStatusBadge";
 import { FilterToolbar } from "@/components/patterns/FilterToolbar";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { PageContainer } from "@/components/patterns/PageContainer";
 
 const STATUS_FILTERS = [
   { value: "all", label: "All" },
@@ -91,9 +92,9 @@ export default function AdminSupportList() {
   const chipCount = (v: string) => (v === "all" ? totalCount : counts[v] || 0);
 
   return (
-    <div className="rw-page rw-fade">
+    <PageContainer>
       <div className="mb-5">
-        <h1 className="text-2xl font-semibold serif text-foreground">Support</h1>
+        <h1 className="text-2xl font-semibold font-editorial text-foreground">Support</h1>
         <p className="text-sm text-muted-foreground mt-1">Clinic support cases and product feedback</p>
       </div>
 
@@ -190,6 +191,6 @@ export default function AdminSupportList() {
           <p className="text-sm text-muted-foreground">Nothing matches these filters. When a clinic opens a case or sends feedback, it lands here.</p>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

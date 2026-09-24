@@ -12,6 +12,7 @@ import { FilterToolbar } from "@/components/patterns/FilterToolbar";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import type { AIQualityFieldRow } from "@/lib/aiQualityApi";
+import { PageContainer } from "@/components/patterns/PageContainer";
 
 function monthOptions() {
   const opts: { value: string; label: string }[] = [];
@@ -124,11 +125,11 @@ export default function AIQuality() {
   ];
 
   return (
-    <div className="rw-page rw-fade">
+    <PageContainer>
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap mb-5">
         <div>
-          <h1 className="text-2xl font-semibold serif text-foreground">AI Extraction Quality</h1>
+          <h1 className="text-2xl font-semibold font-editorial text-foreground">AI Extraction Quality</h1>
           <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
             Internal — track how often the AI extraction needs human correction. Used to iterate on the extraction prompt.
           </p>
@@ -319,6 +320,6 @@ export default function AIQuality() {
           </div>
         </>
       )}
-    </div>
+    </PageContainer>
   );
 }

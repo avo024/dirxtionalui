@@ -5,6 +5,7 @@ import { adminApi } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { format, subDays } from "date-fns";
+import { PageContainer } from "@/components/patterns/PageContainer";
 
 /**
  * Insights — the analytical view, separated from the operational dashboard.
@@ -33,7 +34,14 @@ export default function AdminInsights() {
     const paCount = (s: string) => paRequired.filter((r) => r.pa_status === s).length;
     const byClinic: Record<string, number> = {};
     referrals.forEach((r) => { const c = r.clinic_name || "—"; byClinic[c] = (byClinic[c] || 0) + 1; });
+    // Today counts — moved here from the retired operational dashboard
+    // (phase 6b); same referrals call, filtered by updated_at === today.
+    const today = new Date().toDateString();
+    const countToday = (status: string) => referrals.filter((r) => r.status === status && r.updated_at && new Date(r.updated_at).toDateString() === today).length;
     return {
+      approvedToday: countToday("approved_to_send"),
+      sentToday: countToday("sent_to_pharmacy"),
+      rejectedToday: countToday("rejected"),
       total: referrals.length,
       last30: days30.length,
       avgPerDay: (days30.length / 30).toFixed(1),
@@ -68,9 +76,9 @@ export default function AdminInsights() {
 
   if (loading) {
     return (
-      <div className="rw-page flex justify-center py-16">
+      <PageContainer fade={false} className="flex justify-center py-16">
         <Loader2 width={26} height={26} strokeWidth={1.75} className="animate-spin text-primary" />
-      </div>
+      </PageContainer>
     );
   }
 
@@ -83,10 +91,26 @@ export default function AdminInsights() {
   );
 
   return (
-    <div className="rw-page rw-fade">
+    <PageContainer>
       <div className="mb-5">
-        <h1 className="text-2xl font-semibold serif text-foreground">Insights</h1>
+        <h1 className="text-2xl font-semibold font-editorial text-foreground">Insights</h1>
         <p className="text-sm text-muted-foreground mt-1">Pipeline analytics — volumes, ratios, and trends across all clinics</p>
+      </div>
+
+      {/* Today, at a glance — moved from the retired operational dashboard */}
+      <div className="grid grid-cols-3 gap-3 mb-4">
+        <div className="rounded-lg border border-border bg-muted/30 px-3.5 py-2.5">
+          <span className="text-xs text-muted-foreground">Approved today</span>
+          <div className="text-lg font-semibold text-foreground">{stats.approvedToday}</div>
+        </div>
+        <div className="rounded-lg border border-border bg-muted/30 px-3.5 py-2.5">
+          <span className="text-xs text-muted-foreground">Sent today</span>
+          <div className="text-lg font-semibold text-foreground">{stats.sentToday}</div>
+        </div>
+        <div className="rounded-lg border border-border bg-muted/30 px-3.5 py-2.5">
+          <span className="text-xs text-muted-foreground">Rejected today</span>
+          <div className="text-lg font-semibold text-foreground">{stats.rejectedToday}</div>
+        </div>
       </div>
 
       {/* Headline tiles */}
@@ -168,6 +192,6 @@ export default function AdminInsights() {
           ))}
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }

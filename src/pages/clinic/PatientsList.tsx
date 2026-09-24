@@ -8,7 +8,7 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@
 import { clinicApi } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { formatDateShort, parseLocalDate } from "@/lib/dateUtils";
-import "./wizard.css";
+import { PageContainer } from "@/components/patterns/PageContainer";
 
 const FILTERS = [
   { value: "all", label: "All" },
@@ -105,10 +105,10 @@ export default function PatientsList() {
   );
 
   return (
-    <div className="rw-page rw-fade">
+    <PageContainer>
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-2xl font-semibold serif text-foreground">Patients</h1>
+          <h1 className="text-2xl font-semibold font-editorial text-foreground">Patients</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage your patients and their referrals</p>
         </div>
         <Button asChild data-tour="add-patient">
@@ -210,6 +210,6 @@ export default function PatientsList() {
           </div>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

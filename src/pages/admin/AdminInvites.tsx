@@ -30,6 +30,7 @@ import { NewInviteModal } from "@/components/NewInviteModal";
 import { formatDateForTable, formatFullDateTime } from "@/lib/dateUtils";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { PageContainer } from "@/components/patterns/PageContainer";
 
 const INVITE_BASE_URL = "https://app.dirxctional.com/invite";
 
@@ -95,10 +96,10 @@ export default function AdminInvites() {
   const listMissing = !!error;
 
   return (
-    <div className="rw-page rw-fade">
+    <PageContainer>
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-2xl font-semibold serif text-foreground">Clinic Invites</h1>
+          <h1 className="text-2xl font-semibold font-editorial text-foreground">Clinic Invites</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Send and manage invitations for clinic users.
           </p>
@@ -236,6 +237,6 @@ export default function AdminInvites() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageContainer>
   );
 }

@@ -14,8 +14,6 @@ import {
   type ReferralTask,
 } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
-// arr-card styling lives with the admin review page; this card only renders there.
-import "@/pages/admin/admin-referral-review.css";
 
 const humanizeToken = (t: string) => t.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
@@ -378,18 +376,18 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged }: {
   if (!paEligible) return null;
   if (loading) {
     return (
-      <div className="arr-card">
-        <div className="arr-card-head"><span className="hi"><Pill size={15} /></span><h3>Manufacturer Assistance</h3></div>
+      <div className="rounded-lg border border-border bg-card shadow-sm p-[var(--density-card-pad)]">
+        <div className="flex items-center gap-2.5 mb-3"><span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Pill size={15} /></span><h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">Manufacturer Assistance</h3></div>
         <p className="text-sm" style={{ color: "var(--text-muted)" }}>Loading…</p>
       </div>
     );
   }
   if (loadError) {
     return (
-      <div className="arr-card">
-        <div className="arr-card-head"><span className="hi"><Pill size={15} /></span><h3>Manufacturer Assistance</h3></div>
+      <div className="rounded-lg border border-border bg-card shadow-sm p-[var(--density-card-pad)]">
+        <div className="flex items-center gap-2.5 mb-3"><span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Pill size={15} /></span><h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">Manufacturer Assistance</h3></div>
         <p className="text-sm" style={{ color: "var(--color-error)", margin: "0 0 8px" }}>{loadError}</p>
-        <button className="rw-btn outline sm" onClick={fetchEnrollment}>Try again</button>
+        <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" onClick={fetchEnrollment}>Try again</button>
       </div>
     );
   }
@@ -423,17 +421,17 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged }: {
   const prefilledEntries = Object.entries(resolvedFieldValues).filter(([k, v]) => !!v && !blankCandidates.has(k));
 
   return (
-    <div className="arr-card">
-      <div className="arr-card-head">
-        <span className="hi"><Pill size={15} /></span>
-        <h3>Manufacturer Assistance</h3>
+    <div className="rounded-lg border border-border bg-card shadow-sm p-[var(--density-card-pad)]">
+      <div className="flex items-center gap-2.5 mb-3">
+        <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Pill size={15} /></span>
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">Manufacturer Assistance</h3>
         {draft?.status === "draft" && saving && (
-          <span className="he" style={{ marginLeft: "auto", fontSize: 11, color: "var(--text-muted)", display: "inline-flex", alignItems: "center", gap: 4 }}>
+          <span className="ml-auto flex items-center gap-2" style={{ marginLeft: "auto", fontSize: 11, color: "var(--text-muted)", display: "inline-flex", alignItems: "center", gap: 4 }}>
             <Loader2 size={11} className="animate-spin" />Saving…
           </span>
         )}
         {draft?.status === "draft" && !saving && (
-          <span className="he" style={{ marginLeft: "auto", fontSize: 11, fontWeight: 600, color: "var(--color-success)", display: "inline-flex", alignItems: "center", gap: 4, opacity: savedFlash ? 1 : 0, transition: "opacity .4s" }}>
+          <span className="ml-auto flex items-center gap-2" style={{ marginLeft: "auto", fontSize: 11, fontWeight: 600, color: "var(--color-success)", display: "inline-flex", alignItems: "center", gap: 4, opacity: savedFlash ? 1 : 0, transition: "opacity .4s" }}>
             <Check size={11} />Saved
           </span>
         )}
@@ -497,7 +495,7 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged }: {
                   Round-3 catch, 2026-08-18). */}
               {(program.form_files?.length ?? 0) > 0 && (
                 <button
-                  className="rw-btn primary sm"
+                  className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-45 disabled:cursor-not-allowed"
                   style={{ marginTop: 10 }}
                   disabled={startingProgramId === program.id}
                   onClick={() => startEnrollment(program)}
@@ -522,7 +520,7 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged }: {
 
           {signatureTask && (signatureTask.response_documents?.length ?? 0) > 0 ? (
             <div>
-              <p className="arr-sub" style={{ margin: "0 0 8px" }}>Which upload is the signed form?</p>
+              <p className="mt-3 mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground" style={{ margin: "0 0 8px" }}>Which upload is the signed form?</p>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {signatureTask.response_documents.map((doc) => (
                   <label key={doc.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer" }}>
@@ -567,7 +565,7 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged }: {
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           {/* 1. Check eligibility */}
           <div>
-            <p className="arr-sub" style={{ margin: "0 0 10px" }}>Check eligibility</p>
+            <p className="mt-3 mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground" style={{ margin: "0 0 10px" }}>Check eligibility</p>
             <EligibilitySection
               otherWarnings={otherWarnings} stateExcludedWarning={stateExcludedWarning} remsWarning={remsWarning}
               commercialConfirmed={commercialConfirmed} setCommercialConfirmed={setCommercialConfirmed}
@@ -576,7 +574,7 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged }: {
 
           {/* 2. The form */}
           <div>
-            <p className="arr-sub" style={{ margin: "0 0 10px" }}>The form</p>
+            <p className="mt-3 mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground" style={{ margin: "0 0 10px" }}>The form</p>
             {currentProgram && currentProgram.form_files.length > 1 && (
               <RadioGroup value={formFile} onValueChange={handleFormFileChange} className="mb-3">
                 {currentProgram.form_files.map((f) => (
@@ -610,7 +608,7 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged }: {
                 border: "1px solid color-mix(in srgb, var(--color-warning) 30%, transparent)",
                 borderRadius: "var(--radius-md)", padding: "12px 14px", marginBottom: 12,
               }}>
-                <p className="arr-sub" style={{ margin: "0 0 2px", color: "var(--color-warning)" }}>Still blank</p>
+                <p className="mt-3 mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground" style={{ margin: "0 0 2px", color: "var(--color-warning)" }}>Still blank</p>
                 <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "0 0 10px" }}>
                   Anything left empty prints as ______ on the form. Fill them here — they save with the draft.
                 </p>
@@ -646,7 +644,7 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged }: {
               </p>
             )}
 
-            <button className="rw-btn outline sm" disabled={previewLoading} onClick={handlePreview}>
+            <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" disabled={previewLoading} onClick={handlePreview}>
               {previewLoading ? <Loader2 size={13} className="animate-spin" /> : <Eye size={13} />}Preview the filled form
             </button>
 
@@ -667,7 +665,7 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged }: {
               </div>
             ) : (
               <div style={{ marginTop: 8 }}>
-                <button className="rw-btn outline sm" disabled={uploadingAdjusted} onClick={() => adjustedFileRef.current?.click()}>
+                <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" disabled={uploadingAdjusted} onClick={() => adjustedFileRef.current?.click()}>
                   {uploadingAdjusted ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}Upload adjusted copy
                 </button>
                 <input
@@ -686,13 +684,13 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged }: {
 
           {/* 3. Signatures */}
           <div>
-            <p className="arr-sub" style={{ margin: "0 0 10px" }}>Signatures</p>
+            <p className="mt-3 mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground" style={{ margin: "0 0 10px" }}>Signatures</p>
             {needsSignatures ? (
               <>
                 <p className="text-sm" style={{ color: "var(--text-body)", margin: "0 0 10px" }}>
                   {signersSentence} {signVerb} to sign.
                 </p>
-                <button className="rw-btn primary sm" disabled={!canFinalize} onClick={() => setSendSigConfirmOpen(true)}>
+                <button className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-45 disabled:cursor-not-allowed" disabled={!canFinalize} onClick={() => setSendSigConfirmOpen(true)}>
                   <Send size={13} />Send to clinic for signatures
                 </button>
                 {!canFinalize && (
@@ -711,7 +709,7 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged }: {
           {/* 4. Submit — only offered directly here when no signatures are needed */}
           {!needsSignatures && (
             <div>
-              <p className="arr-sub" style={{ margin: "0 0 10px" }}>Submit</p>
+              <p className="mt-3 mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground" style={{ margin: "0 0 10px" }}>Submit</p>
               <SubmitSection
                 faxReadOnly={faxReadOnly}
                 currentProgram={currentProgram}
@@ -856,10 +854,10 @@ function SubmitSection({
         <Input type="date" value={assistanceEndsOn} onChange={(e) => setAssistanceEndsOn(e.target.value)} className="h-8 text-sm" style={{ maxWidth: 200 }} />
       </div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <button className="rw-btn outline sm" disabled={previewLoading} onClick={onPreview}>
+        <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" disabled={previewLoading} onClick={onPreview}>
           {previewLoading ? <Loader2 size={13} className="animate-spin" /> : <Eye size={13} />}Preview
         </button>
-        <button className="rw-btn primary sm" disabled={submitDisabled} onClick={onSubmitClick}>
+        <button className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-45 disabled:cursor-not-allowed" disabled={submitDisabled} onClick={onSubmitClick}>
           <Send size={13} />Submit
         </button>
       </div>

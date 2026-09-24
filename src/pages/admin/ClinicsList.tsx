@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { FilterToolbar } from "@/components/patterns/FilterToolbar";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { adminApi, type AdminClinic } from "@/lib/api";
+import { PageContainer } from "@/components/patterns/PageContainer";
 
 export default function ClinicsList() {
   const navigate = useNavigate();
@@ -28,11 +29,11 @@ export default function ClinicsList() {
   );
 
   return (
-    <div className="rw-page rw-fade">
+    <PageContainer>
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-2xl font-semibold serif text-foreground flex items-center gap-2">
+          <h1 className="text-2xl font-semibold font-editorial text-foreground flex items-center gap-2">
             Clinics
             {!isLoading && !isError && (
               <span className="text-sm font-medium text-muted-foreground">{items.length}</span>
@@ -130,6 +131,6 @@ export default function ClinicsList() {
 
       <ClinicFormModal open={createOpen} onOpenChange={setCreateOpen} />
       <ClinicFormModal open={!!editing} onOpenChange={(o) => !o && setEditing(null)} clinic={editing} />
-    </div>
+    </PageContainer>
   );
 }

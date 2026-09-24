@@ -14,7 +14,7 @@ import { mapReferralsFromBackend } from "@/lib/dataMapper";
 import { useToast } from "@/hooks/use-toast";
 import { formatDateShort } from "@/lib/dateUtils";
 import type { Referral } from "@/types/index";
-import "./wizard.css";
+import { PageContainer } from "@/components/patterns/PageContainer";
 
 const filters = [
   { label: "All", value: "all" },
@@ -144,15 +144,15 @@ export default function ReferralsList() {
   const filterOptions = filters.map((f) => ({
     value: f.value,
     label: f.label,
-    ...(f.value === "action_needed" ? { alert: getFilterCount(f.value) } : { count: getFilterCount(f.value) }),
+    ...(f.value === "action_needed" ? { alert: getFilterCount(f.value), dataTour: "referrals-needs-attention" } : { count: getFilterCount(f.value) }),
   }));
 
   return (
-    <div className="rw-page rw-fade">
+    <PageContainer>
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-2xl font-semibold serif text-foreground">My Referrals</h1>
+          <h1 className="text-2xl font-semibold font-editorial text-foreground">My Referrals</h1>
           <p className="text-sm text-muted-foreground mt-1">View and track all your submitted referrals</p>
         </div>
         <Button asChild>
@@ -160,9 +160,8 @@ export default function ReferralsList() {
         </Button>
       </div>
 
-      {/* Toolbar. Note: there is no "rejected" filter option in this list (folded
-          into "Action Needed" pre-v2) so a data-tour="referrals-needs-attention"
-          anchor was never actually rendered here — kept as a comment for parity. */}
+      {/* Toolbar — the "Action Needed" chip carries data-tour="referrals-needs-attention"
+          so the needsAttention tour can anchor to it directly (wired in phase 6b). */}
       <div data-tour="referrals-filters" className="mb-4">
         <FilterToolbar
           filters={filterOptions}
@@ -316,6 +315,6 @@ export default function ReferralsList() {
           </div>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

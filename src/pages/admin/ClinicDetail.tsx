@@ -15,6 +15,7 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@
 import { adminApi, type AdminClinic, type AdminInvite } from "@/lib/api";
 import { formatDateForTable } from "@/lib/dateUtils";
 import { toast } from "sonner";
+import { PageContainer } from "@/components/patterns/PageContainer";
 
 const INVITE_BASE_URL = "https://app.dirxctional.com/invite";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -189,24 +190,24 @@ export default function ClinicDetail() {
 
   if (isLoading) {
     return (
-      <div className="rw-page rw-fade">
+      <PageContainer>
         <div className="flex flex-col gap-2">
           {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-14 w-full" />)}
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
   if (isError || !clinic) {
     return (
-      <div className="rw-page rw-fade">
+      <PageContainer>
         <div className="flex flex-col items-center gap-2 py-16 text-center">
           <span className="flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10 text-destructive"><TriangleAlert width={24} height={24} strokeWidth={1.75} /></span>
           <h3 className="text-base font-semibold text-foreground">Clinic not found</h3>
           <p className="text-sm text-muted-foreground">We couldn't load this clinic.</p>
           <Button size="sm" onClick={() => navigate("/admin/clinics")}>Back to clinics</Button>
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
@@ -220,7 +221,7 @@ export default function ClinicDetail() {
   ];
 
   return (
-    <div className="rw-page rw-fade">
+    <PageContainer>
       <Button variant="ghost" size="sm" className="mb-3 -ml-2 text-muted-foreground" onClick={() => navigate("/admin/clinics")}>
         <ArrowLeft width={16} height={16} strokeWidth={1.75} />All clinics
       </Button>
@@ -228,7 +229,7 @@ export default function ClinicDetail() {
       <div className="flex items-center gap-3 mb-6">
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">{getInitials(clinic.name)}</span>
         <div className="min-w-0 flex-1">
-          <h1 className="text-xl font-semibold serif text-foreground truncate">{clinic.name}</h1>
+          <h1 className="text-xl font-semibold font-editorial text-foreground truncate">{clinic.name}</h1>
           <p className="text-sm text-muted-foreground">{[clinic.specialty, clinic.email].filter(Boolean).join(" · ") || "—"}</p>
         </div>
         <Button variant="outline" onClick={() => setEditing(clinic)}>
@@ -242,6 +243,6 @@ export default function ClinicDetail() {
       </div>
 
       <ClinicFormModal open={!!editing} onOpenChange={(o) => !o && setEditing(null)} clinic={editing} />
-    </div>
+    </PageContainer>
   );
 }

@@ -12,6 +12,7 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@
 import { pharmacyApi, type Pharmacy } from "@/lib/api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { PageContainer } from "@/components/patterns/PageContainer";
 
 function formatPhone(value: string | null): string {
   if (!value) return "—";
@@ -61,11 +62,11 @@ export default function PharmaciesList() {
   const filtered = items.filter((p) => p.name.toLowerCase().includes(q));
 
   return (
-    <div className="rw-page rw-fade">
+    <PageContainer>
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-2xl font-semibold serif text-foreground flex items-center gap-2">
+          <h1 className="text-2xl font-semibold font-editorial text-foreground flex items-center gap-2">
             Pharmacies
             {!isLoading && !isError && (
               <span className="text-sm font-medium text-muted-foreground">{items.length}</span>
@@ -201,6 +202,6 @@ export default function PharmaciesList() {
         variant="destructive"
         onConfirm={() => deactivating && deleteMutation.mutate(deactivating.id)}
       />
-    </div>
+    </PageContainer>
   );
 }

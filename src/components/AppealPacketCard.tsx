@@ -13,8 +13,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { adminApi, type AppealPacketResponse, type AppealPacketFieldDef, type AppealPacketDocument, type AppealPacketLetter, type AppealPacketDrugRegistry } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
-// arr-card styling lives with the admin review page; this card only renders there.
-import "@/pages/admin/admin-referral-review.css";
 
 const INDICATION_LABELS: Record<string, string> = {
   PSO: "Plaque psoriasis",
@@ -336,17 +334,17 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
   const activeLetter = previewLetters.find((l) => l.kind === activePreviewKind) || previewLetters[0];
 
   return (
-    <div className="arr-card">
-      <div className="arr-card-head">
-        <span className="hi"><FileText size={15} /></span>
-        <h3>Appeal Packet</h3>
+    <div className="rounded-lg border border-border bg-card shadow-sm p-[var(--density-card-pad)]">
+      <div className="flex items-center gap-2.5 mb-3">
+        <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><FileText size={15} /></span>
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">Appeal Packet</h3>
         {saving && (
-          <span className="he" style={{ marginLeft: "auto", fontSize: 11, color: "var(--text-muted)", display: "inline-flex", alignItems: "center", gap: 4 }}>
+          <span className="ml-auto flex items-center gap-2" style={{ marginLeft: "auto", fontSize: 11, color: "var(--text-muted)", display: "inline-flex", alignItems: "center", gap: 4 }}>
             <Loader2 size={11} className="animate-spin" />Saving…
           </span>
         )}
         {!saving && (
-          <span className="he" style={{ marginLeft: "auto", fontSize: 11, fontWeight: 600, color: "var(--color-success)", display: "inline-flex", alignItems: "center", gap: 4, opacity: savedFlash ? 1 : 0, transition: "opacity .4s" }}>
+          <span className="ml-auto flex items-center gap-2" style={{ marginLeft: "auto", fontSize: 11, fontWeight: 600, color: "var(--color-success)", display: "inline-flex", alignItems: "center", gap: 4, opacity: savedFlash ? 1 : 0, transition: "opacity .4s" }}>
             <Check size={11} />Saved
           </span>
         )}
@@ -357,7 +355,7 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
       ) : loadError ? (
         <div>
           <p className="text-sm" style={{ color: "var(--color-error)", margin: "0 0 8px" }}>{loadError}</p>
-          <button className="rw-btn outline sm" onClick={fetchPacket}>Try again</button>
+          <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" onClick={fetchPacket}>Try again</button>
         </div>
       ) : justSubmitted || (packetId === null && !!appealStartedAt && !builderOpen) ? (
         // ── State A: sent packet exists ──
@@ -384,7 +382,7 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
           <p className="text-sm" style={{ color: "var(--text-muted)", margin: "6px 0 10px", lineHeight: 1.5 }}>
             The 72-hour follow-up clock starts when the packet goes to the insurance company.
           </p>
-          <button className="rw-btn primary sm" onClick={() => setBuilderOpen(true)}>
+          <button className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-45 disabled:cursor-not-allowed" onClick={() => setBuilderOpen(true)}>
             <FileText size={13} />Build appeal packet
           </button>
         </div>
@@ -399,7 +397,7 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
 
           {/* 1. The denial */}
           <div>
-            <p className="arr-sub" style={{ margin: "0 0 10px" }}>The denial</p>
+            <p className="mt-3 mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground" style={{ margin: "0 0 10px" }}>The denial</p>
             <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 12 }}>
               <Label className="text-xs text-muted-foreground">What reason did the insurance company give? (copy it word-for-word from the denial letter)</Label>
               <Textarea rows={3} value={fieldValues.denial_reason || ""} onChange={(e) => updateField("denial_reason", e.target.value)} className="text-sm" />
@@ -418,7 +416,7 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
 
           {/* 2. The clinical picture */}
           <div>
-            <p className="arr-sub" style={{ margin: "0 0 10px" }}>The clinical picture</p>
+            <p className="mt-3 mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground" style={{ margin: "0 0 10px" }}>The clinical picture</p>
             {indicationOptions.length > 1 && (
               <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 12 }}>
                 <Label className="text-xs text-muted-foreground">Which condition is this for?</Label>
@@ -479,7 +477,7 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
                 border: `1px solid ${warn ? "color-mix(in srgb, var(--color-warning) 30%, transparent)" : "var(--border-default)"}`,
                 borderRadius: "var(--radius-md)", padding: "12px 14px",
               }}>
-                <p className="arr-sub" style={{ margin: "0 0 2px", color: warn ? "var(--color-warning)" : "var(--text-muted)" }}>
+                <p className="mt-3 mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground" style={{ margin: "0 0 2px", color: warn ? "var(--color-warning)" : "var(--text-muted)" }}>
                   {warn ? "Letter details — some are still blank" : "Letter details you added"}
                 </p>
                 <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "0 0 10px" }}>
@@ -511,7 +509,7 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
 
           {/* 3. What goes in the packet */}
           <div>
-            <p className="arr-sub" style={{ margin: "0 0 10px" }}>What goes in the packet</p>
+            <p className="mt-3 mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground" style={{ margin: "0 0 10px" }}>What goes in the packet</p>
             <RadioGroup value={kind} onValueChange={(v) => setKind(v as PacketKind)} className="mb-3">
               <div className="flex items-center gap-2">
                 <RadioGroupItem value="appeal" id="packet-kind-appeal" />
@@ -576,7 +574,7 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
 
           {/* 4. Send it */}
           <div>
-            <p className="arr-sub" style={{ margin: "0 0 10px" }}>Send it</p>
+            <p className="mt-3 mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground" style={{ margin: "0 0 10px" }}>Send it</p>
             <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 12 }}>
               <Label className="text-xs text-muted-foreground">Insurance company's fax number</Label>
               <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
@@ -607,13 +605,13 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
               </div>
             </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <button className="rw-btn outline sm" disabled={previewLoading} onClick={handlePreview}>
+              <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" disabled={previewLoading} onClick={handlePreview}>
                 {previewLoading ? <Loader2 size={13} className="animate-spin" /> : <Eye size={13} />}Preview letter
               </button>
-              <button className="rw-btn outline sm" disabled={packetPreviewLoading} onClick={handlePacketPdfPreview} title="Cover page + letters + attached documents, merged — exactly what the payer's fax prints">
+              <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" disabled={packetPreviewLoading} onClick={handlePacketPdfPreview} title="Cover page + letters + attached documents, merged — exactly what the payer's fax prints">
                 {packetPreviewLoading ? <Loader2 size={13} className="animate-spin" /> : <FileText size={13} />}Preview whole packet
               </button>
-              <button className="rw-btn primary sm" disabled={sending || !faxNumber.trim()} onClick={() => setSendConfirmOpen(true)}>
+              <button className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-45 disabled:cursor-not-allowed" disabled={sending || !faxNumber.trim()} onClick={() => setSendConfirmOpen(true)}>
                 <Send size={13} />Fax the packet
               </button>
             </div>

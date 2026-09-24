@@ -73,9 +73,11 @@
     --status-rejected-bg: 0 84% 95%;
     --status-rejected-fg: 0 72% 42%;
 
-    /* ── Dirxctional App UI raw tokens (used by redesign pages, e.g. wizard.css) ──
+    /* ── Dirxctional App UI raw tokens ──
        Hex constants for the brand triad + scales. Coexist with the shadcn HSL
-       tokens above; the redesign component CSS references these by name. */
+       tokens above; components reference these by name via inline styles /
+       Tailwind arbitrary values (the bespoke component CSS was retired in
+       UI v2 phase 6b). */
     --color-navy: #1B2B5B;
     --color-navy-dark: #121D3E;
     --color-teal: #14B8A6;

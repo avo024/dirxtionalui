@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { DynamicIcon } from "@/components/DynamicIcon";
+import { PageContainer } from "@/components/patterns/PageContainer";
 
 import {
   cancelAddonRequest,
@@ -76,8 +77,8 @@ export default function Services() {
   if (error) {
     const status = (error as Error & { status?: number }).status;
     return (
-      <div className="rw-page rw-fade max-w-2xl">
-        <h1 className="text-2xl font-semibold serif text-foreground mb-2">Services</h1>
+      <PageContainer className="max-w-2xl">
+        <h1 className="text-2xl font-semibold font-editorial text-foreground mb-2">Services</h1>
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
             {status === 403
@@ -85,7 +86,7 @@ export default function Services() {
               : (error as Error).message || "Failed to load services."}
           </CardContent>
         </Card>
-      </div>
+      </PageContainer>
     );
   }
 
@@ -95,9 +96,9 @@ export default function Services() {
   const availableCatalog = catalog.filter((a) => a.state !== "active");
 
   return (
-    <div className="rw-page rw-fade space-y-6">
+    <PageContainer className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold serif text-foreground">Services</h1>
+        <h1 className="text-2xl font-semibold font-editorial text-foreground">Services</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Manage your Dirxctional plan and add-on services
         </p>
@@ -361,6 +362,6 @@ export default function Services() {
           if (cancelTarget) cancelMutation.mutate(cancelTarget.id);
         }}
       />
-    </div>
+    </PageContainer>
   );
 }

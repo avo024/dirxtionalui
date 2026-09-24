@@ -24,7 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import "./wizard.css";
+import { PageContainer } from "@/components/patterns/PageContainer";
 
 const statusDescriptions: Record<string, string> = {
   uploaded: "Your referral has been received and is awaiting review.",
@@ -242,14 +242,14 @@ export default function ReferralDetail() {
   };
 
   if (loading) {
-    return <div className="rw-page flex justify-center py-20"><Loader2 width={26} height={26} className="animate-spin text-primary" /></div>;
+    return <PageContainer fade={false} className="flex justify-center py-20"><Loader2 width={26} height={26} className="animate-spin text-primary" /></PageContainer>;
   }
   if (error || !referral) {
     return (
-      <div className="rw-page text-center py-20">
+      <PageContainer fade={false} className="text-center py-20">
         <p className="text-muted-foreground">{error || "Referral not found"}</p>
         <Button variant="outline" className="mt-4" onClick={() => navigate(-1)}>Back to Referrals</Button>
-      </div>
+      </PageContainer>
     );
   }
 
@@ -293,7 +293,7 @@ export default function ReferralDetail() {
   };
 
   return (
-    <div className="rw-page rw-fade">
+    <PageContainer>
       <button className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-4" onClick={() => navigate(-1)}>
         <ArrowLeft width={15} height={15} strokeWidth={1.75} />Back to Referrals
       </button>
@@ -302,7 +302,7 @@ export default function ReferralDetail() {
       <div className="flex items-start justify-between gap-4 flex-wrap mb-5">
         <div>
           <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-2xl font-semibold serif text-foreground">{referral.patient_name || patientFullName}</h1>
+            <h1 className="text-2xl font-semibold font-editorial text-foreground">{referral.patient_name || patientFullName}</h1>
             <StatusBadge status={referral.status} size="md" showIcon variant="soft" />
             <span className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-0.5 text-xs font-mono text-muted-foreground">
               {referral.id.toUpperCase()}
@@ -523,7 +523,7 @@ export default function ReferralDetail() {
 
       {/* Edit drawer */}
       {editing && <EditDrawer referralId={id!} data={data} flaggedSet={adminFlaggedSet} onClose={() => setEditing(false)} onSaved={() => { setEditing(false); loadData(); }} />}
-    </div>
+    </PageContainer>
   );
 }
 

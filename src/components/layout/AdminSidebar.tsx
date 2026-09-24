@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { LayoutDashboard, FileText, Building2, Hospital, LogOut, LineChart, MessageSquare, BarChart3, Printer } from "lucide-react";
+import { FileText, Building2, Hospital, LogOut, LineChart, MessageSquare, BarChart3, Printer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { adminApi } from "@/lib/api";
@@ -9,10 +9,9 @@ import { useWaitingOnUsCount } from "@/hooks/useWaitingOnUsCount";
 import logo from "@/assets/logo.png";
 
 const navItems = [
-  // Referrals (the queue) is the default landing surface — Dashboard is
-  // retired in phase 6b and kept below it for now (Alex, phase 6a).
+  // Referrals (the queue) is the default landing surface — Dashboard was
+  // retired in phase 6b; /admin and /admin/dashboard now redirect here.
   { label: "Referrals", icon: FileText, path: "/admin/referrals" },
-  { label: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
   // Analytics live on their own page (gate by role later — workers don't
   // need clinic volumes and trend lines on the daily surface).
   { label: "Insights", icon: BarChart3, path: "/admin/insights" },

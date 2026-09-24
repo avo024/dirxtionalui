@@ -19,7 +19,7 @@ import { TutorialsMenu } from "@/components/tutorials/TutorialsMenu";
 import { useTour } from "@/components/tutorials/useTour";
 import { useSupportUnread } from "@/components/support/useSupportUnread";
 import { cn } from "@/lib/utils";
-import "./wizard.css";
+import { PageContainer } from "@/components/patterns/PageContainer";
 
 const CAT_OPTIONS = [
   { value: "support", label: "Support", Icon: LifeBuoy, sub: "Something isn't working or you need a hand." },
@@ -64,7 +64,7 @@ export default function ClinicSupportCenter() {
   const selectCase = (id: string) => setSearchParams({ case: id });
 
   return (
-    <div className="rw-page rw-fade">
+    <PageContainer>
       <div className="mb-5">
         <h1 className="text-2xl font-semibold text-foreground">Help &amp; Support</h1>
         <p className="text-sm text-muted-foreground mt-1">Have a question, run into an issue, or want to share an idea? We're here to help — most messages get a reply the same day.</p>
@@ -146,7 +146,7 @@ export default function ClinicSupportCenter() {
           <TutorialsMenu onRun={(key) => { setTutorialsOpen(false); window.setTimeout(() => runTour(key), 80); }} />
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContainer>
   );
 }
 

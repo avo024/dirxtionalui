@@ -13,6 +13,7 @@ import { DefinitionList } from "@/components/patterns/DefinitionList";
 import { pharmacyApi } from "@/lib/api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { PageContainer } from "@/components/patterns/PageContainer";
 
 function formatPhone(value: string | null): string {
   if (!value) return "—";
@@ -59,24 +60,24 @@ export default function PharmacyDetail() {
 
   if (isLoading) {
     return (
-      <div className="rw-page rw-fade">
+      <PageContainer>
         <div className="flex flex-col gap-2">
           {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-14 w-full" />)}
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
   if (isError || !pharmacy) {
     return (
-      <div className="rw-page rw-fade">
+      <PageContainer>
         <div className="flex flex-col items-center gap-2 py-16 text-center">
           <span className="flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10 text-destructive"><ShieldOff width={24} height={24} strokeWidth={1.75} /></span>
           <h3 className="text-base font-semibold text-foreground">Pharmacy not found</h3>
           <p className="text-sm text-muted-foreground">We couldn't load this pharmacy.</p>
           <Button size="sm" onClick={() => navigate("/admin/pharmacies")}>Back to pharmacies</Button>
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
@@ -94,7 +95,7 @@ export default function PharmacyDetail() {
   ];
 
   return (
-    <div className="rw-page rw-fade">
+    <PageContainer>
       <Button variant="ghost" size="sm" className="mb-3 -ml-2 text-muted-foreground" onClick={() => navigate("/admin/pharmacies")}>
         <ArrowLeft width={16} height={16} strokeWidth={1.75} />All pharmacies
       </Button>
@@ -104,7 +105,7 @@ export default function PharmacyDetail() {
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">{getInitials(p.name)}</span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-xl font-semibold serif text-foreground truncate">{p.name}</h1>
+            <h1 className="text-xl font-semibold font-editorial text-foreground truncate">{p.name}</h1>
             <StatusPill active={p.is_active} />
             {p.accepts_no_insurance && (
               <span className="inline-flex items-center gap-1 rounded-full bg-warning/15 text-[#92610B] px-2 py-0.5 text-[11px] font-medium">
@@ -162,6 +163,6 @@ export default function PharmacyDetail() {
         variant="destructive"
         onConfirm={() => deleteMutation.mutate()}
       />
-    </div>
+    </PageContainer>
   );
 }

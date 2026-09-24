@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { FilterToolbar } from "@/components/patterns/FilterToolbar";
 import { cn } from "@/lib/utils";
+import { PageContainer } from "@/components/patterns/PageContainer";
 
 type Tab = "inbound" | "outbound";
 
@@ -142,9 +143,9 @@ export default function FaxCenter() {
   };
 
   return (
-    <div className="rw-page rw-fade">
+    <PageContainer>
       <div className="mb-5">
-        <h1 className="text-2xl font-semibold serif text-foreground">Fax Center</h1>
+        <h1 className="text-2xl font-semibold font-editorial text-foreground">Fax Center</h1>
         <p className="text-sm text-muted-foreground mt-1">All inbound and outbound fax traffic across referrals, appeals, and enrollments</p>
       </div>
 
@@ -283,6 +284,6 @@ export default function FaxCenter() {
           <p className="text-sm text-muted-foreground">Referral, appeal, and enrollment faxes will show up here as they're sent.</p>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

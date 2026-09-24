@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { PageContainer } from "@/components/patterns/PageContainer";
 
 const US_STATES = [
   ["AL", "Alabama"], ["AK", "Alaska"], ["AZ", "Arizona"], ["AR", "Arkansas"], ["CA", "California"], ["CO", "Colorado"],
@@ -110,10 +111,10 @@ export default function CreatePatient() {
 
   if (created) {
     return (
-      <div className="rw-page rw-fade max-w-xl mx-auto">
+      <PageContainer className="max-w-xl mx-auto">
         <div className="flex flex-col items-center gap-3 text-center py-10">
           <span className="flex h-16 w-16 items-center justify-center rounded-full bg-success/15 text-success"><Check width={32} height={32} strokeWidth={1.75} /></span>
-          <h1 className="text-2xl font-semibold serif text-foreground">Patient added</h1>
+          <h1 className="text-2xl font-semibold font-editorial text-foreground">Patient added</h1>
           <p className="text-sm text-muted-foreground"><b className="text-foreground font-semibold">{created.name.trim() || "The patient"}</b> has been added to the system.</p>
 
           <div className="flex items-center gap-3 w-full rounded-lg border border-border bg-card p-4 text-left mt-2">
@@ -130,18 +131,18 @@ export default function CreatePatient() {
             <Button variant="ghost" onClick={reset}><Plus width={15} height={15} strokeWidth={1.75} />Add another patient</Button>
           </div>
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
   return (
-    <div className="rw-page rw-fade max-w-3xl mx-auto">
+    <PageContainer className="max-w-3xl mx-auto">
       <Button variant="ghost" size="sm" className="-ml-2 mb-3 text-muted-foreground" onClick={() => navigate("/clinic/patients")}>
         <ArrowLeft width={16} height={16} strokeWidth={1.75} />Back to Patients
       </Button>
 
       <div className="mb-5">
-        <h1 className="text-2xl font-semibold serif text-foreground">Add New Patient</h1>
+        <h1 className="text-2xl font-semibold font-editorial text-foreground">Add New Patient</h1>
         <p className="text-sm text-muted-foreground mt-1">Enter patient demographics to add them to the system</p>
       </div>
 
@@ -173,7 +174,7 @@ export default function CreatePatient() {
           {submitting ? <><Loader2 width={15} height={15} strokeWidth={1.75} className="animate-spin" />Creating…</> : <><UserPlus width={15} height={15} strokeWidth={1.75} />Create Patient</>}
         </Button>
       </div>
-    </div>
+    </PageContainer>
   );
 }
 

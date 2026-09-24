@@ -19,6 +19,7 @@ import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { PageContainer } from "@/components/patterns/PageContainer";
 
 type Patient = {
   id: string;
@@ -425,10 +426,10 @@ export default function CreateReferral() {
   // ── SUCCESS ──
   if (submitted) {
     return (
-      <div className="rw-page">
-        <div className="rw-fade flex flex-col items-center gap-3 text-center py-10 max-w-lg mx-auto">
+      <PageContainer fade={false}>
+        <div className="animate-in fade-in slide-in-from-bottom-1 duration-300 flex flex-col items-center gap-3 text-center py-10 max-w-lg mx-auto">
           <span className="flex h-16 w-16 items-center justify-center rounded-full bg-success/15 text-success"><CheckCircle width={34} height={34} strokeWidth={1.75} /></span>
-          <h1 className="text-2xl font-semibold serif text-foreground">We'll Take It From Here!</h1>
+          <h1 className="text-2xl font-semibold font-editorial text-foreground">We'll Take It From Here!</h1>
           <p className="text-sm text-muted-foreground">Referral submitted successfully! Our AI is extracting the details now and our team will review within the hour.</p>
           <div className="font-mono text-sm font-semibold rounded-md bg-muted px-3 py-1.5 text-foreground">REF-{String(Math.floor(Math.random() * 900000) + 100000)}</div>
           <div className="flex items-center gap-2 mt-2">
@@ -441,7 +442,7 @@ export default function CreateReferral() {
             }}>Create Another</Button>
           </div>
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
@@ -457,10 +458,10 @@ export default function CreateReferral() {
   ];
 
   return (
-    <div className="rw-page">
+    <PageContainer fade={false}>
       {/* Bar A — header */}
       <div>
-        <h1 className="text-2xl font-semibold serif text-foreground">New Referral</h1>
+        <h1 className="text-2xl font-semibold font-editorial text-foreground">New Referral</h1>
         <p className="text-sm text-muted-foreground mt-1">Quick 4-step process to submit a referral</p>
       </div>
 
@@ -531,7 +532,7 @@ export default function CreateReferral() {
             {currentStep === 1 && !referralMethod && <MethodFork onPick={setReferralMethod} />}
 
             {currentStep === 1 && referralMethod === "upload" && (
-              <div className="rw-fade flex flex-col gap-5">
+              <div className="animate-in fade-in slide-in-from-bottom-1 duration-300 flex flex-col gap-5">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wide text-primary">Step 2 of 4</p>
                   <h2 className="text-lg font-semibold text-foreground mt-1">Upload Documents</h2>
@@ -545,7 +546,7 @@ export default function CreateReferral() {
             )}
 
             {currentStep === 1 && referralMethod === "manual" && (
-              <div className="rw-fade flex flex-col gap-5">
+              <div className="animate-in fade-in slide-in-from-bottom-1 duration-300 flex flex-col gap-5">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wide text-primary">Step 2 of 4</p>
                   <h2 className="text-lg font-semibold text-foreground mt-1">Enter Referral Information</h2>
@@ -624,14 +625,14 @@ export default function CreateReferral() {
         onOpenChange={setShowNewPatientModal}
         onCreated={(patient: any) => { setSelectedPatient(patient); setPatientMode("existing"); setPatientSearch(""); }}
       />
-    </div>
+    </PageContainer>
   );
 }
 
 /* ── Step 1 ── */
 function Step1Patient({ search, setSearch, results, selected, onSelect, onClear, onAddNew, getName, getPhone }: any) {
   return (
-    <div className="rw-fade">
+    <div className="animate-in fade-in slide-in-from-bottom-1 duration-300">
       <div className="mb-4">
         <p className="text-xs font-semibold uppercase tracking-wide text-primary">Step 1 of 4</p>
         <h2 className="text-lg font-semibold text-foreground mt-1">Select Patient</h2>
@@ -687,7 +688,7 @@ function Step1Patient({ search, setSearch, results, selected, onSelect, onClear,
 /* ── Step 2 — method fork ── */
 function MethodFork({ onPick }: { onPick: (m: "upload" | "manual") => void }) {
   return (
-    <div className="rw-fade">
+    <div className="animate-in fade-in slide-in-from-bottom-1 duration-300">
       <div className="mb-4">
         <p className="text-xs font-semibold uppercase tracking-wide text-primary">Step 2 of 4</p>
         <h2 className="text-lg font-semibold text-foreground mt-1">How would you like to create this referral?</h2>
@@ -869,7 +870,7 @@ function ManualScroll({ data, setField, choice, setChoice, showErrors }: any) {
 /* ── Step 3 — pharmacy dropdown ── */
 function Step3Pharmacy({ loading, pharmacies, selectedId, defaultId, onSelect, selected }: any) {
   return (
-    <div className="rw-fade flex flex-col gap-4">
+    <div className="animate-in fade-in slide-in-from-bottom-1 duration-300 flex flex-col gap-4">
       <div>
         <p className="text-xs font-semibold uppercase tracking-wide text-primary">Step 3 of 4</p>
         <h2 className="text-lg font-semibold text-foreground mt-1">Select pharmacy for this referral</h2>
@@ -941,7 +942,7 @@ function ReviewField({ label, value }: { label: string; value?: string }) {
 }
 function Step4Review({ patient, getName, pharmacy, isDefault, method, choice, files, manualData, confirm, setConfirm }: any) {
   return (
-    <div className="rw-fade flex flex-col gap-4">
+    <div className="animate-in fade-in slide-in-from-bottom-1 duration-300 flex flex-col gap-4">
       <div>
         <p className="text-xs font-semibold uppercase tracking-wide text-primary">Step 4 of 4</p>
         <h2 className="text-lg font-semibold text-foreground mt-1">Submit Referral</h2>

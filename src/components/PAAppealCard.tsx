@@ -1,11 +1,14 @@
 import { useState } from "react";
 import { AlertTriangle, Scale, CheckCircle2 } from "lucide-react";
 import { ConfirmModal } from "@/components/ConfirmModal";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { adminApi } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 
 /**
- * Level-1 appeal controls for the admin referral review screen.
+ * Level-1 appeal controls for the admin referral workstation.
  * Renders only when the PA is denied (Start appeal) or in appeal (URGENT
  * banner + the three outcomes). Appeals won rejoin the normal pipeline —
  * the team records the new approval on the PA card, then Approve → Send.
@@ -29,22 +32,22 @@ export function PAAppealCard({ referral, referralId, onChanged }: {
   if (terminal) {
     const isLevel2 = referral.appeal_outcome === "level2";
     return (
-      <div className="arr-card" style={{ background: "color-mix(in srgb, var(--text-muted) 5%, transparent)" }}>
-        <div className="arr-card-head">
-          <span className="hi"><Scale size={15} /></span>
-          <h3>PA Appeal</h3>
-          <span className="he" style={{ marginLeft: "auto" }}>
-            <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 9999, background: "color-mix(in srgb, var(--text-muted) 12%, transparent)", color: "var(--text-muted)" }}>
-              {isLevel2 ? "LEVEL 2 — HANDED OFF" : "FINAL — NO FURTHER APPEAL"}
-            </span>
+      <Card className="bg-muted-foreground/5 p-[var(--density-card-pad)]">
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary">
+            <Scale width={15} height={15} strokeWidth={1.75} />
+          </span>
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">PA Appeal</h3>
+          <span className="ml-auto inline-flex items-center rounded-full bg-muted-foreground/12 px-2.5 py-1 text-[11px] font-bold text-muted-foreground">
+            {isLevel2 ? "LEVEL 2 — HANDED OFF" : "FINAL — NO FURTHER APPEAL"}
           </span>
         </div>
-        <p className="text-sm" style={{ color: "var(--text-muted)", margin: 0, lineHeight: 1.55 }}>
+        <p className="mt-2.5 text-sm leading-relaxed text-muted-foreground">
           {isLevel2
             ? "The level-1 appeal was lost and this moved to Level 2 — the insurer works with the clinic directly now. Nothing for us to do here; the clinic was emailed. If they report a level-2 win, record the approval on the PA card. Archive this referral when done."
             : "The appeal was lost and this drug has no second appeal level — the payer's decision is final. The clinic was emailed with bridge/cash options. Archive this referral when done."}
         </p>
-      </div>
+      </Card>
     );
   }
 
@@ -80,21 +83,23 @@ export function PAAppealCard({ referral, referralId, onChanged }: {
   };
 
   return (
-    <div className="arr-card" style={paStatus === "appeal" ? { borderColor: "color-mix(in srgb, var(--color-error) 45%, transparent)" } : undefined}>
-      <div className="arr-card-head">
-        <span className="hi"><Scale size={15} /></span>
-        <h3>PA Appeal</h3>
+    <Card className={cn("p-[var(--density-card-pad)]", paStatus === "appeal" && "border-destructive/45")}>
+      <div className="flex items-center gap-2.5">
+        <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary">
+          <Scale width={15} height={15} strokeWidth={1.75} />
+        </span>
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">PA Appeal</h3>
         {paStatus === "appeal" && (
-          <span className="he" style={{ marginLeft: "auto", display: "inline-flex", gap: 6 }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 9999, background: "color-mix(in srgb, var(--color-error) 14%, transparent)", color: "var(--color-error)" }}>
-              <AlertTriangle size={11} />URGENT
+          <span className="ml-auto inline-flex items-center gap-1.5">
+            <span className="inline-flex items-center gap-1 rounded-full bg-destructive/14 px-2.5 py-1 text-[11px] font-bold text-destructive">
+              <AlertTriangle width={11} height={11} />URGENT
             </span>
             {overdue ? (
-              <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 9999, background: "color-mix(in srgb, var(--color-error) 14%, transparent)", color: "var(--color-error)" }}>
+              <span className="rounded-full bg-destructive/14 px-2.5 py-1 text-[11px] font-bold text-destructive">
                 FOLLOW-UP DUE
               </span>
             ) : hoursLeft !== null && (
-              <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 9px", borderRadius: 9999, background: "var(--color-teal-50)", color: "var(--color-teal-700)" }}>
+              <span className="rounded-full bg-teal-50 px-2.5 py-1 text-[11px] font-semibold text-teal-700">
                 check in {hoursLeft}h
               </span>
             )}
@@ -104,32 +109,37 @@ export function PAAppealCard({ referral, referralId, onChanged }: {
 
       {paStatus === "denied" && (
         <>
-          <p className="text-sm" style={{ color: "var(--text-muted)", margin: "0 0 10px", lineHeight: 1.5 }}>
+          <p className="mb-2.5 mt-2.5 text-sm leading-relaxed text-muted-foreground">
             The PA was denied. A level-1 appeal goes back to the insurer as
             expedited — most first appeals are worth filing.
           </p>
-          <button className="rw-btn primary sm" disabled={busy} onClick={() => setConfirm("start")}>
-            <Scale size={14} />Start appeal
-          </button>
+          <Button size="sm" disabled={busy} onClick={() => setConfirm("start")}>
+            <Scale width={14} height={14} strokeWidth={1.75} />Start appeal
+          </Button>
         </>
       )}
 
       {paStatus === "appeal" && (
         <>
-          <p className="text-sm" style={{ color: "var(--text-muted)", margin: "0 0 10px", lineHeight: 1.5 }}>
+          <p className="mb-2.5 mt-2.5 text-sm leading-relaxed text-muted-foreground">
             Level-1 appeal in progress with the insurer. Record the outcome when it lands:
           </p>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button className="rw-btn success sm" disabled={busy} onClick={() => setConfirm("won")}>
-              <CheckCircle2 size={14} />Appeal won
-            </button>
-            <button className="rw-btn outline sm" disabled={busy} onClick={() => setConfirm("level2")}>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" className="bg-success text-success-foreground hover:bg-success/90" disabled={busy} onClick={() => setConfirm("won")}>
+              <CheckCircle2 width={14} height={14} strokeWidth={1.75} />Appeal won
+            </Button>
+            <Button size="sm" variant="outline" disabled={busy} onClick={() => setConfirm("level2")}>
               Lost — hand off (Level 2)
-            </button>
-            <button className="rw-btn outline sm" disabled={busy} onClick={() => setConfirm("final")}
-              title="For single-appeal drugs (e.g. some topicals) — no level 2 exists">
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={busy}
+              onClick={() => setConfirm("final")}
+              title="For single-appeal drugs (e.g. some topicals) — no level 2 exists"
+            >
               Lost — final (no level 2)
-            </button>
+            </Button>
           </div>
         </>
       )}
@@ -153,6 +163,6 @@ export function PAAppealCard({ referral, referralId, onChanged }: {
         variant={confirm === "won" ? "success" : undefined}
         onConfirm={() => confirm && run(confirm)}
       />
-    </div>
+    </Card>
   );
 }

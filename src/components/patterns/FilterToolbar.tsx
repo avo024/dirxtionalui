@@ -9,6 +9,8 @@ interface FilterOption {
   count?: number;
   /** Count shown as a small destructive "n!" chip instead of the plain count. */
   alert?: number;
+  /** Optional `data-tour` anchor for onboarding tours to target this specific chip. */
+  dataTour?: string;
 }
 
 interface SelectSpec {
@@ -56,6 +58,7 @@ export function FilterToolbar({
               <button
                 key={f.value}
                 type="button"
+                data-tour={f.dataTour}
                 onClick={() => onFilter?.(f.value)}
                 className={cn(
                   "inline-flex items-center gap-1.5 rounded-[calc(var(--radius)-4px)] px-3 h-[var(--density-control-h-xs)] text-sm font-medium transition-colors",

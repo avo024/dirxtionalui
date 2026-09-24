@@ -11,6 +11,7 @@ import { SupportStatusBadge } from "@/components/SupportStatusBadge";
 import { Button } from "@/components/ui/button";
 import { MessageThread } from "@/components/patterns/MessageThread";
 import { cn } from "@/lib/utils";
+import { PageContainer } from "@/components/patterns/PageContainer";
 
 type CaseData = { case: SupportCaseSummary; messages: SupportMessage[] };
 
@@ -67,12 +68,12 @@ export default function AdminSupportDetail() {
 
   if (loading) {
     return (
-      <div className="rw-page flex justify-center py-16">
+      <PageContainer fade={false} className="flex justify-center py-16">
         <Loader2 width={26} height={26} strokeWidth={1.75} className="animate-spin text-primary" />
-      </div>
+      </PageContainer>
     );
   }
-  if (!data) return <div className="rw-page py-10 text-sm text-muted-foreground">Case not found.</div>;
+  if (!data) return <PageContainer fade={false} className="py-10 text-sm text-muted-foreground">Case not found.</PageContainer>;
 
   const c = data.case;
   const status = c.status;
@@ -89,7 +90,7 @@ export default function AdminSupportDetail() {
   ];
 
   return (
-    <div className="rw-page rw-fade">
+    <PageContainer>
       <div className="flex items-start gap-3 mb-4">
         <Button variant="ghost" size="icon" className="mt-0.5" onClick={() => navigate("/admin/support")} title="Back to cases">
           <ArrowLeft width={17} height={17} strokeWidth={1.75} />
@@ -173,6 +174,6 @@ export default function AdminSupportDetail() {
         } : undefined}
       />
       {sending && <div className="sr-only">Sending…</div>}
-    </div>
+    </PageContainer>
   );
 }

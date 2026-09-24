@@ -34,6 +34,7 @@ import { PAAppealCard } from "@/components/PAAppealCard";
 import { AppealPacketCard } from "@/components/AppealPacketCard";
 import { EnrollmentCard } from "@/components/EnrollmentCard";
 import { ReferralTasksCard } from "@/components/ReferralTasksCard";
+import { EligibilityPanel } from "@/components/EligibilityPanel";
 import { ExtractionEditor } from "@/components/admin/ExtractionEditor";
 import { getDisplayAuthor } from "@/lib/noteAuthor";
 import { cn } from "@/lib/utils";
@@ -650,8 +651,6 @@ export default function AdminReferralWorkstation() {
     else if (item === "Preview PDF") moreItems.push({ label: "Preview PDF", onClick: handlePreviewPDF });
     else if (item === "Return to review") moreItems.push({ label: "Return to review", onClick: () => setReturnOpen(true) });
   }
-  moreItems.push("-", { label: "Legacy view", onClick: () => navigate(`/admin/referrals/${id}/legacy`) });
-
   // ── Primary / secondary handlers ──────────────────────────────────
   function actionFor(label: string | null): (() => void) | undefined {
     if (!label) return undefined;
@@ -812,6 +811,9 @@ export default function AdminReferralWorkstation() {
       case "review":
         cards.push(medicationCard, clinicalCard, patientCard, prescriberCard);
         if (referral.insurance_expired) cards.push(insuranceCard);
+        // Re-homed from the retired legacy review page (phase 6b) — renders
+        // nothing when eligibility hasn't been checked or was skipped.
+        cards.push(<EligibilityPanel key="eligibility" referral={referral} referralId={id!} />);
         break;
       case "pa_pending":
         cards.push(

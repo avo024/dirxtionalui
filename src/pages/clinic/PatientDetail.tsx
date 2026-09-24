@@ -18,7 +18,7 @@ import { clinicApi } from "@/lib/api";
 import { mapReferralsFromBackend } from "@/lib/dataMapper";
 import { formatDateShort, parseLocalDate } from "@/lib/dateUtils";
 import { toast } from "sonner";
-import "./wizard.css";
+import { PageContainer } from "@/components/patterns/PageContainer";
 
 const US_STATES = [
   "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA",
@@ -132,19 +132,19 @@ export default function PatientDetail() {
   };
   const setField = (k: string, v: string) => setDraft((d: any) => ({ ...d, [k]: v }));
 
-  if (loading) return <div className="rw-page" style={{ display: "flex", justifyContent: "center", padding: 80 }}><Loader2 width={26} height={26} className="animate-spin text-primary" /></div>;
+  if (loading) return <PageContainer fade={false} style={{ display: "flex", justifyContent: "center", padding: 80 }}><Loader2 width={26} height={26} className="animate-spin text-primary" /></PageContainer>;
   if (error || !patient) return (
-    <div className="rw-page text-center py-20">
+    <PageContainer fade={false} className="text-center py-20">
       <p className="text-muted-foreground">{error || "Patient not found"}</p>
       <Button variant="outline" className="mt-4" onClick={() => navigate("/clinic/patients")}>Back to Patients</Button>
-    </div>
+    </PageContainer>
   );
 
   const fullName = patient.full_name || `${patient.first_name || ""} ${patient.last_name || ""}`.trim() || "—";
   const firstName = patient.full_name?.split(" ")[0] || "Patient";
 
   return (
-    <div className="rw-page rw-fade">
+    <PageContainer>
       <button className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-4" onClick={() => navigate("/clinic/patients")}>
         <ArrowLeft width={15} height={15} strokeWidth={1.75} />Back to Patients
       </button>
@@ -152,7 +152,7 @@ export default function PatientDetail() {
       {/* Header */}
       <div className="flex items-center justify-between mb-5 gap-4 flex-wrap">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-semibold serif text-foreground">{fullName}</h1>
+          <h1 className="text-2xl font-semibold font-editorial text-foreground">{fullName}</h1>
           <span className="text-sm text-muted-foreground">{patient.dob ? `${formatDateShort(patient.dob)} · Age ${getAge(patient.dob)}` : "—"}</span>
           <IdChip id={patient.id} />
         </div>
@@ -356,6 +356,6 @@ export default function PatientDetail() {
           </div>
         </>
       )}
-    </div>
+    </PageContainer>
   );
 }

@@ -17,7 +17,7 @@ import { OVERVIEW_SEEN_KEY } from "@/components/tutorials/tours";
 import { ClinicSettingsModal } from "@/components/ClinicSettingsModal";
 import { mapReferralsFromBackend } from "@/lib/dataMapper";
 import { getGreeting, getFormattedDate, formatDateShort } from "@/lib/dateUtils";
-import "./wizard.css";
+import { PageContainer } from "@/components/patterns/PageContainer";
 
 export default function ClinicDashboard() {
   const { user } = useAuth();
@@ -68,11 +68,11 @@ export default function ClinicDashboard() {
   const sortedRecentReferrals = [...referrals].sort((a, b) => (urgencyOrder[a.status] ?? 99) - (urgencyOrder[b.status] ?? 99)).slice(0, 5);
 
   return (
-    <div className="rw-page rw-fade">
+    <PageContainer>
       {/* Header */}
       <div className="flex items-center justify-between mb-5 gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold serif text-foreground">{getGreeting()}, {user?.clinic_name}</h1>
+          <h1 className="text-2xl font-semibold font-editorial text-foreground">{getGreeting()}, {user?.clinic_name}</h1>
           <p className="text-sm text-muted-foreground mt-1">Here's what's happening with your referrals today</p>
         </div>
         <div className="flex items-center gap-3">
@@ -229,6 +229,6 @@ export default function ClinicDashboard() {
         </>
       )}
       <ClinicSettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
-    </div>
+    </PageContainer>
   );
 }

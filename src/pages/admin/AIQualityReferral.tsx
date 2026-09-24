@@ -11,6 +11,7 @@ import { getRelativeTime } from "@/lib/dateUtils";
 import { renderFieldValue } from "@/lib/aiQualityFormat";
 import type { AIQualityCorrection, AIQualityReferralDocument } from "@/lib/aiQualityApi";
 import { cn } from "@/lib/utils";
+import { PageContainer } from "@/components/patterns/PageContainer";
 
 function isDiagnosisLikeArray(v: unknown): boolean {
   return (
@@ -56,27 +57,27 @@ export default function AIQualityReferral() {
 
   if (isLoading) {
     return (
-      <div className="rw-page rw-fade flex justify-center py-16">
+      <PageContainer className="flex justify-center py-16">
         <Loader2 width={26} height={26} strokeWidth={1.75} className="animate-spin text-primary" />
-      </div>
+      </PageContainer>
     );
   }
 
   if (isError || !data) {
     return (
-      <div className="rw-page rw-fade">
+      <PageContainer>
         <Link className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground" to="/admin/ai-quality">
           <ArrowLeft width={15} height={15} strokeWidth={1.75} />Back to AI Quality
         </Link>
         <div className="bg-card border border-destructive/30 rounded-lg p-[var(--density-card-pad)] mt-4 text-sm text-destructive">
           Failed to load: {(error as Error)?.message ?? "Unknown error"}
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
   return (
-    <div className="rw-page rw-fade">
+    <PageContainer>
       {/* Header */}
       <div className="flex items-center gap-3 flex-wrap mb-5">
         <Link className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground" to="/admin/ai-quality">
@@ -118,7 +119,7 @@ export default function AIQualityReferral() {
 
       {/* Raw JSON */}
       <RawJson data={data.extracted_data} />
-    </div>
+    </PageContainer>
   );
 }
 
