@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft, FileText, Clock, User, Pill, Stethoscope, Shield, Copy, CheckCircle,
   Send, Upload, Loader2, XCircle, AlertTriangle, Image, RefreshCw,
-  Circle, Inbox, Save, X, Pencil, ArrowRight, Printer, Paperclip, ClipboardList, Download,
+  Circle, Inbox, Save, X, Pencil, ArrowRight, Printer, Paperclip, ClipboardList, Download, Eye,
 } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ClinicPABadge } from "@/components/ClinicPABadge";
@@ -15,17 +15,36 @@ import { underlineTabsListClass, underlineTabsTriggerClass } from "@/components/
 import { DefinitionList } from "@/components/patterns/DefinitionList";
 import { MessageThread } from "@/components/patterns/MessageThread";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { DocumentViewer } from "@/components/DocumentViewer";
 import type { ReferralStatus } from "@/types";
 import { clinicApi } from "@/lib/api";
 import { mapReferralFromBackend } from "@/lib/dataMapper";
 import { formatDateTime, formatDateShort } from "@/lib/dateUtils";
 import { toast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Combobox } from "@/components/ui/combobox";
 import { DatePicker } from "@/components/ui/date-picker";
 import { PageContainer } from "@/components/patterns/PageContainer";
+
+// Two-pane Documents tab kicks in at >=1024px; below that a Sheet is used
+// instead of squeezing a resizable split onto a narrow viewport.
+const DOCS_SPLIT_BREAKPOINT = 1024;
+function useIsNarrowForDocs() {
+  const [narrow, setNarrow] = useState(() => (typeof window !== "undefined" ? window.innerWidth < DOCS_SPLIT_BREAKPOINT : false));
+  useEffect(() => {
+    const mql = window.matchMedia(`(max-width: ${DOCS_SPLIT_BREAKPOINT - 1}px)`);
+    const onChange = () => setNarrow(window.innerWidth < DOCS_SPLIT_BREAKPOINT);
+    mql.addEventListener("change", onChange);
+    onChange();
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
+  return narrow;
+}
 
 const statusDescriptions: Record<string, string> = {
   uploaded: "Your referral has been received and is awaiting review.",
@@ -148,6 +167,8 @@ export default function ReferralDetail() {
   const [tasks, setTasks] = useState<any[]>([]);
   const [attachingNote, setAttachingNote] = useState(false);
   const noteFileRef = useRef<HTMLInputElement>(null);
+  const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
+  const isNarrowForDocs = useIsNarrowForDocs();
 
   const loadData = () => {
     if (!id) return;
@@ -175,6 +196,30 @@ export default function ReferralDetail() {
   useEffect(() => {
     if (tab === "notes" && id) localStorage.setItem(`notes_last_viewed_${id}`, new Date().toISOString());
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Documents tab preview: Up/Down moves the selection, Escape closes.
+  // Only active while a document is actually selected on the Documents tab —
+  // never hijacks arrow keys typed elsewhere (Notes textarea, edit drawer).
+  useEffect(() => {
+    if (tab !== "documents" || !selectedDocId) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      const activeTag = (document.activeElement?.tagName || "").toLowerCase();
+      if (["input", "textarea", "select"].includes(activeTag)) return;
+      if (e.key === "Escape") {
+        setSelectedDocId(null);
+        return;
+      }
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        const idx = documents.findIndex((d: any) => d.id === selectedDocId);
+        if (idx === -1) return;
+        e.preventDefault();
+        const nextIdx = e.key === "ArrowDown" ? Math.min(idx + 1, documents.length - 1) : Math.max(idx - 1, 0);
+        setSelectedDocId(documents[nextIdx]?.id ?? selectedDocId);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [tab, selectedDocId, documents]);
 
   const handleUpload = async (file: File, docType: string) => {
     if (!id) return;
@@ -292,6 +337,7 @@ export default function ReferralDetail() {
       toast({ title: "Couldn't open document", description: e.message, variant: "destructive" });
     }
   };
+  const selectedDoc = selectedDocId ? documents.find((d: any) => d.id === selectedDocId) : undefined;
 
   return (
     <PageContainer>
@@ -423,12 +469,67 @@ export default function ReferralDetail() {
           </div>
         </TabsContent>
 
-        {/* DOCUMENTS — flat list, never a side-by-side viewer */}
+        {/* DOCUMENTS — full-width list by default; selecting a document opens
+            a preview beside it (two-pane resizable split >=1024px, a Sheet
+            below that). Preview first, download second. */}
         <TabsContent value="documents" className="pt-5">
           {documents.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-16 text-center">
               <span className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground"><FileText width={20} height={20} strokeWidth={1.75} /></span>
               <p className="text-sm font-semibold text-foreground">No documents yet</p>
+            </div>
+          ) : selectedDoc && !isNarrowForDocs ? (
+            <div className="h-[70vh] min-h-[460px] rounded-lg border border-border overflow-hidden">
+              <ResizablePanelGroup direction="horizontal" className="h-full">
+                <ResizablePanel defaultSize={34} minSize={28} maxSize={45} className="min-h-0 bg-card">
+                  <div className="h-full overflow-y-auto">
+                    {documents.map((doc: any) => {
+                      const DocIcon = docIcon(doc.original_filename || doc.file_name || "");
+                      const isTeam = !!doc.from_team;
+                      const active = doc.id === selectedDocId;
+                      return (
+                        <button
+                          key={doc.id}
+                          type="button"
+                          onClick={() => setSelectedDocId(doc.id)}
+                          className={cn(
+                            "flex w-full items-center gap-2.5 px-3 py-2.5 border-b border-border text-left last:border-0",
+                            active ? "bg-primary/8" : "hover:bg-muted/60",
+                          )}
+                        >
+                          <span className={cn(
+                            "flex h-7 w-7 shrink-0 items-center justify-center rounded-md",
+                            active ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground",
+                          )}>
+                            <DocIcon width={14} height={14} strokeWidth={1.75} />
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <p className={cn("text-xs font-semibold truncate", active ? "text-primary" : "text-foreground")}>
+                              {doc.original_filename || doc.file_name || doc.name || "Document"}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground truncate">
+                              {formatDateShort(doc.uploaded_at || doc.created_at)}
+                              {doc.doc_type && ` · ${doc.doc_type.replace(/_/g, " ")}`}
+                              {isTeam && " · Team"}
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </ResizablePanel>
+                <ResizableHandle withHandle />
+                <ResizablePanel minSize={35} className="min-h-0">
+                  <DocumentPreviewPane
+                    key={selectedDoc.id}
+                    doc={selectedDoc}
+                    documents={documents}
+                    referralId={id!}
+                    onClose={() => setSelectedDocId(null)}
+                    animate
+                  />
+                </ResizablePanel>
+              </ResizablePanelGroup>
             </div>
           ) : (
             <div className="rounded-lg border border-border bg-card overflow-hidden">
@@ -436,7 +537,11 @@ export default function ReferralDetail() {
                 const DocIcon = docIcon(doc.original_filename || doc.file_name || "");
                 const isTeam = !!doc.from_team;
                 return (
-                  <div key={doc.id} className="flex items-center gap-3 px-4 py-3 border-b border-border last:border-0">
+                  <div
+                    key={doc.id}
+                    className="flex items-center gap-3 px-4 py-3 border-b border-border last:border-0 cursor-pointer hover:bg-muted/40"
+                    onClick={() => setSelectedDocId(doc.id)}
+                  >
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><DocIcon width={16} height={16} strokeWidth={1.75} /></span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-foreground truncate">{doc.original_filename || doc.file_name || doc.name || "Document"}</p>
@@ -446,12 +551,33 @@ export default function ReferralDetail() {
                         {isTeam && " · From your Dirxctional team"}
                       </p>
                     </div>
-                    <Button size="sm" variant="outline" onClick={() => downloadDoc(doc.id)}><Download width={14} height={14} strokeWidth={1.75} />Download</Button>
+                    <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setSelectedDocId(doc.id); }}>
+                      <Eye width={14} height={14} strokeWidth={1.75} />Preview
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); downloadDoc(doc.id); }}>
+                      <Download width={14} height={14} strokeWidth={1.75} />Download
+                    </Button>
                   </div>
                 );
               })}
             </div>
           )}
+
+          {/* Narrow screens: preview opens as a full-width Sheet instead of a split pane. */}
+          {isNarrowForDocs && selectedDoc && (
+            <Sheet open onOpenChange={(next) => { if (!next) setSelectedDocId(null); }}>
+              <SheetContent side="right" className="w-full sm:max-w-full p-0 [&>button]:hidden flex flex-col">
+                <DocumentPreviewPane
+                  key={selectedDoc.id}
+                  doc={selectedDoc}
+                  documents={documents}
+                  referralId={id!}
+                  onClose={() => setSelectedDocId(null)}
+                />
+              </SheetContent>
+            </Sheet>
+          )}
+
           {rejected && (
             <p className="text-xs text-muted-foreground mt-3 flex items-center gap-1.5">
               <ClipboardList width={13} height={13} strokeWidth={1.75} />To add missing documents, use "Upload documents" in the fix panel above.
@@ -525,6 +651,43 @@ export default function ReferralDetail() {
       {/* Edit drawer */}
       {editing && <EditDrawer referralId={id!} data={data} flaggedSet={adminFlaggedSet} onClose={() => setEditing(false)} onSaved={() => { setEditing(false); loadData(); }} />}
     </PageContainer>
+  );
+}
+
+/* ── Documents preview pane: filename + Download + Close header, then the
+   shared DocumentViewer (fit-width, zoom) fetching URLs through the same
+   clinic-scoped endpoint the flat list already used for Download. Keyed by
+   doc id at the call site so switching documents remounts it cleanly. ── */
+function DocumentPreviewPane({ doc, documents, referralId, onClose, animate }: {
+  doc: any; documents: any[]; referralId: string; onClose: () => void; animate?: boolean;
+}) {
+  const download = async () => {
+    try {
+      const res = await clinicApi.getReferralDocumentUrl(referralId, doc.id);
+      window.open(res.url, "_blank");
+    } catch (e: any) {
+      toast({ title: "Couldn't open document", description: e.message, variant: "destructive" });
+    }
+  };
+  return (
+    <div className={cn("h-full flex flex-col bg-card", animate && "animate-in slide-in-from-right-8 fade-in duration-200")}>
+      <div className="flex items-center gap-2 border-b border-border px-4 py-2.5">
+        <p className="text-sm font-semibold text-foreground truncate flex-1">{doc.original_filename || doc.file_name || doc.name || "Document"}</p>
+        <Button size="sm" variant="outline" onClick={download}><Download width={14} height={14} strokeWidth={1.75} />Download</Button>
+        <button type="button" aria-label="Close preview" className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground" onClick={onClose}>
+          <X width={16} height={16} strokeWidth={1.75} />
+        </button>
+      </div>
+      <div className="flex-1 min-h-0">
+        <DocumentViewer
+          documents={documents}
+          initialDocId={doc.id}
+          hideTabs
+          fetchUrl={(docId) => clinicApi.getReferralDocumentUrl(referralId, docId)}
+          className="h-full"
+        />
+      </div>
+    </div>
   );
 }
 
