@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { Loader2, AlertTriangle, ExternalLink } from "lucide-react";
+import { Loader2, AlertTriangle, ExternalLink, RefreshCw, Pencil } from "lucide-react";
 import { adminApi } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { useAdminProfile } from "@/hooks/useAdminProfile";
@@ -65,6 +65,30 @@ function relTime(d: string | null | undefined): string {
   if (hrs < 24) return `${hrs}h ago`;
   return `${Math.round(hrs / 24)}d ago`;
 }
+
+/** Chip tone/label for the review-stage Insurance card's Eligibility row —
+ *  mirrors EligibilityPanel's own switch so the two stay in sync visually. */
+function eligibilityChip(status: string | null | undefined, mismatchCount: number): { tone: "success" | "warning" | "destructive" | "muted"; label: string } {
+  switch (status) {
+    case "verified":
+      return { tone: "success", label: "Verified vs payer" };
+    case "mismatch":
+      return { tone: "warning", label: `Needs review — ${mismatchCount} mismatch${mismatchCount === 1 ? "" : "es"}` };
+    case "inactive":
+      return { tone: "destructive", label: "Coverage inactive" };
+    case "payer_unmatched":
+    case "error":
+      return { tone: "muted", label: "Not verified" };
+    default:
+      return { tone: "muted", label: "Not checked yet" };
+  }
+}
+const ELIGIBILITY_CHIP_CLASS: Record<string, string> = {
+  success: "bg-success/13 text-success",
+  warning: "bg-warning/15 text-warning",
+  destructive: "bg-destructive/12 text-destructive",
+  muted: "bg-muted-foreground/12 text-muted-foreground",
+};
 
 /**
  * The header's "Last:" line prefers a real, named event over the generic
@@ -342,6 +366,7 @@ export default function AdminReferralWorkstation() {
   const [resendOpen, setResendOpen] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [reExtracting, setReExtracting] = useState(false);
+  const [insuranceRechecking, setInsuranceRechecking] = useState(false);
   const [paLetterInfo, setPaLetterInfo] = useState<any>(null);
 
   useEffect(() => {
@@ -956,13 +981,121 @@ export default function AdminReferralWorkstation() {
       case "processing":
         cards.push(medicationCard);
         break;
-      case "review":
+      case "review": {
         cards.push(medicationCard, clinicalCard, patientCard, prescriberCard);
-        if (referral.insurance_expired) cards.push(insuranceCard);
-        // Re-homed from the retired legacy review page (phase 6b) — renders
-        // nothing when eligibility hasn't been checked or was skipped.
+
+        // Insurance card always shows on review — Alex 2026-09-23: the Stedi
+        // eligibility check needs to be visible even while dormant, with a
+        // way to re-run it and to jump to the editable fields.
+        const insuranceCardDocs = documents.filter(
+          (d) => /insurance/i.test(d.doc_type || "") || /insurance/i.test(d.original_filename || ""),
+        );
+        const hasEligibilityResult = !!referral.eligibility_status && referral.eligibility_status !== "skipped";
+        const elig = eligibilityChip(referral.eligibility_status, (referral.eligibility_mismatches || []).length);
+
+        const recheckInsuranceEligibility = async () => {
+          if (!id) return;
+          setInsuranceRechecking(true);
+          try {
+            const res = await adminApi.recheckEligibility(id);
+            if (res?.eligibility_status === "skipped") {
+              toast({ title: "Eligibility checks are not live yet" });
+            } else {
+              toast({ title: "Eligibility re-checked", description: `Result: ${String(res?.eligibility_status || "").replace(/_/g, " ")}` });
+            }
+            await reload();
+          } catch (e: any) {
+            toast({ title: "Re-check failed", description: e.message, variant: "destructive" });
+          } finally {
+            setInsuranceRechecking(false);
+          }
+        };
+        const editInsurance = () => {
+          setActiveTab("all-fields");
+          setTimeout(() => {
+            document.getElementById("extraction-insurance")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }, 50);
+        };
+
+        cards.push(
+          <DefinitionList
+            key="insurance_review"
+            title="Insurance"
+            action={
+              <div className="flex items-center gap-1.5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={recheckInsuranceEligibility}
+                  disabled={insuranceRechecking}
+                  title="Re-run the insurance check"
+                  className="h-7 gap-1.5 px-2.5 text-xs"
+                >
+                  <RefreshCw width={12} height={12} className={insuranceRechecking ? "animate-spin" : undefined} />
+                  Re-check
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={editInsurance}
+                  title="Edit insurance in All Fields"
+                  className="h-7 gap-1.5 px-2.5 text-xs"
+                >
+                  <Pencil width={12} height={12} />
+                  Edit
+                </Button>
+              </div>
+            }
+            rows={
+              referral.is_bridge_program
+                ? [{ label: "Coverage", value: "Bridge Program" }]
+                : [
+                    { label: "Payer", value: insurance.primary_plan_name || insurance.primary_insurance_name },
+                    { label: "Member ID", value: insurance.primary_member_id, mono: true, copy: true },
+                    { label: "Group", value: insurance.primary_group_number, mono: true, copy: true },
+                    {
+                      label: "Card on file",
+                      value: insuranceCardDocs.length ? insuranceCardDocs.map((d) => d.original_filename).join(", ") : "—",
+                    },
+                    ...(referral.insurance_expired
+                      ? [{ label: "Status", value: "Expired — needs updated info", flag: true }]
+                      : []),
+                    {
+                      label: "Eligibility",
+                      value: hasEligibilityResult ? (
+                        <span className="flex items-center gap-1.5">
+                          <span
+                            className={cn(
+                              "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold",
+                              ELIGIBILITY_CHIP_CLASS[elig.tone],
+                            )}
+                          >
+                            {elig.label}
+                          </span>
+                          {referral.eligibility_checked_at && (
+                            <span className="text-xs font-normal text-muted-foreground">
+                              checked {relTime(referral.eligibility_checked_at)}
+                            </span>
+                          )}
+                        </span>
+                      ) : (
+                        <span className="font-normal text-muted-foreground">
+                          Not run yet — eligibility checks turn on when Stedi is live.
+                        </span>
+                      ),
+                    },
+                  ]
+            }
+          />,
+        );
+
+        // EligibilityPanel adds the detailed mismatch view directly under the
+        // Insurance card — it renders nothing itself when there's no non-skipped result.
         cards.push(<EligibilityPanel key="eligibility" referral={referral} referralId={id!} />);
         break;
+      }
       case "pa_pending":
         cards.push(
           <DefinitionList

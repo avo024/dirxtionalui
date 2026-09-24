@@ -326,7 +326,7 @@ export function ExtractionEditor({ referral, onSaved }: ExtractionEditorProps) {
       </AccordionItem>
 
       {/* ── Insurance ── */}
-      <AccordionItem value="insurance" className={cn("rounded-xl border bg-card card-shadow px-4", referral?.insurance_expired ? "border-orange-300" : "border-border")}>
+      <AccordionItem id="extraction-insurance" value="insurance" className={cn("rounded-xl border bg-card card-shadow px-4", referral?.insurance_expired ? "border-orange-300" : "border-border")}>
         <AccordionTrigger className="text-sm font-semibold">
           <div className="flex items-center justify-between w-full pr-4">
             <span>Insurance</span>
