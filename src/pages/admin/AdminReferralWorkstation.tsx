@@ -888,14 +888,64 @@ export default function AdminReferralWorkstation() {
     : null;
 
   // ── stage cards ────────────────────────────────────────────────────
-  function fieldRows(fields: Array<[string, any, { mono?: boolean; copy?: boolean; confPath?: string }?]>) {
-    return fields.map(([label, value, opts]) => ({
-      label,
-      value: value ?? undefined,
-      mono: opts?.mono,
-      copy: opts?.copy,
-      confidence: opts?.confPath ? conf[opts.confPath] : undefined,
-    }));
+
+  /** Same save path as ExtractionEditor's per-section save: deep-merge the
+   *  changed field into a copy of the referral's current extracted_data,
+   *  PUT the whole object, then reload. Confidences are left untouched —
+   *  ExtractionEditor doesn't touch them on save either. */
+  const saveExtractedField = async (section: string, field: string, value: string) => {
+    if (!id) return;
+    const currentData = referral?.extracted_data || {};
+    const merged = {
+      ...currentData,
+      [section]: {
+        ...currentData[section],
+        [field]: value,
+      },
+    };
+    await adminApi.updateExtractedData(id, merged);
+    await reload();
+  };
+
+  type FieldOpts = {
+    mono?: boolean;
+    copy?: boolean;
+    confPath?: string;
+    /** [section, field, inputType] — wires the row for inline editing via
+     *  the review-stage cards' shared save path. */
+    editField?: [string, string, ("text" | "textarea" | "date")?];
+    /** Raw editable value, when it differs from the formatted display value
+     *  (e.g. a raw ISO dob vs a formatted display date). Defaults to value. */
+    editValue?: any;
+  };
+
+  function fieldRows(fields: Array<[string, any, FieldOpts?]>) {
+    return fields.map(([label, value, opts]) => {
+      const row: {
+        label: string;
+        value: any;
+        mono?: boolean;
+        copy?: boolean;
+        confidence?: number;
+        edit?: { value: string; onSave: (v: string) => Promise<void>; type?: "text" | "textarea" | "date" };
+      } = {
+        label,
+        value: value ?? undefined,
+        mono: opts?.mono,
+        copy: opts?.copy,
+        confidence: opts?.confPath ? conf[opts.confPath] : undefined,
+      };
+      if (opts?.editField) {
+        const [section, field, type] = opts.editField;
+        const raw = opts.editValue !== undefined ? opts.editValue : value;
+        row.edit = {
+          value: raw === undefined || raw === null ? "" : String(raw),
+          onSave: (v: string) => saveExtractedField(section, field, v),
+          type,
+        };
+      }
+      return row;
+    });
   }
 
   /** Drops rows with no value — used on the Delivery summary card so a row
@@ -914,10 +964,15 @@ export default function AdminReferralWorkstation() {
         key="patient"
         title="Patient"
         rows={fieldRows([
-          ["Name", [patient.first_name, patient.last_name].filter(Boolean).join(" "), { confPath: "patient.first_name" }],
-          ["DOB", patient.dob && formatDateShort(patient.dob), { confPath: "patient.dob" }],
-          ["Phone", patient.phone_primary || patient.phone],
-          ["Address", [patient.address, patient.city, patient.state, patient.zip].filter(Boolean).join(", ")],
+          ["First name", patient.first_name, { confPath: "patient.first_name", editField: ["patient", "first_name"] }],
+          ["Last name", patient.last_name, { confPath: "patient.last_name", editField: ["patient", "last_name"] }],
+          ["DOB", patient.dob && formatDateShort(patient.dob), { confPath: "patient.dob", editField: ["patient", "dob", "date"], editValue: patient.dob }],
+          ["Phone", patient.phone_primary || patient.phone, { editField: ["patient", "phone_primary"] }],
+          [
+            "Address",
+            [patient.address, patient.city, patient.state, patient.zip].filter(Boolean).join(", "),
+            { editField: ["patient", "address"], editValue: patient.address },
+          ],
         ])}
       />
     );
@@ -943,10 +998,11 @@ export default function AdminReferralWorkstation() {
         key="medication"
         title="Medication"
         rows={fieldRows([
-          ["Drug", clinical.brand_name || clinical.drug_requested, { confPath: "clinical.drug_requested" }],
+          ["Drug", clinical.brand_name || clinical.drug_requested, { confPath: "clinical.drug_requested", editField: ["clinical", "drug_requested"], editValue: clinical.drug_requested }],
           ["Generic", clinical.generic_name],
-          ["Dose", clinical.dose_amount],
-          ["Frequency", clinical.dose_frequency || clinical.frequency],
+          ["Dose", clinical.dose_amount, { editField: ["clinical", "dose_amount"] }],
+          ["Frequency", clinical.dose_frequency || clinical.frequency, { editField: ["clinical", "dose_frequency"], editValue: clinical.dose_frequency || clinical.frequency }],
+          ["Quantity", clinical.quantity, { editField: ["clinical", "quantity"] }],
           ["Route", clinical.route || clinical.administration],
           ["PA path", referral.is_bridge_program ? "Bridge — no PA" : referral.pa_required ? `PA required${referral.pa_required_reason ? `: ${referral.pa_required_reason}` : ""}` : "No PA required"],
         ])}
@@ -957,8 +1013,12 @@ export default function AdminReferralWorkstation() {
         key="clinical"
         title="Clinical"
         rows={fieldRows([
-          ["ICD-10", clinical.diagnosis_icd10_primary || clinical.diagnosis_icd10, { mono: true, copy: true, confPath: "clinical.diagnosis_icd10_primary" }],
-          ["Description", clinical.diagnosis_description],
+          [
+            "ICD-10",
+            clinical.diagnosis_icd10_primary || clinical.diagnosis_icd10,
+            { mono: true, copy: true, confPath: "clinical.diagnosis_icd10_primary", editField: ["clinical", "diagnosis_icd10_primary"], editValue: clinical.diagnosis_icd10_primary || clinical.diagnosis_icd10 },
+          ],
+          ["Description", clinical.diagnosis_description, { editField: ["clinical", "diagnosis_description", "textarea"] }],
           ["Clinical justification", clinical.clinical_justification],
           ["Prior treatments", (clinical.prior_failed_medications || []).map((m: any) => (typeof m === "string" ? m : m?.name || String(m))).join(", ")],
         ])}
@@ -969,10 +1029,10 @@ export default function AdminReferralWorkstation() {
         key="prescriber"
         title="Prescriber"
         rows={fieldRows([
-          ["Name", provider.name],
-          ["NPI", provider.npi, { mono: true, copy: true, confPath: "provider.npi" }],
-          ["Phone", provider.phone],
-          ["Fax", provider.fax],
+          ["Name", provider.name, { editField: ["provider", "name"] }],
+          ["NPI", provider.npi, { mono: true, copy: true, confPath: "provider.npi", editField: ["provider", "npi"] }],
+          ["Phone", provider.phone, { editField: ["provider", "phone"] }],
+          ["Fax", provider.fax, { editField: ["provider", "fax"] }],
         ])}
       />
     );
@@ -1052,9 +1112,34 @@ export default function AdminReferralWorkstation() {
               referral.is_bridge_program
                 ? [{ label: "Coverage", value: "Bridge Program" }]
                 : [
-                    { label: "Payer", value: insurance.primary_plan_name || insurance.primary_insurance_name },
-                    { label: "Member ID", value: insurance.primary_member_id, mono: true, copy: true },
-                    { label: "Group", value: insurance.primary_group_number, mono: true, copy: true },
+                    {
+                      label: "Payer",
+                      value: insurance.primary_plan_name || insurance.primary_insurance_name,
+                      edit: {
+                        value: insurance.primary_plan_name || insurance.primary_insurance_name || "",
+                        onSave: (v: string) => saveExtractedField("insurance", "primary_plan_name", v),
+                      },
+                    },
+                    {
+                      label: "Member ID",
+                      value: insurance.primary_member_id,
+                      mono: true,
+                      copy: true,
+                      edit: {
+                        value: insurance.primary_member_id || "",
+                        onSave: (v: string) => saveExtractedField("insurance", "primary_member_id", v),
+                      },
+                    },
+                    {
+                      label: "Group",
+                      value: insurance.primary_group_number,
+                      mono: true,
+                      copy: true,
+                      edit: {
+                        value: insurance.primary_group_number || "",
+                        onSave: (v: string) => saveExtractedField("insurance", "primary_group_number", v),
+                      },
+                    },
                     {
                       label: "Card on file",
                       value: insuranceCardDocs.length ? insuranceCardDocs.map((d) => d.original_filename).join(", ") : "—",
@@ -1096,6 +1181,12 @@ export default function AdminReferralWorkstation() {
         // The Insurance card already carries the eligibility line + Re-check; the detailed panel
         // only earns its space when there is mismatch detail to show.
         if ((referral.eligibility_mismatches?.length ?? 0) > 0) cards.push(<EligibilityPanel key="eligibility" referral={referral} referralId={id!} />);
+
+        cards.push(
+          <p key="edit_hint" className="text-xs text-muted-foreground">
+            Click any value to correct it · All Fields has everything else.
+          </p>,
+        );
         break;
       }
       case "pa_pending":
