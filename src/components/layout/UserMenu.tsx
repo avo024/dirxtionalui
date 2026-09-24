@@ -14,6 +14,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
 import { useAdminProfile } from "@/hooks/useAdminProfile";
 import { EditProfileModal } from "@/components/EditProfileModal";
+import { roleLabel } from "@/lib/roles";
 
 export function UserMenu() {
   const { user, logout } = useAuth();
@@ -77,6 +78,11 @@ export function UserMenu() {
         <DropdownMenuContent align="end" className="w-56">
           <DropdownMenuLabel className="flex flex-col gap-0.5">
             <span className="text-sm font-medium">{displayLabel}</span>
+            {isClinicUser && (
+              <span className="text-xs text-muted-foreground font-normal">
+                {roleLabel(clinicProfile?.role)}
+              </span>
+            )}
             {user.email && displayLabel !== user.email && (
               <span className="text-xs text-muted-foreground font-normal">
                 {user.email}

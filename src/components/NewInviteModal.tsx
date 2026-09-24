@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import { adminApi, type AdminClinic } from "@/lib/api";
+import { CLINIC_ROLES, DEFAULT_CLINIC_ROLE, type ClinicRoleValue } from "@/lib/roles";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
@@ -25,6 +26,7 @@ export function NewInviteModal({ open, onOpenChange }: NewInviteModalProps) {
   const queryClient = useQueryClient();
   const [clinicId, setClinicId] = useState("");
   const [email, setEmail] = useState("");
+  const [role, setRole] = useState<ClinicRoleValue>(DEFAULT_CLINIC_ROLE);
   const [error, setError] = useState<string | null>(null);
 
   const { data: clinicsData, isLoading: loadingClinics } = useQuery({
@@ -40,12 +42,13 @@ export function NewInviteModal({ open, onOpenChange }: NewInviteModalProps) {
     if (!open) {
       setClinicId("");
       setEmail("");
+      setRole(DEFAULT_CLINIC_ROLE);
       setError(null);
     }
   }, [open]);
 
   const createMutation = useMutation({
-    mutationFn: () => adminApi.createInvite({ clinic_id: clinicId, email: email.trim() }),
+    mutationFn: () => adminApi.createInvite({ clinic_id: clinicId, email: email.trim(), role }),
     onSuccess: () => {
       toast.success(`Invite sent to ${email.trim()}`);
       queryClient.invalidateQueries({ queryKey: ["admin", "invites"] });
@@ -107,6 +110,21 @@ export function NewInviteModal({ open, onOpenChange }: NewInviteModalProps) {
               placeholder="user@clinic.com"
               maxLength={255}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="role">
+              Role <span className="text-destructive">*</span>
+            </Label>
+            <Combobox
+              id="role"
+              placeholder="Select a role"
+              value={role}
+              onValueChange={(v) => setRole(v as ClinicRoleValue)}
+              options={CLINIC_ROLES.map((r) => ({ value: r.value, label: r.label, hint: r.description }))}
+              searchable={false}
+            />
+            <p className="text-xs text-muted-foreground">Tip: invite the office manager first.</p>
           </div>
 
           {error && (

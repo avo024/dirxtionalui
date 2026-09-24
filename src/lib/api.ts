@@ -106,8 +106,9 @@ export async function updateMyClinic(data: {
     headers: await getHeaders(),
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error('Failed to update clinic');
-  return res.json();
+  // Uses handleResponse (not a bare ok-check) so a 403 — e.g. "Only an
+  // office manager can change clinic settings" — surfaces its real message.
+  return handleResponse<MyClinic>(res);
 }
 
 export interface MyProfile {
@@ -118,6 +119,10 @@ export interface MyProfile {
   profile_complete: boolean;
   email?: string;
   clinic_id?: string;
+  /** office_manager | front_desk | provider | billing | staff (legacy) | null */
+  role?: string | null;
+  /** False for anyone but the clinic's office manager. */
+  can_edit_clinic_settings?: boolean;
   [key: string]: any;
 }
 
@@ -1233,7 +1238,7 @@ export const adminApi = {
     return data;
   },
 
-  async createInvite(data: { clinic_id: string; email: string }): Promise<AdminInvite> {
+  async createInvite(data: { clinic_id: string; email: string; role?: string }): Promise<AdminInvite> {
     const response = await fetch(`${API_BASE_URL}/admin/invites`, {
       method: 'POST',
       headers: await getHeaders(),
@@ -1246,6 +1251,25 @@ export const adminApi = {
     const response = await fetch(`${API_BASE_URL}/admin/invites/${token}/resend`, {
       method: 'POST',
       headers: await getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  // ---- Clinic team (existing clinic_users, not pending invites) ----
+  async getClinicTeam(clinicId: string): Promise<{ items: AdminClinicUser[] }> {
+    const response = await fetch(`${API_BASE_URL}/admin/clinics/${clinicId}/users`, {
+      headers: await getHeaders(),
+    });
+    const data = await handleResponse<any>(response);
+    if (Array.isArray(data)) return { items: data };
+    return data;
+  },
+
+  async updateClinicUserRole(clinicId: string, userId: string, role: string): Promise<{ ok: boolean; role: string }> {
+    const response = await fetch(`${API_BASE_URL}/admin/clinics/${clinicId}/users/${userId}/role`, {
+      method: 'PATCH',
+      headers: await getHeaders(),
+      body: JSON.stringify({ role }),
     });
     return handleResponse(response);
   },
@@ -1314,10 +1338,23 @@ export interface AdminInvite {
   email: string;
   clinic_id: string;
   clinic_name?: string;
+  /** office_manager | front_desk | provider | billing */
+  role?: string | null;
   created_at: string;
   expires_at: string;
   used_at?: string | null;
   revoked_at?: string | null;
+}
+
+// ---- Clinic team member (an accepted clinic_users row, admin view) ----
+export interface AdminClinicUser {
+  id: string;
+  email: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  /** office_manager | front_desk | provider | billing | staff (legacy) | null */
+  role?: string | null;
+  created_at?: string | null;
 }
 
 // ============================================================================

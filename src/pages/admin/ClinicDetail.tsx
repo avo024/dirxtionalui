@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  ArrowLeft, Pencil, Mail, Copy, Trash2, MailPlus, Clock, TriangleAlert,
+  ArrowLeft, Pencil, Mail, Copy, Trash2, MailPlus, Clock, TriangleAlert, Users,
 } from "lucide-react";
 import { ClinicFormModal } from "@/components/ClinicFormModal";
 import { ConfirmModal } from "@/components/ConfirmModal";
@@ -10,9 +10,11 @@ import { getInitials } from "@/components/CreatedByAvatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Combobox } from "@/components/ui/combobox";
 import { DefinitionList } from "@/components/patterns/DefinitionList";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
-import { adminApi, type AdminClinic, type AdminInvite } from "@/lib/api";
+import { adminApi, type AdminClinic, type AdminInvite, type AdminClinicUser } from "@/lib/api";
+import { CLINIC_ROLES, roleLabel } from "@/lib/roles";
 import { formatDateForTable } from "@/lib/dateUtils";
 import { toast } from "sonner";
 import { PageContainer } from "@/components/patterns/PageContainer";
@@ -30,6 +32,100 @@ function isExpiringSoon(expiresAt: string): boolean {
 function isPending(iv: AdminInvite): boolean {
   if (iv.used_at || iv.revoked_at) return false;
   try { return new Date(iv.expires_at).getTime() > Date.now(); } catch { return true; }
+}
+
+/* Team members — accepted clinic_users for this clinic, with an inline role
+   changer. Separate from TeamInvitesPanel below, which is pending invites. */
+function TeamMembersPanel({ clinic }: { clinic: AdminClinic }) {
+  const queryClient = useQueryClient();
+  const teamKey = ["admin", "clinic-team", clinic.id];
+
+  const { data, isLoading } = useQuery({
+    queryKey: teamKey,
+    queryFn: () => adminApi.getClinicTeam(clinic.id),
+  });
+  const members = data?.items ?? [];
+  const hasOfficeManager = members.some((m) => m.role === "office_manager");
+
+  const roleMut = useMutation({
+    mutationFn: ({ userId, role }: { userId: string; role: string }) =>
+      adminApi.updateClinicUserRole(clinic.id, userId, role),
+    onMutate: async ({ userId, role }) => {
+      await queryClient.cancelQueries({ queryKey: teamKey });
+      const previous = queryClient.getQueryData<{ items: AdminClinicUser[] }>(teamKey);
+      queryClient.setQueryData<{ items: AdminClinicUser[] }>(teamKey, (old) =>
+        old ? { items: old.items.map((m) => (m.id === userId ? { ...m, role } : m)) } : old,
+      );
+      return { previous };
+    },
+    onSuccess: () => toast.success("Role updated"),
+    onError: (e: any, _vars, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(teamKey, ctx.previous);
+      toast.error(e?.message || "Failed to update role");
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: teamKey }),
+  });
+
+  return (
+    <div className="bg-card border border-border rounded-lg p-[var(--density-card-pad)]">
+      <div className="flex items-center gap-2 mb-3">
+        <Users width={16} height={16} strokeWidth={1.75} className="text-muted-foreground" />
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">Team</h3>
+        <span className="text-xs text-muted-foreground">{members.length} member{members.length === 1 ? "" : "s"}</span>
+      </div>
+
+      {!isLoading && !hasOfficeManager && (
+        <div className="mb-3 rounded-md border border-amber-300/60 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
+          No office manager yet — every referral email falls back to the main email / all users, and anyone can change clinic settings.
+        </div>
+      )}
+
+      {isLoading ? (
+        <div className="flex flex-col gap-2">
+          {[0, 1].map((i) => <Skeleton key={i} className="h-10 w-full" />)}
+        </div>
+      ) : members.length === 0 ? (
+        <div className="flex items-center gap-2 rounded-md border border-dashed border-border px-3 py-4 text-sm text-muted-foreground">
+          <Users width={18} height={18} strokeWidth={1.75} />
+          No team members yet — send an invite below.
+        </div>
+      ) : (
+        <div className="rounded-lg border border-border overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Role</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {members.map((m) => {
+                const name = [m.first_name, m.last_name].filter(Boolean).join(" ");
+                return (
+                  <TableRow key={m.id}>
+                    <TableCell className="font-semibold text-foreground">{name || "—"}</TableCell>
+                    <TableCell className="text-muted-foreground">{m.email}</TableCell>
+                    <TableCell>
+                      <Combobox
+                        size="sm"
+                        className="h-8 w-48"
+                        placeholder={roleLabel(m.role)}
+                        value={m.role ?? ""}
+                        onValueChange={(role) => roleMut.mutate({ userId: m.id, role })}
+                        options={CLINIC_ROLES.map((r) => ({ value: r.value, label: r.label, hint: r.description }))}
+                        searchable={false}
+                      />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+    </div>
+  );
 }
 
 /* Team & Invites — folded in from the retired AdminInvites page.
@@ -239,6 +335,7 @@ export default function ClinicDetail() {
 
       <div className="flex flex-col gap-4">
         <DefinitionList title="Clinic details" rows={FIELD_ROWS} />
+        <TeamMembersPanel clinic={clinic} />
         <TeamInvitesPanel clinic={clinic} />
       </div>
 

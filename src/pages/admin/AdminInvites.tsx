@@ -26,6 +26,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { adminApi, type AdminInvite } from "@/lib/api";
+import { roleLabel } from "@/lib/roles";
 import { NewInviteModal } from "@/components/NewInviteModal";
 import { formatDateForTable, formatFullDateTime } from "@/lib/dateUtils";
 import { toast } from "sonner";
@@ -133,6 +134,7 @@ export default function AdminInvites() {
               <TableRow>
                 <TableHead>Email</TableHead>
                 <TableHead>Clinic</TableHead>
+                <TableHead>Role</TableHead>
                 <TableHead>Sent</TableHead>
                 <TableHead>Expires</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -145,6 +147,7 @@ export default function AdminInvites() {
                   <TableRow key={invite.token}>
                     <TableCell className="font-medium">{invite.email}</TableCell>
                     <TableCell>{invite.clinic_name ?? "—"}</TableCell>
+                    <TableCell>{roleLabel(invite.role)}</TableCell>
                     <TableCell>
                       <Tooltip>
                         <TooltipTrigger asChild>
