@@ -796,7 +796,11 @@ export default function AdminReferralWorkstation() {
   // always acts on whatever it's currently showing (Alex, 2026-09-23).
   const primaryLabelRaw = enrollmentActionsActive ? (next.track?.primary ?? null) : next.primary;
   const primaryLabel = primaryLabelRaw === "Submit PA" ? "File PA on CoverMyMeds" : primaryLabelRaw;
-  const secondaryLabel = enrollmentActionsActive ? (next.track?.secondary ?? null) : next.secondary;
+  // "Upload adjusted copy" is a document tool that lives inside the enrollment
+  // card (next to "Preview the filled form"); showing it in the bar too was a
+  // duplicate (Alex, 2026-09-23 click-through).
+  const rawSecondary = enrollmentActionsActive ? (next.track?.secondary ?? null) : next.secondary;
+  const secondaryLabel = rawSecondary === "Upload adjusted copy" ? null : rawSecondary;
 
   // canFax/canSend live on the cards' imperative handles (flow-script §7/§9
   // — the ActionBar drives the action, but the card still owns the
