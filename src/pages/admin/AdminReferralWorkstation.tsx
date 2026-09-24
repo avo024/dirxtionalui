@@ -292,7 +292,9 @@ export default function AdminReferralWorkstation() {
 
   useEffect(() => {
     // Split stages: sheet is already open (and pinned by default) per flow-script §8.
-    if (isSplit) setSheetOpen(true);
+    // When a stage flips to single-column (e.g. after "Filed on CoverMyMeds") the
+    // docked pane must NOT reappear as a floating sheet — close it (Alex, 2026-09-24).
+    setSheetOpen(isSplit);
   }, [isSplit, stageKey]);
 
   useEffect(() => {
@@ -884,7 +886,7 @@ export default function AdminReferralWorkstation() {
     : null;
 
   const nextInQueueSpec = nextInQueue
-    ? { label: "Next in queue", onClick: () => navigate(`/admin/referrals/${nextInQueue}`) }
+    ? { label: "Next in Waiting on us", onClick: () => navigate(`/admin/referrals/${nextInQueue}`) }
     : null;
 
   // ── stage cards ────────────────────────────────────────────────────
