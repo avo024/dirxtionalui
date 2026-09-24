@@ -13,6 +13,8 @@ export interface DocumentsSheetFile {
   id: string;
   name: string;
   docType?: string;
+  /** "response_upload" when the clinic sent it as a task reply. */
+  taskRole?: string | null;
   uploadedAt?: string;
 }
 
@@ -32,15 +34,18 @@ function isFileObject(f: FileEntry): f is DocumentsSheetFile {
  *  API returns) — the group is kept in the order for when that lands, but
  *  nothing maps into it yet (Alex, flag: see workstation report).
  */
-const DOC_GROUPS = ["Referral", "Insurance", "Clinical", "PA & appeal", "Enrollment", "From the clinic", "Other"] as const;
+const DOC_GROUPS = ["Referral", "Insurance", "Clinical", "PA & appeal", "From the clinic", "From our team", "Other"] as const;
 
-function groupForDocType(docType?: string): (typeof DOC_GROUPS)[number] {
+function groupForDocType(docType?: string, taskRole?: string | null): (typeof DOC_GROUPS)[number] {
+  // Clinic task replies (task_role='response_upload') are grouped by who sent them.
+  if (taskRole === "response_upload") return "From the clinic";
   const t = (docType || "").toLowerCase();
   if (/^(referral_form|packet|generated_referral_pdf|generated_referral_pdf_sent)$/.test(t)) return "Referral";
   if (/^(insurance_front|insurance_back)$/.test(t) || /insurance/.test(t)) return "Insurance";
   if (/^(chart_notes|demographics|prior_auth)$/.test(t) || /clinical|labs?/.test(t)) return "Clinical";
   if (/^(pa_approval_letter|appeal_document|payer_correspondence)$/.test(t) || /denial|appeal|pa_letter/.test(t)) return "PA & appeal";
-  if (/^team_document$/.test(t) || /enrollment|signed/.test(t)) return "Enrollment";
+  // team_document = anything we uploaded "From your Dirxctional team", incl. filled / adjusted enrollment forms.
+  if (/^team_document$/.test(t) || /enrollment|signed/.test(t)) return "From our team";
   return "Other";
 }
 
@@ -106,7 +111,7 @@ export function DocumentsSheet({
     if (!useGrouped) return null;
     const byGroup = new Map<string, { file: DocumentsSheetFile; index: number }[]>();
     fileObjs.forEach((file, index) => {
-      const g = groupForDocType(file.docType);
+      const g = groupForDocType(file.docType, file.taskRole);
       if (!byGroup.has(g)) byGroup.set(g, []);
       byGroup.get(g)!.push({ file, index });
     });

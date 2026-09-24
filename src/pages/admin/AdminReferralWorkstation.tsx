@@ -1672,7 +1672,7 @@ export default function AdminReferralWorkstation() {
                 pinned
                 fill
                 onPinnedChange={setPinnedPersist}
-                files={sheetDocuments.map((d) => ({ id: d.id, name: d.original_filename, docType: d.doc_type, uploadedAt: d.uploaded_at }))}
+                files={sheetDocuments.map((d) => ({ id: d.id, name: d.original_filename, docType: d.doc_type, taskRole: d.task_role, uploadedAt: d.uploaded_at }))}
                 active={sheetDocuments.findIndex((d) => d.id === activeDocId)}
                 onSelect={(i) => setActiveDocId(sheetDocuments[i]?.id)}
                 style={
@@ -1699,7 +1699,7 @@ export default function AdminReferralWorkstation() {
           open={sheetOpen}
           pinned={false}
           onClose={() => setSheetOpen(false)}
-          files={sheetDocuments.map((d) => ({ id: d.id, name: d.original_filename, docType: d.doc_type, uploadedAt: d.uploaded_at }))}
+          files={sheetDocuments.map((d) => ({ id: d.id, name: d.original_filename, docType: d.doc_type, taskRole: d.task_role, uploadedAt: d.uploaded_at }))}
           active={sheetDocuments.findIndex((d) => d.id === activeDocId)}
           onSelect={(i) => setActiveDocId(sheetDocuments[i]?.id)}
         >
