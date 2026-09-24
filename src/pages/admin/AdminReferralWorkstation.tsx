@@ -38,7 +38,7 @@ import { ReferralTasksCard } from "@/components/ReferralTasksCard";
 import { EligibilityPanel } from "@/components/EligibilityPanel";
 import { ExtractionEditor } from "@/components/admin/ExtractionEditor";
 import { getDisplayAuthor } from "@/lib/noteAuthor";
-import { cn } from "@/lib/utils";
+import { cn, guessFileType } from "@/lib/utils";
 
 import { resolveNextAction, stageLabelForQueue, type NextAction } from "@/lib/nextAction";
 import { toNextActionInput } from "@/lib/queueRows";
@@ -377,6 +377,31 @@ export default function AdminReferralWorkstation() {
     adminApi.getPALetterInfo(id).then(setPaLetterInfo).catch(() => setPaLetterInfo(null));
   }, [id, referral?.pa_status]);
 
+  // Documents the sheet/viewer actually render. Normally just `documents`
+  // (this referral's own list) — but when the PA letter on file is a
+  // fallback carried over from a previous referral, its doc id isn't in
+  // that list, so Preview would show "No document selected". In that one
+  // case, splice in a synthetic single-entry stand-in for it (instruction #1
+  // — "render the sheet with a synthetic one-item file list"); DocumentViewer's
+  // default fetchUrl (adminApi.getDocumentUrl) already resolves any doc id,
+  // not just ones belonging to this referral.
+  const sheetDocuments = useMemo(() => {
+    const letter = paLetterInfo?.letter;
+    if (letter && activeDocId === letter.id && !documents.some((d) => d.id === letter.id)) {
+      return [
+        ...documents,
+        {
+          id: letter.id,
+          original_filename: letter.filename,
+          file_type: guessFileType(letter.filename),
+          doc_type: "pa_approval_letter",
+          uploaded_at: letter.uploaded_at,
+        },
+      ];
+    }
+    return documents;
+  }, [documents, paLetterInfo, activeDocId]);
+
   // ── PA dialogs ────────────────────────────────────────────────────
   const [filedOpen, setFiledOpen] = useState(false);
   const [filedDate, setFiledDate] = useState(todayLocalISO());
@@ -531,12 +556,23 @@ export default function AdminReferralWorkstation() {
           pa_number: decisionPaNumber,
           approval_duration: "",
         });
-        if (decisionFile) {
-          await adminApi.uploadPALetter(id, decisionFile).catch((e: any) =>
-            toast({ title: "Decision recorded — letter upload failed", description: e.message, variant: "destructive" }),
-          );
-        }
         toast({ title: "PA approved", description: "Recorded — verify and approve to send." });
+        if (decisionFile) {
+          try {
+            await adminApi.uploadPALetter(id, decisionFile);
+            const info = await adminApi.getPALetterInfo(id);
+            setPaLetterInfo(info);
+            if (info?.letter) {
+              setActiveDocId(info.letter.id);
+              setSheetOpen(true);
+            }
+            // Toasts are single-slot (TOAST_LIMIT=1) — this one supersedes
+            // "PA approved" above, same as uploadLetter's own flow.
+            toast({ title: "PA approval letter uploaded — it's attached automatically when you deliver." });
+          } catch (e: any) {
+            toast({ title: "Decision recorded — letter upload failed", description: e.message, variant: "destructive" });
+          }
+        }
       } else {
         if (!decisionDenialReason.trim()) {
           toast({ title: "Reason required", description: "Please provide a denial reason.", variant: "destructive" });
@@ -563,13 +599,32 @@ export default function AdminReferralWorkstation() {
   };
 
   const letterInputRef = useRef<HTMLInputElement>(null);
+
+  /** Opens the documents sheet on the PA letter on file — docked pane on
+   *  split stages, floating otherwise (the existing sheetOpen/isSplit
+   *  plumbing already picks which). If the letter is a fallback from another
+   *  referral and isn't in this referral's own `documents` list, sheetDocuments
+   *  (below) fills in a synthetic one-item file list so the viewer still
+   *  finds it — DocumentViewer's default fetchUrl (adminApi.getDocumentUrl)
+   *  already works for any referral's document id. */
+  const openPALetterPreview = useCallback(() => {
+    if (!paLetterInfo?.letter) return;
+    setActiveDocId(paLetterInfo.letter.id);
+    setSheetOpen(true);
+  }, [paLetterInfo]);
+
   const uploadLetter = async (file: File) => {
     if (!id) return;
     try {
       await adminApi.uploadPALetter(id, file);
-      toast({ title: "Letter uploaded" });
       const info = await adminApi.getPALetterInfo(id);
       setPaLetterInfo(info);
+      await reload(); // pulls the new letter into `documents` so the sheet can show it
+      if (info?.letter) {
+        setActiveDocId(info.letter.id);
+        setSheetOpen(true);
+      }
+      toast({ title: "PA approval letter uploaded — it's attached automatically when you deliver." });
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     }
@@ -586,6 +641,31 @@ export default function AdminReferralWorkstation() {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     }
   };
+
+  /** "Letter on file" row value across the PA cards — filename + date +
+   *  Preview, "(from a previous referral)" when it's a fallback, or "No
+   *  letter yet". Shared by the pa_approved/appeal_won card and both
+   *  ready_to_send/sent PA-summary cards (flow-script instruction #1). */
+  function paLetterRowValue(): React.ReactNode {
+    if (!paLetterInfo?.has_letter || !paLetterInfo.letter) return "No letter yet";
+    const letter = paLetterInfo.letter;
+    return (
+      <span className="inline-flex flex-wrap items-center gap-1">
+        <span className="max-w-[220px] truncate" title={letter.filename}>{letter.filename}</span>
+        <span className="text-muted-foreground">· {formatDateShort(letter.uploaded_at)} ·</span>
+        <button
+          type="button"
+          onClick={openPALetterPreview}
+          className="font-medium text-primary underline-offset-2 hover:underline"
+        >
+          Preview
+        </button>
+        {paLetterInfo.is_fallback && (
+          <span className="text-xs text-muted-foreground">(from a previous referral)</span>
+        )}
+      </span>
+    );
+  }
 
   const enrollmentRef = useRef<HTMLDivElement>(null);
   const appealPacketRef = useRef<HTMLDivElement>(null);
@@ -762,8 +842,10 @@ export default function AdminReferralWorkstation() {
     else if (item === "Re-extract") moreItems.push({ label: "Re-extract", onClick: handleReExtract });
     else if (item === "Open CoverMyMeds") moreItems.push({ label: "Open CoverMyMeds", onClick: () => window.open("https://www.covermymeds.com", "_blank") });
     else if (item === "Reject") moreItems.push({ label: "Reject", onClick: () => setRejectOpen(true) });
-    else if (item === "Replace letter") moreItems.push({ label: "Replace letter", onClick: () => letterInputRef.current?.click() });
-    else if (item === "Delete letter") moreItems.push({ label: "Delete letter", onClick: deleteLetter });
+    // Replace/Delete letter only make sense once a letter exists — More
+    // otherwise silently offered actions with nothing to act on (instruction #2).
+    else if (item === "Replace letter" && paLetterInfo?.has_letter) moreItems.push({ label: "Replace letter", onClick: () => letterInputRef.current?.click() });
+    else if (item === "Delete letter" && paLetterInfo?.has_letter) moreItems.push({ label: "Delete letter", onClick: deleteLetter });
     else if (item === "Resend packet") moreItems.push({ label: "Resend packet", onClick: () => appealActionsRef.current?.faxPacket() });
     else if (item === "Preview PDF") moreItems.push({ label: "Preview PDF", onClick: handlePreviewPDF });
     else if (item === "Return to review") moreItems.push({ label: "Return to review", onClick: () => setReturnOpen(true) });
@@ -793,10 +875,12 @@ export default function AdminReferralWorkstation() {
       case "Record decision":
         return () => setDecisionOpen(true);
       case "Upload letter (then View letter)":
+      case "Upload PA approval letter":
       case "Upload letter":
         return () => letterInputRef.current?.click();
+      case "View PA approval letter":
       case "View letter":
-        return () => activeDocId && setSheetOpen(true);
+        return openPALetterPreview;
       case "Start appeal":
         // pa_denied renders no PAAppealCard (flow-script §3), so call the
         // endpoint directly; the resolver flips the header to appeal_build.
@@ -852,7 +936,18 @@ export default function AdminReferralWorkstation() {
   // card (next to "Preview the filled form"); showing it in the bar too was a
   // duplicate (Alex, 2026-09-23 click-through).
   const rawSecondary = enrollmentActionsActive ? (next.track?.secondary ?? null) : next.secondary;
-  const secondaryLabel = rawSecondary === "Upload adjusted copy" ? null : rawSecondary;
+  const secondaryLabel =
+    rawSecondary === "Upload adjusted copy"
+      ? null
+      : rawSecondary === "Upload letter (then View letter)"
+        // The raw flow-script label never renders — resolve it to whichever
+        // half actually applies once a letter is or isn't on file yet
+        // (instruction #2). actionFor/gatingFor below key off this same
+        // resolved string, so both new labels are handled there too.
+        ? paLetterInfo?.has_letter
+          ? "View PA approval letter"
+          : "Upload PA approval letter"
+        : rawSecondary;
 
   // canFax/canSend live on the cards' imperative handles (flow-script §7/§9
   // — the ActionBar drives the action, but the card still owns the
@@ -956,6 +1051,27 @@ export default function AdminReferralWorkstation() {
    *  (finding #6), instead of DefinitionList's usual "—" placeholder. */
   function definedRows<T extends { value?: any }>(rows: T[]): T[] {
     return rows.filter((r) => r.value !== undefined && r.value !== null && r.value !== "");
+  }
+
+  /** ready_to_send's Delivery summary "Packet contents" row — what actually
+   *  ships by default (the referral PDF, plus the PA letter if one is on
+   *  file), not every document ever uploaded to the referral (instruction #4).
+   *  Optional extras get picked in the Deliver dialog itself, hence the
+   *  muted pointer line. */
+  function packetContentsValue(): React.ReactNode {
+    const requiresPA = !referral.is_bridge_program && !!paLetterInfo?.drug_requires_pa;
+    const hasLetter = !referral.is_bridge_program && !!paLetterInfo?.has_letter;
+    return (
+      <span className="flex flex-col gap-0.5">
+        <span>Referral packet (PDF)</span>
+        {hasLetter && paLetterInfo?.letter ? (
+          <span>PA approval letter — {paLetterInfo.letter.filename}</span>
+        ) : requiresPA ? (
+          <span className="text-destructive">PA approval letter missing</span>
+        ) : null}
+        <span className="text-xs text-muted-foreground">Add other documents in the Deliver step.</span>
+      </span>
+    );
   }
 
   function renderStageCards() {
@@ -1253,7 +1369,7 @@ export default function AdminReferralWorkstation() {
               { label: "CMM key", value: referral.pa_data?.reference_number || referral.pa_data?.ref_number, mono: true, copy: true },
               { label: "Start date", value: referral.pa_data?.submitted_date && formatDateShort(referral.pa_data.submitted_date) },
               { label: "Expiration date", value: (referral.pa_data?.expiration_date || referral.pa_expiration_date) && formatDateShort(referral.pa_data?.expiration_date || referral.pa_expiration_date), flag: !!(referral.pa_data?.expiration_date || referral.pa_expiration_date) && new Date(referral.pa_data?.expiration_date || referral.pa_expiration_date).getTime() < Date.now() },
-              { label: "Letter on file", value: paLetterInfo?.has_letter ? "On file" : "No letter yet" },
+              { label: "Letter on file", value: paLetterRowValue() },
               { label: "Notes", value: referral.pa_data?.notes },
             ]}
           />,
@@ -1336,7 +1452,7 @@ export default function AdminReferralWorkstation() {
             title="Delivery summary"
             rows={definedRows([
               { label: "Pharmacy", value: referral.pharmacy_name },
-              { label: "Packet contents", value: documents.map((d) => d.original_filename).join(", ") },
+              { label: "Packet contents", value: packetContentsValue() },
               { label: "Delivery issue", value: referral.delivery_issue_at ? `Reported ${formatDateShort(referral.delivery_issue_at)}` : undefined },
             ])}
           />,
@@ -1350,7 +1466,7 @@ export default function AdminReferralWorkstation() {
               rows={[
                 { label: "PA number", value: referral.pa_data?.pa_number, mono: true },
                 { label: "Expiration", value: (referral.pa_data?.expiration_date || referral.pa_expiration_date) && formatDateShort(referral.pa_data?.expiration_date || referral.pa_expiration_date) },
-                { label: "Letter on file", value: paLetterInfo?.has_letter ? "Yes" : "No" },
+                { label: "Letter on file", value: paLetterRowValue() },
               ]}
             />,
           );
@@ -1379,7 +1495,7 @@ export default function AdminReferralWorkstation() {
               rows={[
                 { label: "PA number", value: referral.pa_data?.pa_number, mono: true },
                 { label: "Expiration", value: (referral.pa_data?.expiration_date || referral.pa_expiration_date) && formatDateShort(referral.pa_data?.expiration_date || referral.pa_expiration_date) },
-                { label: "Letter on file", value: paLetterInfo?.has_letter ? "Yes" : "No" },
+                { label: "Letter on file", value: paLetterRowValue() },
               ]}
             />,
           );
@@ -1556,16 +1672,16 @@ export default function AdminReferralWorkstation() {
                 pinned
                 fill
                 onPinnedChange={setPinnedPersist}
-                files={documents.map((d) => d.original_filename)}
-                active={documents.findIndex((d) => d.id === activeDocId)}
-                onSelect={(i) => setActiveDocId(documents[i]?.id)}
+                files={sheetDocuments.map((d) => ({ id: d.id, name: d.original_filename, docType: d.doc_type, uploadedAt: d.uploaded_at }))}
+                active={sheetDocuments.findIndex((d) => d.id === activeDocId)}
+                onSelect={(i) => setActiveDocId(sheetDocuments[i]?.id)}
                 style={
                   headerH > 0
                     ? { position: "sticky", top: headerH, height: `calc(100vh - ${headerH + ACTION_BAR_H}px)`, alignSelf: "flex-start" }
                     : undefined
                 }
               >
-                <DocumentViewer documents={documents} initialDocId={activeDocId} hideTabs />
+                <DocumentViewer documents={sheetDocuments} initialDocId={activeDocId} hideTabs />
               </DocumentsSheet>
             </ResizablePanel>
             <ResizableHandle withHandle />
@@ -1583,11 +1699,11 @@ export default function AdminReferralWorkstation() {
           open={sheetOpen}
           pinned={false}
           onClose={() => setSheetOpen(false)}
-          files={documents.map((d) => d.original_filename)}
-          active={documents.findIndex((d) => d.id === activeDocId)}
-          onSelect={(i) => setActiveDocId(documents[i]?.id)}
+          files={sheetDocuments.map((d) => ({ id: d.id, name: d.original_filename, docType: d.doc_type, uploadedAt: d.uploaded_at }))}
+          active={sheetDocuments.findIndex((d) => d.id === activeDocId)}
+          onSelect={(i) => setActiveDocId(sheetDocuments[i]?.id)}
         >
-          <DocumentViewer documents={documents} initialDocId={activeDocId} hideTabs />
+          <DocumentViewer documents={sheetDocuments} initialDocId={activeDocId} hideTabs />
         </DocumentsSheet>
       )}
 
