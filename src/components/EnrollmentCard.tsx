@@ -591,7 +591,10 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged, hideAc
                   Otezla START form are bridge_kind "none" but very much
                   enrollable. Gating on bridge_kind hid the button (Alex's
                   Round-3 catch, 2026-08-18). */}
-              {!hideActions && (program.form_files?.length ?? 0) > 0 && (
+              {/* Per-program "Start enrollment" stays visible even when the ActionBar owns
+                  the stage actions, because choosing WHICH program is a decision only this
+                  list can express (there is no draft yet). */}
+              {(program.form_files?.length ?? 0) > 0 && (
                 <button
                   className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-45 disabled:cursor-not-allowed"
                   style={{ marginTop: 10 }}

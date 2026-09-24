@@ -630,7 +630,8 @@ export default function AdminReferralWorkstation() {
   // appeal_final) even before any draft exists (flow-script §3/§4). When
   // the track already leads the row (isEnrollmentLed), it takes over the
   // stage tab itself instead of getting a second tab (Alex, 2026-09-23).
-  const showEnrollmentSection = !!next.track || next.stage === "closed" || next.stage === "appeal_final";
+  // pa_denied offers the bridge fork, so the Enrollment tab must exist there even before a draft
+  const showEnrollmentSection = !!next.track || next.stage === "closed" || next.stage === "appeal_final" || next.stage === "pa_denied";
   const showSeparateEnrollmentTab = showEnrollmentSection && !isEnrollmentLed;
   // True whenever the page should act as the enrollment track's stage —
   // either the dedicated tab is open, or the track already leads the row.
@@ -752,7 +753,11 @@ export default function AdminReferralWorkstation() {
           catch (e: any) { toast({ title: "Could not start the appeal", description: e.message, variant: "destructive" }); }
         };
       case "Start bridge enrollment":
-        return () => enrollmentActionsRef.current?.start();
+        // Open the Enrollment tab (mounts the card) and start on the next tick once the ref exists.
+        return () => {
+          setActiveTab(isEnrollmentLed ? "stage" : "enrollment");
+          setTimeout(() => enrollmentActionsRef.current?.start(), 50);
+        };
       case "Fax packet":
         return () => appealActionsRef.current?.faxPacket();
       case "Preview":
