@@ -23,7 +23,8 @@ import { toast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
+import { DatePicker } from "@/components/ui/date-picker";
 import { PageContainer } from "@/components/patterns/PageContainer";
 
 const statusDescriptions: Record<string, string> = {
@@ -793,12 +794,14 @@ function EditDrawer({ referralId, data, flaggedSet, onClose, onSaved }: any) {
                     <div key={f.k} className={span ? "col-span-2" : undefined}>
                       <Label className="text-xs flex items-center gap-1">{f.label}{flag && <AlertTriangle width={12} height={12} strokeWidth={1.75} className="text-warning" />}</Label>
                       {f.bool ? (
-                        <Select value={v ? "Yes" : "No"} onValueChange={(val) => setField(g.section, f.k, val === "Yes")}>
-                          <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                          <SelectContent><SelectItem value="No">No</SelectItem><SelectItem value="Yes">Yes</SelectItem></SelectContent>
-                        </Select>
+                        <Combobox
+                          className="mt-1"
+                          value={v ? "Yes" : "No"}
+                          onValueChange={(val) => setField(g.section, f.k, val === "Yes")}
+                          options={["No", "Yes"]}
+                        />
                       ) : f.date ? (
-                        <Input type="date" className="mt-1" value={v || ""} onChange={(e) => setField(g.section, f.k, e.target.value)} />
+                        <DatePicker className="mt-1" value={v || ""} onChange={(val) => setField(g.section, f.k, val || "")} />
                       ) : span ? (
                         <Textarea className="mt-1" rows={2} value={v || ""} onChange={(e) => setField(g.section, f.k, e.target.value)} />
                       ) : (

@@ -5,6 +5,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
 import { toast } from "@/hooks/use-toast";
 
 interface DefinitionRow {
@@ -108,18 +109,22 @@ function RowValue({ row }: { row: DefinitionRow }) {
   };
 
   if (editing) {
+    const isDate = row.edit?.type === "date";
     const EditControl = isTextarea ? Textarea : Input;
     return (
       <div className="flex items-start gap-1.5 min-w-0 flex-1 py-0.5">
-        <EditControl
-          autoFocus
-          type={row.edit?.type === "date" ? "date" : undefined}
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={handleKeyDown}
-          disabled={saving}
-          className={cn("text-sm", isTextarea ? "min-h-[64px]" : "h-7")}
-        />
+        {isDate ? (
+          <DatePicker autoFocus value={draft} onChange={(v) => setDraft(v || "")} disabled={saving} className="h-7 text-sm" />
+        ) : (
+          <EditControl
+            autoFocus
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={saving}
+            className={cn("text-sm", isTextarea ? "min-h-[64px]" : "h-7")}
+          />
+        )}
         {saving ? (
           <Loader2 width={14} height={14} className="animate-spin text-muted-foreground shrink-0 mt-1.5" aria-label="Saving" />
         ) : (

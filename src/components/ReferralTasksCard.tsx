@@ -4,6 +4,7 @@ import { adminApi, type ReferralTask, type TaskDocument } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { getRelativeTime, formatDateShort } from "@/lib/dateUtils";
 import { cn } from "@/lib/utils";
+import { Combobox } from "@/components/ui/combobox";
 
 // Mirrors AppealPacketCard's prettifyDocType — humanize a doc_type token
 // ("chart_notes" -> "Chart Notes") for the existing-document picker.
@@ -485,12 +486,17 @@ export function ReferralTasksCard({ referralId, adminFirstName, onShared }: {
       <div className="mt-3 border-t border-border pt-2.5">
         {!pendingFile ? (
           <div className="flex flex-wrap items-center gap-2">
-            <select value={docType} onChange={(e) => setDocType(e.target.value as any)}
-              className="rounded-md border border-border bg-white px-2 py-1.5 font-sans text-xs text-foreground/90">
-              <option value="team_document">Document for the clinic</option>
-              <option value="appeal_document">Appeal document</option>
-              <option value="payer_correspondence">Payer correspondence</option>
-            </select>
+            <Combobox
+              className="w-[220px] text-xs"
+              size="sm"
+              options={[
+                { value: "team_document", label: "Document for the clinic" },
+                { value: "appeal_document", label: "Appeal document" },
+                { value: "payer_correspondence", label: "Payer correspondence" },
+              ]}
+              value={docType}
+              onValueChange={(v) => setDocType(v as any)}
+            />
             <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" onClick={() => fileRef.current?.click()}>
               <Upload size={13} />Share with clinic…
             </button>

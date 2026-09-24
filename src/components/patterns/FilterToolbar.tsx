@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
-import { ChevronDown, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
+import { Combobox } from "@/components/ui/combobox";
 
 interface FilterOption {
   value: string;
@@ -34,8 +35,8 @@ interface FilterToolbarProps {
 
 /**
  * Toolbar row above a queue/list: segmented filter buttons with counts,
- * search, plain <select> dropdowns styled to match shadcn's Select trigger,
- * and a trailing slot for a page-specific action.
+ * search, Combobox dropdowns (size="toolbar"), and a trailing slot for a
+ * page-specific action.
  */
 export function FilterToolbar({
   filters,
@@ -94,19 +95,13 @@ export function FilterToolbar({
       )}
 
       {selects?.map((s, i) => (
-        <div key={i} className="relative" style={s.width ? { width: s.width } : undefined}>
-          <select
+        <div key={i} style={s.width ? { width: s.width } : undefined}>
+          <Combobox
+            options={s.options}
             value={s.value}
-            onChange={(e) => s.onChange?.(e.target.value)}
-            className="h-9 w-full appearance-none rounded-md border border-input bg-background pl-3 pr-8 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          >
-            {s.options.map((opt) => (
-              <option key={opt} value={opt}>
-                {opt}
-              </option>
-            ))}
-          </select>
-          <ChevronDown width={16} height={16} strokeWidth={1.75} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 opacity-50" aria-hidden="true" />
+            onValueChange={(v) => s.onChange?.(v)}
+            size="toolbar"
+          />
         </div>
       ))}
 

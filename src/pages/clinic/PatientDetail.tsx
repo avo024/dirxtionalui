@@ -13,7 +13,8 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
+import { DatePicker } from "@/components/ui/date-picker";
 import { clinicApi } from "@/lib/api";
 import { mapReferralsFromBackend } from "@/lib/dataMapper";
 import { formatDateShort, parseLocalDate } from "@/lib/dateUtils";
@@ -322,13 +323,10 @@ export default function PatientDetail() {
             <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-5">
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2"><Label className="text-xs">Full name</Label><Input className="mt-1" value={draft.full_name || ""} onChange={(e) => setField("full_name", e.target.value)} /></div>
-                <div><Label className="text-xs">Date of birth</Label><Input type="date" className="mt-1" value={draft.dob || ""} onChange={(e) => setField("dob", e.target.value)} /></div>
+                <div><Label className="text-xs">Date of birth</Label><DatePicker className="mt-1" fromYear={1900} toYear={new Date().getFullYear()} value={draft.dob || ""} onChange={(v) => setField("dob", v || "")} /></div>
                 <div>
                   <Label className="text-xs">Gender</Label>
-                  <Select value={draft.gender || undefined} onValueChange={(v) => setField("gender", v)}>
-                    <SelectTrigger className="mt-1"><SelectValue placeholder="Select" /></SelectTrigger>
-                    <SelectContent>{GENDERS.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent>
-                  </Select>
+                  <Combobox className="mt-1" placeholder="Select" value={draft.gender || ""} onValueChange={(v) => setField("gender", v)} options={GENDERS} />
                 </div>
                 <div><Label className="text-xs">Phone</Label><Input className="mt-1" value={draft.phone_primary || ""} onChange={(e) => setField("phone_primary", e.target.value)} /></div>
                 <div><Label className="text-xs">Alternate phone</Label><Input className="mt-1" value={draft.phone_alternate || ""} onChange={(e) => setField("phone_alternate", e.target.value)} /></div>
@@ -336,10 +334,7 @@ export default function PatientDetail() {
                 <div className="col-span-2"><Label className="text-xs">Street address</Label><Input className="mt-1" value={draft.address || ""} onChange={(e) => setField("address", e.target.value)} /></div>
                 <div>
                   <Label className="text-xs">State</Label>
-                  <Select value={draft.state || undefined} onValueChange={(v) => setField("state", v)}>
-                    <SelectTrigger className="mt-1"><SelectValue placeholder="Select" /></SelectTrigger>
-                    <SelectContent>{US_STATES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                  </Select>
+                  <Combobox className="mt-1" placeholder="Select" value={draft.state || ""} onValueChange={(v) => setField("state", v)} options={US_STATES} />
                 </div>
                 <div><Label className="text-xs">Zip</Label><Input className="mt-1" value={draft.zip || ""} onChange={(e) => setField("zip", e.target.value)} /></div>
                 <div><Label className="text-xs">Height</Label><Input className="mt-1" value={draft.height || ""} onChange={(e) => setField("height", e.target.value)} /></div>

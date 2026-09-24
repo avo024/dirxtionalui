@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ConfidenceIndicator } from "@/components/ConfidenceIndicator";
 import { TagListEditor } from "@/components/TagListEditor";
@@ -249,27 +249,29 @@ export function ExtractionEditor({ referral, onSaved }: ExtractionEditorProps) {
           <div className="grid grid-cols-2 gap-3 pb-2">
             <div>
               <Label className="text-xs text-muted-foreground mb-1 block">Device Type</Label>
-              <Select value={editedData?.clinical?.device_type || ""} onValueChange={(v) => updateField("clinical", "device_type", v)}>
-                <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select..." /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Pre-filled syringe">Pre-filled syringe</SelectItem>
-                  <SelectItem value="Pre-filled pen">Pre-filled pen</SelectItem>
-                  <SelectItem value="Auto-injector">Auto-injector</SelectItem>
-                  <SelectItem value="Oral">Oral</SelectItem>
-                  <SelectItem value="Other">Other</SelectItem>
-                </SelectContent>
-              </Select>
+              <Combobox
+                size="sm"
+                className="h-8 text-sm"
+                placeholder="Select..."
+                value={editedData?.clinical?.device_type || ""}
+                onValueChange={(v) => updateField("clinical", "device_type", v)}
+                options={["Pre-filled syringe", "Pre-filled pen", "Auto-injector", "Oral", "Other"]}
+              />
             </div>
             <div>
               <Label className="text-xs text-muted-foreground mb-1 block">Urgency</Label>
-              <Select value={editedData?.clinical?.urgency || ""} onValueChange={(v) => updateField("clinical", "urgency", v)}>
-                <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select..." /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="routine">Routine</SelectItem>
-                  <SelectItem value="urgent">Urgent</SelectItem>
-                  <SelectItem value="stat">Stat</SelectItem>
-                </SelectContent>
-              </Select>
+              <Combobox
+                size="sm"
+                className="h-8 text-sm"
+                placeholder="Select..."
+                value={editedData?.clinical?.urgency || ""}
+                onValueChange={(v) => updateField("clinical", "urgency", v)}
+                options={[
+                  { value: "routine", label: "Routine" },
+                  { value: "urgent", label: "Urgent" },
+                  { value: "stat", label: "Stat" },
+                ]}
+              />
             </div>
           </div>
           <div className="flex items-center gap-4 pb-3">
@@ -288,14 +290,14 @@ export function ExtractionEditor({ referral, onSaved }: ExtractionEditorProps) {
           </div>
           <div className="pb-2">
             <Label className="text-xs text-muted-foreground mb-1 block">Ship To</Label>
-            <Select value={editedData?.clinical?.ship_to || ""} onValueChange={(v) => updateField("clinical", "ship_to", v)}>
-              <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select..." /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Patient's Home">Patient's Home</SelectItem>
-                <SelectItem value="Doctor's Office">Doctor's Office</SelectItem>
-                <SelectItem value="Other">Other</SelectItem>
-              </SelectContent>
-            </Select>
+            <Combobox
+              size="sm"
+              className="h-8 text-sm"
+              placeholder="Select..."
+              value={editedData?.clinical?.ship_to || ""}
+              onValueChange={(v) => updateField("clinical", "ship_to", v)}
+              options={["Patient's Home", "Doctor's Office", "Other"]}
+            />
           </div>
           <div className="grid grid-cols-2 gap-3 pb-2 items-center">
             <div className="flex items-center gap-2">
@@ -393,14 +395,18 @@ export function ExtractionEditor({ referral, onSaved }: ExtractionEditorProps) {
             </div>
             <div>
               <Label className="text-xs text-muted-foreground mb-1 block">Benefit Type</Label>
-              <Select value={editedData?.insurance?.pharmacy_benefit_or_medical_benefit || ""} onValueChange={(v) => updateField("insurance", "pharmacy_benefit_or_medical_benefit", v)}>
-                <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select..." /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pharmacy">Pharmacy Benefit</SelectItem>
-                  <SelectItem value="medical">Medical Benefit</SelectItem>
-                  <SelectItem value="unknown">Unknown</SelectItem>
-                </SelectContent>
-              </Select>
+              <Combobox
+                size="sm"
+                className="h-8 text-sm"
+                placeholder="Select..."
+                value={editedData?.insurance?.pharmacy_benefit_or_medical_benefit || ""}
+                onValueChange={(v) => updateField("insurance", "pharmacy_benefit_or_medical_benefit", v)}
+                options={[
+                  { value: "pharmacy", label: "Pharmacy Benefit" },
+                  { value: "medical", label: "Medical Benefit" },
+                  { value: "unknown", label: "Unknown" },
+                ]}
+              />
             </div>
             <div>
               <Label className="text-xs text-muted-foreground mb-1 block">Notes</Label>

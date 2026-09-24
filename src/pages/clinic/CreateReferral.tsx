@@ -17,7 +17,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
+import { DatePicker } from "@/components/ui/date-picker";
 import { cn } from "@/lib/utils";
 import { PageContainer } from "@/components/patterns/PageContainer";
 
@@ -160,19 +161,19 @@ function ManualField({ field, data, setField }: { field: FieldCfg; data: any; se
   if (field.kind === "select") {
     return (
       <RwField label={field.label} required={field.required} helper={field.helper}>
-        <Select value={v || undefined} onValueChange={(val) => setField(field.key, val)}>
-          <SelectTrigger><SelectValue placeholder={field.placeholder || "Select"} /></SelectTrigger>
-          <SelectContent>
-            {field.options!.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <Combobox
+          placeholder={field.placeholder || "Select"}
+          value={v || ""}
+          onValueChange={(val) => setField(field.key, val)}
+          options={field.options!}
+        />
       </RwField>
     );
   }
   if (field.kind === "date") {
     return (
       <RwField label={field.label} required={field.required} helper={field.helper}>
-        <Input type="date" value={v || ""} onChange={(e) => setField(field.key, e.target.value)} />
+        <DatePicker value={v || ""} onChange={(val) => setField(field.key, val || "")} />
       </RwField>
     );
   }
@@ -772,12 +773,13 @@ function SmartDropzone({ files, onFiles, removeFile, setTag, isPacket, setPacket
                 <div className="text-xs text-muted-foreground">{f.size}</div>
               </div>
               {!isPacket && (
-                <Select value={f.tag} onValueChange={(v) => setTag(f.id, v)}>
-                  <SelectTrigger className="h-8 w-[190px] text-xs shrink-0"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {FILE_TYPE_TAGS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <Combobox
+                  size="sm"
+                  className="h-8 w-[190px] text-xs shrink-0"
+                  value={f.tag}
+                  onValueChange={(v) => setTag(f.id, v)}
+                  options={FILE_TYPE_TAGS}
+                />
               )}
               <button type="button" className="text-muted-foreground hover:text-foreground shrink-0" onClick={() => removeFile(f.id)} aria-label="Remove file"><X width={16} height={16} strokeWidth={1.75} /></button>
             </div>
@@ -888,14 +890,12 @@ function Step3Pharmacy({ loading, pharmacies, selectedId, defaultId, onSelect, s
       ) : (
         <>
           <RwField label="Pharmacy">
-            <Select value={selectedId || undefined} onValueChange={onSelect}>
-              <SelectTrigger><SelectValue placeholder="Select a pharmacy…" /></SelectTrigger>
-              <SelectContent>
-                {pharmacies.map((p: any) => (
-                  <SelectItem key={p.id} value={p.id}>{p.name}{p.id === defaultId ? " (Default)" : ""}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Combobox
+              placeholder="Select a pharmacy…"
+              value={selectedId || ""}
+              onValueChange={onSelect}
+              options={pharmacies.map((p: any) => ({ value: p.id, label: `${p.name}${p.id === defaultId ? " (Default)" : ""}` }))}
+            />
           </RwField>
           {selected && (
             <div className="rounded-lg border border-border p-4">

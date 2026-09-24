@@ -11,13 +11,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
+import { DatePicker } from "@/components/ui/date-picker";
 import { cn } from "@/lib/utils";
 import { clinicApi } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
@@ -238,11 +233,12 @@ export function NewPatientModal({ open, onOpenChange, onCreated }: NewPatientMod
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="new-patient-dob" className="text-xs">Date of Birth <Req /></Label>
-              <Input
+              <DatePicker
                 id="new-patient-dob"
-                type="date"
                 value={form.dob}
-                onChange={(e) => update("dob", e.target.value)}
+                onChange={(v) => update("dob", v || "")}
+                fromYear={1900}
+                toYear={new Date().getFullYear()}
                 className={errorClass("dob")}
                 aria-invalid={!!errors.dob}
               />
@@ -250,17 +246,15 @@ export function NewPatientModal({ open, onOpenChange, onCreated }: NewPatientMod
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="new-patient-gender" className="text-xs">Gender <Req /></Label>
-              <Select value={form.gender} onValueChange={(v) => update("gender", v)}>
-                <SelectTrigger id="new-patient-gender" className={errorClass("gender")} aria-invalid={!!errors.gender}>
-                  <SelectValue placeholder="Select gender" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Male">Male</SelectItem>
-                  <SelectItem value="Female">Female</SelectItem>
-                  <SelectItem value="Other">Other</SelectItem>
-                  <SelectItem value="Prefer not to say">Prefer not to say</SelectItem>
-                </SelectContent>
-              </Select>
+              <Combobox
+                id="new-patient-gender"
+                placeholder="Select gender"
+                value={form.gender}
+                onValueChange={(v) => update("gender", v)}
+                className={errorClass("gender")}
+                aria-invalid={!!errors.gender}
+                options={["Male", "Female", "Other", "Prefer not to say"]}
+              />
               <ErrorText name="gender" />
             </div>
           </div>

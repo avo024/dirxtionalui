@@ -30,13 +30,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import { Textarea } from "@/components/ui/textarea";
 import { DynamicIcon } from "@/components/DynamicIcon";
 
@@ -236,27 +230,13 @@ export function ClinicAddonsPanel({ clinicId, clinicName }: Props) {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Add-on</Label>
-              <Select
+              <Combobox
+                placeholder="Select an add-on"
+                emptyText="No remaining add-ons available."
                 value={selectedAddonId}
                 onValueChange={setSelectedAddonId}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select an add-on" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableForAdd.length === 0 ? (
-                    <div className="px-3 py-2 text-sm text-muted-foreground">
-                      No remaining add-ons available.
-                    </div>
-                  ) : (
-                    availableForAdd.map((a) => (
-                      <SelectItem key={a.id} value={a.id}>
-                        {a.name} — ${a.monthly_price_usd}/mo
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
+                options={availableForAdd.map((a) => ({ value: a.id, label: `${a.name} — $${a.monthly_price_usd}/mo` }))}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="add_qty">Quantity</Label>

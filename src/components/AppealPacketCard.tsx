@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConfirmModal } from "@/components/ConfirmModal";
@@ -488,7 +489,7 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1">
                 <Label className="text-xs text-muted-foreground">Date on the denial letter</Label>
-                <Input type="date" value={fieldValues.denial_date || ""} onChange={(e) => updateField("denial_date", e.target.value)} className="h-8 text-sm" />
+                <DatePicker value={fieldValues.denial_date || ""} onChange={(v) => updateField("denial_date", v || "")} className="h-8 text-sm" />
               </div>
               <div className="flex flex-col gap-1">
                 <Label className="text-xs text-muted-foreground">Case or reference number</Label>
@@ -503,14 +504,14 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
             {indicationOptions.length > 1 && (
               <div className="mb-3 flex flex-col gap-1">
                 <Label className="text-xs text-muted-foreground">Which condition is this for?</Label>
-                <Select value={indication || ""} onValueChange={handleIndicationChange}>
-                  <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select…" /></SelectTrigger>
-                  <SelectContent>
-                    {indicationOptions.map((code) => (
-                      <SelectItem key={code} value={code}>{INDICATION_LABELS[code] || code}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Combobox
+                  size="sm"
+                  className="h-8 text-sm"
+                  placeholder="Select…"
+                  value={indication || ""}
+                  onValueChange={handleIndicationChange}
+                  options={indicationOptions.map((code) => ({ value: code, label: INDICATION_LABELS[code] || code }))}
+                />
               </div>
             )}
             {severityFields.length > 0 && (

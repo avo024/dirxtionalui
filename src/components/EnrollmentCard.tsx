@@ -4,6 +4,7 @@ import { formatDateShort } from "@/lib/dateUtils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { DatePicker } from "@/components/ui/date-picker";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ConfirmModal } from "@/components/ConfirmModal";
@@ -958,7 +959,7 @@ function SubmitSection({
       </div>
       <div className="mb-3.5 flex flex-col gap-1">
         <Label className="text-xs text-muted-foreground">When does the assistance run out? (if known)</Label>
-        <Input type="date" value={assistanceEndsOn} onChange={(e) => setAssistanceEndsOn(e.target.value)} className="h-8 max-w-[200px] text-sm" />
+        <DatePicker value={assistanceEndsOn} onChange={(v) => setAssistanceEndsOn(v || "")} className="h-8 max-w-[200px] text-sm" />
       </div>
       <div className="flex flex-wrap gap-2">
         <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" disabled={previewLoading} onClick={onPreview}>

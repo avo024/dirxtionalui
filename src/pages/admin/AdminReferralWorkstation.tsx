@@ -9,6 +9,7 @@ import { formatDateShort, todayLocalISO } from "@/lib/dateUtils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -1654,7 +1655,7 @@ export default function AdminReferralWorkstation() {
           <div className="space-y-3">
             <div>
               <Label className="text-xs text-muted-foreground mb-1 block">Date filed</Label>
-              <Input type="date" value={filedDate} onChange={(e) => setFiledDate(e.target.value)} />
+              <DatePicker value={filedDate} onChange={(v) => setFiledDate(v || "")} />
             </div>
             <div>
               <Label className="text-xs text-muted-foreground mb-1 block">CMM access key / ref # (optional)</Label>
@@ -1692,11 +1693,11 @@ export default function AdminReferralWorkstation() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label className="text-xs text-muted-foreground mb-1 block">Start date</Label>
-                    <Input type="date" value={decisionStart} onChange={(e) => setDecisionStart(e.target.value)} />
+                    <DatePicker value={decisionStart} onChange={(v) => setDecisionStart(v || "")} />
                   </div>
                   <div>
                     <Label className="text-xs text-muted-foreground mb-1 block">Expiration date</Label>
-                    <Input type="date" value={decisionExpiration} onChange={(e) => setDecisionExpiration(e.target.value)} />
+                    <DatePicker value={decisionExpiration} onChange={(v) => setDecisionExpiration(v || "")} />
                   </div>
                 </div>
                 <div>

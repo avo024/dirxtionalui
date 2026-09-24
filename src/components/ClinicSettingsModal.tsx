@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import { getMyClinic, updateMyClinic, pharmacyApi, type MyClinic } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 
@@ -93,13 +93,13 @@ export function ClinicSettingsModal({
 
             <div className="space-y-1.5">
               <Label htmlFor="cs-pharm">Default Pharmacy</Label>
-              <Select value={form.default_pharmacy_id || NONE} onValueChange={(v) => set("default_pharmacy_id", v === NONE ? "" : v)}>
-                <SelectTrigger id="cs-pharm"><SelectValue placeholder="Select a pharmacy" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NONE}>No default</SelectItem>
-                  {pharmacies.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Combobox
+                id="cs-pharm"
+                placeholder="Select a pharmacy"
+                value={form.default_pharmacy_id || NONE}
+                onValueChange={(v) => set("default_pharmacy_id", v === NONE ? "" : v)}
+                options={[{ value: NONE, label: "No default" }, ...pharmacies.map((p) => ({ value: p.id, label: p.name }))]}
+              />
               <p className="text-xs text-muted-foreground">New referrals default to this pharmacy — you can still change it per referral.</p>
             </div>
 

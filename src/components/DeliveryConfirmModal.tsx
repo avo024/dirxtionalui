@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { Check, FileText, AlertTriangle, ChevronDown, Loader2, Image } from "lucide-react";
+import { Check, ChevronsUpDown, FileText, AlertTriangle, ChevronDown, Loader2, Image } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Checkbox } from "@/components/ui/checkbox";
 import { adminApi } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
@@ -40,6 +41,7 @@ export function DeliveryConfirmModal({
   drugName,
 }: DeliveryConfirmModalProps) {
   const [changeOpen, setChangeOpen] = useState(false);
+  const [pharmacyPopoverOpen, setPharmacyPopoverOpen] = useState(false);
   const [pharmacies, setPharmacies] = useState<any[]>([]);
   const [loadingPharmacies, setLoadingPharmacies] = useState(false);
   const [selectedPharmacyId, setSelectedPharmacyId] = useState<string>("");
@@ -229,38 +231,66 @@ export function DeliveryConfirmModal({
                   <Loader2 className="h-4 w-4 animate-spin" /> Loading pharmacies...
                 </div>
               ) : (
-                <Select
-                  value={selectedPharmacyId}
-                  onValueChange={(val) => {
-                    setSelectedPharmacyId(val);
-                    handleReassign(val);
-                  }}
-                  disabled={reassigning}
-                >
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder={reassigning ? "Reassigning..." : "Select a pharmacy"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {pharmacies.map((p) => {
-                      const warnUninsured = patientHasInsurance === false && !p.accepts_no_insurance;
-                      return (
-                        <SelectItem key={p.id} value={p.id}>
-                          <span className="flex items-center gap-2">
-                            <span>{p.name}</span>
-                            {realNumber(p.fax) ? (
-                              <span className="text-xs text-muted-foreground">· fax {realNumber(p.fax)}</span>
-                            ) : (
-                              <span className="text-xs text-warning">· no fax</span>
-                            )}
-                            {warnUninsured && (
-                              <span className="text-xs text-warning">⚠ doesn't accept uninsured</span>
-                            )}
-                          </span>
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
+                // Not a plain Combobox: each row needs per-item warning-colored
+                // fax/uninsured badges (not just a muted hint string), so this
+                // is built directly on Popover + Command like the Combobox
+                // primitive is, rather than squeezed into its string-hint API.
+                <Popover open={pharmacyPopoverOpen} onOpenChange={(next) => !reassigning && setPharmacyPopoverOpen(next)}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={pharmacyPopoverOpen}
+                      disabled={reassigning}
+                      className={cn("h-9 w-full justify-between font-normal", !selectedPharmacyId && "text-muted-foreground")}
+                    >
+                      <span className="truncate">
+                        {reassigning
+                          ? "Reassigning..."
+                          : pharmacies.find((p) => p.id === selectedPharmacyId)?.name || "Select a pharmacy"}
+                      </span>
+                      <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="start" className="w-[--radix-popover-trigger-width] p-0">
+                    <Command>
+                      <CommandInput placeholder="Search pharmacies…" />
+                      <CommandList>
+                        <CommandEmpty>No pharmacies found.</CommandEmpty>
+                        <CommandGroup>
+                          {pharmacies.map((p) => {
+                            const warnUninsured = patientHasInsurance === false && !p.accepts_no_insurance;
+                            return (
+                              <CommandItem
+                                key={p.id}
+                                value={`${p.name} ${p.id}`}
+                                onSelect={() => {
+                                  setSelectedPharmacyId(p.id);
+                                  setPharmacyPopoverOpen(false);
+                                  handleReassign(p.id);
+                                }}
+                              >
+                                <Check className={cn("mr-2 h-4 w-4 shrink-0", p.id === selectedPharmacyId ? "opacity-100" : "opacity-0")} />
+                                <span className="flex items-center gap-2 min-w-0">
+                                  <span className="truncate">{p.name}</span>
+                                  {realNumber(p.fax) ? (
+                                    <span className="text-xs text-muted-foreground shrink-0">· fax {realNumber(p.fax)}</span>
+                                  ) : (
+                                    <span className="text-xs text-warning shrink-0">· no fax</span>
+                                  )}
+                                  {warnUninsured && (
+                                    <span className="text-xs text-warning shrink-0">⚠ doesn't accept uninsured</span>
+                                  )}
+                                </span>
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               )}
             </CollapsibleContent>
           </Collapsible>

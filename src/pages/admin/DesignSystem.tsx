@@ -7,7 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
 
 import { StatusBadge } from "@/components/StatusBadge";
@@ -89,6 +90,9 @@ export default function DesignSystem() {
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState("waiting-on-us");
   const [selectValue, setSelectValue] = useState("Clinic");
+  const [searchableComboValue, setSearchableComboValue] = useState("TX");
+  const [clearableComboValue, setClearableComboValue] = useState("");
+  const [dateValue, setDateValue] = useState<string | null>(null);
   const [docsOpen, setDocsOpen] = useState(false);
   const [adminMsg, setAdminMsg] = useState("");
   const [clinicMsg, setClinicMsg] = useState("");
@@ -224,24 +228,53 @@ export default function DesignSystem() {
       </Section>
 
       {/* ── Form controls ───────────────────────────────────────────── */}
-      <Section title="Form controls" description="Input, Textarea, Select, Checkbox, Switch, RadioGroup.">
+      <Section title="Form controls" description="Input, Textarea, Combobox (searchable/non-searchable/clearable), DatePicker, Checkbox, Switch, RadioGroup.">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-2xl">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="ds-input">Patient name</Label>
             <Input id="ds-input" placeholder="First Last" />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="ds-select">Clinic</Label>
-            <Select value={selectValue} onValueChange={setSelectValue}>
-              <SelectTrigger id="ds-select">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Clinic">Sagebrush Dermatology</SelectItem>
-                <SelectItem value="Clinic2">Piney Woods Family Med</SelectItem>
-                <SelectItem value="Clinic3">Rio Grande Rheumatology</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label htmlFor="ds-select">Clinic (Combobox, non-searchable — 3 options)</Label>
+            <Combobox
+              id="ds-select"
+              value={selectValue}
+              onValueChange={setSelectValue}
+              options={[
+                { value: "Clinic", label: "Sagebrush Dermatology" },
+                { value: "Clinic2", label: "Piney Woods Family Med" },
+                { value: "Clinic3", label: "Rio Grande Rheumatology" },
+              ]}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="ds-select-search">State (Combobox, searchable — &gt;7 options)</Label>
+            <Combobox
+              id="ds-select-search"
+              placeholder="Select a state"
+              value={searchableComboValue}
+              onValueChange={setSearchableComboValue}
+              options={["AL", "AK", "AZ", "AR", "CA", "CO", "CT", "TX", "NY", "WA"]}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="ds-select-clear">Preferred pharmacy (Combobox, clearable)</Label>
+            <Combobox
+              id="ds-select-clear"
+              placeholder="No default"
+              clearable
+              value={clearableComboValue}
+              onValueChange={setClearableComboValue}
+              options={[
+                { value: "walgreens", label: "Walgreens — Main St" },
+                { value: "cvs", label: "CVS — Elm St" },
+                { value: "accredo", label: "Accredo Specialty" },
+              ]}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="ds-date">Date filed (DatePicker)</Label>
+            <DatePicker id="ds-date" value={dateValue} onChange={setDateValue} />
           </div>
           <div className="flex flex-col gap-1.5 sm:col-span-2">
             <Label htmlFor="ds-textarea">Note</Label>

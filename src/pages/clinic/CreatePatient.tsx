@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
+import { DatePicker } from "@/components/ui/date-picker";
 import { cn } from "@/lib/utils";
 import { PageContainer } from "@/components/patterns/PageContainer";
 
@@ -185,19 +186,26 @@ function CpField({ f, value, onChange, onBlur, error, ok }: { f: Field; value: s
     control = <Textarea value={value} placeholder={f.placeholder} onChange={(e) => onChange(e.target.value)} onBlur={onBlur} className={cn("resize-none", stateCls)} />;
   } else if (f.kind === "select") {
     control = (
-      <Select value={value || undefined} onValueChange={onChange}>
-        <SelectTrigger className={stateCls}>
-          <SelectValue placeholder={f.placeholder} />
-        </SelectTrigger>
-        <SelectContent>
-          {f.options!.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-        </SelectContent>
-      </Select>
+      <Combobox
+        placeholder={f.placeholder}
+        value={value || ""}
+        onValueChange={onChange}
+        options={f.options!}
+        className={stateCls}
+      />
     );
   } else if (f.kind === "state") {
     control = <StateTypeahead value={value} onChange={onChange} error={!!error} />;
   } else if (f.kind === "date") {
-    control = <Input type="date" value={value} onChange={(e) => onChange(e.target.value)} onBlur={onBlur} className={stateCls} />;
+    control = (
+      <DatePicker
+        value={value}
+        onChange={(v) => { onChange(v || ""); onBlur(); }}
+        fromYear={1900}
+        toYear={new Date().getFullYear()}
+        className={stateCls}
+      />
+    );
   } else {
     const adorn = error ? "err" : ok ? "ok" : null;
     control = (

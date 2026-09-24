@@ -11,13 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import { adminApi, type AdminClinic } from "@/lib/api";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
@@ -90,18 +84,14 @@ export function NewInviteModal({ open, onOpenChange }: NewInviteModalProps) {
             <Label htmlFor="clinic">
               Clinic <span className="text-destructive">*</span>
             </Label>
-            <Select value={clinicId} onValueChange={setClinicId} disabled={loadingClinics}>
-              <SelectTrigger id="clinic">
-                <SelectValue placeholder={loadingClinics ? "Loading clinics..." : "Select a clinic"} />
-              </SelectTrigger>
-              <SelectContent>
-                {clinics.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Combobox
+              id="clinic"
+              placeholder={loadingClinics ? "Loading clinics..." : "Select a clinic"}
+              value={clinicId}
+              onValueChange={setClinicId}
+              disabled={loadingClinics}
+              options={clinics.map((c) => ({ value: c.id, label: c.name }))}
+            />
           </div>
 
           <div className="space-y-2">
