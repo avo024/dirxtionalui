@@ -546,6 +546,7 @@ export default function AdminReferralsList() {
       stageTone={r.stageTone}
       signal={r.signal}
       extra={r.extra}
+      onExtraClick={r.extra ? () => navigate(`/admin/referrals/${r.id}?tab=enrollment`) : undefined}
       assignee={r.assignee}
       onClick={() => navigate(`/admin/referrals/${r.id}`)}
       menu={

@@ -23,6 +23,9 @@ interface QueueRowProps {
   signal?: string;
   /** A second live track (e.g. PA + enrollment); rendered behind a "+1" chip. */
   extra?: QueueRowExtra;
+  /** Deep-links the expanded "+1" line to that track's own tab (e.g. the
+   *  workstation's Enrollment tab) instead of just expanding in place. */
+  onExtraClick?: () => void;
   assignee?: string | null;
   onClick?: () => void;
   onMore?: () => void;
@@ -49,6 +52,7 @@ export function QueueRow({
   stageTone,
   signal,
   extra,
+  onExtraClick,
   assignee,
   onClick,
   onMore,
@@ -57,6 +61,12 @@ export function QueueRow({
 }: QueueRowProps) {
   const [expanded, setExpanded] = useState(false);
   const overdue = urgency === "overdue";
+  const handleExtraClick = onExtraClick
+    ? (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onExtraClick();
+      }
+    : undefined;
 
   return (
     <div
@@ -84,7 +94,13 @@ export function QueueRow({
           </span>
         )}
         {expanded && extra && (
-          <div className="mt-1.5 pt-1.5 border-t border-dashed border-border flex flex-col gap-0.5">
+          <div
+            onClick={handleExtraClick}
+            className={cn(
+              "mt-1.5 pt-1.5 border-t border-dashed border-border flex flex-col gap-0.5",
+              handleExtraClick && "-mx-1 rounded px-1 hover:bg-muted/60 cursor-pointer",
+            )}
+          >
             <span className="text-sm font-semibold text-foreground truncate">{extra.verb}</span>
             {extra.due && (
               <span className="font-mono text-xs tabular-nums text-muted-foreground">{extra.due}</span>
@@ -136,7 +152,12 @@ export function QueueRow({
           )}
         </div>
         {expanded && extra?.signal && (
-          <div className="text-xs text-muted-foreground truncate">{extra.signal}</div>
+          <div
+            onClick={handleExtraClick}
+            className={cn("text-xs text-muted-foreground truncate", handleExtraClick && "hover:text-foreground cursor-pointer")}
+          >
+            {extra.signal}
+          </div>
         )}
       </div>
 

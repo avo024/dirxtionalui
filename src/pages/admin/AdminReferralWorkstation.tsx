@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { Loader2, AlertTriangle, ExternalLink, ChevronRight } from "lucide-react";
+import { Loader2, AlertTriangle, ExternalLink } from "lucide-react";
 import { adminApi } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { useAdminProfile } from "@/hooks/useAdminProfile";
@@ -14,7 +14,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 import { StageHeader } from "@/components/patterns/StageHeader";
 import { DocumentsSheet } from "@/components/patterns/DocumentsSheet";
@@ -117,22 +116,6 @@ function useElementHeight<T extends HTMLElement>(): [React.RefObject<T>, number]
  *  documents sheet's height so it doesn't run under the fixed action row. */
 const ACTION_BAR_H = 64;
 
-/** One-line collapsed/expandable wrapper for a re-homed card (Enrollment,
- *  appeal outcomes) that isn't this stage's primary card — flow-script
- *  build-plan phase 4b finding #2. */
-function CollapsibleSection({ title, defaultOpen, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
-  const [open, setOpen] = useState(!!defaultOpen);
-  return (
-    <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger className="flex w-full items-center gap-1.5 rounded-md py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
-        <ChevronRight width={14} height={14} strokeWidth={1.75} className={cn("transition-transform", open && "rotate-90")} aria-hidden="true" />
-        {title}
-      </CollapsibleTrigger>
-      <CollapsibleContent className="pt-2">{children}</CollapsibleContent>
-    </Collapsible>
-  );
-}
-
 // ── page ───────────────────────────────────────────────────────────
 
 export default function AdminReferralWorkstation() {
@@ -179,6 +162,26 @@ export default function AdminReferralWorkstation() {
     if (!referral) return null;
     return resolveNextAction(toNextActionInput(referral));
   }, [referral]);
+
+  // Whether the enrollment track is what's actually leading this row (the
+  // resolver's "+1" mechanic swapped verb/primary to the track's) — bridge
+  // referrals with no PA work land here. In that case the stage tab IS the
+  // Enrollment tab; there is no separate second tab (Alex, 2026-09-23).
+  const isEnrollmentLed = !!(next?.track && next.verb === next.track.verb);
+
+  // ── Tab state (controlled — the header + ActionBar react to which tab is
+  // active, since the enrollment tab drives its own header/action bar) ───
+  const [activeTab, setActiveTab] = useState<string>(notesDeepLink ? "notes" : "stage");
+  const deepLinkAppliedForId = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (!id || !next) return;
+    if (deepLinkAppliedForId.current === id) return; // applied once per referral view
+    deepLinkAppliedForId.current = id;
+    if (notesDeepLink) setActiveTab("notes");
+    else if (searchParams.get("tab") === "enrollment") setActiveTab(isEnrollmentLed ? "stage" : "enrollment");
+    else setActiveTab("stage");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, next, notesDeepLink, isEnrollmentLed]);
 
   // ── Documents sheet ──────────────────────────────────────────────
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -619,12 +622,22 @@ export default function AdminReferralWorkstation() {
   const provider = data.provider || {};
 
   const last = lastEventFor(referral);
-  const isEnrollmentLed = !!next.track && next.verb === next.track.verb;
   const stageLabel = isEnrollmentLed ? "Enrollment" : stageLabelForQueue(next.stage);
   const stageTone = isEnrollmentLed ? ("teal" as const) : undefined;
-  const enrollmentHeaderLabel = ["Enrollment", enrollmentSummary?.programName, enrollmentSummary?.state]
-    .filter(Boolean)
-    .join(" · ");
+
+  // The enrollment tab appears whenever a track is live, or on the two
+  // stages that always offered an enrollment starting point today (closed,
+  // appeal_final) even before any draft exists (flow-script §3/§4). When
+  // the track already leads the row (isEnrollmentLed), it takes over the
+  // stage tab itself instead of getting a second tab (Alex, 2026-09-23).
+  const showEnrollmentSection = !!next.track || next.stage === "closed" || next.stage === "appeal_final";
+  const showSeparateEnrollmentTab = showEnrollmentSection && !isEnrollmentLed;
+  // True whenever the page should act as the enrollment track's stage —
+  // either the dedicated tab is open, or the track already leads the row.
+  const enrollmentActionsActive = activeTab === "enrollment" || isEnrollmentLed;
+  const headerStage = enrollmentActionsActive ? "Enrollment" : stageLabel;
+  const headerStageTone = enrollmentActionsActive ? ("teal" as const) : stageTone;
+  const headerQuestion = enrollmentActionsActive && next.track ? next.track.question : next.question;
 
   // ── Interrupt banner ──────────────────────────────────────────────
   let interruptExplain = "";
@@ -656,23 +669,38 @@ export default function AdminReferralWorkstation() {
   const overdue = !!next.overdue;
   const dueStr = next.dueAt ? formatWhen(next.dueAt) : null;
   let statusText: string;
-  if (next.interrupt) {
-    statusText = `${next.interrupt.verb} — then ${next.verb ?? "continue"}`;
-  } else if (next.waitingOn === "us") {
-    statusText = `Waiting on us · ${next.verb ?? ""}`;
-  } else if (next.waitingOn) {
-    const who = { payer: "payer", clinic: "clinic", manufacturer: "manufacturer", pharmacy: "pharmacy", system: "system" }[next.waitingOn] ?? next.waitingOn;
-    statusText = `Waiting on ${who}${dueStr ? ` · due ${dueStr}` : ""}`;
+  let tone: "success" | "warning" | "destructive" | undefined;
+  if (enrollmentActionsActive && next.track) {
+    // While the Enrollment tab is active (or it already leads the row), the
+    // status line describes the TRACK's clock, not the referral stage's.
+    const t = next.track;
+    const tDueStr = t.dueAt ? formatWhen(t.dueAt) : null;
+    const tOverdue = !!(t.dueAt && t.dueAt.getTime() < Date.now());
+    statusText = t.waitingOn === "us"
+      ? `Waiting on us · ${t.verb ?? ""}`
+      : t.waitingOn
+        ? `Waiting on ${t.waitingOn}${tDueStr ? ` · due ${tDueStr}` : ""}…`
+        : "Nothing to do.";
+    tone = tOverdue ? "destructive" : undefined;
   } else {
-    statusText = next.stage === "sent" ? "Delivered. Monitoring." : "Nothing to do.";
+    if (next.interrupt) {
+      statusText = `${next.interrupt.verb} — then ${next.verb ?? "continue"}`;
+    } else if (next.waitingOn === "us") {
+      statusText = `Waiting on us · ${next.verb ?? ""}`;
+    } else if (next.waitingOn) {
+      const who = { payer: "payer", clinic: "clinic", manufacturer: "manufacturer", pharmacy: "pharmacy", system: "system" }[next.waitingOn] ?? next.waitingOn;
+      statusText = `Waiting on ${who}${dueStr ? ` · due ${dueStr}` : ""}`;
+    } else {
+      statusText = next.stage === "sent" ? "Delivered. Monitoring." : "Nothing to do.";
+    }
+    tone = overdue
+      ? "destructive"
+      : next.interrupt
+        ? "warning"
+        : next.stage === "sent"
+          ? "success"
+          : undefined;
   }
-  const tone: "success" | "warning" | "destructive" | undefined = overdue
-    ? "destructive"
-    : next.interrupt
-      ? "warning"
-      : next.stage === "sent"
-        ? "success"
-        : undefined;
 
   // ── More menu (shared by header + action bar) ────────────────────
   const moreItems: Array<{ label: string; onClick?: () => void } | "-"> = [];
@@ -736,7 +764,13 @@ export default function AdminReferralWorkstation() {
       case "Fax enrollment":
         return () => enrollmentActionsRef.current?.faxEnrollment();
       case "Upload adjusted copy":
-        return () => scrollTo(enrollmentRef);
+        return () => {
+          // The card now lives inside the Enrollment tab — switch to it
+          // (or to the stage tab when the track already leads it) before
+          // scrolling, since the ref is only mounted while that tab shows.
+          setActiveTab(isEnrollmentLed ? "stage" : "enrollment");
+          requestAnimationFrame(() => scrollTo(enrollmentRef));
+        };
       case "Deliver":
         return () => setDeliverOpen(true);
       case "Return to review":
@@ -752,8 +786,12 @@ export default function AdminReferralWorkstation() {
     }
   }
 
-  const primaryLabel = next.primary === "Submit PA" ? "File PA on CoverMyMeds" : next.primary;
-  const secondaryLabel = next.secondary;
+  // While the Enrollment tab is active (or leads the row), the ActionBar's
+  // primary/secondary come from the TRACK, not the referral stage — the bar
+  // always acts on whatever it's currently showing (Alex, 2026-09-23).
+  const primaryLabelRaw = enrollmentActionsActive ? (next.track?.primary ?? null) : next.primary;
+  const primaryLabel = primaryLabelRaw === "Submit PA" ? "File PA on CoverMyMeds" : primaryLabelRaw;
+  const secondaryLabel = enrollmentActionsActive ? (next.track?.secondary ?? null) : next.secondary;
 
   // canFax/canSend live on the cards' imperative handles (flow-script §7/§9
   // — the ActionBar drives the action, but the card still owns the
@@ -765,17 +803,22 @@ export default function AdminReferralWorkstation() {
       case "Send for signature":
       case "Fax enrollment":
         return { disabled: !enrollmentActionsRef.current?.canSend, title: enrollmentActionsRef.current?.blockedReason };
+      case "Record outcome":
+        // enr_sent's track primary — flow-script §14 #5: no manufacturer
+        // outcome endpoint exists yet. Shown so Mari knows the step exists,
+        // disabled so nothing pretends to record it.
+        return { disabled: true, title: "Not wired up yet — no manufacturer-outcome endpoint (flow-script §14 #5)." };
       default:
         return {};
     }
   }
 
-  const primarySpec = next.primary
+  const primarySpec = primaryLabelRaw
     ? {
-        label: primaryLabel ?? next.primary,
-        onClick: actionFor(next.primary),
-        disabled: next.primary === "Mark handled" || gatingFor(next.primary).disabled, // Mark handled: no endpoint yet (enrollment outcomes)
-        title: gatingFor(next.primary).title,
+        label: primaryLabel ?? primaryLabelRaw,
+        onClick: actionFor(primaryLabelRaw),
+        disabled: primaryLabelRaw === "Mark handled" || gatingFor(primaryLabelRaw).disabled, // Mark handled: no endpoint yet (enrollment outcomes)
+        title: gatingFor(primaryLabelRaw).title,
       }
     : null;
   const secondarySpec = secondaryLabel
@@ -979,6 +1022,9 @@ export default function AdminReferralWorkstation() {
         );
         break;
       case "appeal_build":
+        // No "Appeal outcomes" card here — nothing can be recorded until the
+        // packet is faxed (Alex, 2026-09-23). "I submitted it another way"
+        // stays reachable under More.
         cards.push(
           <div key="appeal_packet" ref={appealPacketRef}>
             <AppealPacketCard
@@ -991,16 +1037,6 @@ export default function AdminReferralWorkstation() {
               onActionStateChange={bumpActionTick}
             />
           </div>,
-          // Collapsed while building — the outcome buttons matter once the
-          // packet is sent, not while it's still being assembled (finding #2b).
-          // Not hidden here — the ActionBar has no "Record outcome" action at
-          // this stage (More is just Archive), so hiding these would drop
-          // functionality rather than relocate it.
-          <CollapsibleSection key="appeal_outcomes" title="Appeal outcomes" defaultOpen={false}>
-            <div ref={appealOutcomesRef}>
-              <PAAppealCard referral={referral} referralId={id!} onChanged={reload} />
-            </div>
-          </CollapsibleSection>,
         );
         break;
       case "appeal_sent":
@@ -1028,23 +1064,8 @@ export default function AdminReferralWorkstation() {
             <PAAppealCard referral={referral} referralId={id!} onChanged={reload} />
           </div>,
         );
-        if (key === "appeal_final") {
-          cards.push(
-            <CollapsibleSection key="enrollment" title={enrollmentHeaderLabel} defaultOpen={isEnrollmentLed}>
-              <div ref={enrollmentRef}>
-                <EnrollmentCard
-                  referralId={id!}
-                  paStatus={referral.pa_status}
-                  status={referral.status}
-                  onChanged={reload}
-                  hideActions
-                  actionsRef={enrollmentActionsRef}
-                  onActionStateChange={bumpActionTick}
-                />
-              </div>
-            </CollapsibleSection>,
-          );
-        }
+        // Enrollment no longer nests here — it's the "Enrollment" tab
+        // (Alex, 2026-09-23).
         break;
       case "ready_to_send":
         cards.push(
@@ -1119,64 +1140,29 @@ export default function AdminReferralWorkstation() {
         );
         break;
       case "closed":
-        // No ActionBar action exists for the enrollment track at this stage
-        // (closed's own primary/secondary are always null, and the resolver
-        // never promotes the track's here — see nextAction.ts) — hiding the
-        // card's buttons would drop functionality with nothing to replace
-        // it, so hideActions stays off.
+        // Enrollment no longer nests here — it's the "Enrollment" tab
+        // (Alex, 2026-09-23).
         cards.push(
           <DefinitionList key="status_strip" title="Status" rows={[{ label: "Status", value: <StatusBadge status="closed" variant="outline" context="admin" /> }]} />,
-          <CollapsibleSection key="enrollment" title={enrollmentHeaderLabel} defaultOpen={isEnrollmentLed}>
-            <div ref={enrollmentRef}>
-              <EnrollmentCard referralId={id!} paStatus={referral.pa_status} status={referral.status} onChanged={reload} />
-            </div>
-          </CollapsibleSection>,
         );
         break;
     }
 
-    // Enrollment track cards render alongside the referral stage's own cards
-    // whenever the track is live (flow-script §4) and isn't already shown
-    // above. Collapsed unless the enrollment track is what's actually leading
-    // this row (finding #2a) — only the stage's own listed cards stay open.
-    if (
-      next.track &&
-      next.track.stage !== "enr_closed" &&
-      !["appeal_final", "closed"].includes(key)
-    ) {
-      if (next.track.cards.some((c) => c.includes("Tasks"))) {
-        cards.push(
-          <div key="tasks-track">
-            <ReferralTasksCard referralId={id!} adminFirstName={adminProfile?.first_name} onShared={reload} />
-          </div>,
-        );
-      }
-      cards.push(
-        <CollapsibleSection key="enrollment-track" title={enrollmentHeaderLabel} defaultOpen={isEnrollmentLed}>
-          <div ref={enrollmentRef}>
-            {/* hideActions only when the enrollment track actually won the
-                row's ActionBar slot (flow-script §4's "+1" mechanic) — when
-                the referral's own stage still owns primary/secondary, the
-                card's own buttons are the only way to act on it. */}
-            <EnrollmentCard
-              referralId={id!}
-              paStatus={referral.pa_status}
-              status={referral.status}
-              onChanged={reload}
-              hideActions={isEnrollmentLed}
-              actionsRef={enrollmentActionsRef}
-              onActionStateChange={bumpActionTick}
-            />
-          </div>
-        </CollapsibleSection>,
-      );
-    }
+    // Enrollment moved out of the card stack entirely — it's the
+    // "Enrollment" tab now (see renderEnrollmentTabContent below), not a
+    // section nested inside the stage's own cards (Alex, 2026-09-23).
 
-    // ClinicTasks only when the stage lists it (rejected, enr_awaiting — both
-    // handled above) or the referral has at least one open task; otherwise
-    // it's absent — the ActionBar's "Request from clinic" covers creating one
+    // ClinicTasks only when the stage lists it (rejected — handled above) or
+    // the referral has at least one open task that isn't already covered by
+    // the Enrollment tab's own tasks card (enr_awaiting); otherwise it's
+    // absent — the ActionBar's "Request from clinic" covers creating one
     // (finding #2c).
-    if (key !== "rejected" && !cards.some((c) => (c.key || "").toString().includes("tasks")) && openTaskCount > 0) {
+    if (
+      key !== "rejected" &&
+      next.track?.stage !== "enr_awaiting" &&
+      !cards.some((c) => (c.key || "").toString().includes("tasks")) &&
+      openTaskCount > 0
+    ) {
       cards.push(
         <div key="tasks-open">
           <ReferralTasksCard referralId={id!} adminFirstName={adminProfile?.first_name} onShared={reload} />
@@ -1185,6 +1171,35 @@ export default function AdminReferralWorkstation() {
     }
 
     return cards;
+  }
+
+  /** Enrollment tab content — full EnrollmentCard (one column) plus the
+   *  tasks card while a signature is being chased. Rendered either in the
+   *  dedicated "Enrollment" tab, or in the "stage" tab when the track leads
+   *  the row (isEnrollmentLed) — the workstation acts as that track's stage
+   *  either way (Alex, 2026-09-23). hideActions is always on: the ActionBar
+   *  owns every enrollment action now, the card never shows its own. */
+  function renderEnrollmentTabContent() {
+    return (
+      <div className="space-y-3">
+        <div ref={enrollmentRef}>
+          <EnrollmentCard
+            referralId={id!}
+            paStatus={referral.pa_status}
+            status={referral.status}
+            onChanged={reload}
+            hideActions
+            actionsRef={enrollmentActionsRef}
+            onActionStateChange={bumpActionTick}
+          />
+        </div>
+        {next.track?.stage === "enr_awaiting" && (
+          <div key="tasks-track">
+            <ReferralTasksCard referralId={id!} adminFirstName={adminProfile?.first_name} onShared={reload} />
+          </div>
+        )}
+      </div>
+    );
   }
 
 
@@ -1206,9 +1221,9 @@ export default function AdminReferralWorkstation() {
         <StageHeader
           back={{ label: "Back to referrals", onClick: () => navigate("/admin/referrals") }}
         patient={referral.patient_name}
-          stage={stageLabel}
-          stageTone={stageTone}
-          question={next.question}
+          stage={headerStage}
+          stageTone={headerStageTone}
+          question={headerQuestion}
           lastEvent={last?.label}
           lastTime={last?.time}
           handoff={referral.admin_handoff_note}
@@ -1250,16 +1265,25 @@ export default function AdminReferralWorkstation() {
         )}
 
         <div className="flex-1 min-w-0 overflow-y-auto p-6 pb-28">
-          <Tabs defaultValue={notesDeepLink ? "notes" : "stage"}>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className={underlineTabsListClass}>
               <TabsTrigger value="stage" className={underlineTabsTriggerClass}>{stageLabel}</TabsTrigger>
+              {showSeparateEnrollmentTab && (
+                <TabsTrigger value="enrollment" className={underlineTabsTriggerClass}>Enrollment</TabsTrigger>
+              )}
               <TabsTrigger value="all-fields" className={underlineTabsTriggerClass}>All Fields</TabsTrigger>
               <TabsTrigger value="notes" className={underlineTabsTriggerClass}>Notes ({notes.length})</TabsTrigger>
             </TabsList>
 
             <TabsContent value="stage" className="space-y-3 pt-4">
-              {renderStageCards()}
+              {isEnrollmentLed ? renderEnrollmentTabContent() : renderStageCards()}
             </TabsContent>
+
+            {showSeparateEnrollmentTab && (
+              <TabsContent value="enrollment" className="space-y-3 pt-4">
+                {renderEnrollmentTabContent()}
+              </TabsContent>
+            )}
 
             <TabsContent value="all-fields" className="space-y-3 pt-4">
               <ExtractionEditor referral={referral} onSaved={reload} />
