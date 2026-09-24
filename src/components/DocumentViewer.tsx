@@ -67,6 +67,13 @@ export function DocumentViewer({ documents, className, fetchUrl: fetchUrlProp, i
     }
   }, [documents, activeDocId, initialDocId]);
 
+  // Follow the caller's choice after mount too (e.g. the workstation's "View letter"
+  // or a stage change that picks a different default document). Previously the
+  // prop was only honoured on first mount.
+  useEffect(() => {
+    if (initialDocId && documents.some((d) => d.id === initialDocId)) setActiveDocId(initialDocId);
+  }, [initialDocId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const activeDoc = documents.find((d) => d.id === activeDocId);
   const cachedEntry = activeDocId ? urlCache[activeDocId] : undefined;
   const isExpired = cachedEntry ? Date.now() - cachedEntry.fetchedAt > URL_EXPIRY_MS : true;
