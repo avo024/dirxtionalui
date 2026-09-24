@@ -118,7 +118,7 @@ export function Combobox({
       </PopoverTrigger>
       <PopoverContent
         align={align}
-        className="w-[--radix-popover-trigger-width] p-0"
+        className="w-max min-w-[--radix-popover-trigger-width] max-w-[min(28rem,90vw)] p-0"
         onOpenAutoFocus={(e) => {
           // Without a CommandInput, nothing inside the popover is focusable
           // by default — focus the Command root so cmdk's own keyboard
@@ -143,9 +143,20 @@ export function Combobox({
                     setOpen(false);
                   }}
                 >
-                  <Check className={cn("mr-2 h-4 w-4 shrink-0", opt.value === value ? "opacity-100" : "opacity-0")} />
-                  <span className="truncate">{opt.label}</span>
-                  {opt.hint && <span className="ml-auto pl-2 text-xs text-muted-foreground shrink-0">{opt.hint}</span>}
+                  <Check className={cn("mr-2 h-4 w-4 shrink-0 self-start mt-0.5", opt.value === value ? "opacity-100" : "opacity-0")} />
+                  {opt.hint && opt.hint.length > 24 ? (
+                    // Long hints (e.g. role descriptions) stack under the label and wrap
+                    // instead of being cut off by the popover edge.
+                    <span className="flex min-w-0 flex-col">
+                      <span className="font-medium">{opt.label}</span>
+                      <span className="text-xs text-muted-foreground whitespace-normal leading-snug">{opt.hint}</span>
+                    </span>
+                  ) : (
+                    <>
+                      <span className="truncate">{opt.label}</span>
+                      {opt.hint && <span className="ml-auto pl-2 text-xs text-muted-foreground shrink-0">{opt.hint}</span>}
+                    </>
+                  )}
                 </CommandItem>
               ))}
             </CommandGroup>

@@ -110,7 +110,7 @@ function TeamMembersPanel({ clinic }: { clinic: AdminClinic }) {
                     <TableCell>
                       <Combobox
                         size="sm"
-                        className="h-8 w-48"
+                        className="h-8 w-52"
                         placeholder={roleLabel(m.role)}
                         value={m.role ?? ""}
                         onValueChange={(role) => roleMut.mutate({ userId: m.id, role })}
@@ -222,7 +222,7 @@ function TeamInvitesPanel({ clinic }: { clinic: AdminClinic }) {
           </div>
           <Combobox
             size="sm"
-            className="h-9 w-44 shrink-0"
+            className="h-9 w-52 shrink-0"
             placeholder="Select a role"
             value={role}
             onValueChange={(v) => {
