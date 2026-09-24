@@ -378,16 +378,22 @@ export default function AdminReferralWorkstation() {
   }, [id, referral?.pa_status]);
 
   // Documents the sheet/viewer actually render. Normally just `documents`
-  // (this referral's own list) — but when the PA letter on file is a
-  // fallback carried over from a previous referral, its doc id isn't in
-  // that list, so Preview would show "No document selected". In that one
-  // case, splice in a synthetic single-entry stand-in for it (instruction #1
-  // — "render the sheet with a synthetic one-item file list"); DocumentViewer's
-  // default fetchUrl (adminApi.getDocumentUrl) already resolves any doc id,
-  // not just ones belonging to this referral.
+  // (this referral's own list) — but the active doc can be one that isn't in
+  // that list: a PA letter fallback carried over from a previous referral,
+  // or (post-delivery) a "sent" stage Packet contents item — the PA letter
+  // again, or an opt-in "extra" doc — resolved via last_delivery.documents.
+  // In either case Preview would otherwise show "No document selected", so
+  // splice in a synthetic single-entry stand-in for whichever one is active
+  // (instruction #1 — "render the sheet with a synthetic one-item file
+  // list"); DocumentViewer's default fetchUrl (adminApi.getDocumentUrl)
+  // already resolves any doc id, not just ones belonging to this referral.
+  // (The referral packet itself is handled separately — see openPacketPreview
+  // — since it's excluded from the documents list on the backend.)
   const sheetDocuments = useMemo(() => {
+    if (!activeDocId || documents.some((d) => d.id === activeDocId)) return documents;
+
     const letter = paLetterInfo?.letter;
-    if (letter && activeDocId === letter.id && !documents.some((d) => d.id === letter.id)) {
+    if (letter && activeDocId === letter.id) {
       return [
         ...documents,
         {
@@ -399,8 +405,23 @@ export default function AdminReferralWorkstation() {
         },
       ];
     }
+
+    const delivered = (referral?.last_delivery?.documents || []).find((d: any) => d?.id === activeDocId);
+    if (delivered) {
+      return [
+        ...documents,
+        {
+          id: delivered.id,
+          original_filename: delivered.filename || "document",
+          file_type: guessFileType(delivered.filename || ""),
+          doc_type: delivered.kind === "pa_letter" ? "pa_approval_letter" : "other",
+          uploaded_at: referral?.last_delivery?.sent_at || "",
+        },
+      ];
+    }
+
     return documents;
-  }, [documents, paLetterInfo, activeDocId]);
+  }, [documents, paLetterInfo, activeDocId, referral?.last_delivery]);
 
   // ── PA dialogs ────────────────────────────────────────────────────
   const [filedOpen, setFiledOpen] = useState(false);
@@ -612,6 +633,35 @@ export default function AdminReferralWorkstation() {
     setActiveDocId(paLetterInfo.letter.id);
     setSheetOpen(true);
   }, [paLetterInfo]);
+
+  /** "sent" stage Packet contents — Preview for a PA letter or opt-in extra
+   *  document from last_delivery.documents. sheetDocuments (above) splices
+   *  in a synthetic stand-in when the id isn't already in this referral's
+   *  own `documents` list (e.g. a fallback PA letter from a previous
+   *  referral). */
+  const openDeliveredDocPreview = useCallback((docId: string) => {
+    setActiveDocId(docId);
+    setSheetOpen(true);
+  }, []);
+
+  /** "sent" stage Packet contents — Preview for the referral packet itself.
+   *  It's excluded from `documents` on the backend (generated_referral_pdf_sent
+   *  is filtered out of GET .../documents), so unlike the PA letter / extras
+   *  there's no synthetic-stand-in path for it: if it happens to already be
+   *  in `documents` use the sheet, otherwise fall back to the same live
+   *  "Preview PDF" generation call the ready_to_send / More-menu action uses. */
+  const openPacketPreview = useCallback(
+    (docId: string) => {
+      if (documents.some((d) => d.id === docId)) {
+        setActiveDocId(docId);
+        setSheetOpen(true);
+      } else {
+        handlePreviewPDF();
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- handlePreviewPDF is a stable per-render closure over `id`, same pattern as its other callers
+    [documents],
+  );
 
   const uploadLetter = async (file: File) => {
     if (!id) return;
@@ -1053,25 +1103,90 @@ export default function AdminReferralWorkstation() {
     return rows.filter((r) => r.value !== undefined && r.value !== null && r.value !== "");
   }
 
-  /** ready_to_send's Delivery summary "Packet contents" row — what actually
-   *  ships by default (the referral PDF, plus the PA letter if one is on
-   *  file), not every document ever uploaded to the referral (instruction #4).
-   *  Optional extras get picked in the Deliver dialog itself, hence the
-   *  muted pointer line. */
-  function packetContentsValue(): React.ReactNode {
+  /** The default-rule packet contents — referral PDF, plus the PA letter if
+   *  one is on file (or a missing-letter warning if the drug requires one).
+   *  Shared by ready_to_send's "what will go" preview and the sent stage's
+   *  legacy fallback (a delivery that predates per-document tracking). */
+  function defaultPacketContentsList(): React.ReactNode {
     const requiresPA = !referral.is_bridge_program && !!paLetterInfo?.drug_requires_pa;
     const hasLetter = !referral.is_bridge_program && !!paLetterInfo?.has_letter;
     return (
-      <span className="flex flex-col gap-0.5">
+      <>
         <span>Referral packet (PDF)</span>
         {hasLetter && paLetterInfo?.letter ? (
           <span>PA approval letter — {paLetterInfo.letter.filename}</span>
         ) : requiresPA ? (
           <span className="text-destructive">PA approval letter missing</span>
         ) : null}
+      </>
+    );
+  }
+
+  /** ready_to_send's Delivery summary "Packet contents" row — what actually
+   *  ships by default (the referral PDF, plus the PA letter if one is on
+   *  file), not every document ever uploaded to the referral (instruction #4).
+   *  Optional extras get picked in the Deliver dialog itself, hence the
+   *  muted pointer line. */
+  function packetContentsValue(): React.ReactNode {
+    return (
+      <span className="flex flex-col gap-0.5">
+        {defaultPacketContentsList()}
         <span className="text-xs text-muted-foreground">Add other documents in the Deliver step.</span>
       </span>
     );
+  }
+
+  /** "sent" stage Packet contents label per last_delivery.documents entry. */
+  function packetDocLabel(doc: { kind: string; filename?: string | null }): string {
+    if (doc.kind === "referral_packet") return "Referral packet (PDF)";
+    if (doc.kind === "pa_letter") return doc.filename ? `PA approval letter — ${doc.filename}` : "PA approval letter";
+    return doc.filename || "Document";
+  }
+
+  /** "sent" stage Delivery summary "Packet contents" row — exactly what was
+   *  delivered (last_delivery.documents), each with its own Preview link,
+   *  instead of ready_to_send's forward-looking default-rule text. Falls
+   *  back to the same default-rule list (with a muted note) when the
+   *  delivery predates per-document tracking (last_delivery.legacy). */
+  function deliveredPacketContentsValue(): React.ReactNode {
+    const delivery = referral?.last_delivery;
+    const items: Array<{ id: string; kind: string; filename?: string | null }> | null | undefined = delivery?.documents;
+
+    if (!delivery || delivery.legacy || !items) {
+      return (
+        <span className="flex flex-col gap-0.5">
+          {defaultPacketContentsList()}
+          <span className="text-xs text-muted-foreground">(sent before item tracking — based on the default contents)</span>
+        </span>
+      );
+    }
+
+    return (
+      <span className="flex flex-col gap-1">
+        {items.map((doc) => (
+          <span key={doc.id} className="inline-flex flex-wrap items-center gap-1.5">
+            <span>{packetDocLabel(doc)}</span>
+            <button
+              type="button"
+              onClick={() => (doc.kind === "referral_packet" ? openPacketPreview(doc.id) : openDeliveredDocPreview(doc.id))}
+              className="text-xs font-medium text-primary underline-offset-2 hover:underline"
+            >
+              Preview
+            </button>
+          </span>
+        ))}
+      </span>
+    );
+  }
+
+  /** "sent" stage Delivery summary "Sent" row — when it went out, by which
+   *  channel(s), and (fax only) the page count. */
+  function deliverySentValue(): React.ReactNode {
+    const delivery = referral?.last_delivery;
+    if (!delivery?.sent_at) return referral?.updated_at && formatDateShort(referral.updated_at);
+    const via = (delivery.via || []).join(" + ") || "—";
+    const pages = typeof delivery.page_count === "number" ? ` · ${delivery.page_count} page${delivery.page_count === 1 ? "" : "s"}` : "";
+    return `${formatDateShort(delivery.sent_at)} · by ${via}${pages}`;
   }
 
   function renderStageCards() {
@@ -1480,8 +1595,8 @@ export default function AdminReferralWorkstation() {
             title="Delivery summary"
             rows={definedRows([
               { label: "Pharmacy", value: referral.pharmacy_name },
-              { label: "Packet contents", value: documents.map((d) => d.original_filename).join(", ") },
-              { label: "Sent", value: referral.updated_at && formatDateShort(referral.updated_at) },
+              { label: "Sent", value: deliverySentValue() },
+              { label: "Packet contents", value: deliveredPacketContentsValue() },
               { label: "Delivery issue", value: referral.delivery_issue_at ? `Reported ${formatDateShort(referral.delivery_issue_at)}` : undefined },
             ])}
           />,
