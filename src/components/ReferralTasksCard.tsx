@@ -3,6 +3,7 @@ import { ClipboardList, Plus, Check, X, FileText, Upload, Loader2, Send, Papercl
 import { adminApi, type ReferralTask, type TaskDocument } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { getRelativeTime, formatDateShort } from "@/lib/dateUtils";
+import { cn } from "@/lib/utils";
 
 // Mirrors AppealPacketCard's prettifyDocType — humanize a doc_type token
 // ("chart_notes" -> "Chart Notes") for the existing-document picker.
@@ -249,13 +250,12 @@ export function ReferralTasksCard({ referralId, adminFirstName, onShared }: {
 
   const pill = (status: string) => {
     const map: Record<string, [string, string]> = {
-      open: ["Open", "color-mix(in srgb, var(--color-warning) 16%, transparent)"],
-      completed: ["Completed", "color-mix(in srgb, var(--color-success) 13%, transparent)"],
-      cancelled: ["Cancelled", "color-mix(in srgb, var(--text-muted) 12%, transparent)"],
+      open: ["Open", "bg-warning/[0.16] text-[#92610B]"],
+      completed: ["Completed", "bg-success/[0.13] text-success"],
+      cancelled: ["Cancelled", "bg-muted-foreground/[0.12] text-muted-foreground"],
     };
-    const [label, bg] = map[status] || map.open;
-    const fg = status === "open" ? "#92610B" : status === "completed" ? "var(--color-success)" : "var(--text-muted)";
-    return <span style={{ fontSize: 10.5, fontWeight: 600, padding: "2px 8px", borderRadius: 9999, background: bg, color: fg }}>{label}</span>;
+    const [label, classes] = map[status] || map.open;
+    return <span className={cn("rounded-full px-2 py-0.5 text-[10.5px] font-semibold", classes)}>{label}</span>;
   };
 
   return (
@@ -263,7 +263,7 @@ export function ReferralTasksCard({ referralId, adminFirstName, onShared }: {
       <div className="flex items-center gap-2.5 mb-3">
         <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><ClipboardList size={15} /></span>
         <h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">Clinic Tasks</h3>
-        <span className="ml-auto flex items-center gap-2" style={{ marginLeft: "auto" }}>
+        <span className="ml-auto flex items-center gap-2">
           <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" onClick={() => setShowForm((v) => !v)}>
             <Plus size={13} />New task
           </button>
@@ -271,62 +271,62 @@ export function ReferralTasksCard({ referralId, adminFirstName, onShared }: {
       </div>
 
       {showForm && (
-        <div style={{ marginBottom: 12 }}>
+        <div className="mb-3">
           <textarea
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             placeholder="What do you need from the clinic? (e.g., “CoverMyMeds faxed the approval to your office — please upload it here.”)"
-            style={{ width: "100%", boxSizing: "border-box", font: "inherit", fontSize: 13, color: "var(--text-body)", border: "1px solid var(--border-default)", borderRadius: "var(--radius-md)", padding: "8px 10px", minHeight: 70, resize: "vertical" }}
+            className="box-border min-h-[70px] w-full resize-y rounded-md border border-border font-sans text-[13px] text-foreground/90 px-2.5 py-2"
           />
 
           {/* Attach a document — the form/letter the clinic needs, handed to
               them right on the task card (no digging through Documents). */}
-          <div style={{ marginTop: 8 }}>
+          <div className="mt-2">
             {attachments.length > 0 && (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 6 }}>
+              <div className="mb-1.5 flex flex-wrap gap-1.5">
                 {attachments.map((a) => (
-                  <span key={a.id} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, padding: "3px 8px", borderRadius: 9999, background: "var(--color-teal-50)", color: "var(--color-teal-700)" }}>
+                  <span key={a.id} className="inline-flex items-center gap-1 rounded-full bg-teal-50 px-2 py-0.5 text-[11.5px] text-teal-700">
                     <Paperclip size={11} />
-                    <span style={{ maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.filename}</span>
+                    <span className="max-w-[180px] truncate">{a.filename}</span>
                     <button type="button" onClick={() => removeAttachment(a.id)} title="Remove attachment"
-                      style={{ display: "inline-flex", background: "none", border: "none", cursor: "pointer", color: "inherit", padding: 0 }}>
+                      className="inline-flex p-0 text-inherit">
                       <X size={11} />
                     </button>
                   </span>
                 ))}
               </div>
             )}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <div className="flex flex-wrap items-center gap-2">
               <button type="button" className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" onClick={openPicker}>
                 <Paperclip size={13} />Attach existing document<ChevronDown size={12} />
               </button>
               <button type="button" className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" disabled={attachUploading} onClick={() => attachFileRef.current?.click()}>
                 {attachUploading ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}Upload new
               </button>
-              <input ref={attachFileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif" style={{ display: "none" }}
+              <input ref={attachFileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif" className="hidden"
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadNewAttachment(f); }} />
             </div>
             {pickerOpen && (
-              <div style={{ marginTop: 6, border: "1px solid var(--border-default)", borderRadius: "var(--radius-md)", padding: 6, maxHeight: 160, overflowY: "auto" }}>
+              <div className="mt-1.5 max-h-40 overflow-y-auto rounded-md border border-border p-1.5">
                 {loadingDocs ? (
-                  <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "4px 6px" }}>Loading documents…</p>
+                  <p className="mx-1.5 my-1 text-xs text-muted-foreground">Loading documents…</p>
                 ) : !existingDocs || existingDocs.length === 0 ? (
-                  <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "4px 6px" }}>No documents on this referral yet.</p>
+                  <p className="mx-1.5 my-1 text-xs text-muted-foreground">No documents on this referral yet.</p>
                 ) : (
                   existingDocs.map((d) => {
                     const selected = attachments.some((a) => a.id === d.id);
                     return (
                       <button key={d.id} type="button" onClick={() => toggleExistingDoc(d)}
-                        style={{ display: "flex", alignItems: "flex-start", gap: 6, width: "100%", textAlign: "left", font: "inherit", padding: "5px 6px", borderRadius: "var(--radius-sm)", border: "none", cursor: "pointer", background: selected ? "var(--color-teal-50)" : "transparent", color: selected ? "var(--color-teal-700)" : "var(--text-body)" }}>
-                        <FileText size={12} style={{ flexShrink: 0, marginTop: 2 }} />
-                        <span style={{ minWidth: 0, flex: 1 }}>
-                          <span style={{ display: "block", fontSize: 12.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.original_filename}</span>
-                          <span style={{ display: "block", fontSize: 11, color: selected ? "var(--color-teal-700)" : "var(--text-muted)" }}>
+                        className={cn("flex w-full items-start gap-1.5 rounded-sm px-1.5 py-1 text-left font-sans", selected ? "bg-teal-50 text-teal-700" : "bg-transparent text-foreground/90")}>
+                        <FileText size={12} className="mt-0.5 shrink-0" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[12.5px]">{d.original_filename}</span>
+                          <span className={cn("block text-[11px]", selected ? "text-teal-700" : "text-muted-foreground")}>
                             {prettifyDocType(d.doc_type)}
                             {d.uploaded_at ? ` · added ${formatDateShort(d.uploaded_at)}` : ""}
                           </span>
                         </span>
-                        {selected && <Check size={12} style={{ marginLeft: "auto", flexShrink: 0, marginTop: 2 }} />}
+                        {selected && <Check size={12} className="ml-auto mt-0.5 shrink-0" />}
                       </button>
                     );
                   })
@@ -335,37 +335,37 @@ export function ReferralTasksCard({ referralId, adminFirstName, onShared }: {
             )}
           </div>
 
-          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+          <div className="mt-2 flex gap-2">
             <button className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-45 disabled:cursor-not-allowed" disabled={creating || !draft.trim()} onClick={create}>
               {creating ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}Send to clinic
             </button>
             <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" onClick={() => { setShowForm(false); setDraft(""); setAttachments([]); setPickerOpen(false); }}>Cancel</button>
           </div>
-          <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "6px 0 0" }}>
+          <p className="mt-1.5 text-[11px] text-muted-foreground">
             The clinic gets one email and an unmissable card on this referral. Don't put patient details in the instructions — they can see the chart.
           </p>
         </div>
       )}
 
       {loading ? (
-        <p className="text-sm" style={{ color: "var(--text-muted)" }}>Loading…</p>
+        <p className="text-sm text-muted-foreground">Loading…</p>
       ) : tasks.length === 0 ? (
-        <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+        <p className="text-sm text-muted-foreground">
           No tasks. Use one when you need something from the clinic — a document, missing info — without rejecting the referral.
         </p>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div className="flex flex-col gap-2">
           {tasks.map((t) => {
             const isEditing = editingTaskId === t.id;
             return (
-            <div key={t.id} style={{ border: "1px solid var(--border-default)", borderRadius: "var(--radius-md)", padding: "9px 11px", opacity: t.status === "cancelled" ? 0.6 : 1 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div key={t.id} className={cn("rounded-md border border-border px-2.5 py-2", t.status === "cancelled" && "opacity-60")}>
+              <div className="flex items-center gap-2">
                 {pill(t.status)}
-                <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                <span className="text-[11px] text-muted-foreground">
                   {t.created_by} · {t.created_at ? getRelativeTime(t.created_at) : ""}
                 </span>
                 {t.status === "open" && !isEditing && (
-                  <span style={{ marginLeft: "auto", display: "inline-flex", gap: 6 }}>
+                  <span className="ml-auto inline-flex gap-1.5">
                     <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" title="Edit task" onClick={() => startEdit(t)}><Pencil size={13} /></button>
                     <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" title="Mark complete (after reviewing their response)" onClick={() => complete(t.id)}><Check size={13} /></button>
                     <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" title="Cancel task" onClick={() => cancel(t.id)}><X size={13} /></button>
@@ -373,13 +373,13 @@ export function ReferralTasksCard({ referralId, adminFirstName, onShared }: {
                 )}
               </div>
               {(t.attachments?.length ?? 0) > 0 && (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "6px 0 0" }}>
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
                   {t.attachments.map((a) => (
-                    <span key={a.id} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, padding: "3px 8px", borderRadius: 9999, background: "var(--color-teal-50)", color: "var(--color-teal-700)" }}>
+                    <span key={a.id} className="inline-flex items-center gap-1 rounded-full bg-teal-50 px-2 py-0.5 text-[11.5px] text-teal-700">
                       <Paperclip size={11} />
-                      <span style={{ maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.filename}</span>
+                      <span className="max-w-[160px] truncate">{a.filename}</span>
                       <button type="button" onClick={() => viewDoc(a.id)} title="View document"
-                        style={{ display: "inline-flex", background: "none", border: "none", cursor: "pointer", color: "inherit", padding: 0 }}>
+                        className="inline-flex p-0 text-inherit">
                         <Eye size={11} />
                       </button>
                     </span>
@@ -387,61 +387,65 @@ export function ReferralTasksCard({ referralId, adminFirstName, onShared }: {
                 </div>
               )}
               {isEditing ? (
-                <div style={{ marginTop: 6 }}>
+                <div className="mt-1.5">
                   <textarea
                     value={editDraft}
                     onChange={(e) => setEditDraft(e.target.value)}
-                    style={{ width: "100%", boxSizing: "border-box", font: "inherit", fontSize: 13, color: "var(--text-body)", border: "1px solid var(--border-default)", borderRadius: "var(--radius-md)", padding: "8px 10px", minHeight: 70, resize: "vertical" }}
+                    className="box-border min-h-[70px] w-full resize-y rounded-md border border-border font-sans text-[13px] text-foreground/90 px-2.5 py-2"
                   />
 
                   {/* Add-only: existing attachments above just display; this only adds new ones. */}
-                  <div style={{ marginTop: 8 }}>
+                  <div className="mt-2">
                     {editAttachments.length > 0 && (
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 6 }}>
+                      <div className="mb-1.5 flex flex-wrap gap-1.5">
                         {editAttachments.map((a) => (
-                          <span key={a.id} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, padding: "3px 8px", borderRadius: 9999, background: "var(--color-teal-50)", color: "var(--color-teal-700)" }}>
+                          <span key={a.id} className="inline-flex items-center gap-1 rounded-full bg-teal-50 px-2 py-0.5 text-[11.5px] text-teal-700">
                             <Paperclip size={11} />
-                            <span style={{ maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.filename}</span>
+                            <span className="max-w-[180px] truncate">{a.filename}</span>
                             <button type="button" onClick={() => removeEditAttachment(a.id)} title="Remove attachment"
-                              style={{ display: "inline-flex", background: "none", border: "none", cursor: "pointer", color: "inherit", padding: 0 }}>
+                              className="inline-flex p-0 text-inherit">
                               <X size={11} />
                             </button>
                           </span>
                         ))}
                       </div>
                     )}
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                    <div className="flex flex-wrap items-center gap-2">
                       <button type="button" className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" onClick={openEditPicker}>
                         <Paperclip size={13} />Attach existing document<ChevronDown size={12} />
                       </button>
                       <button type="button" className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" disabled={editAttachUploading} onClick={() => editAttachFileRef.current?.click()}>
                         {editAttachUploading ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}Upload new
                       </button>
-                      <input ref={editAttachFileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif" style={{ display: "none" }}
+                      <input ref={editAttachFileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif" className="hidden"
                         onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadNewEditAttachment(f); }} />
                     </div>
                     {editPickerOpen && (
-                      <div style={{ marginTop: 6, border: "1px solid var(--border-default)", borderRadius: "var(--radius-md)", padding: 6, maxHeight: 160, overflowY: "auto" }}>
+                      <div className="mt-1.5 max-h-40 overflow-y-auto rounded-md border border-border p-1.5">
                         {loadingDocs ? (
-                          <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "4px 6px" }}>Loading documents…</p>
+                          <p className="mx-1.5 my-1 text-xs text-muted-foreground">Loading documents…</p>
                         ) : !existingDocs || existingDocs.length === 0 ? (
-                          <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "4px 6px" }}>No documents on this referral yet.</p>
+                          <p className="mx-1.5 my-1 text-xs text-muted-foreground">No documents on this referral yet.</p>
                         ) : (
                           existingDocs.map((d) => {
                             const alreadyAttached = t.attachments?.some((a) => a.id === d.id);
                             const selected = editAttachments.some((a) => a.id === d.id);
                             return (
                               <button key={d.id} type="button" disabled={alreadyAttached} onClick={() => toggleEditExistingDoc(d)}
-                                style={{ display: "flex", alignItems: "flex-start", gap: 6, width: "100%", textAlign: "left", font: "inherit", padding: "5px 6px", borderRadius: "var(--radius-sm)", border: "none", cursor: alreadyAttached ? "default" : "pointer", opacity: alreadyAttached ? 0.55 : 1, background: selected ? "var(--color-teal-50)" : "transparent", color: selected ? "var(--color-teal-700)" : "var(--text-body)" }}>
-                                <FileText size={12} style={{ flexShrink: 0, marginTop: 2 }} />
-                                <span style={{ minWidth: 0, flex: 1 }}>
-                                  <span style={{ display: "block", fontSize: 12.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.original_filename}</span>
-                                  <span style={{ display: "block", fontSize: 11, color: selected ? "var(--color-teal-700)" : "var(--text-muted)" }}>
+                                className={cn(
+                                  "flex w-full items-start gap-1.5 rounded-sm px-1.5 py-1 text-left font-sans",
+                                  alreadyAttached ? "cursor-default opacity-55" : "cursor-pointer",
+                                  selected ? "bg-teal-50 text-teal-700" : "bg-transparent text-foreground/90",
+                                )}>
+                                <FileText size={12} className="mt-0.5 shrink-0" />
+                                <span className="min-w-0 flex-1">
+                                  <span className="block truncate text-[12.5px]">{d.original_filename}</span>
+                                  <span className={cn("block text-[11px]", selected ? "text-teal-700" : "text-muted-foreground")}>
                                     {alreadyAttached ? "Already attached" : prettifyDocType(d.doc_type)}
                                     {!alreadyAttached && d.uploaded_at ? ` · added ${formatDateShort(d.uploaded_at)}` : ""}
                                   </span>
                                 </span>
-                                {selected && <Check size={12} style={{ marginLeft: "auto", flexShrink: 0, marginTop: 2 }} />}
+                                {selected && <Check size={12} className="ml-auto mt-0.5 shrink-0" />}
                               </button>
                             );
                           })
@@ -450,7 +454,7 @@ export function ReferralTasksCard({ referralId, adminFirstName, onShared }: {
                     )}
                   </div>
 
-                  <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                  <div className="mt-2 flex gap-2">
                     <button className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-45 disabled:cursor-not-allowed" disabled={editSaving || !editDraft.trim()} onClick={() => saveEdit(t.id)}>
                       {editSaving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}Save
                     </button>
@@ -458,15 +462,15 @@ export function ReferralTasksCard({ referralId, adminFirstName, onShared }: {
                   </div>
                 </div>
               ) : (
-                <p style={{ fontSize: 13, color: "var(--text-body)", margin: "6px 0 0", lineHeight: 1.5, overflowWrap: "anywhere" }}>{t.instructions}</p>
+                <p className="mt-1.5 text-[13px] leading-relaxed text-foreground/90 [overflow-wrap:anywhere]">{t.instructions}</p>
               )}
               {t.clinic_response && (
-                <p style={{ fontSize: 12.5, margin: "6px 0 0", padding: "7px 9px", borderRadius: "var(--radius-md)", background: "var(--color-teal-50)", color: "var(--color-teal-700)", lineHeight: 1.5, overflowWrap: "anywhere" }}>
+                <p className="mt-1.5 rounded-md bg-teal-50 px-2.5 py-2 text-[12.5px] leading-relaxed text-teal-700 [overflow-wrap:anywhere]">
                   Clinic: {t.clinic_response}
                 </p>
               )}
               {(t.response_documents?.length ?? 0) > 0 && (
-                <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "5px 0 0", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <p className="mt-1 inline-flex items-center gap-1 text-[11.5px] text-muted-foreground">
                   <FileText size={11} />{t.response_documents.length} document{t.response_documents.length === 1 ? "" : "s"} uploaded by the clinic — see Documents
                 </p>
               )}
@@ -478,11 +482,11 @@ export function ReferralTasksCard({ referralId, adminFirstName, onShared }: {
 
       {/* Share a document back to the clinic (appeal outcomes, payer letters).
           Two-step: pick → staged preview → confirm. Never auto-sends. */}
-      <div style={{ marginTop: 12, paddingTop: 10, borderTop: "1px solid var(--border-default)" }}>
+      <div className="mt-3 border-t border-border pt-2.5">
         {!pendingFile ? (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <div className="flex flex-wrap items-center gap-2">
             <select value={docType} onChange={(e) => setDocType(e.target.value as any)}
-              style={{ font: "inherit", fontSize: 12, color: "var(--text-body)", border: "1px solid var(--border-default)", borderRadius: "var(--radius-md)", padding: "6px 8px", background: "#fff" }}>
+              className="rounded-md border border-border bg-white px-2 py-1.5 font-sans text-xs text-foreground/90">
               <option value="team_document">Document for the clinic</option>
               <option value="appeal_document">Appeal document</option>
               <option value="payer_correspondence">Payer correspondence</option>
@@ -492,20 +496,20 @@ export function ReferralTasksCard({ referralId, adminFirstName, onShared }: {
             </button>
           </div>
         ) : (
-          <div style={{ border: "1px solid var(--color-teal-100)", background: "var(--color-teal-50)", borderRadius: "var(--radius-md)", padding: "10px 12px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              <FileText size={14} style={{ color: "var(--color-teal-700)", flexShrink: 0 }} />
-              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", overflowWrap: "anywhere" }}>{pendingFile.name}</span>
-              <span style={{ fontSize: 11.5, color: "var(--text-muted)" }}>{(pendingFile.size / 1024 / 1024).toFixed(2)} MB</span>
+          <div className="rounded-md border border-teal-100 bg-teal-50 px-3 py-2.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <FileText size={14} className="shrink-0 text-teal-700" />
+              <span className="text-[13px] font-semibold text-foreground [overflow-wrap:anywhere]">{pendingFile.name}</span>
+              <span className="text-[11.5px] text-muted-foreground">{(pendingFile.size / 1024 / 1024).toFixed(2)} MB</span>
               <button type="button" onClick={() => window.open(URL.createObjectURL(pendingFile), "_blank")}
-                style={{ font: "inherit", fontSize: 11.5, fontWeight: 600, color: "var(--color-teal-700)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
+                className="font-sans text-[11.5px] font-semibold text-teal-700 underline">
                 Preview
               </button>
             </div>
-            <p style={{ fontSize: 11.5, color: "var(--color-teal-700)", margin: "6px 0 8px" }}>
+            <p className="my-1.5 text-[11.5px] text-teal-700">
               Will be shared as “{docType === "appeal_document" ? "Appeal document" : docType === "payer_correspondence" ? "Payer correspondence" : "Document for the clinic"}” — the clinic sees it under “From your Dirxctional team”.
             </p>
-            <div style={{ display: "flex", gap: 8 }}>
+            <div className="flex gap-2">
               <button className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-45 disabled:cursor-not-allowed" disabled={uploading} onClick={confirmShare}>
                 {uploading ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}Share with clinic
               </button>
@@ -513,7 +517,7 @@ export function ReferralTasksCard({ referralId, adminFirstName, onShared }: {
             </div>
           </div>
         )}
-        <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif" style={{ display: "none" }}
+        <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif" className="hidden"
           onChange={(e) => { const f = e.target.files?.[0]; if (f) setPendingFile(f); }} />
       </div>
     </div>

@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { adminApi, type AppealPacketResponse, type AppealPacketFieldDef, type AppealPacketDocument, type AppealPacketLetter, type AppealPacketDrugRegistry } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 const INDICATION_LABELS: Record<string, string> = {
   PSO: "Plaque psoriasis",
@@ -418,47 +419,50 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
         <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><FileText size={15} /></span>
         <h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">Appeal Packet</h3>
         {saving && (
-          <span className="ml-auto flex items-center gap-2" style={{ marginLeft: "auto", fontSize: 11, color: "var(--text-muted)", display: "inline-flex", alignItems: "center", gap: 4 }}>
+          <span className="ml-auto inline-flex items-center gap-1 text-[11px] text-muted-foreground">
             <Loader2 size={11} className="animate-spin" />Saving…
           </span>
         )}
         {!saving && (
-          <span className="ml-auto flex items-center gap-2" style={{ marginLeft: "auto", fontSize: 11, fontWeight: 600, color: "var(--color-success)", display: "inline-flex", alignItems: "center", gap: 4, opacity: savedFlash ? 1 : 0, transition: "opacity .4s" }}>
+          <span
+            className="ml-auto inline-flex items-center gap-1 text-[11px] font-semibold text-success transition-opacity duration-[400ms]"
+            style={{ opacity: savedFlash ? 1 : 0 }}
+          >
             <Check size={11} />Saved
           </span>
         )}
       </div>
 
       {loading ? (
-        <p className="text-sm" style={{ color: "var(--text-muted)" }}>Loading…</p>
+        <p className="text-sm text-muted-foreground">Loading…</p>
       ) : loadError ? (
         <div>
-          <p className="text-sm" style={{ color: "var(--color-error)", margin: "0 0 8px" }}>{loadError}</p>
+          <p className="mb-2 text-sm text-destructive">{loadError}</p>
           <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" onClick={fetchPacket}>Try again</button>
         </div>
       ) : justSubmitted || (packetId === null && !!appealStartedAt && !builderOpen) ? (
         // ── State A: sent packet exists ──
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <CheckCircle2 size={15} style={{ color: "var(--color-success)" }} />
-          <span className="text-sm" style={{ fontWeight: 600, color: "var(--text-primary)" }}>
+        <div className="flex flex-wrap items-center gap-2">
+          <CheckCircle2 size={15} className="text-success" />
+          <span className="text-sm font-semibold text-foreground">
             Appeal packet submitted — follow-up clock running
           </span>
           <button
             type="button"
             onClick={openFreshBuilder}
-            style={{ marginLeft: "auto", font: "inherit", fontSize: 12.5, color: "var(--color-teal-700)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}
+            className="ml-auto font-sans text-[12.5px] text-teal-700 underline"
           >
             Build another packet
           </button>
         </div>
       ) : !builderOpen ? (
         // ── State B: no draft, not submitted ──
-        <div style={{ border: "1px solid color-mix(in srgb, var(--color-warning) 40%, transparent)", background: "color-mix(in srgb, var(--color-warning) 8%, transparent)", borderRadius: "var(--radius-md)", padding: "12px 14px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <AlertTriangle size={15} style={{ color: "var(--color-warning)" }} />
-            <span className="text-sm" style={{ fontWeight: 700, color: "var(--text-primary)" }}>Appeal packet not sent yet</span>
+        <div className="rounded-md border border-warning/40 bg-warning/10 px-3.5 py-3">
+          <div className="flex items-center gap-2">
+            <AlertTriangle size={15} className="text-warning" />
+            <span className="text-sm font-bold text-foreground">Appeal packet not sent yet</span>
           </div>
-          <p className="text-sm" style={{ color: "var(--text-muted)", margin: "6px 0 10px", lineHeight: 1.5 }}>
+          <p className="my-1.5 text-sm leading-relaxed text-muted-foreground">
             The 72-hour follow-up clock starts when the packet goes to the insurance company.
           </p>
           <button className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-45 disabled:cursor-not-allowed" onClick={() => setBuilderOpen(true)}>
@@ -467,26 +471,26 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
         </div>
       ) : (
         // ── State C: builder open ──
-        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        <div className="flex flex-col gap-5">
           {drugRegistry?.appeal_notes && (
-            <div style={{ background: "color-mix(in srgb, var(--color-warning) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--color-warning) 30%, transparent)", borderRadius: "var(--radius-md)", padding: "10px 14px", fontSize: 12.5, color: "var(--color-warning)", fontWeight: 600 }}>
+            <div className="rounded-md border border-warning/30 bg-warning/[0.08] px-3.5 py-2.5 text-[12.5px] font-semibold text-warning">
               ⚠ {drugRegistry.drug_name}: {drugRegistry.appeal_notes}
             </div>
           )}
 
           {/* 1. The denial */}
           <div>
-            <p className="mt-3 mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground" style={{ margin: "0 0 10px" }}>The denial</p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 12 }}>
+            <p className="mb-2.5 mt-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">The denial</p>
+            <div className="mb-3 flex flex-col gap-1">
               <Label className="text-xs text-muted-foreground">What reason did the insurance company give? (copy it word-for-word from the denial letter)</Label>
               <Textarea rows={3} value={fieldValues.denial_reason || ""} onChange={(e) => updateField("denial_reason", e.target.value)} className="text-sm" />
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1">
                 <Label className="text-xs text-muted-foreground">Date on the denial letter</Label>
                 <Input type="date" value={fieldValues.denial_date || ""} onChange={(e) => updateField("denial_date", e.target.value)} className="h-8 text-sm" />
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <div className="flex flex-col gap-1">
                 <Label className="text-xs text-muted-foreground">Case or reference number</Label>
                 <Input value={fieldValues.case_reference || ""} onChange={(e) => updateField("case_reference", e.target.value)} className="h-8 text-sm" />
               </div>
@@ -495,9 +499,9 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
 
           {/* 2. The clinical picture */}
           <div>
-            <p className="mt-3 mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground" style={{ margin: "0 0 10px" }}>The clinical picture</p>
+            <p className="mb-2.5 mt-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">The clinical picture</p>
             {indicationOptions.length > 1 && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 12 }}>
+              <div className="mb-3 flex flex-col gap-1">
                 <Label className="text-xs text-muted-foreground">Which condition is this for?</Label>
                 <Select value={indication || ""} onValueChange={handleIndicationChange}>
                   <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select…" /></SelectTrigger>
@@ -510,23 +514,23 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
               </div>
             )}
             {severityFields.length > 0 && (
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+              <div className="mb-3 grid grid-cols-2 gap-3">
                 {severityFields.map((f) => (
-                  <div key={f.key} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <div key={f.key} className="flex flex-col gap-1">
                     <Label className="text-xs text-muted-foreground">{f.label}</Label>
                     <Input value={fieldValues[f.key] || ""} onChange={(e) => updateField(f.key, e.target.value)} className="h-8 text-sm" />
                   </div>
                 ))}
               </div>
             )}
-            <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 12 }}>
+            <div className="mb-3 flex flex-col gap-1">
               <Label className="text-xs text-muted-foreground">What has the patient already tried, and why did each stop? (include dates)</Label>
               <Textarea rows={3} value={fieldValues.treatment_history || ""} onChange={(e) => updateField("treatment_history", e.target.value)} className="text-sm" />
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <div className="flex flex-col gap-1">
               <Label className="text-xs text-muted-foreground">Why does this patient need this drug?</Label>
               <Textarea rows={3} value={fieldValues.clinical_justification || ""} onChange={(e) => updateField("clinical_justification", e.target.value)} className="text-sm" />
-              <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "2px 0 0" }}>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">
                 Answer only the denial reason above — extra information can trigger another denial.
               </p>
             </div>
@@ -551,24 +555,20 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
             const emptyCount = blanks.filter((k) => !(fieldValues[k] || "").trim()).length;
             const warn = emptyCount > 0;
             return (
-              <div style={{
-                background: warn ? "color-mix(in srgb, var(--color-warning) 7%, transparent)" : "var(--color-stone-50, transparent)",
-                border: `1px solid ${warn ? "color-mix(in srgb, var(--color-warning) 30%, transparent)" : "var(--border-default)"}`,
-                borderRadius: "var(--radius-md)", padding: "12px 14px",
-              }}>
-                <p className="mt-3 mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground" style={{ margin: "0 0 2px", color: warn ? "var(--color-warning)" : "var(--text-muted)" }}>
+              <div className={cn("rounded-md px-3.5 py-3 border", warn ? "bg-warning/[0.07] border-warning/30" : "border-border")}>
+                <p className={cn("mb-0.5 mt-3 text-[11px] font-semibold uppercase tracking-wide", warn ? "text-warning" : "text-muted-foreground")}>
                   {warn ? "Letter details — some are still blank" : "Letter details you added"}
                 </p>
-                <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "0 0 10px" }}>
+                <p className="mb-2.5 text-[11.5px] text-muted-foreground">
                   {warn
                     ? "Anything left empty prints as ______ in the letter. Fill them here — they save with the draft."
                     : "These save with the draft — edit any of them anytime before sending."}
                 </p>
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <div className="flex flex-col gap-2.5">
                   {blanks.map((k) => {
                     const def = BLANK_FIELD_LABELS[k] || { label: k.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) };
                     return (
-                      <div key={k} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                      <div key={k} className="flex flex-col gap-1">
                         <Label className="text-xs text-muted-foreground">{def.label}</Label>
                         {def.textarea ? (
                           <Textarea rows={2} value={fieldValues[k] || ""} onChange={(e) => updateField(k, e.target.value)} className="text-sm" placeholder={def.hint} />
@@ -576,7 +576,7 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
                           <Input value={fieldValues[k] || ""} onChange={(e) => updateField(k, e.target.value)} className="h-8 text-sm" />
                         )}
                         {def.hint && !def.textarea && (
-                          <p style={{ fontSize: 11, color: "var(--text-muted)", margin: 0 }}>{def.hint}</p>
+                          <p className="text-[11px] text-muted-foreground">{def.hint}</p>
                         )}
                       </div>
                     );
@@ -588,7 +588,7 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
 
           {/* 3. What goes in the packet */}
           <div>
-            <p className="mt-3 mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground" style={{ margin: "0 0 10px" }}>What goes in the packet</p>
+            <p className="mb-2.5 mt-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">What goes in the packet</p>
             <RadioGroup value={kind} onValueChange={(v) => setKind(v as PacketKind)} className="mb-3">
               <div className="flex items-center gap-2">
                 <RadioGroupItem value="appeal" id="packet-kind-appeal" />
@@ -601,18 +601,18 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
             </RadioGroup>
             {/* Mari's rule of thumb (2026-08-14): the letter choice follows the
                 denial reason — encode the judgment so it travels to PA hire #2. */}
-            <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "0 0 12px", lineHeight: 1.5 }}>
+            <p className="mb-3 text-[11.5px] leading-relaxed text-muted-foreground">
               Which one? If the denial says the drug is <b>not on their formulary</b>, lean on the
               medical necessity letter. For <b>step-therapy or missing-documentation</b> denials, the
               appeal letter answers it directly. When unsure, send both.
               {(fieldValues.denial_reason || "").toLowerCase().includes("formulary") && kind === "appeal" && (
-                <span style={{ display: "block", marginTop: 4, color: "var(--color-warning)", fontWeight: 600 }}>
+                <span className="mt-1 block font-semibold text-warning">
                   This denial mentions the formulary — consider including the medical necessity letter.
                 </span>
               )}
             </p>
             {documents.length > 0 && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 6 }}>
+              <div className="mb-1.5 flex flex-col gap-2">
                 {documents.map((doc) => (
                   <div key={doc.id} className="flex items-start gap-2">
                     <Checkbox
@@ -620,9 +620,9 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
                       checked={includedDocIds.includes(doc.id)}
                       onCheckedChange={(checked) => toggleDoc(doc.id, !!checked)}
                     />
-                    <Label htmlFor={`packet-doc-${doc.id}`} className="text-sm font-normal" style={{ minWidth: 0, flex: 1 }}>
+                    <Label htmlFor={`packet-doc-${doc.id}`} className="min-w-0 flex-1 text-sm font-normal">
                       {doc.filename}
-                      <span style={{ display: "block", fontSize: 11, color: "var(--text-muted)" }}>
+                      <span className="block text-[11px] text-muted-foreground">
                         {prettifyDocType(doc.doc_type)}
                         {doc.uploaded_at ? ` · added ${formatDateShort(doc.uploaded_at)}` : ""}
                       </span>
@@ -638,7 +638,7 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
                           toast({ title: "Couldn't open document", description: err.message, variant: "destructive" });
                         }
                       }}
-                      style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-teal)", padding: 2, flexShrink: 0 }}
+                      className="shrink-0 p-0.5 text-teal-500"
                     >
                       <Eye size={14} />
                     </button>
@@ -646,34 +646,27 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
                 ))}
               </div>
             )}
-            <p style={{ fontSize: 11, color: "var(--text-muted)", margin: 0 }}>
+            <p className="text-[11px] text-muted-foreground">
               Only PDFs can be faxed — other files will be skipped.
             </p>
           </div>
 
           {/* 4. Send it */}
           <div>
-            <p className="mt-3 mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground" style={{ margin: "0 0 10px" }}>Send it</p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 12 }}>
+            <p className="mb-2.5 mt-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Send it</p>
+            <div className="mb-3 flex flex-col gap-1">
               <Label className="text-xs text-muted-foreground">Insurance company's fax number</Label>
-              <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
-                <span style={{
-                  fontSize: 13, fontWeight: 600, color: "var(--text-muted)",
-                  border: "1px solid hsl(var(--border))", borderRight: "none",
-                  borderRadius: "6px 0 0 6px", padding: "0 8px", height: 32,
-                  display: "inline-flex", alignItems: "center",
-                  background: "var(--color-stone-50, hsl(var(--muted)))",
-                }}>+1</span>
+              <div className="flex items-center">
+                <span className="inline-flex h-8 items-center rounded-l-md border border-r-0 border-border bg-background px-2 text-[13px] font-semibold text-muted-foreground">+1</span>
                 <Input
                   ref={faxNumberInputRef}
                   value={faxNumber}
                   onChange={(e) => setFaxNumber(e.target.value)}
-                  className="h-8 text-sm"
-                  style={{ borderRadius: "0 6px 6px 0" }}
+                  className="h-8 rounded-l-none text-sm"
                   placeholder="(555) 555-5555"
                 />
               </div>
-              <p style={{ fontSize: 11, color: "var(--text-muted)", margin: 0 }}>
+              <p className="text-[11px] text-muted-foreground">
                 It's printed on the denial letter. Any format works — we add the +1 and clean it up automatically.
               </p>
             </div>
@@ -681,12 +674,12 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
               <Switch checked={isExpedited} onCheckedChange={setIsExpedited} id="packet-expedited" />
               <div>
                 <Label htmlFor="packet-expedited" className="text-sm font-normal">Expedited (72-hour) review</Label>
-                <p style={{ fontSize: 11, color: "var(--text-muted)", margin: 0 }}>Asks the insurance company to answer within 72 hours.</p>
+                <p className="text-[11px] text-muted-foreground">Asks the insurance company to answer within 72 hours.</p>
               </div>
             </div>
             {!hideActions && (
               <>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <div className="flex flex-wrap gap-2">
                   <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" disabled={previewLoading} onClick={handlePreview}>
                     {previewLoading ? <Loader2 size={13} className="animate-spin" /> : <Eye size={13} />}Preview letter
                   </button>
@@ -700,7 +693,7 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
                 <button
                   type="button"
                   onClick={() => setMarkSubmittedConfirmOpen(true)}
-                  style={{ marginTop: 10, font: "inherit", fontSize: 12, color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}
+                  className="mt-2.5 font-sans text-xs text-muted-foreground underline"
                 >
                   I submitted it another way
                 </button>
@@ -734,7 +727,7 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
           ) : activeLetter ? (
             <PreviewLetterBody letter={activeLetter} />
           ) : (
-            <p className="text-sm" style={{ color: "var(--text-muted)" }}>No letter to preview.</p>
+            <p className="text-sm text-muted-foreground">No letter to preview.</p>
           )}
         </DialogContent>
       </Dialog>
@@ -773,29 +766,18 @@ function PreviewLetterBody({ letter }: { letter: AppealPacketLetter }) {
   return (
     <div>
       {letter.missing_tokens?.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+        <div className="mb-2.5 flex flex-wrap gap-1.5">
           {letter.missing_tokens.map((t) => (
             <span
               key={t}
-              style={{
-                fontSize: 11, fontWeight: 600, padding: "3px 9px", borderRadius: 9999,
-                background: "color-mix(in srgb, var(--color-warning) 15%, transparent)",
-                color: "var(--color-warning)",
-              }}
+              className="rounded-full bg-warning/[0.15] px-2.5 py-0.5 text-[11px] font-semibold text-warning"
             >
               Still blank: {humanizeToken(t)}
             </span>
           ))}
         </div>
       )}
-      <pre
-        style={{
-          maxHeight: "55vh", overflow: "auto", whiteSpace: "pre-wrap", wordBreak: "break-word",
-          fontFamily: "var(--font-editorial), Georgia, serif", fontSize: 13.5, lineHeight: 1.6,
-          padding: 14, borderRadius: "var(--radius-md)", border: "1px solid var(--border-default)",
-          background: "var(--color-stone-100, #f7f5f2)", margin: 0,
-        }}
-      >
+      <pre className="max-h-[55vh] overflow-auto whitespace-pre-wrap break-words rounded-md border border-border bg-stone-100 p-3.5 font-editorial text-[13.5px] leading-relaxed">
         {letter.text}
       </pre>
     </div>

@@ -503,7 +503,7 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged, hideAc
     return (
       <div className="rounded-lg border border-border bg-card shadow-sm p-[var(--density-card-pad)]">
         <div className="flex items-center gap-2.5 mb-3"><span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Pill size={15} /></span><h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">Manufacturer Assistance</h3></div>
-        <p className="text-sm" style={{ color: "var(--text-muted)" }}>Loading…</p>
+        <p className="text-sm text-muted-foreground">Loading…</p>
       </div>
     );
   }
@@ -511,7 +511,7 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged, hideAc
     return (
       <div className="rounded-lg border border-border bg-card shadow-sm p-[var(--density-card-pad)]">
         <div className="flex items-center gap-2.5 mb-3"><span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Pill size={15} /></span><h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">Manufacturer Assistance</h3></div>
-        <p className="text-sm" style={{ color: "var(--color-error)", margin: "0 0 8px" }}>{loadError}</p>
+        <p className="mb-2 text-sm text-destructive">{loadError}</p>
         <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" onClick={fetchEnrollment}>Try again</button>
       </div>
     );
@@ -524,12 +524,15 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged, hideAc
         <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Pill size={15} /></span>
         <h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">Manufacturer Assistance</h3>
         {draft?.status === "draft" && saving && (
-          <span className="ml-auto flex items-center gap-2" style={{ marginLeft: "auto", fontSize: 11, color: "var(--text-muted)", display: "inline-flex", alignItems: "center", gap: 4 }}>
+          <span className="ml-auto inline-flex items-center gap-1 text-[11px] text-muted-foreground">
             <Loader2 size={11} className="animate-spin" />Saving…
           </span>
         )}
         {draft?.status === "draft" && !saving && (
-          <span className="ml-auto flex items-center gap-2" style={{ marginLeft: "auto", fontSize: 11, fontWeight: 600, color: "var(--color-success)", display: "inline-flex", alignItems: "center", gap: 4, opacity: savedFlash ? 1 : 0, transition: "opacity .4s" }}>
+          <span
+            className="ml-auto inline-flex items-center gap-1 text-[11px] font-semibold text-success transition-opacity duration-[400ms]"
+            style={{ opacity: savedFlash ? 1 : 0 }}
+          >
             <Check size={11} />Saved
           </span>
         )}
@@ -537,52 +540,49 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged, hideAc
 
       {sentSummary ? (
         // ── State D: sent ──
-        <div style={{ border: "1px solid color-mix(in srgb, var(--color-success) 35%, transparent)", background: "color-mix(in srgb, var(--color-success) 8%, transparent)", borderRadius: "var(--radius-md)", padding: "12px 14px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <CheckCircle2 size={15} style={{ color: "var(--color-success)" }} />
-            <span className="text-sm" style={{ fontWeight: 600, color: "var(--text-primary)" }}>
+        <div className="rounded-md border border-success/35 bg-success/[0.08] px-3.5 py-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <CheckCircle2 size={15} className="text-success" />
+            <span className="text-sm font-semibold text-foreground">
               Enrolled — sent to {sentSummary.programName}{sentSummary.submittedAt ? ` ${formatDateShort(sentSummary.submittedAt)}` : ""}
             </span>
           </div>
           {sentSummary.assistanceEndsOn && (
-            <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "6px 0 0" }}>
+            <p className="mt-1.5 text-[12.5px] text-muted-foreground">
               Assistance runs out {formatDateShort(sentSummary.assistanceEndsOn)}
             </p>
           )}
           {sentSummary.faxStatus && (
-            <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "4px 0 0" }}>
+            <p className="mt-1 text-[12.5px] text-muted-foreground">
               Fax status: {sentSummary.faxStatus}
             </p>
           )}
           <button
             type="button"
             onClick={openFreshOfferView}
-            style={{ marginTop: 8, font: "inherit", fontSize: 12.5, color: "var(--color-teal-700)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}
+            className="mt-2 font-sans text-[12.5px] text-teal-700 underline"
           >
             Enroll in another program
           </button>
         </div>
       ) : !draft ? (
         // ── State A: collapsed offer(s) ──
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div className="flex flex-col gap-2.5">
           {programs.map((program) => (
             <div
               key={program.id}
-              style={{
-                border: "1px solid var(--color-teal-100)", background: "var(--color-teal-50)",
-                borderRadius: "var(--radius-md)", padding: "12px 14px",
-              }}
+              className="rounded-md border border-teal-100 bg-teal-50 px-3.5 py-3"
             >
-              <div style={{ display: "flex", alignItems: "flex-start", gap: 8, flexWrap: "wrap" }}>
-                <span className="text-sm" style={{ fontWeight: 700, color: "var(--text-primary)" }}>
+              <div className="flex flex-wrap items-start gap-2">
+                <span className="text-sm font-bold text-foreground">
                   💊 Manufacturer assistance available — {program.program_name}
                 </span>
               </div>
-              <p style={{ fontSize: 12.5, color: "var(--text-body)", margin: "6px 0 0", lineHeight: 1.5 }}>
+              <p className="mt-1.5 text-[12.5px] leading-relaxed text-foreground/90">
                 {bridgeOfferLine(program)}
               </p>
               {program.appeal_linkage && (
-                <p style={{ fontSize: 12, fontWeight: 600, color: "var(--color-warning)", margin: "6px 0 0" }}>
+                <p className="mt-1.5 text-xs font-semibold text-warning">
                   ⚠ Requires an appeal on file — {program.appeal_linkage}
                 </p>
               )}
@@ -596,8 +596,7 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged, hideAc
                   list can express (there is no draft yet). */}
               {(program.form_files?.length ?? 0) > 0 && (
                 <button
-                  className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-45 disabled:cursor-not-allowed"
-                  style={{ marginTop: 10 }}
+                  className="mt-2.5 inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-45 disabled:cursor-not-allowed"
                   disabled={startingProgramId === program.id}
                   onClick={() => startEnrollment(program)}
                 >
@@ -609,40 +608,40 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged, hideAc
         </div>
       ) : draft.status === "awaiting_signatures" ? (
         // ── State C: awaiting signatures ──
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <div style={{ border: "1px solid var(--border-default)", borderRadius: "var(--radius-md)", padding: "12px 14px" }}>
-            <p className="text-sm" style={{ fontWeight: 600, color: "var(--text-primary)", margin: 0 }}>
+        <div className="flex flex-col gap-3">
+          <div className="rounded-md border border-border px-3.5 py-3">
+            <p className="text-sm font-semibold text-foreground">
               Waiting on the clinic{draft.updated_at ? ` — task sent ${formatDateShort(draft.updated_at)}` : ""}
             </p>
-            <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "4px 0 0" }}>
+            <p className="mt-1 text-xs text-muted-foreground">
               {signersSentence ? `${signersSentence} ${signVerb} to sign the form.` : "Waiting on the clinic to return the signed form."}
             </p>
           </div>
 
           {signatureTask && (signatureTask.response_documents?.length ?? 0) > 0 ? (
             <div>
-              <p className="mt-3 mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground" style={{ margin: "0 0 8px" }}>Which upload is the signed form?</p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <p className="mb-2 mt-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Which upload is the signed form?</p>
+              <div className="flex flex-col gap-1.5">
                 {signatureTask.response_documents.map((doc) => (
-                  <label key={doc.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer" }}>
+                  <label key={doc.id} className="flex cursor-pointer items-center gap-2 text-sm">
                     <input
                       type="radio"
                       name="enroll-signed-doc"
                       checked={selectedSignedDocId === doc.id}
                       onChange={() => setSelectedSignedDocId(doc.id)}
                     />
-                    <FileText size={13} style={{ flexShrink: 0, color: "var(--text-muted)" }} />
+                    <FileText size={13} className="shrink-0 text-muted-foreground" />
                     {doc.filename}
                   </label>
                 ))}
               </div>
             </div>
           ) : (
-            <p className="text-sm" style={{ color: "var(--text-muted)" }}>No uploads from the clinic yet.</p>
+            <p className="text-sm text-muted-foreground">No uploads from the clinic yet.</p>
           )}
 
           {!canFinalize && (
-            <p style={{ fontSize: 12, color: "var(--color-error)", margin: 0 }}>
+            <p className="text-xs text-destructive">
               {blocking ? stateExcludedWarning!.message : "Confirm commercial insurance above before submitting."}
             </p>
           )}
@@ -666,10 +665,10 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged, hideAc
       ) : (
         // ── State B: builder open (draft.status === 'draft') ──
         // Single column, top-to-bottom — no wide scanning (Alex, 2026-09-23).
-        <div className="max-w-3xl" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        <div className="flex max-w-3xl flex-col gap-5">
           {/* 1. Check eligibility */}
           <div ref={eligibilityRef}>
-            <p className="mt-3 mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground" style={{ margin: "0 0 10px" }}>Check eligibility</p>
+            <p className="mb-2.5 mt-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Check eligibility</p>
             <EligibilitySection
               otherWarnings={otherWarnings} stateExcludedWarning={stateExcludedWarning} remsWarning={remsWarning}
               commercialConfirmed={commercialConfirmed} setCommercialConfirmed={setCommercialConfirmed}
@@ -678,7 +677,7 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged, hideAc
 
           {/* 2. The form */}
           <div>
-            <p className="mt-3 mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground" style={{ margin: "0 0 10px" }}>The form</p>
+            <p className="mb-2.5 mt-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">The form</p>
             {currentProgram && currentProgram.form_files.length > 1 && (
               <RadioGroup value={formFile} onValueChange={handleFormFileChange} className="mb-3">
                 {currentProgram.form_files.map((f) => (
@@ -686,7 +685,7 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged, hideAc
                     <RadioGroupItem value={f.file} id={`enroll-form-${f.file}`} disabled={!f.calibrated} />
                     <Label htmlFor={`enroll-form-${f.file}`} className="text-sm font-normal">
                       {f.label || f.file}
-                      {!f.calibrated && <span style={{ color: "var(--text-muted)" }}> — not ready yet — needs calibration</span>}
+                      {!f.calibrated && <span className="text-muted-foreground"> — not ready yet — needs calibration</span>}
                     </Label>
                   </div>
                 ))}
@@ -694,15 +693,15 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged, hideAc
             )}
 
             {prefilledEntries.length > 0 && (
-              <Collapsible open={prefilledOpen} onOpenChange={setPrefilledOpen} style={{ marginBottom: 12 }}>
+              <Collapsible open={prefilledOpen} onOpenChange={setPrefilledOpen} className="mb-3">
                 <CollapsibleTrigger className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground">
                   <ChevronRight width={12} height={12} strokeWidth={1.75} className={cn("transition-transform", prefilledOpen && "rotate-90")} aria-hidden="true" />
                   Prefilled from the referral · {prefilledEntries.length} field{prefilledEntries.length === 1 ? "" : "s"}
                 </CollapsibleTrigger>
                 <CollapsibleContent className="pt-2">
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  <div className="flex flex-wrap gap-1.5">
                     {prefilledEntries.map(([k, v]) => (
-                      <span key={k} style={{ fontSize: 11.5, padding: "3px 9px", borderRadius: 9999, background: "var(--color-stone-100, #f2f2f2)", color: "var(--text-body)" }}>
+                      <span key={k} className="rounded-full bg-stone-100 px-2.5 py-0.5 text-[11.5px] text-foreground/90">
                         {humanizeToken(k)}: {v}
                       </span>
                     ))}
@@ -712,31 +711,27 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged, hideAc
             )}
 
             {blanks.length > 0 && (
-              <div style={{
-                background: "color-mix(in srgb, var(--color-warning) 7%, transparent)",
-                border: "1px solid color-mix(in srgb, var(--color-warning) 30%, transparent)",
-                borderRadius: "var(--radius-md)", padding: "12px 14px", marginBottom: 12,
-              }}>
-                <p className="mt-3 mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground" style={{ margin: "0 0 2px", color: "var(--color-warning)" }}>Still blank</p>
-                <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "0 0 10px" }}>
+              <div className="mb-3 rounded-md border border-warning/30 bg-warning/[0.07] px-3.5 py-3">
+                <p className="mb-0.5 mt-3 text-[11px] font-semibold uppercase tracking-wide text-warning">Still blank</p>
+                <p className="mb-2.5 text-[11.5px] text-muted-foreground">
                   Anything left empty prints as ______ on the form. Fill them here — they save with the draft.
                 </p>
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <div className="flex flex-col gap-2.5">
                   {blanks.map((k) => (
-                    <div key={k} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <div key={k} className="flex flex-col gap-1">
                       <Label className="text-xs text-muted-foreground">{humanizeToken(k)}</Label>
                       <Input value={fieldValues[k] || ""} onChange={(e) => updateField(k, e.target.value)} className="h-8 text-sm" />
                     </div>
                   ))}
                 </div>
                 {optionalBlanks.length > 0 && (
-                  <div style={{ marginTop: 10 }}>
-                    <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 8px", fontWeight: 600 }}>
+                  <div className="mt-2.5">
+                    <p className="mb-2 text-xs font-semibold text-muted-foreground">
                       Optional — fine to leave blank
                     </p>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 10, opacity: 0.85 }}>
+                    <div className="flex flex-col gap-2.5 opacity-[0.85]">
                       {optionalBlanks.map((k) => (
-                        <div key={k} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                        <div key={k} className="flex flex-col gap-1">
                           <Label className="text-xs text-muted-foreground">{humanizeToken(k)}</Label>
                           <Input value={fieldValues[k] || ""} onChange={(e) => updateField(k, e.target.value)} className="h-8 text-sm" />
                         </div>
@@ -747,8 +742,8 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged, hideAc
               </div>
             )}
             {!formFillable && (
-              <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "0 0 10px", display: "flex", alignItems: "center", gap: 6 }}>
-                <AlertTriangle size={13} style={{ flexShrink: 0 }} />
+              <p className="mb-2.5 flex items-center gap-1.5 text-[12.5px] text-muted-foreground">
+                <AlertTriangle size={13} className="shrink-0" />
                 This form isn&apos;t set up for auto-fill yet — preview will show it blank. You can still send it to the clinic as an attachment.
               </p>
             )}
@@ -758,22 +753,22 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged, hideAc
             </button>
 
             {draft?.adjusted_document ? (
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
-                <FileText size={13} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
-                <span style={{ fontSize: 12.5, color: "var(--text-body)" }}>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <FileText size={13} className="shrink-0 text-muted-foreground" />
+                <span className="text-[12.5px] text-foreground/90">
                   Using your uploaded copy: {draft.adjusted_document.filename}
                   {draft.adjusted_document.uploaded_at ? ` · ${formatDateShort(draft.adjusted_document.uploaded_at)}` : ""}
                 </span>
                 <button
                   type="button"
                   onClick={() => setRemoveAdjustedConfirmOpen(true)}
-                  style={{ font: "inherit", fontSize: 12, color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}
+                  className="font-sans text-xs text-muted-foreground underline"
                 >
                   Remove
                 </button>
               </div>
             ) : (
-              <div style={{ marginTop: 8 }}>
+              <div className="mt-2">
                 <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" disabled={uploadingAdjusted} onClick={() => adjustedFileRef.current?.click()}>
                   {uploadingAdjusted ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}Upload adjusted copy
                 </button>
@@ -781,22 +776,22 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged, hideAc
                   ref={adjustedFileRef}
                   type="file"
                   accept="application/pdf"
-                  style={{ display: "none" }}
+                  className="hidden"
                   onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUploadAdjusted(f); }}
                 />
               </div>
             )}
-            <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "6px 0 0" }}>
+            <p className="mt-1.5 text-xs text-muted-foreground">
               Downloaded the form and fixed something in the PDF? Upload your copy — it's what gets sent for signatures and faxed.
             </p>
           </div>
 
           {/* 3. Signatures */}
           <div>
-            <p className="mt-3 mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground" style={{ margin: "0 0 10px" }}>Signatures</p>
+            <p className="mb-2.5 mt-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Signatures</p>
             {needsSignatures ? (
               <>
-                <p className="text-sm" style={{ color: "var(--text-body)", margin: "0 0 10px" }}>
+                <p className="mb-2.5 text-sm text-foreground/90">
                   {signersSentence} {signVerb} to sign.
                 </p>
                 {!hideActions && (
@@ -805,13 +800,13 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged, hideAc
                   </button>
                 )}
                 {!canFinalize && (
-                  <p style={{ fontSize: 11.5, color: "var(--color-error)", margin: "6px 0 0" }}>
+                  <p className="mt-1.5 text-[11.5px] text-destructive">
                     {blocking ? stateExcludedWarning!.message : "Confirm commercial insurance above first."}
                   </p>
                 )}
               </>
             ) : (
-              <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+              <p className="text-sm text-muted-foreground">
                 No signatures needed — the program confirms consent with the patient directly.
               </p>
             )}
@@ -820,7 +815,7 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged, hideAc
           {/* 4. Submit — only offered directly here when no signatures are needed */}
           {!needsSignatures && (
             <div>
-              <p className="mt-3 mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground" style={{ margin: "0 0 10px" }}>Submit</p>
+              <p className="mb-2.5 mt-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Submit</p>
               <SubmitSection
                 faxReadOnly={faxReadOnly}
                 currentProgram={currentProgram}
@@ -888,28 +883,28 @@ function EligibilitySection({ otherWarnings, stateExcludedWarning, remsWarning, 
   setCommercialConfirmed: (v: boolean) => void;
 }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+    <div className="flex flex-col gap-2">
       {stateExcludedWarning && (
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 8, border: "1px solid color-mix(in srgb, var(--color-error) 40%, transparent)", background: "color-mix(in srgb, var(--color-error) 8%, transparent)", borderRadius: "var(--radius-md)", padding: "10px 12px" }}>
-          <Ban size={14} style={{ color: "var(--color-error)", flexShrink: 0, marginTop: 1 }} />
-          <span style={{ fontSize: 12.5, color: "var(--color-error)", fontWeight: 600 }}>{stateExcludedWarning.message}</span>
+        <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/[0.08] px-3 py-2.5">
+          <Ban size={14} className="mt-px shrink-0 text-destructive" />
+          <span className="text-[12.5px] font-semibold text-destructive">{stateExcludedWarning.message}</span>
         </div>
       )}
       {remsWarning && (
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 8, border: "1px solid color-mix(in srgb, var(--color-teal-700) 35%, transparent)", background: "var(--color-teal-50)", borderRadius: "var(--radius-md)", padding: "10px 12px" }}>
-          <ShieldAlert size={14} style={{ color: "var(--color-teal-700)", flexShrink: 0, marginTop: 1 }} />
-          <span style={{ fontSize: 12.5, color: "var(--color-teal-700)", fontWeight: 600 }}>{remsWarning.message}</span>
+        <div className="flex items-start gap-2 rounded-md border border-teal-700/35 bg-teal-50 px-3 py-2.5">
+          <ShieldAlert size={14} className="mt-px shrink-0 text-teal-700" />
+          <span className="text-[12.5px] font-semibold text-teal-700">{remsWarning.message}</span>
         </div>
       )}
       {otherWarnings.map((w) => (
-        <div key={w.code} style={{ display: "flex", alignItems: "flex-start", gap: 8, border: "1px solid color-mix(in srgb, var(--color-warning) 35%, transparent)", background: "color-mix(in srgb, var(--color-warning) 8%, transparent)", borderRadius: "var(--radius-md)", padding: "10px 12px" }}>
-          <AlertTriangle size={14} style={{ color: "var(--color-warning)", flexShrink: 0, marginTop: 1 }} />
-          <span style={{ fontSize: 12.5, color: "var(--color-warning)" }}>{w.message}</span>
+        <div key={w.code} className="flex items-start gap-2 rounded-md border border-warning/35 bg-warning/[0.08] px-3 py-2.5">
+          <AlertTriangle size={14} className="mt-px shrink-0 text-warning" />
+          <span className="text-[12.5px] text-warning">{w.message}</span>
         </div>
       ))}
       <div className="flex items-start gap-2">
         <Checkbox id="enroll-commercial" checked={commercialConfirmed} onCheckedChange={(v) => setCommercialConfirmed(!!v)} />
-        <Label htmlFor="enroll-commercial" className="text-sm font-normal" style={{ lineHeight: 1.4 }}>
+        <Label htmlFor="enroll-commercial" className="text-sm font-normal leading-[1.4]">
           I've confirmed this patient has commercial insurance (not Medicare/Medicaid)
         </Label>
       </div>
@@ -940,39 +935,32 @@ function SubmitSection({
 }) {
   return (
     <div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 12 }}>
+      <div className="mb-3 flex flex-col gap-1">
         <Label className="text-xs text-muted-foreground">
           {faxReadOnly ? `${currentProgram?.program_name || "Program"}'s fax number` : "Specialty pharmacy's fax number"}
         </Label>
         {faxReadOnly ? (
-          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", border: "1px solid var(--border-default)", borderRadius: "var(--radius-md)", padding: "6px 10px", background: "var(--color-stone-50, #f7f5f2)" }}>
+          <div className="rounded-md border border-border bg-background px-2.5 py-1.5 text-[13px] font-semibold text-foreground">
             {currentProgram?.submission_fax}
           </div>
         ) : (
-          <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
-            <span style={{
-              fontSize: 13, fontWeight: 600, color: "var(--text-muted)",
-              border: "1px solid hsl(var(--border))", borderRight: "none",
-              borderRadius: "6px 0 0 6px", padding: "0 8px", height: 32,
-              display: "inline-flex", alignItems: "center",
-              background: "var(--color-stone-50, hsl(var(--muted)))",
-            }}>+1</span>
+          <div className="flex items-center">
+            <span className="inline-flex h-8 items-center rounded-l-md border border-r-0 border-border bg-background px-2 text-[13px] font-semibold text-muted-foreground">+1</span>
             <Input
               ref={faxInputRef}
               value={faxNumber}
               onChange={(e) => setFaxNumber(e.target.value)}
-              className="h-8 text-sm"
-              style={{ borderRadius: "0 6px 6px 0" }}
+              className="h-8 rounded-l-none text-sm"
               placeholder="(555) 555-5555"
             />
           </div>
         )}
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 14 }}>
+      <div className="mb-3.5 flex flex-col gap-1">
         <Label className="text-xs text-muted-foreground">When does the assistance run out? (if known)</Label>
-        <Input type="date" value={assistanceEndsOn} onChange={(e) => setAssistanceEndsOn(e.target.value)} className="h-8 text-sm" style={{ maxWidth: 200 }} />
+        <Input type="date" value={assistanceEndsOn} onChange={(e) => setAssistanceEndsOn(e.target.value)} className="h-8 max-w-[200px] text-sm" />
       </div>
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+      <div className="flex flex-wrap gap-2">
         <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" disabled={previewLoading} onClick={onPreview}>
           {previewLoading ? <Loader2 size={13} className="animate-spin" /> : <Eye size={13} />}Preview
         </button>
@@ -986,7 +974,7 @@ function SubmitSection({
         <button
           type="button"
           onClick={onMarkSubmittedClick}
-          style={{ marginTop: 10, font: "inherit", fontSize: 12, color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}
+          className="mt-2.5 font-sans text-xs text-muted-foreground underline"
         >
           I submitted it another way
         </button>
