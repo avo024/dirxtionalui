@@ -28,10 +28,9 @@ import CreatePatient from "@/pages/clinic/CreatePatient";
 import Services from "@/pages/clinic/Services";
 
 import { AdminLayout } from "@/components/layout/AdminLayout";
-import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminInsights from "@/pages/admin/AdminInsights";
 import AdminReferralsList from "@/pages/admin/AdminReferralsList";
-import AdminReferralReview from "@/pages/admin/AdminReferralReview";
+import AdminReferralWorkstation from "@/pages/admin/AdminReferralWorkstation";
 import PharmaciesList from "@/pages/admin/PharmaciesList";
 import PharmacyDetail from "@/pages/admin/PharmacyDetail";
 import AdminInvites from "@/pages/admin/AdminInvites";
@@ -44,6 +43,7 @@ import AIQualityCorrections from "@/pages/admin/AIQualityCorrections";
 import AdminSupportList from "@/pages/admin/AdminSupportList";
 import AdminSupportDetail from "@/pages/admin/AdminSupportDetail";
 import FaxCenter from "@/pages/admin/FaxCenter";
+import DesignSystem from "@/pages/admin/DesignSystem";
 import ClinicSupportCenter from "@/pages/clinic/ClinicSupportCenter";
 
 const queryClient = new QueryClient();
@@ -80,11 +80,14 @@ const App = () => (
               <Route path="services" element={<Services />} />
             </Route>
 
-            {/* Admin routes */}
+            {/* Admin routes. Dashboard retired in phase 6b — Referrals (the
+                queue) is the default landing surface; today's counts moved
+                into a small row on Insights. */}
             <Route path="/admin" element={<AdminLayout />}>
-              <Route path="dashboard" element={<AdminDashboard />} />
+              <Route index element={<Navigate to="/admin/referrals" replace />} />
+              <Route path="dashboard" element={<Navigate to="/admin/referrals" replace />} />
               <Route path="insights" element={<AdminInsights />} />
-              <Route path="referrals/:id" element={<AdminReferralReview />} />
+              <Route path="referrals/:id" element={<AdminReferralWorkstation />} />
               <Route path="referrals" element={<AdminReferralsList />} />
               <Route path="support/:caseId" element={<AdminSupportDetail />} />
               <Route path="support" element={<AdminSupportList />} />
@@ -98,6 +101,7 @@ const App = () => (
               <Route path="ai-quality/corrections" element={<AIQualityCorrections />} />
               <Route path="ai-quality/referral/:id" element={<AIQualityReferral />} />
               <Route path="faxes" element={<FaxCenter />} />
+              <Route path="design-system" element={<DesignSystem />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />

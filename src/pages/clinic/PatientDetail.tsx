@@ -1,15 +1,25 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import {
-  ArrowLeft, Plus, User, Shield, Copy, FileText, Pill, ClipboardList,
-  Loader2, Pencil, Save, X, Eye, AlertTriangle, Check,
-} from "lucide-react";
+import { ArrowLeft, Plus, User, Shield, FileText, Pill, ClipboardList, Loader2, Pencil, Save, X, Eye } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { underlineTabsListClass, underlineTabsTriggerClass } from "@/components/patterns/underlineTabs";
+import { DefinitionList } from "@/components/patterns/DefinitionList";
+import { IdChip } from "@/components/patterns/IdChip";
+import { StatusBadge } from "@/components/StatusBadge";
+import { ClinicPABadge } from "@/components/ClinicPABadge";
+import { PAStatusBadge } from "@/components/PAStatusBadge";
+import { Button } from "@/components/ui/button";
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Combobox } from "@/components/ui/combobox";
+import { DatePicker } from "@/components/ui/date-picker";
 import { clinicApi } from "@/lib/api";
 import { mapReferralsFromBackend } from "@/lib/dataMapper";
 import { formatDateShort, parseLocalDate } from "@/lib/dateUtils";
 import { toast } from "sonner";
-import "./wizard.css";
-import "./patient.css";
+import { PageContainer } from "@/components/patterns/PageContainer";
 
 const US_STATES = [
   "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA",
@@ -34,76 +44,31 @@ const getAge = (dob: string) => {
   return age;
 };
 
-type Tone = "success" | "approved" | "warning" | "error" | "rejected" | "muted" | "processing" | "review" | "sent" | "uploaded";
-
-// PA badge for a medication — verbatim logic from the original page.
-function getDrugPABadge(drug: any): { label: string; tone: Tone } {
-  const today = new Date();
-  if (drug.is_active === false) return { label: "Discontinued", tone: "muted" };
-  if (drug.pa_status === "appeal") return { label: "PA In Appeal", tone: "error" };
-  if (drug.pa_status === "denied") return { label: "PA Denied", tone: "error" };
-  if (["pending", "submitted", "processing"].includes(drug.pa_status)) return { label: "PA Pending", tone: "warning" };
+// PA badge for a medication — verbatim logic from the original page, mapped
+// onto the existing PAStatusBadge status keys.
+function drugPAStatus(drug: any): string {
+  if (drug.is_active === false) return "discontinued";
+  if (drug.pa_status === "appeal") return "appeal";
+  if (drug.pa_status === "denied") return "denied";
+  if (["pending", "submitted", "processing"].includes(drug.pa_status)) return "pending";
   if (drug.pa_status === "approved" && drug.pa_expiration_date) {
     const exp = parseLocalDate(drug.pa_expiration_date);
-    if (exp < today) return { label: "PA Expired", tone: "error" };
-    const days = Math.ceil((exp.getTime() - today.getTime()) / 86400000);
-    if (days <= 30) return { label: "PA Expiring Soon", tone: "warning" };
-    return { label: "PA Active", tone: "success" };
+    if (exp < new Date()) return "expired";
+    const days = Math.ceil((exp.getTime() - Date.now()) / 86400000);
+    if (days <= 30) return "expiring";
+    return "approved";
   }
-  if (drug.pa_status === "approved") return { label: "PA Active", tone: "success" };
-  return { label: "No PA", tone: "muted" };
+  if (drug.pa_status === "approved") return "approved";
+  return "none";
 }
-// Referral status → tone + label (real status values).
-function refStatusBadge(status: string): [Tone, string] {
-  const m: Record<string, [Tone, string]> = {
-    uploaded: ["uploaded", "Uploaded"], processing: ["processing", "Processing"],
-    ready_for_review: ["review", "Ready for review"], needs_info: ["uploaded", "Needs info"],
-    approved_to_send: ["approved", "Approved"], sent_to_pharmacy: ["sent", "Sent to pharmacy"],
-    rejected: ["rejected", "Needs Attention"],
+function refStatusLabel(status: string): string {
+  const m: Record<string, string> = {
+    uploaded: "Uploaded", processing: "Processing", ready_for_review: "Ready for review",
+    needs_info: "Needs info", approved_to_send: "Approved to send", sent_to_pharmacy: "Sent to pharmacy",
+    rejected: "Rejected",
   };
-  return m[status] || ["uploaded", status || "—"];
+  return m[status] || status || "—";
 }
-function clinicPABadge(status: string | null | undefined): [Tone, string] {
-  const m: Record<string, [Tone, string]> = {
-    none: ["muted", "No PA"], pending: ["uploaded", "PA Pending"], submitted: ["review", "PA Submitted"],
-    processing: ["processing", "PA In Progress"], approved: ["approved", "PA Approved"], denied: ["rejected", "PA Denied"],
-    appeal: ["rejected", "PA In Appeal"],
-  };
-  return m[status || "none"] || ["uploaded", "PA Pending"];
-}
-
-function Badge({ tone, children }: { tone: Tone; children: React.ReactNode }) {
-  return <span className={`pd-badge ${tone}`}>{children}</span>;
-}
-function Btn({ variant = "outline", sm, children, ...rest }: any) {
-  return <button className={`rw-btn ${variant}${sm ? " sm" : ""}`} {...rest}>{children}</button>;
-}
-
-const INFO_GROUPS = [
-  { key: "personal", label: "Personal Information", fields: [
-    { key: "full_name", label: "Full Name" },
-    { key: "dob", label: "Date of Birth", kind: "date" },
-    { key: "gender", label: "Gender", kind: "select", options: GENDERS },
-    { key: "email", label: "Email", copy: true },
-  ]},
-  { key: "contact", label: "Contact", fields: [
-    { key: "phone_primary", label: "Phone", copy: true },
-    { key: "phone_alternate", label: "Alternate Phone" },
-    { key: "address", label: "Street Address", span: true },
-    { key: "city", label: "City" },
-    { key: "state", label: "State", kind: "select", options: US_STATES },
-    { key: "zip", label: "Zip" },
-  ]},
-  { key: "medical", label: "Medical", fields: [
-    { key: "height", label: "Height" },
-    { key: "weight", label: "Weight" },
-    { key: "allergies", label: "Allergies", kind: "textarea", span: true },
-  ]},
-  { key: "guardian", label: "Guardian / Authorized Representative", fields: [
-    { key: "authorized_representative", label: "Authorized Representative" },
-    { key: "authorized_representative_phone", label: "Representative Phone" },
-  ]},
-] as const;
 
 export default function PatientDetail() {
   const { id } = useParams();
@@ -114,7 +79,7 @@ export default function PatientDetail() {
   const [loading, setLoading] = useState(true);
   const [medsLoading, setMedsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("history");
+  const [tab, setTab] = useState("overview");
 
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<any>({});
@@ -167,270 +132,225 @@ export default function PatientDetail() {
     } finally { setSaving(false); }
   };
   const setField = (k: string, v: string) => setDraft((d: any) => ({ ...d, [k]: v }));
-  const copy = (text: string, label: string) => { navigator.clipboard?.writeText(text); toast.success(`${label} copied to clipboard`); };
 
-  if (loading) return <div className="rw-page" style={{ display: "flex", justifyContent: "center", padding: 80 }}><span className="rw-spin" style={{ color: "var(--color-teal)" }}><Loader2 size={26} /></span></div>;
+  if (loading) return <PageContainer fade={false} style={{ display: "flex", justifyContent: "center", padding: 80 }}><Loader2 width={26} height={26} className="animate-spin text-primary" /></PageContainer>;
   if (error || !patient) return (
-    <div className="rw-page" style={{ textAlign: "center", padding: 80 }}>
-      <p style={{ color: "var(--text-muted)" }}>{error || "Patient not found"}</p>
-      <Btn variant="outline" style={{ marginTop: 16 }} onClick={() => navigate("/clinic/patients")}>Back to Patients</Btn>
-    </div>
+    <PageContainer fade={false} className="text-center py-20">
+      <p className="text-muted-foreground">{error || "Patient not found"}</p>
+      <Button variant="outline" className="mt-4" onClick={() => navigate("/clinic/patients")}>Back to Patients</Button>
+    </PageContainer>
   );
 
   const fullName = patient.full_name || `${patient.first_name || ""} ${patient.last_name || ""}`.trim() || "—";
   const firstName = patient.full_name?.split(" ")[0] || "Patient";
-  const [paTone, paLabel] = clinicPABadge(patient.pa_status);
 
   return (
-    <div className="rw-page pd-page rw-fade">
-      {/* Bar A — back */}
-      <button className="pd-back" onClick={() => navigate("/clinic/patients")}><ArrowLeft size={15} />Back to Patients</button>
+    <PageContainer>
+      <button className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-4" onClick={() => navigate("/clinic/patients")}>
+        <ArrowLeft width={15} height={15} strokeWidth={1.75} />Back to Patients
+      </button>
 
-      {/* Bar B — two-column banner header (serif name) */}
-      <div>
-        <div className="pd-header" style={{ alignItems: "center", marginBottom: 14 }}>
-          <h1 className="pd-name serif" style={{ margin: 0 }}>{fullName}</h1>
-          <Btn variant="primary" onClick={() => navigate(`/clinic/referrals/new?patientId=${patient.id}`)}><Plus size={15} />New Referral for {firstName}</Btn>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-5 gap-4 flex-wrap">
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-semibold text-foreground">{fullName}</h1>
+          <span className="text-sm text-muted-foreground">{patient.dob ? `${formatDateShort(patient.dob)} · Age ${getAge(patient.dob)}` : "—"}</span>
+          <IdChip id={patient.id} />
         </div>
-        <div className="pd-banner2">
-          <div className="col demo">
-            <p className="bk"><User size={13} />Demographics</p>
-            <div className="pairs">
-              <div className="pd-pair"><div className="pk">Age</div><div className="pv">{patient.dob ? getAge(patient.dob) : "—"}</div></div>
-              <div className="pd-pair"><div className="pk">DOB</div><div className="pv">{patient.dob ? formatDateShort(patient.dob) : "—"}</div></div>
-              <div className="pd-pair"><div className="pk">Phone</div><div className="pv">{patient.phone_primary || "—"}</div></div>
-              <div className="pd-pair"><div className="pk">Gender</div><div className="pv">{patient.gender || "—"}</div></div>
-            </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={beginEdit}><Pencil width={16} height={16} strokeWidth={1.75} />Edit patient</Button>
+          <Button onClick={() => navigate(`/clinic/referrals/new?patientId=${patient.id}`)}><Plus width={16} height={16} strokeWidth={1.75} />New Referral for {firstName}</Button>
+        </div>
+      </div>
+
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList className={underlineTabsListClass}>
+          <TabsTrigger value="overview" className={underlineTabsTriggerClass}>Overview</TabsTrigger>
+          <TabsTrigger value="referrals" className={underlineTabsTriggerClass}>Referrals ({referrals.length})</TabsTrigger>
+          <TabsTrigger value="pa" className={underlineTabsTriggerClass}>Prior authorizations ({medications.length})</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="pt-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <DefinitionList
+              title="Personal information"
+              icon={<User width={16} height={16} strokeWidth={1.75} />}
+              rows={[
+                { label: "Full name", value: patient.full_name },
+                { label: "Date of birth", value: patient.dob ? `${formatDateShort(patient.dob)} (Age ${getAge(patient.dob)})` : undefined },
+                { label: "Gender", value: patient.gender },
+                { label: "Height", value: patient.height },
+                { label: "Weight", value: patient.weight },
+              ]}
+            />
+            <DefinitionList
+              title="Contact"
+              icon={<FileText width={16} height={16} strokeWidth={1.75} />}
+              rows={[
+                { label: "Phone", value: patient.phone_primary, copy: true },
+                { label: "Alternate phone", value: patient.phone_alternate },
+                { label: "Email", value: patient.email, copy: true },
+                { label: "Address", value: [patient.address, patient.city, patient.state, patient.zip].filter(Boolean).join(", ") || undefined },
+              ]}
+            />
+            <DefinitionList
+              title="Medical"
+              icon={<Pill width={16} height={16} strokeWidth={1.75} />}
+              rows={[
+                { label: "Allergies", value: patient.allergies },
+                { label: "Insurance type", value: patient.insurance_type },
+                { label: "Plan details", value: patient.insurance_notes },
+              ]}
+            />
+            <DefinitionList
+              title="Guardian / authorized representative"
+              icon={<Shield width={16} height={16} strokeWidth={1.75} />}
+              rows={[
+                { label: "Name", value: patient.authorized_representative },
+                { label: "Phone", value: patient.authorized_representative_phone },
+              ]}
+            />
           </div>
-          <div className="col ins">
-            <p className="bk"><Shield size={13} />Insurance &amp; PA</p>
-            <div className="pairs">
-              <div className="pd-pair"><div className="pk">Insurance Type</div><div className="pv">{patient.insurance_type || "—"}</div></div>
-              <div className="pd-pair"><div className="pk">PA Status</div><div className="pv"><Badge tone={paTone}>{paLabel}</Badge></div></div>
-              <div className="pd-pair" style={{ gridColumn: "1 / -1" }}><div className="pk">Plan Details</div><div className="pv" style={{ fontWeight: 500, fontSize: "var(--text-xs)" }}>{patient.insurance_notes || "—"}</div></div>
-            </div>
+        </TabsContent>
+
+        <TabsContent value="referrals" className="pt-5">
+          <div className="flex justify-end mb-3">
+            <Button variant="outline" size="sm" onClick={() => navigate(`/clinic/referrals/new?patientId=${patient.id}`)}>
+              <Plus width={14} height={14} strokeWidth={1.75} />New referral for this patient
+            </Button>
           </div>
-        </div>
-      </div>
-
-      {/* tabs */}
-      <div className="pd-tabs">
-        {[{ key: "history", label: "Referral History", icon: FileText }, { key: "info", label: "Patient Information", icon: User }, { key: "medications", label: "Prior Authorizations", icon: ClipboardList }].map((t) => (
-          <button key={t.key} className={`pd-tab${activeTab === t.key ? " active" : ""}`} onClick={() => setActiveTab(t.key)}>
-            <span className="ti"><t.icon size={15} /></span>{t.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="pd-content">
-        {activeTab === "history" && <TabHistory medsLoading={medsLoading} medications={medications} referrals={referrals} navigate={navigate} patientId={patient.id} />}
-        {activeTab === "info" && (
-          <TabInfo
-            patient={patient} editing={editing} draft={draft} saving={saving}
-            beginEdit={beginEdit} cancelEdit={cancelEdit} saveEdits={saveEdits} setField={setField} copy={copy}
-            paTone={paTone} paLabel={paLabel}
-          />
-        )}
-        {activeTab === "medications" && <TabMeds medsLoading={medsLoading} meds={sortedMedications} navigate={navigate} patientId={patient.id} />}
-      </div>
-    </div>
-  );
-}
-
-/* ── Referral History tab ── */
-function TabHistory({ medsLoading, medications, referrals, navigate, patientId }: any) {
-  const today = new Date();
-  const activeDrugs = medications.filter((m: any) => m.is_active);
-  const drug = [...activeDrugs].sort((a, b) => new Date(b.last_filled || b.created_at || 0).getTime() - new Date(a.last_filled || a.created_at || 0).getTime())[0] || null;
-  const exp = drug?.pa_expiration_date ? parseLocalDate(drug.pa_expiration_date) : null;
-  const isExpired = exp && exp < today;
-  const days = exp ? Math.ceil((exp.getTime() - today.getTime()) / 86400000) : null;
-  const isExpiringSoon = days !== null && days > 0 && days <= 30;
-  const badge = drug ? getDrugPABadge(drug) : null;
-
-  return (
-    <div className="rw-fade" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <div className="pd-card">
-        <div className="pd-card-head"><span className="hi"><Shield size={16} /></span><div><h3>Prior Authorization Status</h3><p className="sub">Most recent active medication</p></div></div>
-        {medsLoading ? (
-          <div style={{ display: "flex", justifyContent: "center", padding: 16 }}><span className="rw-spin" style={{ color: "var(--text-muted)" }}><Loader2 size={18} /></span></div>
-        ) : !drug ? (
-          <p style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)", margin: "4px 0" }}>No active medications — medications appear here after a referral is approved.</p>
-        ) : (
-          <div>
-            <div className="pd-health">
-              <div className={`pd-health-rail ${badge!.tone}`} />
-              <div className="pd-health-body">
-                <div className="pd-health-main">
-                  <span className="drug">{drug.drug_name}{drug.dosage && <span className="dose">{drug.dosage}</span>}</span>
-                  <Badge tone={badge!.tone}>{badge!.label}</Badge>
-                </div>
-                <div className="pd-health-meta">
-                  <div><div className="mk">PA Expiration</div><div className={`mv ${isExpired ? "danger" : isExpiringSoon ? "warn" : ""}`}>{exp ? (isExpired ? `Expired ${formatDateShort(drug.pa_expiration_date)}` : formatDateShort(drug.pa_expiration_date)) : "N/A"}</div></div>
-                  <div><div className="mk">Last Filled</div><div className="mv">{drug.last_filled ? formatDateShort(drug.last_filled) : "—"}</div></div>
-                </div>
-              </div>
+          {referrals.length > 0 ? (
+            <div className="rounded-lg border border-border bg-card overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Referral ID</TableHead><TableHead>Drug</TableHead><TableHead>Status</TableHead>
+                    <TableHead>PA status</TableHead><TableHead>Created</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {referrals.map((r: any) => (
+                    <TableRow key={r.id} className="cursor-pointer" onClick={() => navigate(`/clinic/referrals/${r.id}`)}>
+                      <TableCell><IdChip id={r.id} /></TableCell>
+                      <TableCell>{r.drug || r.drug_requested || "—"}</TableCell>
+                      <TableCell><StatusBadge status={r.status} variant="soft" /></TableCell>
+                      <TableCell><ClinicPABadge status={r.pa_status} appealOutcome={r.appeal_outcome} /></TableCell>
+                      <TableCell className="text-muted-foreground">{r.created_at ? formatDateShort(r.created_at) : "—"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
-            {isExpiringSoon && <div className="pd-alert warn"><span className="ai"><AlertTriangle size={16} /></span><span>PA for {drug.drug_name} expires on {formatDateShort(drug.pa_expiration_date)}. Consider creating a new referral.</span></div>}
-            {isExpired && <div className="pd-alert danger"><span className="ai"><AlertTriangle size={16} /></span><span>PA for {drug.drug_name} expired on {formatDateShort(drug.pa_expiration_date)}. A new referral with PA is required.</span></div>}
-          </div>
-        )}
-      </div>
-
-      {referrals.length > 0 ? (
-        <div className="pd-table-wrap">
-          <table className="pd-table">
-            <thead><tr><th>Referral ID</th><th>Drug</th><th>Status</th><th>PA Status</th><th>Created</th><th className="right">Actions</th></tr></thead>
-            <tbody>
-              {referrals.map((r: any) => {
-                const [sTone, sLabel] = refStatusBadge(r.status);
-                const [pTone, pLabel] = clinicPABadge(r.pa_status);
-                return (
-                  <tr key={r.id} onClick={() => navigate(`/clinic/referrals/${r.id}`)}>
-                    <td><span className="pd-refid">{r.id.toUpperCase()}</span></td>
-                    <td>{r.drug || r.drug_requested || "—"}</td>
-                    <td><Badge tone={sTone}>{sLabel}</Badge></td>
-                    <td><Badge tone={pTone}>{pLabel}</Badge></td>
-                    <td style={{ color: "var(--text-muted)" }}>{r.created_at ? formatDateShort(r.created_at) : "—"}</td>
-                    <td className="right" onClick={(e) => e.stopPropagation()}><Btn variant="outline" sm onClick={() => navigate(`/clinic/referrals/${r.id}`)}>View</Btn></td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <div className="pd-empty">
-          <span className="ei"><FileText size={28} /></span>
-          <p className="t">No referrals for this patient</p>
-          <p className="s">Create a referral to get started</p>
-          <Btn variant="primary" onClick={() => navigate(`/clinic/referrals/new?patientId=${patientId}`)}><Plus size={15} />Create Referral</Btn>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ── Patient Information tab (read sections + edit drawer) ── */
-function ReadField({ patient, f, copy }: any) {
-  const v = patient[f.key];
-  const display = f.key === "dob" ? (v ? `${formatDateShort(v)} (Age ${getAge(v)})` : "—") : (v || "—");
-  return (
-    <div className={`pd-info${f.span ? " pd-col-span" : ""}`}>
-      <p className="ik">{f.label}</p>
-      <div className="iv">
-        <span>{display}</span>
-        {f.copy && v && <button className="pd-copy" title="Copy" onClick={() => copy(v, f.label)}><Copy size={13} /></button>}
-      </div>
-    </div>
-  );
-}
-function EditFieldRow({ f, draft, setField }: any) {
-  const v = draft[f.key] || "";
-  return (
-    <div className={f.span ? "pd-col-span" : ""}>
-      <p className="ik" style={{ marginBottom: 4 }}>{f.label}</p>
-      {f.kind === "select" ? (
-        <select className="rw-select" value={v} onChange={(e) => setField(f.key, e.target.value)}>
-          <option value="">Select</option>
-          {f.options.map((o: string) => <option key={o} value={o}>{o}</option>)}
-        </select>
-      ) : f.kind === "date" ? (
-        <input className="rw-input" type="date" value={v} onChange={(e) => setField(f.key, e.target.value)} />
-      ) : f.kind === "textarea" ? (
-        <textarea className="rw-textarea" rows={2} value={v} onChange={(e) => setField(f.key, e.target.value)} />
-      ) : (
-        <input className="rw-input" value={v} onChange={(e) => setField(f.key, e.target.value)} />
-      )}
-    </div>
-  );
-}
-function TabInfo({ patient, editing, draft, saving, beginEdit, cancelEdit, saveEdits, setField, copy, paTone, paLabel }: any) {
-  return (
-    <div className="rw-fade">
-      <div className="pd-edit-bar">
-        <Btn variant="outline" sm onClick={beginEdit}><Pencil size={14} />Edit</Btn>
-      </div>
-
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        {INFO_GROUPS.map((g) => {
-          if (g.key === "guardian" && !patient.authorized_representative) return null;
-          return (
-            <div className="pd-card soft" key={g.key}>
-              <p className="pd-sect-label">{g.label}</p>
-              <div className="pd-grid2">{g.fields.map((f: any) => <ReadField key={f.key} patient={patient} f={f} copy={copy} />)}</div>
+          ) : (
+            <div className="flex flex-col items-center gap-2 py-16 text-center">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-muted-foreground"><FileText width={20} height={20} strokeWidth={1.75} /></span>
+              <p className="text-sm font-semibold text-foreground">No referrals for this patient</p>
+              <p className="text-sm text-muted-foreground">Create a referral to get started</p>
+              <Button onClick={() => navigate(`/clinic/referrals/new?patientId=${patient.id}`)}><Plus width={16} height={16} strokeWidth={1.75} />Create Referral</Button>
             </div>
-          );
-        })}
-        <div className="pd-card soft">
-          <p className="pd-sect-label">Insurance Information</p>
-          <div className="pd-grid2">
-            <div className="pd-info"><p className="ik">Insurance Type</p><div className="iv">{patient.insurance_type || "—"}</div></div>
-            <div className="pd-info"><p className="ik">Plan Details</p><div className="iv">{patient.insurance_notes || "—"}</div></div>
-            <div className="pd-info"><p className="ik">PA Status</p><div className="iv"><Badge tone={paTone}>{paLabel}</Badge></div></div>
-            <div className="pd-info"><p className="ik">PA Expiration</p><div className="iv">{patient.pa_expiration_date ? formatDateShort(patient.pa_expiration_date) : "N/A"}</div></div>
-          </div>
-        </div>
-      </div>
+          )}
+        </TabsContent>
 
+        <TabsContent value="pa" className="pt-5">
+          {medsLoading ? (
+            <div className="flex items-center justify-center gap-2 py-16"><Loader2 width={22} height={22} className="animate-spin text-primary" /><span className="text-sm text-muted-foreground">Loading medications…</span></div>
+          ) : sortedMedications.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 py-16 text-center">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-muted-foreground"><ClipboardList width={20} height={20} strokeWidth={1.75} /></span>
+              <p className="text-sm font-semibold text-foreground">No medications on record</p>
+              <p className="text-sm text-muted-foreground">No active prescriptions for this patient yet</p>
+              <Button onClick={() => navigate(`/clinic/referrals/new?patientId=${patient.id}`)}><Plus width={16} height={16} strokeWidth={1.75} />Create First Referral</Button>
+            </div>
+          ) : (
+            <div className="rounded-lg border border-border bg-card overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Drug</TableHead><TableHead>PA status</TableHead><TableHead>PA number</TableHead>
+                    <TableHead>Valid through</TableHead><TableHead>Last referral</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sortedMedications.map((d: any) => {
+                    const disabled = !d.last_referral_id;
+                    return (
+                      <TableRow
+                        key={d.id}
+                        className={disabled ? undefined : "cursor-pointer"}
+                        style={d.is_active === false ? { opacity: 0.62 } : undefined}
+                        onClick={() => !disabled && navigate(`/clinic/referrals/${d.last_referral_id}`)}
+                      >
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Pill width={14} height={14} strokeWidth={1.75} /></span>
+                            <div className="flex flex-col">
+                              <span className="font-semibold text-foreground">{d.drug_name}</span>
+                              <span className="text-xs text-muted-foreground">{d.dosage} · {d.frequency || "—"}</span>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell><PAStatusBadge status={drugPAStatus(d)} expirationDate={d.pa_expiration_date} /></TableCell>
+                        <TableCell className="font-mono text-xs">{d.pa_number || "—"}</TableCell>
+                        <TableCell className="text-muted-foreground">{d.pa_expiration_date ? formatDateShort(d.pa_expiration_date) : "N/A"}</TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          {disabled ? (
+                            <span className="text-muted-foreground text-xs">No referral linked</span>
+                          ) : (
+                            <Button size="sm" variant="outline" onClick={() => navigate(`/clinic/referrals/${d.last_referral_id}`)}>
+                              <Eye width={13} height={13} strokeWidth={1.75} />View
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+
+      {/* Edit drawer */}
       {editing && (
         <>
-          <div className="pd-drawer-scrim" onClick={cancelEdit} />
-          <div className="pd-drawer">
-            <div className="pd-drawer-head"><h3>Edit Patient</h3><button className="rw-x" onClick={cancelEdit} aria-label="Close"><X size={18} /></button></div>
-            <div className="pd-drawer-body">
-              {INFO_GROUPS.map((g) => (
-                <div className="pd-edit-sect" key={g.key}>
-                  <p className="pd-sect-label">{g.label}</p>
-                  <div className="pd-grid2">{g.fields.map((f: any) => <EditFieldRow key={f.key} f={f} draft={draft} setField={setField} />)}</div>
-                </div>
-              ))}
+          <div className="fixed inset-0 z-40 bg-black/40" onClick={cancelEdit} />
+          <div className="fixed right-0 top-0 z-50 h-full w-full max-w-[480px] bg-card border-l border-border flex flex-col">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+              <h3 className="text-base font-semibold">Edit Patient</h3>
+              <button className="text-muted-foreground hover:text-foreground" onClick={cancelEdit} aria-label="Close"><X width={18} height={18} strokeWidth={1.75} /></button>
             </div>
-            <div className="pd-drawer-foot">
-              <Btn variant="outline" onClick={cancelEdit} disabled={saving}>Cancel</Btn>
-              <Btn variant="primary" onClick={saveEdits} disabled={saving}>{saving ? <span className="rw-spin"><Loader2 size={14} /></span> : <Save size={14} />}Save</Btn>
+            <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-5">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2"><Label className="text-xs">Full name</Label><Input className="mt-1" value={draft.full_name || ""} onChange={(e) => setField("full_name", e.target.value)} /></div>
+                <div><Label className="text-xs">Date of birth</Label><DatePicker className="mt-1" fromYear={1900} toYear={new Date().getFullYear()} value={draft.dob || ""} onChange={(v) => setField("dob", v || "")} /></div>
+                <div>
+                  <Label className="text-xs">Gender</Label>
+                  <Combobox className="mt-1" placeholder="Select" value={draft.gender || ""} onValueChange={(v) => setField("gender", v)} options={GENDERS} />
+                </div>
+                <div><Label className="text-xs">Phone</Label><Input className="mt-1" value={draft.phone_primary || ""} onChange={(e) => setField("phone_primary", e.target.value)} /></div>
+                <div><Label className="text-xs">Alternate phone</Label><Input className="mt-1" value={draft.phone_alternate || ""} onChange={(e) => setField("phone_alternate", e.target.value)} /></div>
+                <div className="col-span-2"><Label className="text-xs">Email</Label><Input className="mt-1" value={draft.email || ""} onChange={(e) => setField("email", e.target.value)} /></div>
+                <div className="col-span-2"><Label className="text-xs">Street address</Label><Input className="mt-1" value={draft.address || ""} onChange={(e) => setField("address", e.target.value)} /></div>
+                <div>
+                  <Label className="text-xs">State</Label>
+                  <Combobox className="mt-1" placeholder="Select" value={draft.state || ""} onValueChange={(v) => setField("state", v)} options={US_STATES} />
+                </div>
+                <div><Label className="text-xs">Zip</Label><Input className="mt-1" value={draft.zip || ""} onChange={(e) => setField("zip", e.target.value)} /></div>
+                <div><Label className="text-xs">Height</Label><Input className="mt-1" value={draft.height || ""} onChange={(e) => setField("height", e.target.value)} /></div>
+                <div><Label className="text-xs">Weight</Label><Input className="mt-1" value={draft.weight || ""} onChange={(e) => setField("weight", e.target.value)} /></div>
+                <div className="col-span-2"><Label className="text-xs">Allergies</Label><Textarea className="mt-1" rows={2} value={draft.allergies || ""} onChange={(e) => setField("allergies", e.target.value)} /></div>
+                <div><Label className="text-xs">Authorized representative</Label><Input className="mt-1" value={draft.authorized_representative || ""} onChange={(e) => setField("authorized_representative", e.target.value)} /></div>
+                <div><Label className="text-xs">Representative phone</Label><Input className="mt-1" value={draft.authorized_representative_phone || ""} onChange={(e) => setField("authorized_representative_phone", e.target.value)} /></div>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 px-5 py-4 border-t border-border">
+              <Button variant="outline" onClick={cancelEdit} disabled={saving}>Cancel</Button>
+              <Button onClick={saveEdits} disabled={saving}>{saving ? <Loader2 width={14} height={14} className="animate-spin" /> : <Save width={14} height={14} strokeWidth={1.75} />}Save</Button>
             </div>
           </div>
         </>
       )}
-    </div>
-  );
-}
-
-/* ── Prior Authorizations tab (dense table) ── */
-function TabMeds({ medsLoading, meds, navigate, patientId }: any) {
-  if (medsLoading) return <div className="rw-fade" style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: 64, gap: 8 }}><span className="rw-spin" style={{ color: "var(--color-teal)" }}><Loader2 size={22} /></span><span style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>Loading medications...</span></div>;
-  if (meds.length === 0) return (
-    <div className="rw-fade pd-empty">
-      <span className="ei"><ClipboardList size={28} /></span>
-      <p className="t">No Medications on Record</p>
-      <p className="s">No active prescriptions for this patient yet</p>
-      <Btn variant="primary" onClick={() => navigate(`/clinic/referrals/new?patientId=${patientId}`)}><Plus size={15} />Create First Referral</Btn>
-    </div>
-  );
-  return (
-    <div className="rw-fade pd-table-wrap">
-      <table className="pd-table">
-        <thead><tr><th>Medication</th><th>Dosage · Frequency</th><th>PA Status</th><th>PA Expires</th><th>Last Filled</th><th className="right">Actions</th></tr></thead>
-        <tbody>
-          {meds.map((d: any) => {
-            const badge = getDrugPABadge(d);
-            const disabled = !d.last_referral_id;
-            return (
-              <tr key={d.id} onClick={() => !disabled && navigate(`/clinic/referrals/${d.last_referral_id}`)} style={d.is_active === false ? { opacity: 0.62 } : undefined}>
-                <td><div style={{ display: "flex", alignItems: "center", gap: 9 }}><span className="pd-med-ic"><Pill size={14} /></span><span style={{ fontWeight: 600, color: "var(--text-primary)" }}>{d.drug_name}</span></div></td>
-                <td style={{ color: "var(--text-muted)" }}>{d.dosage} · {d.frequency || "—"}</td>
-                <td><Badge tone={badge.tone}>{badge.label}</Badge></td>
-                <td>{d.pa_expiration_date ? formatDateShort(d.pa_expiration_date) : "N/A"}</td>
-                <td style={{ color: "var(--text-muted)" }}>{d.last_filled ? formatDateShort(d.last_filled) : "Never"}</td>
-                <td className="right" onClick={(e) => e.stopPropagation()}>
-                  <Btn variant="outline" sm disabled={disabled} onClick={() => !disabled && navigate(`/clinic/referrals/${d.last_referral_id}`)} title={disabled ? "No referral linked to this medication." : undefined}><Eye size={13} />View</Btn>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+    </PageContainer>
   );
 }

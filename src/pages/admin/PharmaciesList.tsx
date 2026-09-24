@@ -1,17 +1,18 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, Plus, Pencil, Power, Store, TriangleAlert, RefreshCw } from "lucide-react";
+import { Plus, Pencil, Power, Store, TriangleAlert, RefreshCw } from "lucide-react";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { PharmacyFormModal } from "@/components/PharmacyFormModal";
 import { getInitials } from "@/components/CreatedByAvatar";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { FilterToolbar } from "@/components/patterns/FilterToolbar";
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { pharmacyApi, type Pharmacy } from "@/lib/api";
 import { toast } from "sonner";
-import "../clinic/wizard.css";
-import "../clinic/dashboard.css";
-import "../clinic/referrals.css";
-import "./admin-clinics.css";
-import "./admin-pharmacies.css";
+import { cn } from "@/lib/utils";
+import { PageContainer } from "@/components/patterns/PageContainer";
 
 function formatPhone(value: string | null): string {
   if (!value) return "—";
@@ -23,12 +24,10 @@ function formatPhone(value: string | null): string {
 function StatusPill({ active }: { active: boolean }) {
   return (
     <span
-      style={{
-        display: "inline-flex", alignItems: "center", fontSize: 11, fontWeight: 700,
-        padding: "2px 9px", borderRadius: 9999,
-        color: active ? "var(--status-approved-fg)" : "var(--text-muted)",
-        background: active ? "var(--status-approved-bg)" : "var(--bg-muted)",
-      }}
+      className={cn(
+        "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold",
+        active ? "bg-success/15 text-success" : "bg-muted text-muted-foreground",
+      )}
     >
       {active ? "Active" : "Inactive"}
     </span>
@@ -63,133 +62,131 @@ export default function PharmaciesList() {
   const filtered = items.filter((p) => p.name.toLowerCase().includes(q));
 
   return (
-    <div className="rw-page rw-fade">
+    <PageContainer>
       {/* Header */}
-      <div className="cl-header">
+      <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="cl-h1 serif">
+          <h1 className="text-2xl font-semibold text-foreground flex items-center gap-2">
             Pharmacies
-            {!isLoading && !isError && <span className="cl-count num">{items.length}</span>}
+            {!isLoading && !isError && (
+              <span className="text-sm font-medium text-muted-foreground">{items.length}</span>
+            )}
           </h1>
-          <p className="cl-sub">Specialty pharmacy partners that receive approved referrals</p>
+          <p className="text-sm text-muted-foreground mt-1">Specialty pharmacy partners that receive approved referrals</p>
         </div>
-        <button className="rw-btn primary" onClick={() => setCreateOpen(true)}>
-          <Plus size={16} />Add Pharmacy
-        </button>
+        <Button onClick={() => setCreateOpen(true)}>
+          <Plus width={16} height={16} strokeWidth={1.75} />Add Pharmacy
+        </Button>
       </div>
 
-      {/* Search */}
+      {/* Toolbar */}
       {!isLoading && !isError && items.length > 0 && (
-        <div className="cl-toolbar">
-          <div className="rl-search cl-search">
-            <span className="rl-search-ic"><Search size={16} /></span>
-            <input
-              className="rl-search-input"
-              placeholder="Search pharmacies..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
+        <div className="mb-4">
+          <FilterToolbar search={search} onSearch={setSearch} searchPlaceholder="Search pharmacies…" />
         </div>
       )}
 
       {/* Loading */}
       {isLoading && (
-        <div className="cl-skel">
-          {[0, 1, 2, 3, 4, 5].map((i) => <div key={i} className="cl-skel-row" />)}
+        <div className="flex flex-col gap-2">
+          {[0, 1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-14 w-full" />)}
         </div>
       )}
 
       {/* Error */}
       {isError && (
-        <div className="dh-empty">
-          <div className="dh-empty-ic cl-error-ic"><TriangleAlert size={24} /></div>
-          <h3>Couldn’t load pharmacies</h3>
-          <p>Something went wrong fetching the pharmacy directory.</p>
-          <button className="rw-btn primary" onClick={() => refetch()}><RefreshCw size={15} />Retry</button>
+        <div className="flex flex-col items-center gap-2 py-16 text-center">
+          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10 text-destructive"><TriangleAlert width={24} height={24} strokeWidth={1.75} /></span>
+          <h3 className="text-base font-semibold text-foreground">Couldn't load pharmacies</h3>
+          <p className="text-sm text-muted-foreground">Something went wrong fetching the pharmacy directory.</p>
+          <Button size="sm" onClick={() => refetch()}><RefreshCw width={15} height={15} strokeWidth={1.75} />Retry</Button>
         </div>
       )}
 
       {/* Empty */}
       {!isLoading && !isError && items.length === 0 && (
-        <div className="dh-empty">
-          <div className="dh-empty-ic"><Store size={24} /></div>
-          <h3>No pharmacies yet</h3>
-          <p>Add your first pharmacy to route approved referrals.</p>
-          <button className="rw-btn primary" onClick={() => setCreateOpen(true)}><Plus size={15} />Add Pharmacy</button>
+        <div className="flex flex-col items-center gap-2 py-16 text-center">
+          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-muted text-muted-foreground"><Store width={24} height={24} strokeWidth={1.75} /></span>
+          <h3 className="text-base font-semibold text-foreground">No pharmacies yet</h3>
+          <p className="text-sm text-muted-foreground">Add your first pharmacy to route approved referrals.</p>
+          <Button size="sm" onClick={() => setCreateOpen(true)}><Plus width={15} height={15} strokeWidth={1.75} />Add Pharmacy</Button>
         </div>
       )}
 
       {/* Table */}
       {!isLoading && !isError && items.length > 0 && (
-        <div className="dh-table-wrap ph-table-wrap">
-          <table className="dh-table ph-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Phone</th>
-                <th>Fax</th>
-                <th>Alt Phone / Fax</th>
-                <th>Email</th>
-                <th>Location</th>
-                <th>Status</th>
-                <th className="r">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+        <div className="rounded-lg border border-border bg-card overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Phone</TableHead>
+                <TableHead>Fax</TableHead>
+                <TableHead>Alt Phone / Fax</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Location</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {filtered.map((p) => {
                 const location = [p.city, p.state].filter(Boolean).join(", ") || "—";
                 return (
-                  <tr
+                  <TableRow
                     key={p.id}
-                    className={`ph-row${!p.is_active ? " inactive" : ""}`}
+                    className={cn("cursor-pointer", !p.is_active && "opacity-60")}
                     onClick={() => navigate(`/admin/pharmacies/${p.id}`)}
                   >
-                    <td>
-                      <span className="ph-name-cell">
-                        <span className="dh-avatar ph-avatar" title={p.name}>{getInitials(p.name)}</span>
-                        <span className="ph-name">{p.name}</span>
+                    <TableCell>
+                      <span className="inline-flex items-center gap-2.5">
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary" title={p.name}>{getInitials(p.name)}</span>
+                        <span className="font-semibold text-foreground">{p.name}</span>
                       </span>
-                    </td>
-                    <td className="ph-num mono">{formatPhone(p.phone)}</td>
-                    <td className="ph-num mono">{formatPhone(p.fax)}</td>
-                    <td className="ph-num mono">{p.alt_phone_fax || "—"}</td>
-                    <td className="ph-email">{p.email || "—"}</td>
-                    <td className="ph-loc">{location}</td>
-                    <td><StatusPill active={p.is_active} /></td>
-                    <td className="r" onClick={(e) => e.stopPropagation()}>
-                      <div className="ph-acts">
-                        <button
-                          className="rw-ic-btn"
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground">{formatPhone(p.phone)}</TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground">{formatPhone(p.fax)}</TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground">{p.alt_phone_fax || "—"}</TableCell>
+                    <TableCell className="text-muted-foreground">{p.email || "—"}</TableCell>
+                    <TableCell className="text-muted-foreground">{location}</TableCell>
+                    <TableCell><StatusPill active={p.is_active} /></TableCell>
+                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
                           title="Edit pharmacy"
                           aria-label="Edit pharmacy"
                           onClick={() => setEditing(p)}
                         >
-                          <Pencil size={15} />
-                        </button>
-                        <button
-                          className="rw-ic-btn ph-deact"
+                          <Pencil width={15} height={15} strokeWidth={1.75} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive disabled:opacity-40"
                           title="Deactivate pharmacy"
                           aria-label="Deactivate pharmacy"
                           disabled={!p.is_active}
                           onClick={() => setDeactivating(p)}
                         >
-                          <Power size={15} />
-                        </button>
+                          <Power width={15} height={15} strokeWidth={1.75} />
+                        </Button>
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 );
               })}
               {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={8} className="dh-muted-cell" style={{ textAlign: "center", padding: "28px 14px" }}>
-                    No pharmacies match “{search}”
-                  </td>
-                </tr>
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-8 text-sm text-muted-foreground">
+                    No pharmacies match "{search}"
+                  </TableCell>
+                </TableRow>
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       )}
 
@@ -205,6 +202,6 @@ export default function PharmaciesList() {
         variant="destructive"
         onConfirm={() => deactivating && deleteMutation.mutate(deactivating.id)}
       />
-    </div>
+    </PageContainer>
   );
 }

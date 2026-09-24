@@ -10,10 +10,12 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { formatDateShort } from "@/lib/dateUtils";
-import "../clinic/wizard.css";
-import "../clinic/dashboard.css";
-import "../clinic/referrals.css";
-import "./admin-faxes.css";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
+import { FilterToolbar } from "@/components/patterns/FilterToolbar";
+import { cn } from "@/lib/utils";
+import { PageContainer } from "@/components/patterns/PageContainer";
 
 type Tab = "inbound" | "outbound";
 
@@ -23,20 +25,28 @@ const KIND_LABEL: Record<AdminFaxOutboundKind, string> = {
   enrollment: "Enrollment",
 };
 
+const KIND_CLASS: Record<AdminFaxOutboundKind, string> = {
+  referral: "bg-primary/10 text-primary",
+  appeal: "bg-warning/15 text-[#92610B]",
+  enrollment: "bg-teal-600/10 text-teal-700",
+};
+
 function KindChip({ kind }: { kind: AdminFaxOutboundKind }) {
-  return <span className={`fx-kind ${kind}`}>{KIND_LABEL[kind] || kind}</span>;
+  return (
+    <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold", KIND_CLASS[kind] || "bg-muted text-muted-foreground")}>
+      {KIND_LABEL[kind] || kind}
+    </span>
+  );
 }
 
 function InboundStatusBadge({ status }: { status: AdminFaxInbound["status"] }) {
   const isNew = status === "new";
   return (
     <span
-      style={{
-        display: "inline-flex", alignItems: "center", fontSize: 11, fontWeight: isNew ? 700 : 600,
-        padding: "2px 9px", borderRadius: 9999,
-        color: isNew ? "var(--color-teal-700)" : "var(--text-muted)",
-        background: isNew ? "var(--color-teal-50)" : "var(--bg-muted)",
-      }}
+      className={cn(
+        "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px]",
+        isNew ? "font-bold bg-teal-600/10 text-teal-700" : "font-semibold bg-muted text-muted-foreground",
+      )}
     >
       {isNew ? "New" : "Reviewed"}
     </span>
@@ -50,12 +60,10 @@ function OutboundStatusBadge({ status, errorDetail }: { status: string; errorDet
   return (
     <span
       title={isFailed ? errorDetail || "Fax failed" : undefined}
-      style={{
-        display: "inline-flex", alignItems: "center", fontSize: 11, fontWeight: 700,
-        padding: "2px 9px", borderRadius: 9999,
-        color: isDelivered ? "var(--status-approved-fg)" : isFailed ? "var(--status-rejected-fg, #b91c1c)" : "var(--text-muted)",
-        background: isDelivered ? "var(--status-approved-bg)" : isFailed ? "var(--status-rejected-bg, #fee2e2)" : "var(--bg-muted)",
-      }}
+      className={cn(
+        "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold",
+        isDelivered ? "bg-success/15 text-success" : isFailed ? "bg-destructive/15 text-destructive" : "bg-muted text-muted-foreground",
+      )}
     >
       {status ? status.replace(/_/g, " ") : "—"}
     </span>
@@ -124,7 +132,7 @@ export default function FaxCenter() {
     setLinkingId(row.id);
     try {
       await adminApi.linkInboundFax(row.id, referralId);
-      toast({ title: "Linked", description: "Fax linked to referral." });
+      toast({ title: "Linked", description: "It will surface in Waiting on us as \"Review inbound fax\"." });
       setLinkDrafts((d) => ({ ...d, [row.id]: "" }));
       load(); // refetch so the linked patient name comes from the backend
     } catch (err: any) {
@@ -135,149 +143,147 @@ export default function FaxCenter() {
   };
 
   return (
-    <div className="rw-page rl-page rw-fade">
-      <div className="rl-header">
-        <div>
-          <h1 className="rl-h1 serif">Fax Center</h1>
-          <p className="rl-sub">All inbound and outbound fax traffic across referrals, appeals, and enrollments</p>
-        </div>
+    <PageContainer>
+      <div className="mb-5">
+        <h1 className="text-2xl font-semibold text-foreground">Fax Center</h1>
+        <p className="text-sm text-muted-foreground mt-1">All inbound and outbound fax traffic across referrals, appeals, and enrollments</p>
       </div>
 
-      <div className="rl-toolbar fx-toolbar">
-        <div className="rl-seg">
-          <button className={`rl-seg-btn${tab === "inbound" ? " on" : ""}`} onClick={() => setTab("inbound")}>
-            <Inbox size={14} /> Inbound
-            {inboundNewCount > 0 && <span className="rl-seg-n num">{inboundNewCount}</span>}
-          </button>
-          <button className={`rl-seg-btn${tab === "outbound" ? " on" : ""}`} onClick={() => setTab("outbound")}>
-            <Send size={14} /> Outbound
-            <span className="rl-seg-n num">{outbound.length}</span>
-          </button>
-        </div>
+      <div className="mb-4">
+        <FilterToolbar
+          filters={[
+            { value: "inbound", label: "Inbound", count: undefined, alert: inboundNewCount },
+            { value: "outbound", label: "Outbound", count: outbound.length },
+          ]}
+          active={tab}
+          onFilter={(v) => setTab(v as Tab)}
+        />
       </div>
 
       {loading ? (
-        <div style={{ display: "flex", justifyContent: "center", padding: 64 }}>
-          <span className="rw-spin" style={{ color: "var(--color-teal)" }}><Loader2 size={26} /></span>
+        <div className="flex justify-center py-16">
+          <Loader2 width={26} height={26} strokeWidth={1.75} className="animate-spin text-primary" />
         </div>
       ) : tab === "inbound" ? (
         inbound.length > 0 ? (
-          <div className="dh-table-wrap fx-table-wrap">
-            <table className="dh-table fx-table">
-              <thead>
-                <tr>
-                  <th>From</th>
-                  <th>Received</th>
-                  <th>Pages</th>
-                  <th>Status</th>
-                  <th>Linked patient</th>
-                  <th className="r"></th>
-                </tr>
-              </thead>
-              <tbody>
+          <div className="rounded-lg border border-border bg-card overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>From</TableHead>
+                  <TableHead>Received</TableHead>
+                  <TableHead>Pages</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Linked patient</TableHead>
+                  <TableHead className="text-right"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {inbound.map((row) => (
-                  <tr key={row.id}>
-                    <td className="fx-nowrap">{row.from_number || "—"}</td>
-                    <td className="fx-nowrap">{formatDateShort(row.received_at)}</td>
-                    <td>{row.page_count ?? "—"}</td>
-                    <td><InboundStatusBadge status={row.status} /></td>
-                    <td>
+                  <TableRow key={row.id}>
+                    <TableCell className="whitespace-nowrap">{row.from_number || "—"}</TableCell>
+                    <TableCell className="whitespace-nowrap text-muted-foreground">{formatDateShort(row.received_at)}</TableCell>
+                    <TableCell className="text-muted-foreground">{row.page_count ?? "—"}</TableCell>
+                    <TableCell><InboundStatusBadge status={row.status} /></TableCell>
+                    <TableCell>
                       {row.linked_referral_id ? (
-                        <Link to={`/admin/referrals/${row.linked_referral_id}`} className="fx-referral-link">
+                        <Link to={`/admin/referrals/${row.linked_referral_id}`} className="text-primary font-medium hover:underline">
                           {row.linked_patient_name || "View referral"}
                         </Link>
                       ) : (
-                        <span style={{ opacity: 0.45 }}>—</span>
+                        <span className="text-muted-foreground">—</span>
                       )}
-                    </td>
-                    <td className="r">
-                      <div className="fx-row-actions">
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2 flex-wrap">
                         {row.has_pdf && (
-                          <button className="rw-btn outline sm" onClick={() => handleViewPDF(row)}>
-                            <FileText size={13} /> View PDF
-                          </button>
+                          <Button size="sm" variant="outline" onClick={() => handleViewPDF(row)}>
+                            <FileText width={13} height={13} strokeWidth={1.75} /> View PDF
+                          </Button>
                         )}
                         {row.status === "new" && (
-                          <button
-                            className="rw-btn success sm"
+                          <Button
+                            size="sm"
+                            className="bg-success text-success-foreground hover:bg-success/90"
                             disabled={reviewingId === row.id}
                             onClick={() => handleMarkReviewed(row)}
                           >
-                            {reviewingId === row.id ? <Loader2 size={13} className="rw-spin" /> : <CheckCheck size={13} />}
+                            {reviewingId === row.id ? <Loader2 width={13} height={13} strokeWidth={1.75} className="animate-spin" /> : <CheckCheck width={13} height={13} strokeWidth={1.75} />}
                             Mark reviewed
-                          </button>
+                          </Button>
                         )}
                         {!row.linked_referral_id && (
-                          <span className="fx-link-form">
-                            <input
-                              className="fx-link-input"
+                          <span className="inline-flex items-center gap-1.5">
+                            <Input
+                              className="h-8 w-32 text-xs"
                               placeholder="Referral ID…"
                               value={linkDrafts[row.id] || ""}
                               onChange={(e) => setLinkDrafts((d) => ({ ...d, [row.id]: e.target.value }))}
                             />
-                            <button
-                              className="rw-btn outline sm"
+                            <Button
+                              size="sm"
+                              variant="outline"
                               disabled={linkingId === row.id || !(linkDrafts[row.id] || "").trim()}
                               onClick={() => handleLink(row)}
                             >
-                              {linkingId === row.id ? <Loader2 size={13} className="rw-spin" /> : <Link2 size={13} />}
-                            </button>
+                              {linkingId === row.id ? <Loader2 width={13} height={13} strokeWidth={1.75} className="animate-spin" /> : <Link2 width={13} height={13} strokeWidth={1.75} />}
+                            </Button>
                           </span>
                         )}
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         ) : (
-          <div className="dh-empty">
-            <div className="dh-empty-ic sm"><Inbox size={20} /></div>
-            <p className="rl-empty-t">No inbound faxes yet</p>
-            <p className="rl-empty-s">They'll appear here as they arrive.</p>
+          <div className="flex flex-col items-center gap-2 py-16 text-center">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground"><Inbox width={20} height={20} strokeWidth={1.75} /></span>
+            <p className="text-sm font-semibold text-foreground">No inbound faxes yet</p>
+            <p className="text-sm text-muted-foreground">They'll appear here as they arrive.</p>
           </div>
         )
       ) : outbound.length > 0 ? (
-        <div className="dh-table-wrap fx-table-wrap">
-          <table className="dh-table fx-table">
-            <thead>
-              <tr>
-                <th>Kind</th>
-                <th>Counterparty</th>
-                <th>Status</th>
-                <th>Pages</th>
-                <th>Sent</th>
-              </tr>
-            </thead>
-            <tbody>
+        <div className="rounded-lg border border-border bg-card overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Kind</TableHead>
+                <TableHead>Counterparty</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Pages</TableHead>
+                <TableHead>Sent</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {outbound.map((row) => (
-                <tr key={row.id}>
-                  <td><KindChip kind={row.kind} /></td>
-                  <td className="fx-counterparty">
+                <TableRow key={row.id}>
+                  <TableCell><KindChip kind={row.kind} /></TableCell>
+                  <TableCell>
                     {row.referral_id ? (
-                      <Link to={`/admin/referrals/${row.referral_id}`} className="fx-referral-link">
-                        {row.counterparty} <ExternalLink size={12} />
+                      <Link to={`/admin/referrals/${row.referral_id}`} className="inline-flex items-center gap-1 text-primary font-medium hover:underline">
+                        {row.counterparty} <ExternalLink width={12} height={12} strokeWidth={1.75} />
                       </Link>
                     ) : (
                       row.counterparty
                     )}
-                  </td>
-                  <td><OutboundStatusBadge status={row.status} errorDetail={row.error_detail} /></td>
-                  <td>{row.page_count ?? "—"}</td>
-                  <td className="fx-nowrap">{formatDateShort(row.at)}</td>
-                </tr>
+                  </TableCell>
+                  <TableCell><OutboundStatusBadge status={row.status} errorDetail={row.error_detail} /></TableCell>
+                  <TableCell className="text-muted-foreground">{row.page_count ?? "—"}</TableCell>
+                  <TableCell className="whitespace-nowrap text-muted-foreground">{formatDateShort(row.at)}</TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       ) : (
-        <div className="dh-empty">
-          <div className="dh-empty-ic sm"><Send size={20} /></div>
-          <p className="rl-empty-t">No outbound faxes sent yet</p>
-          <p className="rl-empty-s">Referral, appeal, and enrollment faxes will show up here as they're sent.</p>
+        <div className="flex flex-col items-center gap-2 py-16 text-center">
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground"><Send width={20} height={20} strokeWidth={1.75} /></span>
+          <p className="text-sm font-semibold text-foreground">No outbound faxes sent yet</p>
+          <p className="text-sm text-muted-foreground">Referral, appeal, and enrollment faxes will show up here as they're sent.</p>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

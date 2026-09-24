@@ -11,7 +11,7 @@ const Index = () => {
     if (isLoading) return;
     if (isAuthenticated && user) {
       navigate(
-        user.role === "clinic_user" ? "/clinic/dashboard" : "/admin/dashboard",
+        user.role === "clinic_user" ? "/clinic/dashboard" : "/admin/referrals",
         { replace: true },
       );
     } else {

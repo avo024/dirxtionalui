@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { ZoomIn, ZoomOut, Download, RefreshCw, FileText, ImageIcon } from "lucide-react";
+import { ZoomIn, ZoomOut, Maximize2, Download, RefreshCw, FileText, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -21,6 +21,9 @@ interface DocumentViewerProps {
   fetchUrl?: (docId: string) => Promise<{ url: string }>;
   /** If provided, controls which document tab is active. */
   initialDocId?: string;
+  /** Hide the viewer's own file-tab strip — used when the caller (e.g.
+   *  DocumentsSheet) already renders its own tab strip for the same files. */
+  hideTabs?: boolean;
 }
 
 interface CachedUrl {
@@ -38,7 +41,19 @@ function isPdfType(fileType: string): boolean {
   return fileType === "application/pdf";
 }
 
-export function DocumentViewer({ documents, className, fetchUrl: fetchUrlProp, initialDocId }: DocumentViewerProps) {
+/** Chrome's built-in PDF viewer reads these as URL fragment params — they
+ *  aren't a real API, just the de-facto hash contract it honors. At 100%
+ *  (our "reset" state) we ask it to fit the page to the pane's width; any
+ *  other value switches to an explicit percentage zoom. toolbar/navpanes
+ *  are suppressed since our own toolbar replaces them. Other browsers'
+ *  native PDF viewers (Firefox's pdf.js, Safari) may ignore some or all of
+ *  these params — there's no cross-browser API for this, only Chrome's. */
+function pdfViewerUrl(url: string, zoomPercent: number): string {
+  const hash = zoomPercent === 100 ? "view=FitH&toolbar=0&navpanes=0" : `zoom=${zoomPercent}&toolbar=0&navpanes=0`;
+  return `${url}#${hash}`;
+}
+
+export function DocumentViewer({ documents, className, fetchUrl: fetchUrlProp, initialDocId, hideTabs }: DocumentViewerProps) {
   const [activeDocId, setActiveDocId] = useState<string>(initialDocId ?? "");
   const [urlCache, setUrlCache] = useState<Record<string, CachedUrl>>({});
   const [loadingUrl, setLoadingUrl] = useState(false);
@@ -51,6 +66,13 @@ export function DocumentViewer({ documents, className, fetchUrl: fetchUrlProp, i
       setActiveDocId(initialDocId ?? documents[0].id);
     }
   }, [documents, activeDocId, initialDocId]);
+
+  // Follow the caller's choice after mount too (e.g. the workstation's "View letter"
+  // or a stage change that picks a different default document). Previously the
+  // prop was only honoured on first mount.
+  useEffect(() => {
+    if (initialDocId && documents.some((d) => d.id === initialDocId)) setActiveDocId(initialDocId);
+  }, [initialDocId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const activeDoc = documents.find((d) => d.id === activeDocId);
   const cachedEntry = activeDocId ? urlCache[activeDocId] : undefined;
@@ -100,26 +122,29 @@ export function DocumentViewer({ documents, className, fetchUrl: fetchUrlProp, i
   const isPdf = activeDoc ? isPdfType(activeDoc.file_type) : false;
 
   return (
-    <div className={cn("flex flex-col h-full", className)}>
-      {/* Document tabs */}
-      <div className="border-b border-border bg-secondary/50 p-1 overflow-x-auto">
-        <Tabs value={activeDocId} onValueChange={setActiveDocId}>
-          <TabsList className="h-auto bg-transparent gap-1 flex-wrap">
-            {documents.map((doc) => (
-              <TabsTrigger
-                key={doc.id}
-                value={doc.id}
-                className="text-xs px-3 py-1.5 data-[state=active]:bg-card data-[state=active]:shadow-sm"
-              >
-                <span className="truncate max-w-[140px]">{doc.original_filename}</span>
-                <Badge variant="secondary" className="ml-1.5 text-[10px] px-1.5 py-0">
-                  {doc.doc_type}
-                </Badge>
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
-      </div>
+    <div className={cn("flex flex-col h-full min-h-0", className)}>
+      {/* Document tabs — suppressed when the caller (DocumentsSheet) already
+          renders its own file-tab strip for these same documents. */}
+      {!hideTabs && (
+        <div className="border-b border-border bg-secondary/50 p-1 overflow-x-auto">
+          <Tabs value={activeDocId} onValueChange={setActiveDocId}>
+            <TabsList className="h-auto bg-transparent gap-1 flex-wrap">
+              {documents.map((doc) => (
+                <TabsTrigger
+                  key={doc.id}
+                  value={doc.id}
+                  className="text-xs px-3 py-1.5 data-[state=active]:bg-card data-[state=active]:shadow-sm"
+                >
+                  <span className="truncate max-w-[140px]">{doc.original_filename}</span>
+                  <Badge variant="secondary" className="ml-1.5 text-[10px] px-1.5 py-0">
+                    {doc.doc_type}
+                  </Badge>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        </div>
+      )}
 
       {/* Toolbar */}
       <div className="flex items-center justify-between border-b border-border px-3 py-2 bg-card">
@@ -128,14 +153,37 @@ export function DocumentViewer({ documents, className, fetchUrl: fetchUrlProp, i
           <span>{activeDoc?.original_filename}</span>
         </div>
         <div className="flex items-center gap-1">
-          {isImage && (
+          {(isImage || isPdf) && (
             <>
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setZoom(Math.max(25, zoom - 25))}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                aria-label="Zoom out"
+                onClick={() => setZoom(Math.max(25, zoom - 25))}
+              >
                 <ZoomOut className="h-4 w-4" />
               </Button>
               <span className="text-xs text-muted-foreground w-10 text-center">{zoom}%</span>
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setZoom(Math.min(300, zoom + 25))}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                aria-label="Zoom in"
+                onClick={() => setZoom(Math.min(300, zoom + 25))}
+              >
                 <ZoomIn className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                aria-label="Fit width"
+                title="Fit width"
+                disabled={zoom === 100}
+                onClick={() => setZoom(100)}
+              >
+                <Maximize2 className="h-4 w-4" />
               </Button>
             </>
           )}
@@ -148,7 +196,7 @@ export function DocumentViewer({ documents, className, fetchUrl: fetchUrlProp, i
       </div>
 
       {/* Document area */}
-      <div className="flex-1 flex items-center justify-center bg-secondary/30 overflow-auto relative" style={{ minHeight: 400 }}>
+      <div className="flex-1 min-h-0 flex items-center justify-center bg-secondary/30 overflow-auto relative">
         {loadingUrl && (
           <div className="text-center">
             <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
@@ -167,7 +215,12 @@ export function DocumentViewer({ documents, className, fetchUrl: fetchUrlProp, i
         )}
 
         {activeUrl && !loadingUrl && isPdf && (
-          <iframe src={activeUrl} className="w-full h-full border-0" title={activeDoc?.original_filename} />
+          <iframe
+            key={`${activeDocId}-${zoom}`}
+            src={pdfViewerUrl(activeUrl, zoom)}
+            className="w-full h-full border-0"
+            title={activeDoc?.original_filename}
+          />
         )}
 
         {activeUrl && !loadingUrl && isImage && (

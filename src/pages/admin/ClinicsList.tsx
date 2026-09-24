@@ -1,14 +1,15 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Search, Plus, Pencil, Building2, TriangleAlert, RefreshCw } from "lucide-react";
+import { Plus, Pencil, Building2, TriangleAlert, RefreshCw } from "lucide-react";
 import { ClinicFormModal } from "@/components/ClinicFormModal";
 import { getInitials } from "@/components/CreatedByAvatar";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { FilterToolbar } from "@/components/patterns/FilterToolbar";
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { adminApi, type AdminClinic } from "@/lib/api";
-import "../clinic/wizard.css";
-import "../clinic/dashboard.css";
-import "../clinic/referrals.css";
-import "./admin-clinics.css";
+import { PageContainer } from "@/components/patterns/PageContainer";
 
 export default function ClinicsList() {
   const navigate = useNavigate();
@@ -28,107 +29,108 @@ export default function ClinicsList() {
   );
 
   return (
-    <div className="rw-page rw-fade">
+    <PageContainer>
       {/* Header */}
-      <div className="cl-header">
+      <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="cl-h1 serif">
+          <h1 className="text-2xl font-semibold text-foreground flex items-center gap-2">
             Clinics
-            {!isLoading && !isError && <span className="cl-count num">{items.length}</span>}
+            {!isLoading && !isError && (
+              <span className="text-sm font-medium text-muted-foreground">{items.length}</span>
+            )}
           </h1>
-          <p className="cl-sub">Partner clinics that send referrals into Dirxctional</p>
+          <p className="text-sm text-muted-foreground mt-1">Partner clinics that send referrals into Dirxctional</p>
         </div>
-        <button className="rw-btn primary" onClick={() => setCreateOpen(true)}>
-          <Plus size={16} />Add Clinic
-        </button>
+        <Button onClick={() => setCreateOpen(true)}>
+          <Plus width={16} height={16} strokeWidth={1.75} />Add Clinic
+        </Button>
       </div>
 
-      {/* Search */}
+      {/* Toolbar */}
       {!isLoading && !isError && items.length > 0 && (
-        <div className="cl-toolbar">
-          <div className="rl-search cl-search">
-            <span className="rl-search-ic"><Search size={16} /></span>
-            <input
-              className="rl-search-input"
-              placeholder="Search clinics..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
+        <div className="mb-4">
+          <FilterToolbar search={search} onSearch={setSearch} searchPlaceholder="Search clinics…" />
         </div>
       )}
 
       {/* Loading */}
       {isLoading && (
-        <div className="cl-skel">
-          {[0, 1, 2, 3, 4, 5].map((i) => <div key={i} className="cl-skel-row" />)}
+        <div className="flex flex-col gap-2">
+          {[0, 1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-14 w-full" />)}
         </div>
       )}
 
       {/* Error */}
       {isError && (
-        <div className="dh-empty">
-          <div className="dh-empty-ic cl-error-ic"><TriangleAlert size={24} /></div>
-          <h3>Couldn’t load clinics</h3>
-          <p>Something went wrong fetching the clinic directory.</p>
-          <button className="rw-btn primary" onClick={() => refetch()}><RefreshCw size={15} />Retry</button>
+        <div className="flex flex-col items-center gap-2 py-16 text-center">
+          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10 text-destructive"><TriangleAlert width={24} height={24} strokeWidth={1.75} /></span>
+          <h3 className="text-base font-semibold text-foreground">Couldn't load clinics</h3>
+          <p className="text-sm text-muted-foreground">Something went wrong fetching the clinic directory.</p>
+          <Button size="sm" onClick={() => refetch()}><RefreshCw width={15} height={15} strokeWidth={1.75} />Retry</Button>
         </div>
       )}
 
       {/* Empty */}
       {!isLoading && !isError && items.length === 0 && (
-        <div className="dh-empty">
-          <div className="dh-empty-ic"><Building2 size={24} /></div>
-          <h3>No clinics yet</h3>
-          <p>Add your first partner clinic to start receiving referrals.</p>
-          <button className="rw-btn primary" onClick={() => setCreateOpen(true)}><Plus size={15} />Add Clinic</button>
+        <div className="flex flex-col items-center gap-2 py-16 text-center">
+          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-muted text-muted-foreground"><Building2 width={24} height={24} strokeWidth={1.75} /></span>
+          <h3 className="text-base font-semibold text-foreground">No clinics yet</h3>
+          <p className="text-sm text-muted-foreground">Add your first partner clinic to start receiving referrals.</p>
+          <Button size="sm" onClick={() => setCreateOpen(true)}><Plus width={15} height={15} strokeWidth={1.75} />Add Clinic</Button>
         </div>
       )}
 
       {/* Table */}
       {!isLoading && !isError && items.length > 0 && (
-        <div className="dh-table-wrap cl-table-wrap">
-          <table className="dh-table cl-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Specialty</th>
-                <th className="r">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+        <div className="rounded-lg border border-border bg-card overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Specialty</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {filtered.map((c) => (
-                <tr key={c.id} className="cl-row" onClick={() => navigate(`/admin/clinics/${c.id}`)}>
-                  <td>
-                    <span className="cl-name-cell">
-                      <span className="dh-avatar cl-avatar" title={c.name}>{getInitials(c.name)}</span>
-                      <span className="cl-name">{c.name}</span>
+                <TableRow key={c.id} className="cursor-pointer" onClick={() => navigate(`/admin/clinics/${c.id}`)}>
+                  <TableCell>
+                    <span className="inline-flex items-center gap-2.5">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary" title={c.name}>{getInitials(c.name)}</span>
+                      <span className="font-semibold text-foreground">{c.name}</span>
                     </span>
-                  </td>
-                  <td className="cl-email">{c.email || "—"}</td>
-                  <td><span className="cl-specialty">{c.specialty || "—"}</span></td>
-                  <td className="r" onClick={(e) => e.stopPropagation()}>
-                    <button className="rw-ic-btn cl-edit" title="Edit clinic" aria-label="Edit clinic" onClick={() => setEditing(c)}>
-                      <Pencil size={15} />
-                    </button>
-                  </td>
-                </tr>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{c.email || "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">{c.specialty || "—"}</TableCell>
+                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      title="Edit clinic"
+                      aria-label="Edit clinic"
+                      onClick={() => setEditing(c)}
+                    >
+                      <Pencil width={15} height={15} strokeWidth={1.75} />
+                    </Button>
+                  </TableCell>
+                </TableRow>
               ))}
               {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={4} className="dh-muted-cell" style={{ textAlign: "center", padding: "28px 14px" }}>
-                    No clinics match “{search}”
-                  </td>
-                </tr>
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center py-8 text-sm text-muted-foreground">
+                    No clinics match "{search}"
+                  </TableCell>
+                </TableRow>
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       )}
 
       <ClinicFormModal open={createOpen} onOpenChange={setCreateOpen} />
       <ClinicFormModal open={!!editing} onOpenChange={(o) => !o && setEditing(null)} clinic={editing} />
-    </div>
+    </PageContainer>
   );
 }

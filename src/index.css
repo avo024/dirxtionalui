@@ -73,9 +73,11 @@
     --status-rejected-bg: 0 84% 95%;
     --status-rejected-fg: 0 72% 42%;
 
-    /* ── Dirxctional App UI raw tokens (used by redesign pages, e.g. wizard.css) ──
+    /* ── Dirxctional App UI raw tokens ──
        Hex constants for the brand triad + scales. Coexist with the shadcn HSL
-       tokens above; the redesign component CSS references these by name. */
+       tokens above; components reference these by name via inline styles /
+       Tailwind arbitrary values (the bespoke component CSS was retired in
+       UI v2 phase 6b). */
     --color-navy: #1B2B5B;
     --color-navy-dark: #121D3E;
     --color-teal: #14B8A6;
@@ -128,6 +130,14 @@
     --status-approved-bg-hex: #DCFCE7;    --status-approved-fg-hex: #15803D;
     --status-sent-bg-hex: #CCFBF1;        --status-sent-fg-hex: #0F766E;
     --status-rejected-bg-hex: #FEE2E2;    --status-rejected-fg-hex: #B91C1C;
+
+    /* ── Density scale (UI v2 design system, Phase 1) ── */
+    --density-control-h: 2.5rem;
+    --density-control-h-sm: 2.25rem;
+    --density-control-h-xs: 2rem;
+    --density-cell-y: 0.75rem;
+    --density-cell-x: 0.6875rem;
+    --density-card-pad: 1.25rem;
   }
 
   * {

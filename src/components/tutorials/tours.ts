@@ -55,7 +55,7 @@ export const TOURS: Record<string, TourDef> = {
         element: '[data-tour="dashboard-stats"]',
         title: "Your dashboard at a glance",
         description:
-          "These cards summarize what needs attention, PAs expiring soon, referrals in review, and what's been sent to the pharmacy.",
+          "Anything Dirxctional needs from your office shows up here first — a referral to fix or a request to answer. Below it: what's in progress, then your most recent referrals.",
         side: "bottom",
         align: "start",
       },

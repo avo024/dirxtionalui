@@ -1,22 +1,20 @@
 import { useState, useMemo, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import {
-  Search, Plus, Users, ChevronLeft, ChevronRight, Loader2, ListFilter,
-  ChevronsUpDown, ChevronUp, ChevronDown,
-} from "lucide-react";
+import { Plus, Users, ChevronLeft, ChevronRight, Loader2, ChevronsUpDown, ChevronUp, ChevronDown } from "lucide-react";
 import { PAStatusBadge } from "@/components/PAStatusBadge";
+import { Button } from "@/components/ui/button";
+import { FilterToolbar } from "@/components/patterns/FilterToolbar";
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { clinicApi } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { formatDateShort, parseLocalDate } from "@/lib/dateUtils";
-import "./wizard.css";
-import "./dashboard.css";
-import "./referrals.css";
+import { PageContainer } from "@/components/patterns/PageContainer";
 
 const FILTERS = [
-  { value: "all", short: "All", long: "All Patients" },
-  { value: "active", short: "Active", long: "Active (Recent Referral)" },
-  { value: "inactive", short: "Inactive", long: "Inactive" },
-  { value: "expiring", short: "Expiring", long: "PA Expiring Soon" },
+  { value: "all", label: "All" },
+  { value: "active", label: "Active" },
+  { value: "inactive", label: "Inactive" },
+  { value: "expiring", label: "Expiring" },
 ];
 
 function isExpiringSoon(p: any): boolean {
@@ -98,110 +96,120 @@ export default function PatientsList() {
   const SortCaret = ({ col }: { col: "name" | "dob" | "created" }) => {
     const active = sort?.col === col;
     const Icon = !active ? ChevronsUpDown : sort!.dir === "asc" ? ChevronUp : ChevronDown;
-    return <span className={`rl-caret${active ? " on" : ""}`}><Icon size={13} /></span>;
+    return <Icon width={13} height={13} strokeWidth={1.75} className={active ? "text-foreground" : "text-muted-foreground/60"} />;
   };
   const SortTh = ({ col, children }: { col: "name" | "dob" | "created"; children: React.ReactNode }) => (
-    <th><button className="rl-sortbtn" onClick={() => onSort(col)}>{children}<SortCaret col={col} /></button></th>
+    <TableHead>
+      <button className="inline-flex items-center gap-1 hover:text-foreground" onClick={() => onSort(col)}>{children}<SortCaret col={col} /></button>
+    </TableHead>
   );
 
   return (
-    <div className="rw-page rl-page rw-fade">
-      <div className="rl-header">
+    <PageContainer>
+      <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="rl-h1 serif">Patients</h1>
-          <p className="rl-sub">Manage your patients and their referrals</p>
+          <h1 className="text-2xl font-semibold text-foreground">Patients</h1>
+          <p className="text-sm text-muted-foreground mt-1">Manage your patients and their referrals</p>
         </div>
-        <Link to="/clinic/patients/new" className="rw-btn primary" data-tour="add-patient"><Plus size={15} />Add New Patient</Link>
+        <Button asChild data-tour="add-patient">
+          <Link to="/clinic/patients/new"><Plus width={16} height={16} strokeWidth={1.75} />New Patient</Link>
+        </Button>
       </div>
 
-      <div className="rl-toolbar">
-        <div className="rl-seg-wrap">
-          <div className="rl-seg">
-            {FILTERS.map((f) => (
-              <button key={f.value} className={`rl-seg-btn${filter === f.value ? " on" : ""}`} onClick={() => handleFilter(f.value)}>
-                {f.short}<span className="rl-seg-n num">{filterCount(f.value)}</span>
-              </button>
-            ))}
-          </div>
-          <div className="rl-statusdd">
-            <ListFilter size={15} />
-            <select className="rl-select" value={filter} onChange={(e) => handleFilter(e.target.value)}>
-              {FILTERS.map((f) => <option key={f.value} value={f.value}>{f.long} ({filterCount(f.value)})</option>)}
-            </select>
-          </div>
-        </div>
-        <div className="rl-search">
-          <span className="rl-search-ic"><Search size={16} /></span>
-          <input className="rl-search-input" placeholder="Search by name, DOB, phone, or email..." value={search} onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }} />
-        </div>
+      <div className="mb-4">
+        <FilterToolbar
+          filters={FILTERS.map((f) => ({ ...f, count: filterCount(f.value) }))}
+          active={filter}
+          onFilter={handleFilter}
+          search={search}
+          onSearch={(v) => { setSearch(v); setCurrentPage(1); }}
+          searchPlaceholder="Search by name, DOB, phone, or email…"
+        />
       </div>
 
       {loading ? (
-        <div style={{ display: "flex", justifyContent: "center", padding: 48 }}><span className="rw-spin" style={{ color: "var(--color-teal)" }}><Loader2 size={26} /></span></div>
+        <div className="flex justify-center py-12"><Loader2 width={26} height={26} className="animate-spin text-primary" /></div>
       ) : paginated.length > 0 ? (
-        <div className="dh-table-wrap">
-          <table className="dh-table">
-            <thead>
-              <tr>
-                <SortTh col="name">Patient Name</SortTh>
-                <SortTh col="dob">DOB (Age)</SortTh>
-                <th>Last Drug</th>
-                <SortTh col="created">Last Referral</SortTh>
-                <th>PA Status</th>
-                <th className="r">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+        <div className="rounded-lg border border-border bg-card overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <SortTh col="name">Patient</SortTh>
+                <TableHead>Contact</TableHead>
+                <TableHead>Last drug</TableHead>
+                <TableHead>PA status</TableHead>
+                <SortTh col="created">Last referral</SortTh>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {paginated.map((p) => (
-                <tr key={p.id} onClick={() => navigate(`/clinic/patients/${p.id}`)}>
-                  <td><span className="dh-pt-nm">{p.full_name || "—"}</span></td>
-                  <td className="dh-muted-cell">{p.dob ? `${formatDateShort(p.dob)} (${getAge(p.dob)})` : "—"}</td>
-                  <td>{p.last_drug || "—"}{p.last_dosage && <span style={{ color: "var(--text-muted)", marginLeft: 5, fontSize: "var(--text-xs)" }}>{p.last_dosage}</span>}</td>
-                  <td className="dh-muted-cell">{p.created_at ? formatDateShort(p.created_at) : "—"}</td>
-                  <td><PAStatusBadge status={p.pa_status || "none"} expirationDate={p.pa_expiration_date} /></td>
-                  <td className="r" onClick={(e) => e.stopPropagation()}>
-                    <span style={{ display: "inline-flex", gap: 8, justifyContent: "flex-end" }}>
-                      <Link to={`/clinic/patients/${p.id}`} className="rw-btn outline sm">View</Link>
-                      <Link to={`/clinic/referrals/new?patientId=${p.id}`} className="rw-btn primary sm">New Referral</Link>
+                <TableRow key={p.id} className="cursor-pointer" onClick={() => navigate(`/clinic/patients/${p.id}`)}>
+                  <TableCell>
+                    <div className="flex flex-col">
+                      <span className="font-semibold text-foreground">{p.full_name || "—"}</span>
+                      <span className="text-xs text-muted-foreground">{p.dob ? `${formatDateShort(p.dob)} (${getAge(p.dob)})` : "—"}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{p.phone_primary || p.phone || "—"}</TableCell>
+                  <TableCell>
+                    {p.last_drug || "—"}
+                    {p.last_dosage && <span className="text-muted-foreground ml-1 text-xs">{p.last_dosage}</span>}
+                  </TableCell>
+                  <TableCell><PAStatusBadge status={p.pa_status || "none"} expirationDate={p.pa_expiration_date} /></TableCell>
+                  <TableCell className="text-muted-foreground">{p.created_at ? formatDateShort(p.created_at) : "—"}</TableCell>
+                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                    <span className="inline-flex gap-2 justify-end">
+                      <Button asChild size="sm" variant="outline"><Link to={`/clinic/patients/${p.id}`}>View</Link></Button>
+                      <Button asChild size="sm"><Link to={`/clinic/referrals/new?patientId=${p.id}`}>New Referral</Link></Button>
                     </span>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       ) : search || filter !== "all" ? (
-        <div className="dh-empty">
-          <div className="dh-empty-ic sm"><Users size={20} /></div>
-          <p className="rl-empty-t">No patients found</p>
-          <p className="rl-empty-s">Try adjusting your search or filters</p>
-          <button className="rw-btn outline sm" onClick={() => { setSearch(""); setFilter("all"); }}>Clear Filters</button>
+        <div className="flex flex-col items-center gap-2 py-16 text-center">
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-muted-foreground"><Users width={18} height={18} strokeWidth={1.75} /></span>
+          <p className="text-sm font-semibold text-foreground">No patients found</p>
+          <p className="text-sm text-muted-foreground">Try adjusting your search or filters</p>
+          <Button size="sm" variant="outline" onClick={() => { setSearch(""); setFilter("all"); }}>Clear Filters</Button>
         </div>
       ) : (
-        <div className="dh-empty">
-          <div className="dh-empty-ic"><Users size={26} /></div>
-          <h3>No patients yet</h3>
-          <p>Add your first patient to get started</p>
-          <Link to="/clinic/patients/new" className="rw-btn primary" style={{ display: "inline-flex" }}><Plus size={15} />Add Your First Patient</Link>
+        <div className="flex flex-col items-center gap-2 py-16 text-center">
+          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-muted text-muted-foreground"><Users width={26} height={26} strokeWidth={1.75} /></span>
+          <h3 className="text-base font-semibold text-foreground">No patients yet</h3>
+          <p className="text-sm text-muted-foreground">Add your first patient to get started</p>
+          <Button asChild><Link to="/clinic/patients/new"><Plus width={16} height={16} strokeWidth={1.75} />Add Your First Patient</Link></Button>
         </div>
       )}
 
       {!loading && filtered.length > pageSize && (
-        <div className="rl-pag">
-          <div className="rl-pag-meta"><span>Showing {startItem}-{endItem} of {filtered.length} patients</span></div>
-          <div className="rl-pag-ctrl">
-            <button className="rw-btn outline sm" disabled={safePage === 1} onClick={() => setCurrentPage(safePage - 1)}><ChevronLeft size={15} />Prev</button>
-            <div className="rl-pg-window">
-              {pageWindow(totalPages, safePage).map((n, i) => (
-                n === "…" ? <span key={`e${i}`} className="rl-pg-ell">…</span>
-                  : <button key={n} className={`rl-pg-num${n === safePage ? " on" : ""}`} onClick={() => setCurrentPage(n as number)}>{n}</button>
-              ))}
+        <div className="flex items-center justify-between mt-4">
+          <span className="text-xs text-muted-foreground">Showing {startItem}-{endItem} of {filtered.length} patients</span>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" disabled={safePage === 1} onClick={() => setCurrentPage(safePage - 1)}><ChevronLeft width={15} height={15} strokeWidth={1.75} />Prev</Button>
+            <div className="flex items-center gap-1">
+              {pageWindow(totalPages, safePage).map((n, i) =>
+                n === "…" ? (
+                  <span key={`e${i}`} className="px-1 text-xs text-muted-foreground">…</span>
+                ) : (
+                  <button
+                    key={n}
+                    className={`h-7 w-7 rounded-md text-xs font-medium ${n === safePage ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
+                    onClick={() => setCurrentPage(n as number)}
+                  >
+                    {n}
+                  </button>
+                ),
+              )}
             </div>
-            <span className="rl-pg-xy">Page {safePage} of {totalPages}</span>
-            <button className="rw-btn outline sm" disabled={safePage === totalPages} onClick={() => setCurrentPage(safePage + 1)}>Next<ChevronRight size={15} /></button>
+            <span className="text-xs text-muted-foreground">Page {safePage} of {totalPages}</span>
+            <Button size="sm" variant="outline" disabled={safePage === totalPages} onClick={() => setCurrentPage(safePage + 1)}>Next<ChevronRight width={15} height={15} strokeWidth={1.75} /></Button>
           </div>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

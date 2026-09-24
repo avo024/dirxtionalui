@@ -106,8 +106,9 @@ export async function updateMyClinic(data: {
     headers: await getHeaders(),
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error('Failed to update clinic');
-  return res.json();
+  // Uses handleResponse (not a bare ok-check) so a 403 — e.g. "Only an
+  // office manager can change clinic settings" — surfaces its real message.
+  return handleResponse<MyClinic>(res);
 }
 
 export interface MyProfile {
@@ -118,6 +119,10 @@ export interface MyProfile {
   profile_complete: boolean;
   email?: string;
   clinic_id?: string;
+  /** office_manager | front_desk | provider | billing | staff (legacy) | null */
+  role?: string | null;
+  /** False for anyone but the clinic's office manager. */
+  can_edit_clinic_settings?: boolean;
   [key: string]: any;
 }
 
@@ -399,6 +404,20 @@ export const clinicApi = {
     );
     return handleResponse(response);
   },
+
+  // Presigned URL for a document from the referral's recorded delivery
+  // ("Sent to <pharmacy>" card) — the packet, PA letter, or a clinic-uploaded
+  // extra that actually went out. Audited server-side same as the above.
+  async getDeliveryDocumentUrl(
+    referralId: string,
+    docId: string,
+  ): Promise<{ url: string; filename?: string; expires_in?: number }> {
+    const response = await fetch(
+      `${API_BASE_URL}/referrals/${referralId}/delivery/documents/${docId}/url`,
+      { headers: await getHeaders() },
+    );
+    return handleResponse(response);
+  },
 };
 
 // ============================================================================
@@ -570,6 +589,14 @@ export interface AppealPacketMarkSubmittedResponse {
   submitted_at: string;
 }
 
+// ── PA approval letter (phase 4b: moved off the retired PA-card component) ──
+export interface PALetterInfo {
+  has_letter: boolean;
+  drug_requires_pa: boolean;
+  is_fallback: boolean;
+  letter: { id: string; filename: string; uploaded_at: string; from_referral_id: string } | null;
+}
+
 // ── Manufacturer assistance enrollment (denied-referral bridge programs) ──
 export interface EnrollmentFormFile {
   file: string;
@@ -717,11 +744,11 @@ export const adminApi = {
     return response.blob();
   },
 
-  async submitPA(id: string, submittedDate: string): Promise<any> {
+  async submitPA(id: string, submittedDate: string, extra?: { ref_number?: string; notes?: string }): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/admin/referrals/${id}/pa/submit`, {
       method: 'POST',
       headers: await getHeaders(),
-      body: JSON.stringify({ submitted_date: submittedDate }),
+      body: JSON.stringify({ submitted_date: submittedDate, ...(extra?.ref_number ? { ref_number: extra.ref_number } : {}), ...(extra?.notes ? { notes: extra.notes } : {}) }),
     });
     return handleResponse(response);
   },
@@ -1141,12 +1168,18 @@ export const adminApi = {
     return handleResponse(response);
   },
 
-  async getPALetterInfo(referralId: string): Promise<{
-    has_letter: boolean;
-    drug_requires_pa: boolean;
-    is_fallback: boolean;
-    letter: { id: string; filename: string; uploaded_at: string; from_referral_id: string } | null;
-  }> {
+  // Internal-only handoff line (flow-script §7) — never shown to the clinic.
+  // `note: null` clears it. Backend: design/system-v2-backend commit 8743c08.
+  async setHandoffNote(referralId: string, note: string | null): Promise<{ ok: boolean; admin_handoff_note: string | null }> {
+    const response = await fetch(`${API_BASE_URL}/admin/referrals/${referralId}/handoff-note`, {
+      method: 'PUT',
+      headers: await getHeaders(),
+      body: JSON.stringify({ note }),
+    });
+    return handleResponse(response);
+  },
+
+  async getPALetterInfo(referralId: string): Promise<PALetterInfo> {
     const response = await fetch(`${API_BASE_URL}/admin/referrals/${referralId}/pa/letter`, {
       headers: await getHeaders(),
     });
@@ -1219,7 +1252,7 @@ export const adminApi = {
     return data;
   },
 
-  async createInvite(data: { clinic_id: string; email: string }): Promise<AdminInvite> {
+  async createInvite(data: { clinic_id: string; email: string; role?: string }): Promise<AdminInvite> {
     const response = await fetch(`${API_BASE_URL}/admin/invites`, {
       method: 'POST',
       headers: await getHeaders(),
@@ -1232,6 +1265,25 @@ export const adminApi = {
     const response = await fetch(`${API_BASE_URL}/admin/invites/${token}/resend`, {
       method: 'POST',
       headers: await getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  // ---- Clinic team (existing clinic_users, not pending invites) ----
+  async getClinicTeam(clinicId: string): Promise<{ items: AdminClinicUser[] }> {
+    const response = await fetch(`${API_BASE_URL}/admin/clinics/${clinicId}/users`, {
+      headers: await getHeaders(),
+    });
+    const data = await handleResponse<any>(response);
+    if (Array.isArray(data)) return { items: data };
+    return data;
+  },
+
+  async updateClinicUserRole(clinicId: string, userId: string, role: string): Promise<{ id: string; clinic_id: string; role: string }> {
+    const response = await fetch(`${API_BASE_URL}/admin/clinics/${clinicId}/users/${userId}/role`, {
+      method: 'PATCH',
+      headers: await getHeaders(),
+      body: JSON.stringify({ role }),
     });
     return handleResponse(response);
   },
@@ -1300,10 +1352,23 @@ export interface AdminInvite {
   email: string;
   clinic_id: string;
   clinic_name?: string;
+  /** office_manager | front_desk | provider | billing */
+  role?: string | null;
   created_at: string;
   expires_at: string;
   used_at?: string | null;
   revoked_at?: string | null;
+}
+
+// ---- Clinic team member (an accepted clinic_users row, admin view) ----
+export interface AdminClinicUser {
+  id: string;
+  email: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  /** office_manager | front_desk | provider | billing | staff (legacy) | null */
+  role?: string | null;
+  created_at?: string | null;
 }
 
 // ============================================================================

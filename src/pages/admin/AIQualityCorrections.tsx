@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Loader2, Search, Check, ChevronDown } from "lucide-react";
+import { ArrowLeft, Loader2, Check, ChevronDown } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAIQualityCorrections } from "@/hooks/useAIQuality";
 import { CorrectionRow } from "@/components/admin/CorrectionRow";
+import { FilterToolbar } from "@/components/patterns/FilterToolbar";
+import { Button } from "@/components/ui/button";
 import { dismissCorrection, restoreCorrection, type AIQualityCorrection } from "@/lib/aiQualityApi";
-import "../clinic/wizard.css";
-import "../clinic/dashboard.css";
-import "../clinic/referrals.css";
-import "./aiq.css";
+import { cn } from "@/lib/utils";
+import { PageContainer } from "@/components/patterns/PageContainer";
 
 function monthOptions() {
   const opts: { value: string; label: string }[] = [];
@@ -100,56 +100,67 @@ export default function AIQualityCorrections() {
   const nextCursor = query.data?.next_cursor ?? null;
 
   return (
-    <div className="aiq-page narrow rw-fade">
+    <PageContainer className="max-w-4xl">
       {/* Header */}
-      <div className="aiq-head">
-        <div className="aiq-head-l">
-          <Link className="aiq-back" to="/admin/ai-quality" style={{ marginBottom: 12 }}>
-            <ArrowLeft size={15} />Back to overview
-          </Link>
-          <h1 className="aiq-h1 serif">Corrections feed</h1>
-          <p className="aiq-sub">
-            Every reviewer edit, newest first. The amber border marks edits the model was confident about (≥ 0.85).
-          </p>
-        </div>
+      <div className="mb-5">
+        <Link className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-3" to="/admin/ai-quality">
+          <ArrowLeft width={15} height={15} strokeWidth={1.75} />Back to overview
+        </Link>
+        <h1 className="text-2xl font-semibold text-foreground">Corrections feed</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Every reviewer edit, newest first. The amber tint marks edits the model was confident about (≥ 0.85).
+        </p>
       </div>
 
       {/* Filter bar */}
-      <div className="aiq-card aiq-card-pad">
-        <div className="aiq-filterbar">
-          <select
-            className="rl-select"
-            style={{ border: "1px solid var(--border-default)", borderRadius: "var(--radius-md)", height: 38, padding: "0 10px", background: "#fff" }}
-            value={month}
-            onChange={(e) => setMonth(e.target.value)}
-          >
-            {monthOptions().map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
-          </select>
-          <div className="aiq-tbl-search" style={{ width: 280 }}>
-            <span className="rl-search-ic"><Search size={15} /></span>
-            <input placeholder="Filter by field path…" value={field} onChange={(e) => setField(e.target.value)} />
-          </div>
-          <button className={`aiq-check-inline${highConfOnly ? " on" : ""}`} onClick={() => setHighConfOnly((v) => !v)}>
-            <span className="aiq-check-box">{highConfOnly && <Check size={12} />}</span>
-            High-confidence only (≥ 0.85)
-          </button>
-          <span style={{ marginLeft: "auto", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>
-            {accumulated.length} loaded
-          </span>
-        </div>
+      <div className="bg-card border border-border rounded-lg p-[var(--density-card-pad)] mb-4">
+        <FilterToolbar
+          search={field}
+          onSearch={setField}
+          searchPlaceholder="Filter by field path…"
+          selects={[
+            {
+              options: monthOptions().map((m) => m.label),
+              value: monthOptions().find((m) => m.value === month)?.label,
+              onChange: (label) => {
+                const m = monthOptions().find((o) => o.label === label);
+                if (m) setMonth(m.value);
+              },
+              width: "200px",
+            },
+          ]}
+          trailing={
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setHighConfOnly((v) => !v)}
+                className="inline-flex items-center gap-2 text-sm text-foreground"
+              >
+                <span className={cn(
+                  "flex h-4 w-4 items-center justify-center rounded border",
+                  highConfOnly ? "bg-primary border-primary text-primary-foreground" : "border-input",
+                )}>
+                  {highConfOnly && <Check width={12} height={12} strokeWidth={2} />}
+                </span>
+                High-confidence only (≥ 0.85)
+              </button>
+              <span className="text-xs text-muted-foreground">{accumulated.length} loaded</span>
+            </div>
+          }
+        />
       </div>
 
       {/* List */}
       {query.isLoading && accumulated.length === 0 ? (
-        <div className="aiq-empty"><Loader2 className="rw-spin" style={{ color: "var(--color-teal)", display: "inline-block" }} size={26} /></div>
+        <div className="flex justify-center py-16"><Loader2 width={26} height={26} strokeWidth={1.75} className="animate-spin text-primary" /></div>
       ) : query.isError ? (
-        <div className="aiq-card aiq-card-pad" style={{ borderColor: "color-mix(in srgb, var(--color-error) 30%, transparent)", color: "var(--color-error)" }}>
+        <div className="bg-card border border-destructive/30 rounded-lg p-[var(--density-card-pad)] text-sm text-destructive">
           Failed to load corrections: {(query.error as Error)?.message}
         </div>
       ) : accumulated.length === 0 ? (
-        <div className="aiq-card aiq-empty">No corrections match these filters.</div>
+        <div className="bg-card border border-border rounded-lg py-8 text-center text-sm text-muted-foreground">No corrections match these filters.</div>
       ) : (
-        <div className="aiq-corr-list">
+        <div className="bg-card border border-border rounded-lg overflow-hidden">
           {accumulated.map((c, i) => (
             <CorrectionRow
               key={c.id ?? `${c.referral_id}-${c.field_path}-${c.edited_at}-${i}`}
@@ -164,12 +175,12 @@ export default function AIQualityCorrections() {
       )}
 
       {nextCursor && (
-        <div className="aiq-loadmore">
-          <button className="rw-btn outline" disabled={query.isFetching} onClick={() => setCursor(nextCursor)}>
-            <ChevronDown size={15} />{query.isFetching ? "Loading…" : "Load more"}
-          </button>
+        <div className="flex justify-center mt-4">
+          <Button variant="outline" disabled={query.isFetching} onClick={() => setCursor(nextCursor)}>
+            <ChevronDown width={15} height={15} strokeWidth={1.75} />{query.isFetching ? "Loading…" : "Load more"}
+          </Button>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

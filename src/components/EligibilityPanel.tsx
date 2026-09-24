@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, ShieldCheck, AlertTriangle, XCircle, HelpCircle, ChevronDown } from "lucide-react";
 import { adminApi } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
-import { ShieldCheck, AlertTriangle, XCircle, HelpCircle, ChevronDown } from "lucide-react";
 import { getRelativeTime } from "@/lib/dateUtils";
-// arr-card styling lives with the admin review page; this panel only renders there.
-import "@/pages/admin/admin-referral-review.css";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 type EligibilityStatus =
   | "verified" | "mismatch" | "inactive" | "payer_unmatched" | "error" | "skipped" | null;
@@ -37,19 +37,19 @@ function fieldLabel(field: string): string {
 }
 
 type ChipTone = "green" | "amber" | "red" | "grey";
-const TONE_STYLE: Record<ChipTone, { fg: string; bg: string }> = {
-  green: { fg: "var(--color-success)", bg: "color-mix(in srgb, var(--color-success) 13%, transparent)" },
-  amber: { fg: "var(--color-warning)", bg: "color-mix(in srgb, var(--color-warning) 15%, transparent)" },
-  red: { fg: "var(--color-error)", bg: "color-mix(in srgb, var(--color-error) 12%, transparent)" },
-  grey: { fg: "var(--text-muted)", bg: "color-mix(in srgb, var(--text-muted) 12%, transparent)" },
+const TONE_CLASS: Record<ChipTone, string> = {
+  green: "bg-success/13 text-success",
+  amber: "bg-warning/15 text-warning",
+  red: "bg-destructive/12 text-destructive",
+  grey: "bg-muted-foreground/12 text-muted-foreground",
 };
 
 /**
- * Insurance Eligibility panel for the admin referral-review screen.
- * Displays the Availity eligibility check run during AI extraction — coverage
- * status + any field mismatches between the extracted insurance and the payer
- * record. Degrades gracefully: feature-flagged off → status null → "Not checked".
- * Display only; reads eligibility_* fields off the referral object.
+ * Insurance Eligibility panel for the admin referral workstation. Displays
+ * the Availity eligibility check run during AI extraction — coverage status
+ * + any field mismatches between the extracted insurance and the payer
+ * record. Degrades gracefully: feature-flagged off → status null → renders
+ * nothing. Display only; reads eligibility_* fields off the referral object.
  */
 export function EligibilityPanel({ referral, referralId }: { referral: EligibilityData; referralId?: string }) {
   const [showPayload, setShowPayload] = useState(false);
@@ -78,7 +78,7 @@ export function EligibilityPanel({ referral, referralId }: { referral: Eligibili
   // Render nothing when there's nothing for the admin to act on:
   //  - null     → feature dormant / not run yet
   //  - skipped  → deliberately not checked (bridge program, or no insurance on file)
-  // Keeps the admin screen clean — the panel only appears with a real signal.
+  // Keeps the workstation clean — the panel only appears with a real signal.
   if (status == null || status === "skipped") return null;
 
   const mismatches = eff?.eligibility_mismatches ?? [];
@@ -108,44 +108,38 @@ export function EligibilityPanel({ referral, referralId }: { referral: Eligibili
       tone = "grey"; chipLabel = "Not checked yet"; ChipIcon = HelpCircle; break;
   }
 
-  const t = TONE_STYLE[tone];
-  const isNull = status == null;
-
   return (
-    <div className="arr-card" style={isNull ? { opacity: 0.6 } : undefined}>
-      <div className="arr-card-head">
-        <span className="hi"><ShieldCheck size={15} /></span>
-        <h3>Insurance Eligibility</h3>
+    <Card className="p-[var(--density-card-pad)]">
+      <div className="flex items-center gap-2.5">
+        <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary">
+          <ShieldCheck width={15} height={15} strokeWidth={1.75} />
+        </span>
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">Insurance Eligibility</h3>
         {referralId && (
-          <button type="button" onClick={recheck} disabled={rechecking}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={recheck}
+            disabled={rechecking}
             title="Re-run the insurance check (use after correcting a mismatch)"
-            style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 5,
-                     fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--color-teal-700)",
-                     background: "none", border: "1px solid var(--color-teal-100)",
-                     borderRadius: "var(--radius-md)", padding: "3px 9px", cursor: "pointer" }}>
-            <RefreshCw size={12} className={rechecking ? "animate-spin" : undefined} />
-            Re-check
-          </button>
-        )}
-        <span className="he" style={{ marginLeft: referralId ? 8 : "auto" }}>
-          <span
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 5,
-              padding: "2px 9px", borderRadius: 9999,
-              fontSize: "var(--text-xs)", fontWeight: 600,
-              color: t.fg, background: t.bg,
-            }}
+            className="ml-auto h-7 gap-1.5 px-2.5 text-xs"
           >
-            <ChipIcon size={12} />{chipLabel}
-          </span>
+            <RefreshCw width={12} height={12} className={rechecking ? "animate-spin" : undefined} />
+            Re-check
+          </Button>
+        )}
+        <span className={cn("inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold", TONE_CLASS[tone], !referralId && "ml-auto")}>
+          <ChipIcon width={12} height={12} />
+          {chipLabel}
         </span>
       </div>
 
       {/* Coverage active / inactive */}
-      {!isNull && typeof active === "boolean" && (
-        <div className="arr-srow">
-          <span className="arr-sk">Coverage</span>
-          <span className="arr-sv" style={{ fontWeight: 600, color: active ? "var(--color-success)" : "var(--color-error)" }}>
+      {typeof active === "boolean" && (
+        <div className="mt-3 flex items-center justify-between gap-4 border-t border-border pt-2.5 text-sm">
+          <span className="text-xs text-muted-foreground">Coverage</span>
+          <span className={cn("font-semibold", active ? "text-success" : "text-destructive")}>
             {active ? "Active" : "Inactive"}
           </span>
         </div>
@@ -153,23 +147,19 @@ export function EligibilityPanel({ referral, referralId }: { referral: Eligibili
 
       {/* THE KEY PART — field mismatches between extracted insurance and payer record */}
       {mismatches.length > 0 && (
-        <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+        <div className="mt-2.5 flex flex-col gap-1.5">
           {mismatches.map((m, i) => (
             <div
               key={`${m.field}-${i}`}
-              style={{
-                padding: "8px 10px", borderRadius: "var(--radius-md)",
-                background: "color-mix(in srgb, var(--color-warning) 9%, transparent)",
-                border: "1px solid color-mix(in srgb, var(--color-warning) 35%, transparent)",
-              }}
+              className="rounded-md border border-warning/35 bg-warning/[0.09] px-2.5 py-2"
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--text-primary)" }}>
-                <AlertTriangle size={13} style={{ color: "var(--color-warning)", flexShrink: 0 }} />
+              <div className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+                <AlertTriangle width={13} height={13} className="shrink-0 text-warning" />
                 {fieldLabel(m.field)}
               </div>
-              <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", marginTop: 3, lineHeight: 1.5 }}>
-                extracted: <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>{m.extracted || "—"}</span>
-                {"  ·  "}payer has: <span style={{ fontWeight: 600, color: "var(--color-warning)" }}>{m.payer || "—"}</span>
+              <div className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                extracted: <span className="font-semibold text-foreground">{m.extracted || "—"}</span>
+                {"  ·  "}payer has: <span className="font-semibold text-warning">{m.payer || "—"}</span>
               </div>
             </div>
           ))}
@@ -178,40 +168,29 @@ export function EligibilityPanel({ referral, referralId }: { referral: Eligibili
 
       {/* Checked timestamp */}
       {checkedAt && (
-        <p style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", margin: "10px 0 0" }}>
+        <p className="mt-2.5 text-xs text-muted-foreground">
           Checked {override ? "just now" : getRelativeTime(checkedAt)}
         </p>
       )}
 
       {/* Optional collapsible raw payer details (debug/reference; collapsed by default) */}
-      {!isNull && eff?.eligibility_payload && (
-        <div style={{ marginTop: 8 }}>
+      {eff?.eligibility_payload && (
+        <div className="mt-2.5">
           <button
             type="button"
             onClick={() => setShowPayload((v) => !v)}
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 4,
-              fontSize: "var(--text-xs)", color: "var(--text-muted)",
-              background: "none", border: "none", cursor: "pointer", padding: 0,
-            }}
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
           >
-            <ChevronDown size={13} style={{ transform: showPayload ? "rotate(180deg)" : "none", transition: "transform .15s" }} />
+            <ChevronDown width={13} height={13} className={cn("transition-transform", showPayload && "rotate-180")} />
             Payer details
           </button>
           {showPayload && (
-            <pre
-              style={{
-                marginTop: 6, maxHeight: 220, overflow: "auto",
-                fontSize: 11, lineHeight: 1.5, padding: 10,
-                background: "var(--color-gray-100, #f1f5f9)", borderRadius: "var(--radius-md)",
-                whiteSpace: "pre-wrap", wordBreak: "break-word",
-              }}
-            >
+            <pre className="mt-1.5 max-h-56 overflow-auto whitespace-pre-wrap break-words rounded-md bg-muted p-2.5 text-[11px] leading-relaxed">
               {JSON.stringify(eff.eligibility_payload, null, 2)}
             </pre>
           )}
         </div>
       )}
-    </div>
+    </Card>
   );
 }

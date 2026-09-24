@@ -1,18 +1,18 @@
 import { useMemo, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import {
-  Loader2, AlertTriangle, Search, FileText, CheckCircle2, PencilLine,
+  Loader2, AlertTriangle, FileText, CheckCircle2, PencilLine,
   ChevronsUpDown, ChevronUp, ChevronDown, ArrowRight,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAIQualityOverview, useAIQualityCorrections } from "@/hooks/useAIQuality";
 import { getRelativeTime } from "@/lib/dateUtils";
 import { CorrectionRow } from "@/components/admin/CorrectionRow";
+import { FilterToolbar } from "@/components/patterns/FilterToolbar";
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 import type { AIQualityFieldRow } from "@/lib/aiQualityApi";
-import "../clinic/wizard.css";
-import "../clinic/dashboard.css";
-import "../clinic/referrals.css";
-import "./aiq.css";
+import { PageContainer } from "@/components/patterns/PageContainer";
 
 function monthOptions() {
   const opts: { value: string; label: string }[] = [];
@@ -41,18 +41,18 @@ function confFmt(v: number | null): string {
   if (v === null || v === undefined) return "—";
   return v.toFixed(2);
 }
-function acceptTone(v: number | null): "low" | "mid" | "high" {
-  if (v === null || v === undefined) return "mid";
-  if (v >= 0.9) return "high";
-  if (v >= 0.7) return "mid";
-  return "low";
+function acceptClass(v: number | null): string {
+  if (v === null || v === undefined) return "text-muted-foreground";
+  if (v >= 0.9) return "text-success";
+  if (v >= 0.7) return "text-warning";
+  return "text-destructive";
 }
 
-const STAT_TONE: Record<string, { fg: string; bg: string }> = {
-  primary: { fg: "var(--color-navy)", bg: "color-mix(in srgb, var(--color-navy) 10%, transparent)" },
-  success: { fg: "var(--color-success)", bg: "color-mix(in srgb, var(--color-success) 12%, transparent)" },
-  warning: { fg: "var(--color-warning)", bg: "color-mix(in srgb, var(--color-warning) 14%, transparent)" },
-  teal: { fg: "var(--color-teal-600)", bg: "color-mix(in srgb, var(--color-teal-500) 13%, transparent)" },
+const STAT_TONE: Record<string, string> = {
+  primary: "bg-primary/10 text-primary",
+  success: "bg-success/15 text-success",
+  warning: "bg-warning/15 text-[#92610B]",
+  teal: "bg-teal-600/10 text-teal-700",
 };
 
 export default function AIQuality() {
@@ -96,15 +96,20 @@ export default function AIQuality() {
     else { setSortKey(key); setSortDir("desc"); }
   }
 
-  const SortTh = ({ k, children, cls }: { k: SortKey; children: React.ReactNode; cls?: string }) => {
+  const SortTh = ({ k, children, right }: { k: SortKey; children: React.ReactNode; right?: boolean }) => {
     const active = sortKey === k;
     const Caret = !active ? ChevronsUpDown : sortDir === "asc" ? ChevronUp : ChevronDown;
     return (
-      <th className={cls}>
-        <button className="rl-sortbtn" onClick={() => toggleSort(k)}>
-          {children}<span className={`rl-caret${active ? " on" : ""}`}><Caret size={13} /></span>
+      <TableHead className={right ? "text-right" : undefined}>
+        <button
+          type="button"
+          onClick={() => toggleSort(k)}
+          className={cn("inline-flex items-center gap-1 hover:text-foreground", right && "flex-row-reverse")}
+        >
+          {children}
+          <Caret width={13} height={13} strokeWidth={1.75} className={active ? "text-foreground" : "opacity-50"} />
         </button>
-      </th>
+      </TableHead>
     );
   };
 
@@ -120,80 +125,87 @@ export default function AIQuality() {
   ];
 
   return (
-    <div className="aiq-page rw-fade">
+    <PageContainer>
       {/* Header */}
-      <div className="aiq-head">
-        <div className="aiq-head-l">
-          <h1 className="aiq-h1 serif">AI Extraction Quality</h1>
-          <p className="aiq-sub">
+      <div className="flex items-start justify-between gap-4 flex-wrap mb-5">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">AI Extraction Quality</h1>
+          <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
             Internal — track how often the AI extraction needs human correction. Used to iterate on the extraction prompt.
           </p>
         </div>
-        <div className="aiq-head-r">
-          <select
-            className="rl-select"
-            style={{ border: "1px solid var(--border-default)", borderRadius: "var(--radius-md)", height: 38, padding: "0 10px", background: "#fff" }}
-            value={month}
-            onChange={(e) => setMonth(e.target.value)}
-          >
-            {monthOptions().map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
-          </select>
-          <div className="rl-statusdd">
-            <FileText size={15} />
-            <select className="rl-select" value={formType || "all"} onChange={(e) => setFormType(e.target.value === "all" ? "" : e.target.value)}>
-              <option value="all">All form types</option>
-              {formTypes.map((f) => <option key={f.form_type} value={f.form_type}>{f.form_type}</option>)}
-            </select>
-          </div>
-        </div>
+        <FilterToolbar
+          selects={[
+            {
+              options: monthOptions().map((m) => m.label),
+              value: monthOptions().find((m) => m.value === month)?.label,
+              onChange: (label) => {
+                const m = monthOptions().find((o) => o.label === label);
+                if (m) setMonth(m.value);
+              },
+              width: "200px",
+            },
+            {
+              options: ["All form types", ...formTypes.map((f) => f.form_type)],
+              value: formType || "All form types",
+              onChange: (v) => setFormType(v === "All form types" ? "" : v),
+              width: "200px",
+            },
+          ]}
+        />
       </div>
 
       {overview.isLoading ? (
-        <div className="aiq-empty"><Loader2 className="rw-spin" style={{ color: "var(--color-teal)", display: "inline-block" }} size={26} /></div>
+        <div className="flex justify-center py-16"><Loader2 width={26} height={26} strokeWidth={1.75} className="animate-spin text-primary" /></div>
       ) : overview.isError ? (
-        <div className="aiq-card aiq-card-pad" style={{ borderColor: "color-mix(in srgb, var(--color-error) 30%, transparent)", color: "var(--color-error)" }}>
+        <div className="bg-card border border-destructive/30 rounded-lg p-[var(--density-card-pad)] text-sm text-destructive">
           Failed to load AI quality metrics: {(overview.error as Error)?.message}
         </div>
       ) : (
         <>
           {/* Stat tiles */}
-          <div className="aiq-stat-grid">
-            {stats.map((s) => {
-              const t = STAT_TONE[s.tone];
-              return (
-                <div key={s.key} className={`aiq-stat${s.tone === "warning" ? " warn" : ""}`}>
-                  <div className="aiq-stat-top">
-                    <p className="aiq-stat-lbl">{s.label}</p>
-                    <span className="aiq-stat-ic" style={{ background: t.bg, color: t.fg }}><s.icon size={18} /></span>
-                  </div>
-                  <p className="aiq-stat-val num">{s.value}</p>
-                  <p className="aiq-stat-sub">{s.sub}</p>
+          <div className="grid gap-3 mb-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}>
+            {stats.map((s) => (
+              <div key={s.key} className={cn("bg-card border rounded-lg p-3.5", s.tone === "warning" ? "border-warning/30" : "border-border")}>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-medium text-muted-foreground">{s.label}</p>
+                  <span className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-md", STAT_TONE[s.tone])}>
+                    <s.icon width={16} height={16} strokeWidth={1.75} />
+                  </span>
                 </div>
-              );
-            })}
+                <p className="text-2xl font-semibold text-foreground">{s.value}</p>
+                <p className="text-xs text-muted-foreground">{s.sub}</p>
+              </div>
+            ))}
           </div>
 
           {/* Watch list */}
           {watchList.length > 0 && (
-            <div className="aiq-card aiq-card-pad">
-              <div className="aiq-sec-head">
+            <div className="bg-card border border-border rounded-lg p-[var(--density-card-pad)] mb-4">
+              <div className="flex items-start justify-between gap-4 mb-3">
                 <div>
-                  <h2>Watch list <AlertTriangle size={16} style={{ color: "var(--color-warning)", verticalAlign: "-2px", marginLeft: 4 }} /></h2>
-                  <p className="aiq-sec-sub">Fields the model was confident about (≥ 0.85) but reviewers still corrected.</p>
+                  <h2 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                    Watch list <AlertTriangle width={16} height={16} strokeWidth={1.75} className="text-warning" />
+                  </h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">Fields the model was confident about (≥ 0.85) but reviewers still corrected.</p>
                 </div>
-                <Link className="aiq-sec-link" to="/admin/ai-quality/corrections?high_conf_only=true">
-                  View high-conf corrections <ArrowRight size={14} />
+                <Link className="inline-flex items-center gap-1 text-sm font-medium text-primary shrink-0" to="/admin/ai-quality/corrections?high_conf_only=true">
+                  View high-conf corrections <ArrowRight width={14} height={14} strokeWidth={1.75} />
                 </Link>
               </div>
-              <div className="aiq-watch-grid">
+              <div className="grid gap-2.5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))" }}>
                 {watchList.slice(0, 8).map((f) => (
-                  <Link key={f.field_path} className="aiq-watch-card" to={`/admin/ai-quality/corrections?high_conf_only=true&field=${encodeURIComponent(f.field_path)}`}>
-                    <div className="aiq-watch-field">{f.field_path}</div>
-                    <div className="aiq-watch-row">
-                      <span className="aiq-watch-n">{f.high_conf_wrong_count}</span>
-                      <span className="aiq-watch-k">high-conf edits</span>
+                  <Link
+                    key={f.field_path}
+                    className="rounded-md border border-border bg-background px-3 py-2.5 no-underline hover:bg-muted/50 transition-colors"
+                    to={`/admin/ai-quality/corrections?high_conf_only=true&field=${encodeURIComponent(f.field_path)}`}
+                  >
+                    <div className="text-sm font-semibold text-foreground truncate">{f.field_path}</div>
+                    <div className="flex items-baseline gap-1.5 mt-1">
+                      <span className="text-lg font-semibold text-warning">{f.high_conf_wrong_count}</span>
+                      <span className="text-xs text-muted-foreground">high-conf edits</span>
                     </div>
-                    <div className="aiq-watch-conf">{f.edit_count} total edits</div>
+                    <div className="text-[11px] text-muted-foreground">{f.edit_count} total edits</div>
                   </Link>
                 ))}
               </div>
@@ -201,107 +213,113 @@ export default function AIQuality() {
           )}
 
           {/* Per-field accuracy table */}
-          <div className="aiq-card aiq-card-pad">
-            <div className="aiq-sec-head">
+          <div className="bg-card border border-border rounded-lg p-[var(--density-card-pad)] mb-4">
+            <div className="flex items-start justify-between gap-4 mb-3 flex-wrap">
               <div>
-                <h2>Per-field accuracy</h2>
-                <p className="aiq-sec-sub">Every extracted field, ranked. Amber flags confident-but-wrong counts.</p>
+                <h2 className="text-sm font-semibold text-foreground">Per-field accuracy</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Every extracted field, ranked. Amber flags confident-but-wrong counts.</p>
               </div>
-              <div className="aiq-tbl-search">
-                <span className="rl-search-ic"><Search size={15} /></span>
-                <input placeholder="Filter by field path…" value={search} onChange={(e) => setSearch(e.target.value)} />
-              </div>
+              <FilterToolbar search={search} onSearch={setSearch} searchPlaceholder="Filter by field path…" />
             </div>
             {sortedFields.length === 0 ? (
-              <p className="aiq-empty">
+              <p className="text-sm text-muted-foreground py-6 text-center">
                 No corrections logged yet. Once admins or clinic users edit AI-extracted fields, you'll see them here.
               </p>
             ) : (
-              <div className="aiq-tbl-wrap">
-                <table className="dh-table aiq-tbl">
-                  <thead>
-                    <tr>
+              <div className="rounded-lg border border-border overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
                       <SortTh k="field_path">Field path</SortTh>
-                      <SortTh k="edit_count" cls="num">Edits</SortTh>
-                      <SortTh k="high_conf_wrong_count" cls="num">High-conf wrong</SortTh>
-                      <SortTh k="acceptance_rate" cls="num">Acceptance</SortTh>
-                      <SortTh k="avg_model_confidence" cls="num">Avg conf</SortTh>
+                      <SortTh k="edit_count" right>Edits</SortTh>
+                      <SortTh k="high_conf_wrong_count" right>High-conf wrong</SortTh>
+                      <SortTh k="acceptance_rate" right>Acceptance</SortTh>
+                      <SortTh k="avg_model_confidence" right>Avg conf</SortTh>
                       <SortTh k="last_edited_at">Last edited</SortTh>
-                    </tr>
-                  </thead>
-                  <tbody>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {sortedFields.map((row) => (
-                      <tr key={row.field_path} style={{ cursor: "pointer" }}>
-                        <td>
-                          <Link className="aiq-fieldpath" to={`/admin/ai-quality/corrections?field=${encodeURIComponent(row.field_path)}`}>
+                      <TableRow key={row.field_path}>
+                        <TableCell>
+                          <Link className="font-semibold text-primary" to={`/admin/ai-quality/corrections?field=${encodeURIComponent(row.field_path)}`}>
                             {row.field_path}
                           </Link>
-                        </td>
-                        <td className="num">{row.edit_count}</td>
-                        <td className="num">
-                          <span className={`aiq-hcw${row.high_conf_wrong_count === 0 ? " zero" : ""}`}>
-                            {row.high_conf_wrong_count > 0 && <AlertTriangle size={11} />}{row.high_conf_wrong_count}
+                        </TableCell>
+                        <TableCell className="text-right">{row.edit_count}</TableCell>
+                        <TableCell className="text-right">
+                          <span className={cn("inline-flex items-center gap-1 justify-end", row.high_conf_wrong_count === 0 ? "text-muted-foreground" : "text-warning font-semibold")}>
+                            {row.high_conf_wrong_count > 0 && <AlertTriangle width={11} height={11} strokeWidth={1.75} />}{row.high_conf_wrong_count}
                           </span>
-                        </td>
-                        <td className="num"><span className={`aiq-accept ${acceptTone(row.acceptance_rate)}`}>{pct(row.acceptance_rate)}</span></td>
-                        <td className="num">
-                          <span className="aiq-conf">{confFmt(row.avg_model_confidence)}</span>
-                          {row.avg_model_confidence !== null && (
-                            <span className="aiq-bar"><span style={{ width: `${row.avg_model_confidence * 100}%` }} /></span>
-                          )}
-                        </td>
-                        <td className="aiq-mutecell">{row.last_edited_at ? getRelativeTime(row.last_edited_at) : "—"}</td>
-                      </tr>
+                        </TableCell>
+                        <TableCell className={cn("text-right font-semibold", acceptClass(row.acceptance_rate))}>{pct(row.acceptance_rate)}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <span className="text-muted-foreground">{confFmt(row.avg_model_confidence)}</span>
+                            {row.avg_model_confidence !== null && (
+                              <span className="inline-block h-1.5 w-10 rounded-full bg-muted overflow-hidden">
+                                <span className="block h-full bg-primary" style={{ width: `${row.avg_model_confidence * 100}%` }} />
+                              </span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">{row.last_edited_at ? getRelativeTime(row.last_edited_at) : "—"}</TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
             )}
           </div>
 
           {/* Form-type rollup */}
           {formTypes.length > 0 && (
-            <div className="aiq-card aiq-card-pad">
-              <div className="aiq-sec-head"><div><h2>By form type</h2><p className="aiq-sec-sub">Correction load per document type.</p></div></div>
-              <div className="aiq-tbl-wrap">
-                <table className="dh-table aiq-tbl" style={{ minWidth: 480 }}>
-                  <thead><tr><th>Form type</th><th className="num">Edits</th><th className="num">Edited referrals</th></tr></thead>
-                  <tbody>
+            <div className="bg-card border border-border rounded-lg p-[var(--density-card-pad)] mb-4">
+              <div className="mb-3">
+                <h2 className="text-sm font-semibold text-foreground">By form type</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Correction load per document type.</p>
+              </div>
+              <div className="rounded-lg border border-border overflow-hidden max-w-lg">
+                <Table>
+                  <TableHeader>
+                    <TableRow><TableHead>Form type</TableHead><TableHead className="text-right">Edits</TableHead><TableHead className="text-right">Edited referrals</TableHead></TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {formTypes.map((f) => (
-                      <tr key={f.form_type}>
-                        <td style={{ color: "var(--text-primary)", fontWeight: 500 }}>{f.form_type}</td>
-                        <td className="num">{f.edits}</td>
-                        <td className="num">{f.edited_referrals}</td>
-                      </tr>
+                      <TableRow key={f.form_type}>
+                        <TableCell className="font-semibold text-foreground">{f.form_type}</TableCell>
+                        <TableCell className="text-right">{f.edits}</TableCell>
+                        <TableCell className="text-right">{f.edited_referrals}</TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
             </div>
           )}
 
           {/* Recent corrections */}
-          <div className="aiq-card aiq-card-pad">
-            <div className="aiq-sec-head">
-              <div><h2>Recent corrections</h2></div>
-              <Link className="aiq-sec-link" to="/admin/ai-quality/corrections">View all <ArrowRight size={14} /></Link>
+          <div className="bg-card border border-border rounded-lg overflow-hidden">
+            <div className="flex items-center justify-between px-[var(--density-card-pad)] pt-[var(--density-card-pad)] pb-3">
+              <h2 className="text-sm font-semibold text-foreground">Recent corrections</h2>
+              <Link className="inline-flex items-center gap-1 text-sm font-medium text-primary" to="/admin/ai-quality/corrections">View all <ArrowRight width={14} height={14} strokeWidth={1.75} /></Link>
             </div>
             {feed.isLoading ? (
-              <div className="aiq-empty"><Loader2 className="rw-spin" style={{ color: "var(--text-muted)", display: "inline-block" }} size={22} /></div>
+              <div className="flex justify-center py-8"><Loader2 width={22} height={22} strokeWidth={1.75} className="animate-spin text-muted-foreground" /></div>
             ) : feed.data && feed.data.items.length > 0 ? (
-              <div className="aiq-corr-list">
+              <div>
                 {feed.data.items.map((c, i) => (
                   <CorrectionRow key={c.id ?? `${c.referral_id}-${c.field_path}-${i}`} correction={c} />
                 ))}
               </div>
             ) : (
-              <p className="aiq-empty">
+              <p className="text-sm text-muted-foreground py-6 text-center">
                 No corrections in {monthOptions().find((m) => m.value === month)?.label ?? "this month"}.
               </p>
             )}
           </div>
         </>
       )}
-    </div>
+    </PageContainer>
   );
 }

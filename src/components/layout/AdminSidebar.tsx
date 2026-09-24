@@ -1,16 +1,17 @@
-import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { LayoutDashboard, FileText, Building2, Hospital, LogOut, LineChart, MessageSquare, BarChart3, Printer } from "lucide-react";
+import { FileText, Building2, Hospital, LogOut, LineChart, MessageSquare, BarChart3, Printer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { adminApi } from "@/lib/api";
 import { adminAddonsApi } from "@/lib/servicesApi";
+import { useWaitingOnUsCount } from "@/hooks/useWaitingOnUsCount";
 import logo from "@/assets/logo.png";
 
 const navItems = [
-  { label: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
-  { label: "All Referrals", icon: FileText, path: "/admin/referrals" },
+  // Referrals (the queue) is the default landing surface — Dashboard was
+  // retired in phase 6b; /admin and /admin/dashboard now redirect here.
+  { label: "Referrals", icon: FileText, path: "/admin/referrals" },
   // Analytics live on their own page (gate by role later — workers don't
   // need clinic volumes and trend lines on the daily surface).
   { label: "Insights", icon: BarChart3, path: "/admin/insights" },
@@ -27,17 +28,7 @@ const navItems = [
 export function AdminSidebar() {
   const location = useLocation();
   const { logout } = useAuth();
-  const [needsReviewCount, setNeedsReviewCount] = useState(0);
-
-  useEffect(() => {
-    const refresh = () =>
-      adminApi.getReferralCounts()
-        .then((counts) => setNeedsReviewCount(counts.needs_review || 0))
-        .catch(() => { /* Silently fail — badge just won't show */ });
-    refresh();                                   // on mount AND every navigation
-    window.addEventListener("focus", refresh);   // and when the tab regains focus
-    return () => window.removeEventListener("focus", refresh);
-  }, [location.pathname]);
+  const waitingOnUsCount = useWaitingOnUsCount();
 
   const { data: pendingRequests } = useQuery({
     queryKey: ["admin", "addon-requests", "pending"],
@@ -75,7 +66,7 @@ export function AdminSidebar() {
             (item.path === "/admin/ai-quality" && location.pathname.startsWith("/admin/ai-quality")) ||
             (item.path === "/admin/support" && location.pathname.startsWith("/admin/support/"));
           const badgeCount =
-            item.label === "All Referrals" ? needsReviewCount :
+            item.label === "Referrals" ? waitingOnUsCount :
             item.label === "Add-on Requests" ? pendingAddonCount :
             item.label === "Fax Center" ? inboundNewFaxCount :
             0;

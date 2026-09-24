@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { underlineTabsListClass, underlineTabsTriggerClass } from "@/components/patterns/underlineTabs";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -20,6 +21,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DynamicIcon } from "@/components/DynamicIcon";
+import { PageContainer } from "@/components/patterns/PageContainer";
 
 import {
   adminAddonsApi,
@@ -94,18 +96,18 @@ export default function AdminAddonRequests() {
   const requests = data?.requests ?? [];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Add-on Requests</h1>
-        <p className="text-muted-foreground mt-1">
+    <PageContainer>
+      <div className="mb-5">
+        <h1 className="text-2xl font-semibold text-foreground">Add-on Requests</h1>
+        <p className="text-sm text-muted-foreground mt-1">
           Approve or deny add-on requests from clinics
         </p>
       </div>
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)}>
-        <TabsList>
+      <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)} className="mb-5">
+        <TabsList className={underlineTabsListClass}>
           {TABS.map((t) => (
-            <TabsTrigger key={t.key} value={t.key}>
+            <TabsTrigger key={t.key} value={t.key} className={underlineTabsTriggerClass}>
               {t.label}
               {t.key === "pending" && pendingCount > 0 && (
                 <Badge variant="secondary" className="ml-2">
@@ -119,7 +121,7 @@ export default function AdminAddonRequests() {
 
       {isLoading && (
         <div className="flex items-center justify-center py-16">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <Loader2 width={20} height={20} strokeWidth={1.75} className="animate-spin text-primary" />
         </div>
       )}
 
@@ -136,14 +138,14 @@ export default function AdminAddonRequests() {
           <CardContent className="py-16 text-center">
             {tab === "pending" ? (
               <>
-                <CheckCircle2 className="h-12 w-12 mx-auto text-emerald-500 mb-3" />
+                <CheckCircle2 width={20} height={20} strokeWidth={1.75} className="mx-auto text-success mb-3" />
                 <p className="text-muted-foreground">
                   No pending requests right now.
                 </p>
               </>
             ) : (
               <>
-                <Inbox className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+                <Inbox width={20} height={20} strokeWidth={1.75} className="mx-auto text-muted-foreground mb-3" />
                 <p className="text-muted-foreground">
                   Nothing matches this filter.
                 </p>
@@ -212,7 +214,7 @@ export default function AdminAddonRequests() {
                         setAdminNotes("");
                       }}
                     >
-                      <ThumbsUp className="h-4 w-4 mr-1" /> Approve
+                      <ThumbsUp width={14} height={14} strokeWidth={1.75} /> Approve
                     </Button>
                     <Button
                       size="sm"
@@ -222,7 +224,7 @@ export default function AdminAddonRequests() {
                         setAdminNotes("");
                       }}
                     >
-                      <ThumbsDown className="h-4 w-4 mr-1" /> Deny
+                      <ThumbsDown width={14} height={14} strokeWidth={1.75} /> Deny
                     </Button>
                   </div>
                 ) : (
@@ -299,7 +301,7 @@ export default function AdminAddonRequests() {
               disabled={decideMutation.isPending}
             >
               {decideMutation.isPending && (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 width={14} height={14} strokeWidth={1.75} className="animate-spin" />
               )}
               Approve & activate
             </Button>
@@ -351,13 +353,13 @@ export default function AdminAddonRequests() {
               disabled={decideMutation.isPending || !adminNotes.trim()}
             >
               {decideMutation.isPending && (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 width={14} height={14} strokeWidth={1.75} className="animate-spin" />
               )}
               Deny request
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContainer>
   );
 }

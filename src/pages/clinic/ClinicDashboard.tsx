@@ -1,14 +1,14 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Clock, XCircle, Plus, CalendarDays, FileSearch, AlertTriangle, ArrowRight, Send,
-  ChevronDown, Eye, Store, MessageCircle,
-} from "lucide-react";
+import { XCircle, Plus, CalendarDays, FileSearch, AlertTriangle, ArrowRight, Store, MessageCircle, ChevronRight } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ClinicPABadge } from "@/components/ClinicPABadge";
 import { CreatedByAvatar } from "@/components/CreatedByAvatar";
 import { NotificationBell } from "@/components/NotificationBell";
+import { Button } from "@/components/ui/button";
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
+import { IdChip } from "@/components/patterns/IdChip";
 import { useAuth } from "@/contexts/AuthContext";
 import { clinicApi, getMyClinic } from "@/lib/api";
 import { useTour } from "@/components/tutorials/useTour";
@@ -16,20 +16,8 @@ import { useSupportUnread } from "@/components/support/useSupportUnread";
 import { OVERVIEW_SEEN_KEY } from "@/components/tutorials/tours";
 import { ClinicSettingsModal } from "@/components/ClinicSettingsModal";
 import { mapReferralsFromBackend } from "@/lib/dataMapper";
-import { getGreeting, getFormattedDate, formatDateShort, parseLocalDate } from "@/lib/dateUtils";
-import "./wizard.css";
-import "./dashboard.css";
-
-type Tone = "warning" | "primary" | "destructive";
-const TONE_STYLE: Record<Tone, { fg: string; bg: string }> = {
-  warning: { fg: "var(--color-warning)", bg: "color-mix(in srgb, var(--color-warning) 12%, transparent)" },
-  primary: { fg: "var(--color-navy)", bg: "color-mix(in srgb, var(--color-navy) 10%, transparent)" },
-  destructive: { fg: "var(--color-error)", bg: "color-mix(in srgb, var(--color-error) 10%, transparent)" },
-};
-function StatIcon({ tone, icon: Icon, size = 18 }: { tone: Tone; icon: any; size?: number }) {
-  const t = TONE_STYLE[tone];
-  return <span className="dh-stat-ic" style={{ background: t.bg, color: t.fg }}><Icon size={size} /></span>;
-}
+import { getGreeting, getFormattedDate, formatDateShort } from "@/lib/dateUtils";
+import { PageContainer } from "@/components/patterns/PageContainer";
 
 export default function ClinicDashboard() {
   const { user } = useAuth();
@@ -37,9 +25,7 @@ export default function ClinicDashboard() {
   const location = useLocation();
 
   const [referrals, setReferrals] = useState<any[]>([]);
-  const [patients, setPatients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [alertsOpen, setAlertsOpen] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const { data: clinic } = useQuery({ queryKey: ["my-clinic"], queryFn: getMyClinic });
   const needsDefaultPharmacy = !!clinic && !clinic.default_pharmacy_id;
@@ -47,7 +33,7 @@ export default function ClinicDashboard() {
   const { hasUnread: supportUnread, bump: bumpSupport } = useSupportUnread();
 
   // First-login product tour: fire the Overview walkthrough once, after the
-  // dashboard has loaded (so the highlighted stat cards exist). localStorage
+  // dashboard has loaded (so the highlighted action block exists). localStorage
   // only — no backend. Clear dx_tour_overview_seen to replay on next visit.
   useEffect(() => {
     if (loading) return;
@@ -60,11 +46,8 @@ export default function ClinicDashboard() {
   const [openTaskCount, setOpenTaskCount] = useState(0);
   useEffect(() => {
     const fetchData = () => {
-      Promise.all([clinicApi.getReferrals(), clinicApi.getPatients()])
-        .then(([refData, patData]) => {
-          setReferrals(mapReferralsFromBackend(refData.items || []));
-          setPatients(patData.items || []);
-        })
+      clinicApi.getReferrals()
+        .then((refData) => setReferrals(mapReferralsFromBackend(refData.items || [])))
         .catch(console.error)
         .finally(() => setLoading(false));
       clinicApi.getActionNeededCount()
@@ -77,195 +60,175 @@ export default function ClinicDashboard() {
     return () => window.removeEventListener("focus", handleFocus);
   }, [location.key]);
 
-  const processingCount = referrals.filter((r) => ["processing", "ready_for_review", "uploaded"].includes(r.status)).length;
-  const sentCount = referrals.filter((r) => ["approved_to_send", "sent_to_pharmacy"].includes(r.status)).length;
-  // "Needs Attention" = anything Dirxctional is waiting on the clinic for:
-  // rejected referrals to fix + open tasks to answer. One number, one red box.
-  const rejectedCount = referrals.filter((r) => r.status === "rejected").length;
-  const needsAttentionCount = rejectedCount + openTaskCount;
-
-  const isExpiringSoon = (p: any) => {
-    if (!p.pa_expiration_date) return false;
-    const days = Math.ceil((parseLocalDate(p.pa_expiration_date).getTime() - Date.now()) / 86400000);
-    return days <= 30 && days > 0;
-  };
-  const patientsExpiringPA = patients.filter(isExpiringSoon);
-  const paExpiringSoonCount = patientsExpiringPA.length;
   const rejectedReferrals = referrals.filter((r) => r.status === "rejected");
+  const inProgressReferrals = referrals.filter((r) => ["processing", "ready_for_review", "uploaded"].includes(r.status));
+  const needsAttentionCount = rejectedReferrals.length + openTaskCount;
 
   const urgencyOrder: Record<string, number> = { rejected: 0, needs_info: 1, ready_for_review: 2, processing: 3, approved_to_send: 4, uploaded: 5 };
   const sortedRecentReferrals = [...referrals].sort((a, b) => (urgencyOrder[a.status] ?? 99) - (urgencyOrder[b.status] ?? 99)).slice(0, 5);
 
-  const STAT: Record<string, any> = {
-    in_review: { label: "In Review", value: processingCount, icon: Clock, tone: "warning", sub: "Being reviewed", link: "/clinic/referrals?filter=in_review" },
-    sent: { label: "Sent to Pharmacy", value: sentCount, icon: Send, tone: "primary", sub: "At pharmacy", link: "/clinic/referrals?filter=sent_to_pharmacy" },
-    attention: {
-      label: "Needs Attention", value: needsAttentionCount, icon: XCircle, tone: "destructive",
-      sub: openTaskCount > 0 && rejectedCount > 0
-        ? `${rejectedCount} to fix · ${openTaskCount} request${openTaskCount === 1 ? "" : "s"}`
-        : openTaskCount > 0
-          ? `Request${openTaskCount === 1 ? "" : "s"} from your Dirxctional team`
-          : "Action required",
-      link: "/clinic/referrals?filter=action_needed",
-    },
-    expiring: { label: "PA Expiring Soon", value: paExpiringSoonCount, icon: AlertTriangle, tone: "warning", sub: "Within 30 days", link: "/clinic/patients?filter=expiring" },
-  };
-  const actionStats = [STAT.attention, STAT.expiring]; // needs-first: red before amber
-  const mutedStats = [STAT.in_review, STAT.sent];
-  // PA-expiring is a heads-up, not an action item — it lives in its own
-  // stat box (+ the Patients page), never in the needs-attention drawer.
-  const alertCount = rejectedReferrals.length + (openTaskCount > 0 ? 1 : 0);
-
-  const patientName = (p: any) => p.full_name || `${p.first_name || ""} ${p.last_name || ""}`.trim();
-
   return (
-    <div className="rw-page dh-page rw-fade">
+    <PageContainer>
       {/* Header */}
-      <div className="dh-header">
-        <div className="dh-greet">
-          <h1 className="dh-h1 serif">{getGreeting()}, {user?.clinic_name}</h1>
-          <p className="dh-sub">Here's what's happening with your referrals today</p>
+      <div className="flex items-center justify-between mb-5 gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-semibold font-editorial text-foreground">{getGreeting()}, {user?.clinic_name}</h1>
+          <p className="text-sm text-muted-foreground mt-1">Here's what's happening with your referrals today</p>
         </div>
-        <div className="dh-header-right">
+        <div className="flex items-center gap-3">
           <NotificationBell referrals={referrals} noteField="latest_admin_note_at" actionStatus="rejected" linkBase="/clinic/referrals" />
-          <div className="dh-date"><CalendarDays size={15} /><span>{getFormattedDate()}</span></div>
-          <Link to="/clinic/referrals/new" className="rw-btn primary"><Plus size={15} />New Referral</Link>
+          <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground"><CalendarDays width={15} height={15} strokeWidth={1.75} />{getFormattedDate()}</span>
+          <Button asChild><Link to="/clinic/referrals/new"><Plus width={16} height={16} strokeWidth={1.75} />New Referral</Link></Button>
         </div>
       </div>
 
       {needsDefaultPharmacy && (
-        <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 18px", marginBottom: 18, borderRadius: "var(--radius-lg)", border: "1px solid var(--color-teal-100)", background: "var(--color-teal-50)" }}>
-          <span style={{ flexShrink: 0, width: 38, height: 38, borderRadius: "var(--radius-md)", background: "#fff", border: "1px solid var(--color-teal-100)", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "var(--color-teal-700)" }}><Store size={18} /></span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--text-primary)", margin: 0 }}>Set your default pharmacy</p>
-            <p style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", margin: "2px 0 0" }}>Pick the pharmacy your referrals should default to — you can change it any time in Clinic Settings.</p>
+        <div className="flex items-center gap-3.5 px-4.5 py-3.5 mb-4 rounded-lg border border-primary/20 bg-primary/5">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-card border border-primary/20 text-primary"><Store width={18} height={18} strokeWidth={1.75} /></span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-foreground">Set your default pharmacy</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Pick the pharmacy your referrals should default to — you can change it any time in Clinic Settings.</p>
           </div>
-          <button className="rw-btn primary sm" onClick={() => setSettingsOpen(true)} style={{ flexShrink: 0 }}><Store size={14} />Set pharmacy</button>
+          <Button size="sm" onClick={() => setSettingsOpen(true)}><Store width={14} height={14} strokeWidth={1.75} />Set pharmacy</Button>
         </div>
       )}
 
       {supportUnread && (
-        <Link to="/clinic/support" onClick={() => bumpSupport()}
-          style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 18px", marginBottom: 18, borderRadius: "var(--radius-lg)", border: "1px solid var(--color-teal-100)", background: "var(--color-teal-50)", textDecoration: "none" }}>
-          <span style={{ flexShrink: 0, width: 38, height: 38, borderRadius: "var(--radius-md)", background: "#fff", border: "1px solid var(--color-teal-100)", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "var(--color-teal-700)" }}><MessageCircle size={18} /></span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--text-primary)", margin: 0 }}>Dirxctional replied to your support request</p>
-            <p style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", margin: "2px 0 0" }}>Open Help &amp; Support to read the reply.</p>
+        <Link to="/clinic/support" onClick={() => bumpSupport()} className="flex items-center gap-3.5 px-4.5 py-3.5 mb-4 rounded-lg border border-primary/20 bg-primary/5 no-underline">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-card border border-primary/20 text-primary"><MessageCircle width={18} height={18} strokeWidth={1.75} /></span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-foreground">Dirxctional replied to your support request</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Open Help &amp; Support to read the reply.</p>
           </div>
-          <span className="rw-btn primary sm" style={{ flexShrink: 0 }}>View reply<ArrowRight size={14} /></span>
+          <Button size="sm">View reply<ArrowRight width={14} height={14} strokeWidth={1.75} /></Button>
         </Link>
       )}
 
-      {/* Stats — action-split */}
       {loading ? (
-        <div className="dh-split">
-          <div className="dh-split-action"><div className="dh-skel" style={{ height: 86 }} /><div className="dh-skel" style={{ height: 86 }} /></div>
-          <div className="dh-split-muted"><div className="dh-skel" style={{ height: 36 }} /><div className="dh-skel" style={{ height: 36 }} /></div>
+        <div className="flex flex-col gap-3">
+          <div className="h-24 rounded-lg bg-muted animate-pulse" />
+          <div className="h-40 rounded-lg bg-muted animate-pulse" />
         </div>
       ) : (
-        <div className="dh-split" data-tour="dashboard-stats">
-          <div className="dh-split-action">
-            {actionStats.map((s) => (
-              <Link key={s.label} to={s.link} className={`dh-action-card ${s.tone}`}>
-                <StatIcon tone={s.tone} icon={s.icon} size={20} />
-                <div className="dh-action-meta">
-                  <div className="dh-action-head"><span className="dh-action-val num">{s.value}</span><span className="dh-action-lbl">{s.label}</span></div>
-                  <span className="dh-action-sub">{s.sub}</span>
-                </div>
-                <span className="dh-action-arrow"><ArrowRight size={16} /></span>
-              </Link>
-            ))}
-          </div>
-          <div className="dh-split-muted">
-            {mutedStats.map((s) => (
-              <Link key={s.label} to={s.link} className="dh-muted-card">
-                <div className="dh-muted-top"><span className="dh-muted-lbl">{s.label}</span><StatIcon tone={s.tone} icon={s.icon} size={15} /></div>
-                <span className="dh-muted-val num">{s.value}</span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Alerts — collapsible, red first */}
-      {!loading && alertCount > 0 && (
-        <div className={`dh-collapse${alertsOpen ? " open" : ""}`}>
-          <button className="dh-collapse-trig" onClick={() => setAlertsOpen((o) => !o)}>
-            <span className="dh-collapse-ic"><AlertTriangle size={16} /></span>
-            <span className="dh-collapse-t">Needs attention <span className="dh-collapse-n">{alertCount}</span></span>
-            <span className="dh-collapse-peek">{rejectedReferrals.length} to fix{openTaskCount > 0 ? ` · ${openTaskCount} request${openTaskCount === 1 ? "" : "s"}` : ""}</span>
-            <span className="dh-collapse-chev"><ChevronDown size={16} /></span>
-          </button>
-          {alertsOpen && (
-            <div className="dh-collapse-body">
-              {rejectedReferrals.map((ref) => (
-                <Link key={ref.id} to={`/clinic/referrals/${ref.id}`} className="dh-alert dest">
-                  <span className="dh-alert-ic"><XCircle size={16} /></span>
-                  <div className="dh-alert-body">
-                    <p className="dh-alert-t">{ref.patient_name} — Needs Attention</p>
-                    <p className="dh-alert-s">{ref.drug_requested || ref.drug || "—"} · {ref.rejection_reason ? ref.rejection_reason.slice(0, 80) + "..." : "Review required"}</p>
-                  </div>
-                  <span className="dh-alert-arrow"><ArrowRight size={16} /></span>
-                </Link>
-              ))}
-              {openTaskCount > 0 && (
-                <Link to="/clinic/referrals?filter=action_needed" className="dh-alert warn">
-                  <span className="dh-alert-ic"><AlertTriangle size={16} /></span>
-                  <div className="dh-alert-body">
-                    <p className="dh-alert-t">{openTaskCount} request{openTaskCount > 1 ? "s" : ""} from your Dirxctional team</p>
-                    <p className="dh-alert-s">Open the referral with the amber “Action needed” card to reply or upload.</p>
-                  </div>
-                  <span className="dh-alert-arrow"><ArrowRight size={16} /></span>
-                </Link>
+        <>
+          {/* Action needed from your office — open tasks + rejected referrals first. */}
+          <div data-tour="dashboard-stats" className="mb-6">
+            <div className="flex items-center gap-2 mb-2.5">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">Action needed from your office</h2>
+              {needsAttentionCount > 0 && (
+                <span className="inline-flex items-center rounded-full bg-destructive/12 text-destructive px-2 py-0.5 text-[11px] font-bold">{needsAttentionCount}</span>
               )}
             </div>
-          )}
-        </div>
-      )}
-
-      {/* Recent referrals */}
-      {loading ? (
-        <div><div className="dh-skel" style={{ height: 24, width: 160, marginBottom: 14 }} /><div className="dh-skel" style={{ height: 200 }} /></div>
-      ) : referrals.length > 0 ? (
-        <div>
-          <div className="dh-sec-head">
-            <h2>Recent Referrals</h2>
-            <Link to="/clinic/referrals" className="dh-viewall">View All →</Link>
-          </div>
-          <div className="dh-table-wrap">
-            <table className="dh-table">
-              <thead>
-                <tr><th>ID</th><th>Patient Name</th><th>Drug</th><th>Status</th><th>PA Status</th><th>Created</th><th>Updated</th><th className="r">Actions</th><th></th></tr>
-              </thead>
-              <tbody>
-                {sortedRecentReferrals.map((r) => (
-                  <tr key={r.id} onClick={() => navigate(`/clinic/referrals/${r.id}`)}>
-                    <td><span className="dh-id">{(r.id || "").toUpperCase()}</span></td>
-                    <td><span className="dh-pt"><span className="dh-pt-nm">{r.patient_name}</span></span></td>
-                    <td>{r.drug || r.drug_requested || "—"}</td>
-                    <td><StatusBadge status={r.status} /></td>
-                    <td><ClinicPABadge status={r.pa_status} appealOutcome={r.appeal_outcome} /></td>
-                    <td className="dh-muted-cell">{r.created_at ? formatDateShort(r.created_at) : "—"}</td>
-                    <td className="dh-muted-cell">{r.updated_at ? formatDateShort(r.updated_at) : "—"}</td>
-                    <td className="r" onClick={(e) => e.stopPropagation()}>
-                      <Link to={`/clinic/referrals/${r.id}`} className="rw-btn outline sm"><Eye size={14} />View</Link>
-                    </td>
-                    <td><CreatedByAvatar name={r.created_by_name} /></td>
-                  </tr>
+            {needsAttentionCount === 0 ? (
+              <div className="rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
+                Nothing needs your attention right now.
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {rejectedReferrals.map((ref) => (
+                  <Link
+                    key={ref.id}
+                    to={`/clinic/referrals/${ref.id}`}
+                    className="flex items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 no-underline hover:bg-destructive/10 transition-colors"
+                  >
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-card text-destructive"><XCircle width={16} height={16} strokeWidth={1.75} /></span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground">{ref.patient_name} — needs attention</p>
+                      <p className="text-xs text-muted-foreground truncate">{ref.drug_requested || ref.drug || "—"} · {ref.rejection_reason ? ref.rejection_reason.slice(0, 90) + "…" : "Review required"}</p>
+                    </div>
+                    <ChevronRight width={16} height={16} strokeWidth={1.75} className="text-muted-foreground shrink-0" />
+                  </Link>
                 ))}
-              </tbody>
-            </table>
+                {openTaskCount > 0 && (
+                  <Link
+                    to="/clinic/referrals?filter=action_needed"
+                    className="flex items-center gap-3 rounded-lg border border-warning/40 bg-warning/8 px-4 py-3 no-underline hover:bg-warning/12 transition-colors"
+                  >
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-card text-[#B45309]"><AlertTriangle width={16} height={16} strokeWidth={1.75} /></span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground">{openTaskCount} request{openTaskCount > 1 ? "s" : ""} from your Dirxctional team</p>
+                      <p className="text-xs text-muted-foreground">Open the referral with the "Action needed" card to reply or upload.</p>
+                    </div>
+                    <ChevronRight width={16} height={16} strokeWidth={1.75} className="text-muted-foreground shrink-0" />
+                  </Link>
+                )}
+              </div>
+            )}
           </div>
-        </div>
-      ) : (
-        <div className="dh-empty">
-          <div className="dh-empty-ic"><FileSearch size={26} /></div>
-          <h3>No referrals yet</h3>
-          <p>Create your first referral to get started</p>
-          <Link to="/clinic/referrals/new" className="rw-btn primary" style={{ display: "inline-flex" }}><Plus size={15} />New Referral</Link>
-        </div>
+
+          {/* In progress — compact table */}
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-2.5">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">In progress</h2>
+              <span className="text-xs font-medium text-muted-foreground">{inProgressReferrals.length}</span>
+            </div>
+            {inProgressReferrals.length > 0 ? (
+              <div className="rounded-lg border border-border bg-card overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow><TableHead>Patient</TableHead><TableHead>Drug</TableHead><TableHead>Status</TableHead><TableHead>Created</TableHead></TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {inProgressReferrals.slice(0, 6).map((r) => (
+                      <TableRow key={r.id} className="cursor-pointer" onClick={() => navigate(`/clinic/referrals/${r.id}`)}>
+                        <TableCell><span className="font-semibold text-foreground">{r.patient_name}</span></TableCell>
+                        <TableCell>{r.drug || r.drug_requested || "—"}</TableCell>
+                        <TableCell><StatusBadge status={r.status} variant="soft" /></TableCell>
+                        <TableCell className="text-muted-foreground">{r.created_at ? formatDateShort(r.created_at) : "—"}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted-foreground">Nothing in progress.</div>
+            )}
+          </div>
+
+          {/* Recent referrals */}
+          {referrals.length > 0 ? (
+            <div>
+              <div className="flex items-center justify-between mb-2.5">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">Recent</h2>
+                <Link to="/clinic/referrals" className="text-sm text-primary font-medium hover:underline">View All →</Link>
+              </div>
+              <div className="rounded-lg border border-border bg-card overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>ID</TableHead><TableHead>Patient Name</TableHead><TableHead>Drug</TableHead><TableHead>Status</TableHead>
+                      <TableHead>PA Status</TableHead><TableHead>Created</TableHead><TableHead>Updated</TableHead>
+                      <TableHead className="w-8" />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sortedRecentReferrals.map((r) => (
+                      <TableRow key={r.id} className="cursor-pointer" onClick={() => navigate(`/clinic/referrals/${r.id}`)}>
+                        <TableCell><IdChip id={r.id} /></TableCell>
+                        <TableCell><span className="font-semibold text-foreground">{r.patient_name}</span></TableCell>
+                        <TableCell>{r.drug || r.drug_requested || "—"}</TableCell>
+                        <TableCell><StatusBadge status={r.status} variant="soft" /></TableCell>
+                        <TableCell><ClinicPABadge status={r.pa_status} appealOutcome={r.appeal_outcome} /></TableCell>
+                        <TableCell className="text-muted-foreground">{r.created_at ? formatDateShort(r.created_at) : "—"}</TableCell>
+                        <TableCell className="text-muted-foreground">{r.updated_at ? formatDateShort(r.updated_at) : "—"}</TableCell>
+                        <TableCell><CreatedByAvatar name={r.created_by_name} /></TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-2 py-16 text-center">
+              <span className="flex h-14 w-14 items-center justify-center rounded-full bg-muted text-muted-foreground"><FileSearch width={26} height={26} strokeWidth={1.75} /></span>
+              <h3 className="text-base font-semibold text-foreground">No referrals yet</h3>
+              <p className="text-sm text-muted-foreground">Create your first referral to get started</p>
+              <Button asChild><Link to="/clinic/referrals/new"><Plus width={16} height={16} strokeWidth={1.75} />New Referral</Link></Button>
+            </div>
+          )}
+        </>
       )}
       <ClinicSettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
-    </div>
+    </PageContainer>
   );
 }

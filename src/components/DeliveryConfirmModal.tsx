@@ -1,14 +1,18 @@
-import { useState, useEffect } from "react";
-import { Check, FileText, AlertTriangle, ChevronDown, Loader2, Image } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Check, ChevronsUpDown, FileText, AlertTriangle, ChevronDown, Loader2, Image, Eye, EyeOff } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Checkbox } from "@/components/ui/checkbox";
 import { adminApi } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { cn } from "@/lib/utils";
-import type { PALetterInfo } from "@/components/PAManagementCard";
+import { cn, guessFileType } from "@/lib/utils";
+import { DocumentViewer } from "@/components/DocumentViewer";
+import type { PALetterInfo } from "@/lib/api";
+
+const REFERRAL_PDF_PREVIEW_ID = "__referral_pdf__";
 
 interface DeliveryConfirmModalProps {
   open: boolean;
@@ -28,6 +32,34 @@ function isImageFile(filename: string) {
   return /\.(jpg|jpeg|png|gif|tiff|bmp|webp)$/i.test(filename);
 }
 
+/** Small eye toggle beside a document row — instruction #5's "quick view". */
+function QuickPreviewToggle({ active, onClick }: { active: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-label={active ? "Hide preview" : "Preview"}
+      aria-pressed={active}
+      onClick={onClick}
+      className={cn(
+        "shrink-0 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground",
+        active && "bg-muted text-foreground",
+      )}
+    >
+      {active ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+    </button>
+  );
+}
+
+/** The inline preview itself — fixed height, tabs suppressed (the row is
+ *  already the "tab"), fit-width (DocumentViewer's default 100% zoom). */
+function QuickPreviewPanel({ doc, fetchUrl }: { doc: any; fetchUrl?: (docId: string) => Promise<{ url: string }> }) {
+  return (
+    <div className="mt-1 h-[360px] overflow-hidden rounded-md border border-border">
+      <DocumentViewer documents={[doc]} initialDocId={doc.id} hideTabs fetchUrl={fetchUrl} />
+    </div>
+  );
+}
+
 export function DeliveryConfirmModal({
   open,
   onOpenChange,
@@ -40,6 +72,7 @@ export function DeliveryConfirmModal({
   drugName,
 }: DeliveryConfirmModalProps) {
   const [changeOpen, setChangeOpen] = useState(false);
+  const [pharmacyPopoverOpen, setPharmacyPopoverOpen] = useState(false);
   const [pharmacies, setPharmacies] = useState<any[]>([]);
   const [loadingPharmacies, setLoadingPharmacies] = useState(false);
   const [selectedPharmacyId, setSelectedPharmacyId] = useState<string>("");
@@ -48,6 +81,35 @@ export function DeliveryConfirmModal({
   const [delivering, setDelivering] = useState(false);
   const [includedDocIds, setIncludedDocIds] = useState<Set<string>>(new Set());
   const [addlDocsOpen, setAddlDocsOpen] = useState(false);
+  // Quick view — one inline preview open at a time, keyed by a row id
+  // (the referral-PDF sentinel, the PA letter's doc id, or an uploaded
+  // doc's id). Toggling the open row closes it; opening another swaps it.
+  const [previewRowId, setPreviewRowId] = useState<string | null>(null);
+  const togglePreview = (rowId: string) => setPreviewRowId((cur) => (cur === rowId ? null : rowId));
+
+  // The always-included Referral PDF isn't a stored document — it's
+  // generated on the fly, same call the workstation's own "Preview PDF"
+  // uses (adminApi.getReferralPDF(id, true) → a Blob, not a presigned URL).
+  const fetchReferralPdfUrl = useCallback(async () => {
+    const blob = await adminApi.getReferralPDF(referralId, true);
+    return { url: URL.createObjectURL(blob) };
+  }, [referralId]);
+  const referralPdfPreviewDoc = {
+    id: REFERRAL_PDF_PREVIEW_ID,
+    original_filename: "Referral packet.pdf",
+    file_type: "application/pdf",
+    doc_type: "generated_referral_pdf",
+    uploaded_at: new Date().toISOString(),
+  };
+  const paLetterPreviewDoc = paLetterInfo?.letter
+    ? {
+        id: paLetterInfo.letter.id,
+        original_filename: paLetterInfo.letter.filename,
+        file_type: guessFileType(paLetterInfo.letter.filename),
+        doc_type: "pa_approval_letter",
+        uploaded_at: paLetterInfo.letter.uploaded_at,
+      }
+    : null;
 
   const [currentPharmacy, setCurrentPharmacy] = useState({
     name: referral?.pharmacy_name || "",
@@ -77,6 +139,7 @@ export function DeliveryConfirmModal({
       setReassigned(false);
       setIncludedDocIds(new Set());
       setAddlDocsOpen(false);
+      setPreviewRowId(null);
       setCurrentPharmacy({
         name: referral?.pharmacy_name || "",
         email: referral?.pharmacy_email || "",
@@ -229,38 +292,66 @@ export function DeliveryConfirmModal({
                   <Loader2 className="h-4 w-4 animate-spin" /> Loading pharmacies...
                 </div>
               ) : (
-                <Select
-                  value={selectedPharmacyId}
-                  onValueChange={(val) => {
-                    setSelectedPharmacyId(val);
-                    handleReassign(val);
-                  }}
-                  disabled={reassigning}
-                >
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder={reassigning ? "Reassigning..." : "Select a pharmacy"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {pharmacies.map((p) => {
-                      const warnUninsured = patientHasInsurance === false && !p.accepts_no_insurance;
-                      return (
-                        <SelectItem key={p.id} value={p.id}>
-                          <span className="flex items-center gap-2">
-                            <span>{p.name}</span>
-                            {realNumber(p.fax) ? (
-                              <span className="text-xs text-muted-foreground">· fax {realNumber(p.fax)}</span>
-                            ) : (
-                              <span className="text-xs text-warning">· no fax</span>
-                            )}
-                            {warnUninsured && (
-                              <span className="text-xs text-warning">⚠ doesn't accept uninsured</span>
-                            )}
-                          </span>
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
+                // Not a plain Combobox: each row needs per-item warning-colored
+                // fax/uninsured badges (not just a muted hint string), so this
+                // is built directly on Popover + Command like the Combobox
+                // primitive is, rather than squeezed into its string-hint API.
+                <Popover open={pharmacyPopoverOpen} onOpenChange={(next) => !reassigning && setPharmacyPopoverOpen(next)}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={pharmacyPopoverOpen}
+                      disabled={reassigning}
+                      className={cn("h-9 w-full justify-between font-normal", !selectedPharmacyId && "text-muted-foreground")}
+                    >
+                      <span className="truncate">
+                        {reassigning
+                          ? "Reassigning..."
+                          : pharmacies.find((p) => p.id === selectedPharmacyId)?.name || "Select a pharmacy"}
+                      </span>
+                      <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="start" className="w-[--radix-popover-trigger-width] p-0">
+                    <Command>
+                      <CommandInput placeholder="Search pharmacies…" />
+                      <CommandList>
+                        <CommandEmpty>No pharmacies found.</CommandEmpty>
+                        <CommandGroup>
+                          {pharmacies.map((p) => {
+                            const warnUninsured = patientHasInsurance === false && !p.accepts_no_insurance;
+                            return (
+                              <CommandItem
+                                key={p.id}
+                                value={`${p.name} ${p.id}`}
+                                onSelect={() => {
+                                  setSelectedPharmacyId(p.id);
+                                  setPharmacyPopoverOpen(false);
+                                  handleReassign(p.id);
+                                }}
+                              >
+                                <Check className={cn("mr-2 h-4 w-4 shrink-0", p.id === selectedPharmacyId ? "opacity-100" : "opacity-0")} />
+                                <span className="flex items-center gap-2 min-w-0">
+                                  <span className="truncate">{p.name}</span>
+                                  {realNumber(p.fax) ? (
+                                    <span className="text-xs text-muted-foreground shrink-0">· fax {realNumber(p.fax)}</span>
+                                  ) : (
+                                    <span className="text-xs text-warning shrink-0">· no fax</span>
+                                  )}
+                                  {warnUninsured && (
+                                    <span className="text-xs text-warning shrink-0">⚠ doesn't accept uninsured</span>
+                                  )}
+                                </span>
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               )}
             </CollapsibleContent>
           </Collapsible>
@@ -275,16 +366,32 @@ export function DeliveryConfirmModal({
             <div className="flex items-center gap-2 text-sm">
               <Check className="h-4 w-4 text-success shrink-0" />
               <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-              <span>Referral PDF</span>
+              <span className="flex-1">Referral PDF</span>
+              <QuickPreviewToggle
+                active={previewRowId === REFERRAL_PDF_PREVIEW_ID}
+                onClick={() => togglePreview(REFERRAL_PDF_PREVIEW_ID)}
+              />
             </div>
+            {previewRowId === REFERRAL_PDF_PREVIEW_ID && (
+              <QuickPreviewPanel doc={referralPdfPreviewDoc} fetchUrl={fetchReferralPdfUrl} />
+            )}
 
             {/* Always included — PA Letter (if exists) */}
             {hasPALetter && (
               <div className="flex items-center gap-2 text-sm">
                 <Check className="h-4 w-4 text-success shrink-0" />
                 <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                <span>PA Approval Letter</span>
+                <span className="flex-1">PA Approval Letter</span>
+                {paLetterPreviewDoc && (
+                  <QuickPreviewToggle
+                    active={previewRowId === paLetterPreviewDoc.id}
+                    onClick={() => togglePreview(paLetterPreviewDoc.id)}
+                  />
+                )}
               </div>
+            )}
+            {hasPALetter && paLetterPreviewDoc && previewRowId === paLetterPreviewDoc.id && (
+              <QuickPreviewPanel doc={paLetterPreviewDoc} />
             )}
 
             {/* Approved by number, no letter — informational, not a blocker */}
@@ -318,24 +425,27 @@ export function DeliveryConfirmModal({
                     const isIncluded = includedDocIds.has(doc.id);
                     const isImg = isImageFile(doc.original_filename || "");
                     return (
-                      <label
-                        key={doc.id}
-                        className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted/40 rounded px-1 py-0.5 -mx-1"
-                      >
-                        <Checkbox
-                          checked={isIncluded}
-                          onCheckedChange={() => toggleDoc(doc.id)}
-                          className="h-3.5 w-3.5"
-                        />
-                        {isImg ? (
-                          <Image className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                        ) : (
-                          <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                        )}
-                        <span className={cn("truncate", !isIncluded && "text-muted-foreground")}>
-                          {doc.original_filename || doc.s3_key}
-                        </span>
-                      </label>
+                      <div key={doc.id}>
+                        <div className="flex items-center gap-1">
+                          <label className="flex min-w-0 flex-1 items-center gap-2 text-sm cursor-pointer hover:bg-muted/40 rounded px-1 py-0.5 -mx-1">
+                            <Checkbox
+                              checked={isIncluded}
+                              onCheckedChange={() => toggleDoc(doc.id)}
+                              className="h-3.5 w-3.5"
+                            />
+                            {isImg ? (
+                              <Image className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            ) : (
+                              <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            )}
+                            <span className={cn("truncate", !isIncluded && "text-muted-foreground")}>
+                              {doc.original_filename || doc.s3_key}
+                            </span>
+                          </label>
+                          <QuickPreviewToggle active={previewRowId === doc.id} onClick={() => togglePreview(doc.id)} />
+                        </div>
+                        {previewRowId === doc.id && <QuickPreviewPanel doc={doc} />}
+                      </div>
                     );
                   })}
                 </CollapsibleContent>
