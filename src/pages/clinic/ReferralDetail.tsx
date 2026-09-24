@@ -115,6 +115,30 @@ function docIcon(filename: string) {
   return ["jpg", "jpeg", "png", "tiff", "tif"].includes(ext || "") ? Image : FileText;
 }
 
+// The delivery summary (referral.delivery, from _clinic_delivery_for_referral in
+// app/routes/referrals.py) returns {id, kind, label, filename} — no MIME type —
+// so DocumentViewer needs one inferred from the filename extension.
+function inferFileType(filename?: string): string {
+  const ext = (filename || "").split(".").pop()?.toLowerCase();
+  if (ext === "pdf") return "application/pdf";
+  if (ext === "jpg" || ext === "jpeg") return "image/jpeg";
+  if (ext === "png") return "image/png";
+  if (ext === "tiff" || ext === "tif") return "image/tiff";
+  return "application/octet-stream";
+}
+// Shapes referral.delivery.documents into the {id, original_filename, file_type,
+// doc_type, uploaded_at} shape DocumentViewer/DocumentPreviewPane expect.
+function deliveryDocsToViewerDocs(delivery: any): any[] {
+  if (!delivery?.documents?.length) return [];
+  return delivery.documents.map((d: any) => ({
+    id: d.id,
+    original_filename: d.filename || d.label || "Document",
+    file_type: inferFileType(d.filename),
+    doc_type: d.kind,
+    uploaded_at: delivery.sent_at,
+  }));
+}
+
 // Display field configs (real extracted_data keys)
 const PATIENT_FIELDS = [
   { k: "first_name", label: "First Name" }, { k: "last_name", label: "Last Name" }, { k: "mi", label: "MI" },
@@ -168,6 +192,13 @@ export default function ReferralDetail() {
   const [attachingNote, setAttachingNote] = useState(false);
   const noteFileRef = useRef<HTMLInputElement>(null);
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
+  // Preview selection for the "Sent to <pharmacy>" delivery documents —
+  // separate from selectedDocId (the delivery packet/letter often aren't in
+  // the regular documents list at all, e.g. the generated pharmacy PDF).
+  // Mutually exclusive with selectedDocId via selectDoc/selectDeliveryDoc below.
+  const [selectedDeliveryDocId, setSelectedDeliveryDocId] = useState<string | null>(null);
+  const selectDoc = (docId: string) => { setSelectedDeliveryDocId(null); setSelectedDocId(docId); };
+  const selectDeliveryDoc = (docId: string) => { setSelectedDocId(null); setSelectedDeliveryDocId(docId); };
   const isNarrowForDocs = useIsNarrowForDocs();
 
   const loadData = () => {
@@ -220,6 +251,29 @@ export default function ReferralDetail() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [tab, selectedDocId, documents]);
+
+  // Same Up/Down/Escape handling for the delivery-documents preview.
+  useEffect(() => {
+    if (tab !== "documents" || !selectedDeliveryDocId) return;
+    const deliveryDocs = deliveryDocsToViewerDocs(referral?.delivery);
+    const onKeyDown = (e: KeyboardEvent) => {
+      const activeTag = (document.activeElement?.tagName || "").toLowerCase();
+      if (["input", "textarea", "select"].includes(activeTag)) return;
+      if (e.key === "Escape") {
+        setSelectedDeliveryDocId(null);
+        return;
+      }
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        const idx = deliveryDocs.findIndex((d: any) => d.id === selectedDeliveryDocId);
+        if (idx === -1) return;
+        e.preventDefault();
+        const nextIdx = e.key === "ArrowDown" ? Math.min(idx + 1, deliveryDocs.length - 1) : Math.max(idx - 1, 0);
+        setSelectedDeliveryDocId(deliveryDocs[nextIdx]?.id ?? selectedDeliveryDocId);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [tab, selectedDeliveryDocId, referral]);
 
   const handleUpload = async (file: File, docType: string) => {
     if (!id) return;
@@ -337,7 +391,17 @@ export default function ReferralDetail() {
       toast({ title: "Couldn't open document", description: e.message, variant: "destructive" });
     }
   };
+  const downloadDeliveryDoc = async (docId: string) => {
+    try {
+      const res = await clinicApi.getDeliveryDocumentUrl(id!, docId);
+      window.open(res.url, "_blank");
+    } catch (e: any) {
+      toast({ title: "Couldn't open document", description: e.message, variant: "destructive" });
+    }
+  };
   const selectedDoc = selectedDocId ? documents.find((d: any) => d.id === selectedDocId) : undefined;
+  const deliveryViewerDocs = deliveryDocsToViewerDocs(referral.delivery);
+  const selectedDeliveryDoc = selectedDeliveryDocId ? deliveryViewerDocs.find((d: any) => d.id === selectedDeliveryDocId) : undefined;
 
   return (
     <PageContainer>
@@ -456,6 +520,15 @@ export default function ReferralDetail() {
 
         {/* OVERVIEW */}
         <TabsContent value="overview" className="pt-5">
+          {referral.delivery && (
+            <div className="mb-4">
+              <DeliverySentCard
+                delivery={referral.delivery}
+                onPreview={(docId) => { selectDeliveryDoc(docId); setTab("documents"); }}
+                onDownload={downloadDeliveryDoc}
+              />
+            </div>
+          )}
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-4 items-start">
             <div className="flex flex-col gap-4">
               <InfoCardDL icon={<User width={16} height={16} strokeWidth={1.75} />} title="Patient Information" obj={patient} fields={PATIENT_FIELDS} section="patient" flagCount={flagCount("patient")} isFlagged={isFlagged} />
@@ -473,6 +546,16 @@ export default function ReferralDetail() {
             a preview beside it (two-pane resizable split >=1024px, a Sheet
             below that). Preview first, download second. */}
         <TabsContent value="documents" className="pt-5">
+          {referral.delivery && (
+            <div className="mb-4">
+              <DeliverySentCard
+                delivery={referral.delivery}
+                onPreview={selectDeliveryDoc}
+                onDownload={downloadDeliveryDoc}
+              />
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mt-4 mb-2">All documents</h3>
+            </div>
+          )}
           {documents.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-16 text-center">
               <span className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground"><FileText width={20} height={20} strokeWidth={1.75} /></span>
@@ -491,7 +574,7 @@ export default function ReferralDetail() {
                         <button
                           key={doc.id}
                           type="button"
-                          onClick={() => setSelectedDocId(doc.id)}
+                          onClick={() => selectDoc(doc.id)}
                           className={cn(
                             "flex w-full items-center gap-2.5 px-3 py-2.5 border-b border-border text-left last:border-0",
                             active ? "bg-primary/8" : "hover:bg-muted/60",
@@ -540,7 +623,7 @@ export default function ReferralDetail() {
                   <div
                     key={doc.id}
                     className="flex items-center gap-3 px-4 py-3 border-b border-border last:border-0 cursor-pointer hover:bg-muted/40"
-                    onClick={() => setSelectedDocId(doc.id)}
+                    onClick={() => selectDoc(doc.id)}
                   >
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><DocIcon width={16} height={16} strokeWidth={1.75} /></span>
                     <div className="flex-1 min-w-0">
@@ -551,7 +634,7 @@ export default function ReferralDetail() {
                         {isTeam && " · From your Dirxctional team"}
                       </p>
                     </div>
-                    <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setSelectedDocId(doc.id); }}>
+                    <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); selectDoc(doc.id); }}>
                       <Eye width={14} height={14} strokeWidth={1.75} />Preview
                     </Button>
                     <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); downloadDoc(doc.id); }}>
@@ -573,6 +656,76 @@ export default function ReferralDetail() {
                   documents={documents}
                   referralId={id!}
                   onClose={() => setSelectedDocId(null)}
+                />
+              </SheetContent>
+            </Sheet>
+          )}
+
+          {/* "Sent to pharmacy" document preview — same resizable pane / Sheet
+              mechanism as above, scoped to referral.delivery.documents (which
+              may include documents, like the generated referral packet, that
+              aren't in the regular list above at all). */}
+          {selectedDeliveryDoc && !isNarrowForDocs && (
+            <div className="h-[70vh] min-h-[460px] rounded-lg border border-border overflow-hidden mt-4">
+              <ResizablePanelGroup direction="horizontal" className="h-full">
+                <ResizablePanel defaultSize={34} minSize={28} maxSize={45} className="min-h-0 bg-card">
+                  <div className="h-full overflow-y-auto">
+                    {deliveryViewerDocs.map((doc: any) => {
+                      const DocIcon = docIcon(doc.original_filename);
+                      const active = doc.id === selectedDeliveryDocId;
+                      return (
+                        <button
+                          key={doc.id}
+                          type="button"
+                          onClick={() => selectDeliveryDoc(doc.id)}
+                          className={cn(
+                            "flex w-full items-center gap-2.5 px-3 py-2.5 border-b border-border text-left last:border-0",
+                            active ? "bg-primary/8" : "hover:bg-muted/60",
+                          )}
+                        >
+                          <span className={cn(
+                            "flex h-7 w-7 shrink-0 items-center justify-center rounded-md",
+                            active ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground",
+                          )}>
+                            <DocIcon width={14} height={14} strokeWidth={1.75} />
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <p className={cn("text-xs font-semibold truncate", active ? "text-primary" : "text-foreground")}>
+                              {doc.original_filename}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground truncate">Sent to pharmacy</p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </ResizablePanel>
+                <ResizableHandle withHandle />
+                <ResizablePanel minSize={35} className="min-h-0">
+                  <DocumentPreviewPane
+                    key={selectedDeliveryDoc.id}
+                    doc={selectedDeliveryDoc}
+                    documents={deliveryViewerDocs}
+                    referralId={id!}
+                    onClose={() => setSelectedDeliveryDocId(null)}
+                    fetchUrl={(docId) => clinicApi.getDeliveryDocumentUrl(id!, docId)}
+                    animate
+                  />
+                </ResizablePanel>
+              </ResizablePanelGroup>
+            </div>
+          )}
+
+          {isNarrowForDocs && selectedDeliveryDoc && (
+            <Sheet open onOpenChange={(next) => { if (!next) setSelectedDeliveryDocId(null); }}>
+              <SheetContent side="right" className="w-full sm:max-w-full p-0 [&>button]:hidden flex flex-col">
+                <DocumentPreviewPane
+                  key={selectedDeliveryDoc.id}
+                  doc={selectedDeliveryDoc}
+                  documents={deliveryViewerDocs}
+                  referralId={id!}
+                  onClose={() => setSelectedDeliveryDocId(null)}
+                  fetchUrl={(docId) => clinicApi.getDeliveryDocumentUrl(id!, docId)}
                 />
               </SheetContent>
             </Sheet>
@@ -657,13 +810,17 @@ export default function ReferralDetail() {
 /* ── Documents preview pane: filename + Download + Close header, then the
    shared DocumentViewer (fit-width, zoom) fetching URLs through the same
    clinic-scoped endpoint the flat list already used for Download. Keyed by
-   doc id at the call site so switching documents remounts it cleanly. ── */
-function DocumentPreviewPane({ doc, documents, referralId, onClose, animate }: {
+   doc id at the call site so switching documents remounts it cleanly.
+   fetchUrl defaults to the regular per-document endpoint; the delivery
+   preview (see DeliverySentCard) overrides it with getDeliveryDocumentUrl. ── */
+function DocumentPreviewPane({ doc, documents, referralId, onClose, animate, fetchUrl }: {
   doc: any; documents: any[]; referralId: string; onClose: () => void; animate?: boolean;
+  fetchUrl?: (docId: string) => Promise<{ url: string; filename?: string }>;
 }) {
+  const resolveUrl = fetchUrl || ((docId: string) => clinicApi.getReferralDocumentUrl(referralId, docId));
   const download = async () => {
     try {
-      const res = await clinicApi.getReferralDocumentUrl(referralId, doc.id);
+      const res = await resolveUrl(doc.id);
       window.open(res.url, "_blank");
     } catch (e: any) {
       toast({ title: "Couldn't open document", description: e.message, variant: "destructive" });
@@ -683,10 +840,58 @@ function DocumentPreviewPane({ doc, documents, referralId, onClose, animate }: {
           documents={documents}
           initialDocId={doc.id}
           hideTabs
-          fetchUrl={(docId) => clinicApi.getReferralDocumentUrl(referralId, docId)}
+          fetchUrl={resolveUrl}
           className="h-full"
         />
       </div>
+    </div>
+  );
+}
+
+/* ── "Sent to <pharmacy>" — what actually went out on the referral's most
+   recent delivery, filtered to what the clinic is allowed to see (referral
+   packet + PA approval letter always, plus the clinic's own uploaded extras;
+   see _clinic_delivery_for_referral, app/routes/referrals.py). Shared between
+   the Overview tab (top card) and the Documents tab ("Sent to pharmacy"
+   section) — 2026-09-24, Alex. ── */
+function DeliverySentCard({ delivery, onPreview, onDownload }: {
+  delivery: any; onPreview: (docId: string) => void; onDownload: (docId: string) => void;
+}) {
+  if (!delivery) return null;
+  const viaLabel = (delivery.via || []).join(" and ");
+  return (
+    <div className="bg-card border border-border rounded-lg p-4">
+      <div className="flex items-center gap-2 mb-0.5">
+        <Send width={15} height={15} strokeWidth={1.75} className="text-muted-foreground shrink-0" />
+        <h3 className="text-sm font-semibold text-foreground">Sent to {delivery.pharmacy_name || "the pharmacy"}</h3>
+      </div>
+      <p className="text-xs text-muted-foreground mb-3">
+        Sent {formatDateTime(delivery.sent_at)}{viaLabel && ` · by ${viaLabel}`}
+      </p>
+      {delivery.documents?.length > 0 && (
+        <div className="flex flex-col gap-2">
+          {delivery.documents.map((doc: any) => {
+            const DocIcon = docIcon(doc.filename || doc.label || "");
+            return (
+              <div key={doc.id} className="flex items-center gap-2.5 rounded-md border border-border px-3 py-2">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary">
+                  <DocIcon width={14} height={14} strokeWidth={1.75} />
+                </span>
+                <p className="flex-1 min-w-0 text-xs font-medium text-foreground truncate">{doc.label}</p>
+                <Button size="sm" variant="outline" onClick={() => onPreview(doc.id)}>
+                  <Eye width={14} height={14} strokeWidth={1.75} />Preview
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => onDownload(doc.id)}>
+                  <Download width={14} height={14} strokeWidth={1.75} />Download
+                </Button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {delivery.legacy && (
+        <p className="text-xs text-muted-foreground mt-2.5 italic">Earlier deliveries only list the referral packet.</p>
+      )}
     </div>
   );
 }

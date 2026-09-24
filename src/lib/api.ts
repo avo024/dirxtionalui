@@ -404,6 +404,20 @@ export const clinicApi = {
     );
     return handleResponse(response);
   },
+
+  // Presigned URL for a document from the referral's recorded delivery
+  // ("Sent to <pharmacy>" card) — the packet, PA letter, or a clinic-uploaded
+  // extra that actually went out. Audited server-side same as the above.
+  async getDeliveryDocumentUrl(
+    referralId: string,
+    docId: string,
+  ): Promise<{ url: string; filename?: string; expires_in?: number }> {
+    const response = await fetch(
+      `${API_BASE_URL}/referrals/${referralId}/delivery/documents/${docId}/url`,
+      { headers: await getHeaders() },
+    );
+    return handleResponse(response);
+  },
 };
 
 // ============================================================================
