@@ -1088,7 +1088,8 @@ export default function AdminReferralWorkstation() {
     <div className="-mx-6 -my-8 lg:-mx-8 flex flex-col min-h-[calc(100vh-0px)]">
       <div ref={headerRef}>
         <StageHeader
-          patient={referral.patient_name}
+          back={{ label: "Back to referrals", onClick: () => navigate("/admin/referrals") }}
+        patient={referral.patient_name}
           stage={stageLabel}
           stageTone={stageTone}
           question={next.question}

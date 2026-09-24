@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ChevronDown, File, Pencil, Pin } from "lucide-react";
+import { ArrowLeft, ChevronDown, File, Pencil, Pin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -7,6 +7,8 @@ import { StageChip } from "@/components/StageChip";
 
 interface StageHeaderProps {
   patient: string;
+  /** Optional "back to the list" link rendered above the patient name. */
+  back?: { label: string; onClick: () => void };
   stage?: string;
   stageTone?: "teal";
   question?: string;
@@ -32,6 +34,7 @@ interface StageHeaderProps {
  */
 export function StageHeader({
   patient,
+  back,
   stage,
   stageTone,
   question,
@@ -51,6 +54,12 @@ export function StageHeader({
   return (
     <header className={cn("bg-card border-b border-border px-[26px] py-3.5 flex items-start gap-4", className)}>
       <div className="min-w-0 flex-1 flex flex-col gap-1">
+        {back && (
+          <button type="button" onClick={back.onClick} className="-ml-1 mb-0.5 inline-flex w-fit items-center gap-1 rounded-md px-1 py-0.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted">
+            <ArrowLeft width={14} height={14} strokeWidth={1.75} aria-hidden="true" />
+            {back.label}
+          </button>
+        )}
         <div className="flex items-center gap-2.5 flex-wrap">
           <h1 className="text-xl font-semibold tracking-tight text-foreground">{patient}</h1>
           {stage && <StageChip label={stage} variant="outline" tone={stageTone} />}
