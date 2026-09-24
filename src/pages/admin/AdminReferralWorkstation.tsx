@@ -652,12 +652,11 @@ export default function AdminReferralWorkstation() {
    *  "Preview PDF" generation call the ready_to_send / More-menu action uses. */
   const openPacketPreview = useCallback(
     (docId: string) => {
-      if (documents.some((d) => d.id === docId)) {
-        setActiveDocId(docId);
-        setSheetOpen(true);
-      } else {
-        handlePreviewPDF();
-      }
+      // Open the packet that was ACTUALLY sent (its stored generated_referral_pdf_sent
+      // document, spliced in via sheetDocuments from last_delivery), never a fresh
+      // regeneration — the referral may have changed since it was faxed.
+      setActiveDocId(docId);
+      setSheetOpen(true);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps -- handlePreviewPDF is a stable per-render closure over `id`, same pattern as its other callers
     [documents],
