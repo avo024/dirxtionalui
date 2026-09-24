@@ -1265,7 +1265,7 @@ export const adminApi = {
     return data;
   },
 
-  async updateClinicUserRole(clinicId: string, userId: string, role: string): Promise<{ ok: boolean; role: string }> {
+  async updateClinicUserRole(clinicId: string, userId: string, role: string): Promise<{ id: string; clinic_id: string; role: string }> {
     const response = await fetch(`${API_BASE_URL}/admin/clinics/${clinicId}/users/${userId}/role`, {
       method: 'PATCH',
       headers: await getHeaders(),
