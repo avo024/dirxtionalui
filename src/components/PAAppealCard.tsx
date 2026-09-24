@@ -13,10 +13,14 @@ import { toast } from "@/hooks/use-toast";
  * banner + the three outcomes). Appeals won rejoin the normal pipeline —
  * the team records the new approval on the PA card, then Approve → Send.
  */
-export function PAAppealCard({ referral, referralId, onChanged }: {
+export function PAAppealCard({ referral, referralId, onChanged, hideActions }: {
   referral: any;
   referralId: string;
   onChanged: () => void | Promise<void>;
+  /** Hides the card's own outcome/start buttons — the workstation drives
+   *  those from the ActionBar instead (flow-script §7/§9). Status text and
+   *  banners still render. */
+  hideActions?: boolean;
 }) {
   const [confirm, setConfirm] = useState<null | "start" | "won" | "level2" | "final">(null);
   const [busy, setBusy] = useState(false);
@@ -113,9 +117,11 @@ export function PAAppealCard({ referral, referralId, onChanged }: {
             The PA was denied. A level-1 appeal goes back to the insurer as
             expedited — most first appeals are worth filing.
           </p>
-          <Button size="sm" disabled={busy} onClick={() => setConfirm("start")}>
-            <Scale width={14} height={14} strokeWidth={1.75} />Start appeal
-          </Button>
+          {!hideActions && (
+            <Button size="sm" disabled={busy} onClick={() => setConfirm("start")}>
+              <Scale width={14} height={14} strokeWidth={1.75} />Start appeal
+            </Button>
+          )}
         </>
       )}
 
@@ -124,23 +130,25 @@ export function PAAppealCard({ referral, referralId, onChanged }: {
           <p className="mb-2.5 mt-2.5 text-sm leading-relaxed text-muted-foreground">
             Level-1 appeal in progress with the insurer. Record the outcome when it lands:
           </p>
-          <div className="flex flex-wrap gap-2">
-            <Button size="sm" className="bg-success text-success-foreground hover:bg-success/90" disabled={busy} onClick={() => setConfirm("won")}>
-              <CheckCircle2 width={14} height={14} strokeWidth={1.75} />Appeal won
-            </Button>
-            <Button size="sm" variant="outline" disabled={busy} onClick={() => setConfirm("level2")}>
-              Lost — hand off (Level 2)
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={busy}
-              onClick={() => setConfirm("final")}
-              title="For single-appeal drugs (e.g. some topicals) — no level 2 exists"
-            >
-              Lost — final (no level 2)
-            </Button>
-          </div>
+          {!hideActions && (
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" className="bg-success text-success-foreground hover:bg-success/90" disabled={busy} onClick={() => setConfirm("won")}>
+                <CheckCircle2 width={14} height={14} strokeWidth={1.75} />Appeal won
+              </Button>
+              <Button size="sm" variant="outline" disabled={busy} onClick={() => setConfirm("level2")}>
+                Lost — hand off (Level 2)
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={busy}
+                onClick={() => setConfirm("final")}
+                title="For single-appeal drugs (e.g. some topicals) — no level 2 exists"
+              >
+                Lost — final (no level 2)
+              </Button>
+            </div>
+          )}
         </>
       )}
 

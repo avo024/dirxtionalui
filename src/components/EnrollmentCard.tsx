@@ -1,11 +1,13 @@
-import { useEffect, useRef, useState } from "react";
-import { Pill, Send, Eye, CheckCircle2, AlertTriangle, ShieldAlert, Ban, Loader2, Check, FileText, Upload } from "lucide-react";
+import { useEffect, useImperativeHandle, useRef, useState } from "react";
+import { Pill, Send, Eye, CheckCircle2, AlertTriangle, ShieldAlert, Ban, Loader2, Check, FileText, Upload, ChevronRight } from "lucide-react";
 import { formatDateShort } from "@/lib/dateUtils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ConfirmModal } from "@/components/ConfirmModal";
+import { cn } from "@/lib/utils";
 import {
   adminApi,
   type EnrollmentResponse,
@@ -49,6 +51,18 @@ interface SentSummary {
   faxStatus?: string | null;
 }
 
+/** Imperative surface exposed to the workstation's ActionBar (flow-script
+ *  §7/§9). Each method wraps the card's existing handler unchanged — same
+ *  eligibility gate, same signed-copy selection, same routing. */
+export interface EnrollmentActions {
+  start(): Promise<void>;
+  sendForSignatures(): Promise<void>;
+  faxEnrollment(): Promise<void>;
+  markSubmitted(): Promise<void>;
+  canSend: boolean;
+  blockedReason?: string;
+}
+
 /**
  * Manufacturer assistance enrollment builder — lets a (non-technical) admin
  * enroll a denied-referral patient into a manufacturer bridge program: check
@@ -57,11 +71,19 @@ interface SentSummary {
  * AppealPacketCard's draft/autosave/preview/send lifecycle closely — same
  * card chrome, same flush-before-actions discipline.
  */
-export function EnrollmentCard({ referralId, paStatus, status, onChanged }: {
+export function EnrollmentCard({ referralId, paStatus, status, onChanged, hideActions, actionsRef, onActionStateChange }: {
   referralId: string;
   paStatus: string | null;
   status: string | null;
   onChanged?: () => void | Promise<void>;
+  /** Hides the card's own stage-action buttons (start / send for signature /
+   *  fax / mark submitted) — the workstation drives those from the
+   *  ActionBar. "Upload adjusted copy" and "Preview the filled form" stay —
+   *  they're document tools, not stage actions. */
+  hideActions?: boolean;
+  actionsRef?: React.Ref<EnrollmentActions>;
+  /** Fires whenever anything canSend/blockedReason depends on changes. */
+  onActionStateChange?: () => void;
 }) {
   const paEligible = paStatus === "denied" || paStatus === "appeal" || status === "closed";
 
@@ -97,6 +119,9 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged }: {
   const [removeAdjustedConfirmOpen, setRemoveAdjustedConfirmOpen] = useState(false);
   const [removingAdjusted, setRemovingAdjusted] = useState(false);
   const adjustedFileRef = useRef<HTMLInputElement>(null);
+  const eligibilityRef = useRef<HTMLDivElement>(null);
+  const faxNumberInputRef = useRef<HTMLInputElement>(null);
+  const [prefilledOpen, setPrefilledOpen] = useState(false);
 
   const [sendSigConfirmOpen, setSendSigConfirmOpen] = useState(false);
   const [sendingForSig, setSendingForSig] = useState(false);
@@ -373,26 +398,9 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged }: {
     await fetchEnrollment();
   };
 
-  if (!paEligible) return null;
-  if (loading) {
-    return (
-      <div className="rounded-lg border border-border bg-card shadow-sm p-[var(--density-card-pad)]">
-        <div className="flex items-center gap-2.5 mb-3"><span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Pill size={15} /></span><h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">Manufacturer Assistance</h3></div>
-        <p className="text-sm" style={{ color: "var(--text-muted)" }}>Loading…</p>
-      </div>
-    );
-  }
-  if (loadError) {
-    return (
-      <div className="rounded-lg border border-border bg-card shadow-sm p-[var(--density-card-pad)]">
-        <div className="flex items-center gap-2.5 mb-3"><span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Pill size={15} /></span><h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">Manufacturer Assistance</h3></div>
-        <p className="text-sm" style={{ color: "var(--color-error)", margin: "0 0 8px" }}>{loadError}</p>
-        <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" onClick={fetchEnrollment}>Try again</button>
-      </div>
-    );
-  }
-  if (programs.length === 0) return null;
-
+  // ── Derived values used by both the render below and the imperative
+  // handle (moved above the early returns so the handle sees them even
+  // while loading/erroring/empty — those states just report canSend=false). ──
   const currentProgram = programs.find((p) => p.id === programId) || null;
   const warnings = currentProgram?.eligibility_warnings || [];
   const stateExcludedWarning = warnings.find((w) => w.code === "state_excluded");
@@ -419,6 +427,92 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged }: {
   const blanks = Array.from(blankCandidates);
   const optionalBlanks = optionalBlankFields.filter((k) => !blankCandidates.has(k));
   const prefilledEntries = Object.entries(resolvedFieldValues).filter(([k, v]) => !!v && !blankCandidates.has(k));
+
+  // ── Imperative surface for the workstation's ActionBar ──
+  let canSend = false;
+  let blockedReason: string | undefined;
+  if (!draft) {
+    blockedReason = "Start enrollment first";
+  } else if (draft.status === "draft") {
+    if (needsSignatures) {
+      canSend = canFinalize;
+      blockedReason = canFinalize ? undefined : (blocking ? stateExcludedWarning!.message : "Confirm commercial insurance first");
+    } else {
+      canSend = canFinalize && !submitting && (faxReadOnly || !!faxNumber.trim());
+      blockedReason = canFinalize
+        ? (faxReadOnly || faxNumber.trim() ? undefined : "Enter the specialty pharmacy's fax number first")
+        : (blocking ? stateExcludedWarning!.message : "Confirm commercial insurance first");
+    }
+  } else if (draft.status === "awaiting_signatures") {
+    canSend = canFinalize && !!selectedSignedDocId && !submitting && (faxReadOnly || !!faxNumber.trim());
+    blockedReason = !canFinalize
+      ? (blocking ? stateExcludedWarning!.message : "Confirm commercial insurance first")
+      : !selectedSignedDocId
+        ? "Pick which upload is the signed form first"
+        : (faxReadOnly || faxNumber.trim() ? undefined : "Enter the specialty pharmacy's fax number first");
+  } else {
+    blockedReason = "Already sent";
+  }
+
+  // Re-notify the workstation whenever anything canSend/blockedReason
+  // depends on changes — mirrors AppealPacketCard's onActionStateChange.
+  useEffect(() => {
+    onActionStateChange?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft, needsSignatures, canFinalize, faxNumber, selectedSignedDocId, submitting, faxReadOnly, loading, loadError, programs.length]);
+
+  useImperativeHandle(actionsRef, () => ({
+    canSend,
+    blockedReason,
+    async start() {
+      const program = programs.find((p) => (p.form_files?.length ?? 0) > 0) || programs[0];
+      if (program) await startEnrollment(program);
+    },
+    async sendForSignatures() {
+      if (!draft || draft.status !== "draft" || !needsSignatures) return;
+      if (!canFinalize) {
+        eligibilityRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
+      setSendSigConfirmOpen(true);
+    },
+    async faxEnrollment() {
+      if (!canFinalize) {
+        eligibilityRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
+      if (!faxReadOnly && !faxNumber.trim()) {
+        faxNumberInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+        faxNumberInputRef.current?.focus();
+        return;
+      }
+      setSubmitConfirmOpen(true);
+    },
+    async markSubmitted() {
+      setMarkSubmittedConfirmOpen(true);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [canSend, blockedReason, draft, needsSignatures, canFinalize, faxReadOnly, faxNumber, programs]);
+
+  if (!paEligible) return null;
+  if (loading) {
+    return (
+      <div className="rounded-lg border border-border bg-card shadow-sm p-[var(--density-card-pad)]">
+        <div className="flex items-center gap-2.5 mb-3"><span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Pill size={15} /></span><h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">Manufacturer Assistance</h3></div>
+        <p className="text-sm" style={{ color: "var(--text-muted)" }}>Loading…</p>
+      </div>
+    );
+  }
+  if (loadError) {
+    return (
+      <div className="rounded-lg border border-border bg-card shadow-sm p-[var(--density-card-pad)]">
+        <div className="flex items-center gap-2.5 mb-3"><span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Pill size={15} /></span><h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">Manufacturer Assistance</h3></div>
+        <p className="text-sm" style={{ color: "var(--color-error)", margin: "0 0 8px" }}>{loadError}</p>
+        <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" onClick={fetchEnrollment}>Try again</button>
+      </div>
+    );
+  }
+  if (programs.length === 0) return null;
 
   return (
     <div className="rounded-lg border border-border bg-card shadow-sm p-[var(--density-card-pad)]">
@@ -493,7 +587,7 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged }: {
                   Otezla START form are bridge_kind "none" but very much
                   enrollable. Gating on bridge_kind hid the button (Alex's
                   Round-3 catch, 2026-08-18). */}
-              {(program.form_files?.length ?? 0) > 0 && (
+              {!hideActions && (program.form_files?.length ?? 0) > 0 && (
                 <button
                   className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-45 disabled:cursor-not-allowed"
                   style={{ marginTop: 10 }}
@@ -558,13 +652,16 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged }: {
             submitDisabled={!canFinalize || !selectedSignedDocId || submitting || (!faxReadOnly && !faxNumber.trim())}
             onSubmitClick={() => setSubmitConfirmOpen(true)}
             onMarkSubmittedClick={() => setMarkSubmittedConfirmOpen(true)}
+            hideActions={hideActions}
+            faxInputRef={faxNumberInputRef}
           />
         </div>
       ) : (
         // ── State B: builder open (draft.status === 'draft') ──
-        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        // Single column, top-to-bottom — no wide scanning (Alex, 2026-09-23).
+        <div className="max-w-3xl" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           {/* 1. Check eligibility */}
-          <div>
+          <div ref={eligibilityRef}>
             <p className="mt-3 mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground" style={{ margin: "0 0 10px" }}>Check eligibility</p>
             <EligibilitySection
               otherWarnings={otherWarnings} stateExcludedWarning={stateExcludedWarning} remsWarning={remsWarning}
@@ -590,16 +687,21 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged }: {
             )}
 
             {prefilledEntries.length > 0 && (
-              <div style={{ marginBottom: 12 }}>
-                <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "0 0 6px" }}>Already filled in from the referral:</p>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                  {prefilledEntries.map(([k, v]) => (
-                    <span key={k} style={{ fontSize: 11.5, padding: "3px 9px", borderRadius: 9999, background: "var(--color-stone-100, #f2f2f2)", color: "var(--text-body)" }}>
-                      {humanizeToken(k)}: {v}
-                    </span>
-                  ))}
-                </div>
-              </div>
+              <Collapsible open={prefilledOpen} onOpenChange={setPrefilledOpen} style={{ marginBottom: 12 }}>
+                <CollapsibleTrigger className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground">
+                  <ChevronRight width={12} height={12} strokeWidth={1.75} className={cn("transition-transform", prefilledOpen && "rotate-90")} aria-hidden="true" />
+                  Prefilled from the referral · {prefilledEntries.length} field{prefilledEntries.length === 1 ? "" : "s"}
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-2">
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {prefilledEntries.map(([k, v]) => (
+                      <span key={k} style={{ fontSize: 11.5, padding: "3px 9px", borderRadius: 9999, background: "var(--color-stone-100, #f2f2f2)", color: "var(--text-body)" }}>
+                        {humanizeToken(k)}: {v}
+                      </span>
+                    ))}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             )}
 
             {blanks.length > 0 && (
@@ -622,13 +724,13 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged }: {
                 </div>
                 {optionalBlanks.length > 0 && (
                   <div style={{ marginTop: 10 }}>
-                    <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 8px" }}>
-                      Optional on this form — fine to leave blank
+                    <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 8px", fontWeight: 600 }}>
+                      Optional — fine to leave blank
                     </p>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 10, opacity: 0.85 }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10, opacity: 0.85 }}>
                       {optionalBlanks.map((k) => (
                         <div key={k} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                          <Label className="text-xs text-muted-foreground">{humanizeToken(k)} (optional)</Label>
+                          <Label className="text-xs text-muted-foreground">{humanizeToken(k)}</Label>
                           <Input value={fieldValues[k] || ""} onChange={(e) => updateField(k, e.target.value)} className="h-8 text-sm" />
                         </div>
                       ))}
@@ -690,9 +792,11 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged }: {
                 <p className="text-sm" style={{ color: "var(--text-body)", margin: "0 0 10px" }}>
                   {signersSentence} {signVerb} to sign.
                 </p>
-                <button className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-45 disabled:cursor-not-allowed" disabled={!canFinalize} onClick={() => setSendSigConfirmOpen(true)}>
-                  <Send size={13} />Send to clinic for signatures
-                </button>
+                {!hideActions && (
+                  <button className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-45 disabled:cursor-not-allowed" disabled={!canFinalize} onClick={() => setSendSigConfirmOpen(true)}>
+                    <Send size={13} />Send to clinic for signatures
+                  </button>
+                )}
                 {!canFinalize && (
                   <p style={{ fontSize: 11.5, color: "var(--color-error)", margin: "6px 0 0" }}>
                     {blocking ? stateExcludedWarning!.message : "Confirm commercial insurance above first."}
@@ -722,6 +826,8 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged }: {
                 submitDisabled={!canFinalize || submitting || (!faxReadOnly && !faxNumber.trim())}
                 onSubmitClick={() => setSubmitConfirmOpen(true)}
                 onMarkSubmittedClick={() => setMarkSubmittedConfirmOpen(true)}
+                hideActions={hideActions}
+                faxInputRef={faxNumberInputRef}
               />
             </div>
           )}
@@ -806,7 +912,7 @@ function EligibilitySection({ otherWarnings, stateExcludedWarning, remsWarning, 
 
 function SubmitSection({
   faxReadOnly, currentProgram, faxNumber, setFaxNumber, assistanceEndsOn, setAssistanceEndsOn,
-  previewLoading, onPreview, submitDisabled, onSubmitClick, onMarkSubmittedClick,
+  previewLoading, onPreview, submitDisabled, onSubmitClick, onMarkSubmittedClick, hideActions, faxInputRef,
 }: {
   faxReadOnly: boolean;
   currentProgram: EnrollmentProgram | null;
@@ -819,6 +925,11 @@ function SubmitSection({
   submitDisabled: boolean;
   onSubmitClick: () => void;
   onMarkSubmittedClick: () => void;
+  /** Hides Submit + "I submitted it another way" — the workstation's
+   *  ActionBar drives those when set. The fax number / assistance-end date
+   *  fields and Preview stay (document tools, not stage actions). */
+  hideActions?: boolean;
+  faxInputRef?: React.Ref<HTMLInputElement>;
 }) {
   return (
     <div>
@@ -840,6 +951,7 @@ function SubmitSection({
               background: "var(--color-stone-50, hsl(var(--muted)))",
             }}>+1</span>
             <Input
+              ref={faxInputRef}
               value={faxNumber}
               onChange={(e) => setFaxNumber(e.target.value)}
               className="h-8 text-sm"
@@ -857,17 +969,21 @@ function SubmitSection({
         <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" disabled={previewLoading} onClick={onPreview}>
           {previewLoading ? <Loader2 size={13} className="animate-spin" /> : <Eye size={13} />}Preview
         </button>
-        <button className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-45 disabled:cursor-not-allowed" disabled={submitDisabled} onClick={onSubmitClick}>
-          <Send size={13} />Submit
-        </button>
+        {!hideActions && (
+          <button className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-45 disabled:cursor-not-allowed" disabled={submitDisabled} onClick={onSubmitClick}>
+            <Send size={13} />Submit
+          </button>
+        )}
       </div>
-      <button
-        type="button"
-        onClick={onMarkSubmittedClick}
-        style={{ marginTop: 10, font: "inherit", fontSize: 12, color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}
-      >
-        I submitted it another way
-      </button>
+      {!hideActions && (
+        <button
+          type="button"
+          onClick={onMarkSubmittedClick}
+          style={{ marginTop: 10, font: "inherit", fontSize: 12, color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}
+        >
+          I submitted it another way
+        </button>
+      )}
     </div>
   );
 }

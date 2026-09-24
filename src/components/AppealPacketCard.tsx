@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useImperativeHandle, useRef, useState } from "react";
 import { FileText, Send, Eye, CheckCircle2, AlertTriangle, Loader2, Check } from "lucide-react";
 import { formatDateShort } from "@/lib/dateUtils";
 import { Textarea } from "@/components/ui/textarea";
@@ -68,6 +68,20 @@ const humanizeToken = (t: string) => t.replace(/_/g, " ");
 
 type PacketKind = "appeal" | "appeal_lmn";
 
+/** Imperative surface exposed to the workstation's ActionBar (flow-script
+ *  §7/§9 — the ActionBar is the only place stage actions live; this card
+ *  never renders its own duplicate buttons once `hideActions` is set). Every
+ *  method wraps the card's existing handler unchanged — same validation,
+ *  same confirms, same toasts. */
+export interface AppealPacketActions {
+  previewLetter(): Promise<void>;
+  previewPacket(): Promise<void>;
+  faxPacket(): Promise<void>;
+  markSubmitted(): Promise<void>;
+  canFax: boolean;
+  faxBlockedReason?: string;
+}
+
 interface FormSnapshot {
   kind: PacketKind;
   indication: string | null;
@@ -85,11 +99,20 @@ interface FormSnapshot {
  * owns the appeal outcome (won/level2/final) — this card only owns getting
  * the packet built and faxed.
  */
-export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChanged }: {
+export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChanged, hideActions, actionsRef, onActionStateChange }: {
   referralId: string;
   paStatus: string | null;
   appealStartedAt: string | null;
   onChanged?: () => void | Promise<void>;
+  /** Hides the card's own bottom action row (Preview letter / Preview whole
+   *  packet / Fax the packet / I submitted it another way) — the workstation
+   *  drives those from the ActionBar instead via `actionsRef`. */
+  hideActions?: boolean;
+  actionsRef?: React.Ref<AppealPacketActions>;
+  /** Fires whenever anything `canFax` depends on changes, so a parent that
+   *  computes ActionBar `disabled` from `actionsRef.current` can re-render —
+   *  the ref itself doesn't trigger that on its own. */
+  onActionStateChange?: () => void;
 }) {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -127,6 +150,8 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
   const [sending, setSending] = useState(false);
   const [markSubmittedConfirmOpen, setMarkSubmittedConfirmOpen] = useState(false);
   const [markingSubmitted, setMarkingSubmitted] = useState(false);
+
+  const faxNumberInputRef = useRef<HTMLInputElement>(null);
 
   const populateForm = (data: AppealPacketResponse) => {
     skipAutosaveRef.current = true;
@@ -328,6 +353,57 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
       setMarkingSubmitted(false);
     }
   };
+
+  const canFax = builderOpen && !sending && !!faxNumber.trim();
+  const faxBlockedReason = !builderOpen
+    ? "Build the appeal packet first"
+    : sending
+      ? "Fax already in progress"
+      : !faxNumber.trim()
+        ? "Enter the insurance company's fax number first"
+        : undefined;
+
+  // Re-notify the workstation whenever anything `canFax`/`faxBlockedReason`
+  // depends on changes — the ref object itself doesn't trigger a parent
+  // re-render, so the ActionBar's `disabled` prop would otherwise go stale.
+  useEffect(() => {
+    onActionStateChange?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [builderOpen, sending, faxNumber, justSubmitted, packetId, loading, loadError]);
+
+  useImperativeHandle(actionsRef, () => ({
+    canFax,
+    faxBlockedReason,
+    previewLetter: handlePreview,
+    previewPacket: handlePacketPdfPreview,
+    async faxPacket() {
+      // Mirrors what clicking "Build another packet" / "Build appeal
+      // packet" did: a submitted packet gets a fresh draft fetched before
+      // the builder opens; an unstarted one just opens.
+      if (!builderOpen) {
+        if (justSubmitted || (packetId === null && !!appealStartedAt)) {
+          await openFreshBuilder();
+        } else {
+          setBuilderOpen(true);
+        }
+        return;
+      }
+      // Same fax-number validation the button's `disabled` state enforced —
+      // if it's still missing, scroll the field into view instead of
+      // silently doing nothing.
+      if (!faxNumber.trim()) {
+        faxNumberInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+        faxNumberInputRef.current?.focus();
+        return;
+      }
+      setSendConfirmOpen(true);
+    },
+    async markSubmitted() {
+      if (!builderOpen) setBuilderOpen(true);
+      setMarkSubmittedConfirmOpen(true);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [canFax, faxBlockedReason, builderOpen, faxNumber]);
 
   if (paStatus !== "appeal") return null;
 
@@ -586,6 +662,7 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
                   background: "var(--color-stone-50, hsl(var(--muted)))",
                 }}>+1</span>
                 <Input
+                  ref={faxNumberInputRef}
                   value={faxNumber}
                   onChange={(e) => setFaxNumber(e.target.value)}
                   className="h-8 text-sm"
@@ -604,24 +681,28 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
                 <p style={{ fontSize: 11, color: "var(--text-muted)", margin: 0 }}>Asks the insurance company to answer within 72 hours.</p>
               </div>
             </div>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" disabled={previewLoading} onClick={handlePreview}>
-                {previewLoading ? <Loader2 size={13} className="animate-spin" /> : <Eye size={13} />}Preview letter
-              </button>
-              <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" disabled={packetPreviewLoading} onClick={handlePacketPdfPreview} title="Cover page + letters + attached documents, merged — exactly what the payer's fax prints">
-                {packetPreviewLoading ? <Loader2 size={13} className="animate-spin" /> : <FileText size={13} />}Preview whole packet
-              </button>
-              <button className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-45 disabled:cursor-not-allowed" disabled={sending || !faxNumber.trim()} onClick={() => setSendConfirmOpen(true)}>
-                <Send size={13} />Fax the packet
-              </button>
-            </div>
-            <button
-              type="button"
-              onClick={() => setMarkSubmittedConfirmOpen(true)}
-              style={{ marginTop: 10, font: "inherit", fontSize: 12, color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}
-            >
-              I submitted it another way
-            </button>
+            {!hideActions && (
+              <>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" disabled={previewLoading} onClick={handlePreview}>
+                    {previewLoading ? <Loader2 size={13} className="animate-spin" /> : <Eye size={13} />}Preview letter
+                  </button>
+                  <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" disabled={packetPreviewLoading} onClick={handlePacketPdfPreview} title="Cover page + letters + attached documents, merged — exactly what the payer's fax prints">
+                    {packetPreviewLoading ? <Loader2 size={13} className="animate-spin" /> : <FileText size={13} />}Preview whole packet
+                  </button>
+                  <button className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-45 disabled:cursor-not-allowed" disabled={sending || !faxNumber.trim()} onClick={() => setSendConfirmOpen(true)}>
+                    <Send size={13} />Fax the packet
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setMarkSubmittedConfirmOpen(true)}
+                  style={{ marginTop: 10, font: "inherit", fontSize: 12, color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}
+                >
+                  I submitted it another way
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}

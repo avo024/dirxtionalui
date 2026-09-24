@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Loader2, AlertTriangle, ExternalLink, ChevronRight } from "lucide-react";
 import { adminApi } from "@/lib/api";
@@ -31,8 +31,8 @@ import { DeliveryConfirmModal } from "@/components/DeliveryConfirmModal";
 import { AdminRejectModal, FLAGGABLE_FIELDS, type RejectPayload } from "@/components/AdminRejectModal";
 import { DocumentViewer } from "@/components/DocumentViewer";
 import { PAAppealCard } from "@/components/PAAppealCard";
-import { AppealPacketCard } from "@/components/AppealPacketCard";
-import { EnrollmentCard } from "@/components/EnrollmentCard";
+import { AppealPacketCard, type AppealPacketActions } from "@/components/AppealPacketCard";
+import { EnrollmentCard, type EnrollmentActions } from "@/components/EnrollmentCard";
 import { ReferralTasksCard } from "@/components/ReferralTasksCard";
 import { EligibilityPanel } from "@/components/EligibilityPanel";
 import { ExtractionEditor } from "@/components/admin/ExtractionEditor";
@@ -537,6 +537,42 @@ export default function AdminReferralWorkstation() {
   const appealOutcomesRef = useRef<HTMLDivElement>(null);
   const scrollTo = (ref: React.RefObject<HTMLDivElement>) => ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
 
+  // ── Imperative handles for cards whose stage actions now live only in the
+  // ActionBar (flow-script §7/§9) — AppealPacketCard / EnrollmentCard render
+  // their builders as before but no longer their own bottom buttons.
+  const appealActionsRef = useRef<AppealPacketActions>(null);
+  const enrollmentActionsRef = useRef<EnrollmentActions>(null);
+  // The refs above mutate without triggering a re-render; the cards call
+  // this after anything their canFax/canSend depends on changes, so the
+  // ActionBar's `disabled` state (read from the ref at render time) stays live.
+  const [, bumpActionTick] = useReducer((n: number) => n + 1, 0);
+
+  // ── Record appeal outcome (appeal_sent primary) — replaces PAAppealCard's
+  // own outcome buttons at this stage; same endpoint/toasts as the card had.
+  const [outcomeDialogOpen, setOutcomeDialogOpen] = useState(false);
+  const [outcomeChoice, setOutcomeChoice] = useState<"won" | "level2" | "final">("won");
+  const [recordingOutcome, setRecordingOutcome] = useState(false);
+  const submitOutcome = async () => {
+    if (!id) return;
+    setRecordingOutcome(true);
+    try {
+      await adminApi.recordAppealOutcome(id, outcomeChoice);
+      if (outcomeChoice === "won") {
+        toast({ title: "Appeal won 🎉", description: "PA is approved. Record the new approval number/letter on the PA card, then Approve → Send as normal." });
+      } else if (outcomeChoice === "level2") {
+        toast({ title: "Handed off to Level 2", description: "The clinic has been emailed — the insurer works with them directly from here." });
+      } else {
+        toast({ title: "Recorded as final", description: "The clinic has been emailed that this decision is final (bridge/cash options)." });
+      }
+      setOutcomeDialogOpen(false);
+      await reload();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setRecordingOutcome(false);
+    }
+  };
+
   // ── Notes composer ────────────────────────────────────────────────
   const [noteDraft, setNoteDraft] = useState("");
   const [sendingNote, setSendingNote] = useState(false);
@@ -647,9 +683,18 @@ export default function AdminReferralWorkstation() {
     else if (item === "Reject") moreItems.push({ label: "Reject", onClick: () => setRejectOpen(true) });
     else if (item === "Replace letter") moreItems.push({ label: "Replace letter", onClick: () => letterInputRef.current?.click() });
     else if (item === "Delete letter") moreItems.push({ label: "Delete letter", onClick: deleteLetter });
-    else if (item === "Resend packet") moreItems.push({ label: "Resend packet", onClick: () => scrollTo(appealPacketRef) });
+    else if (item === "Resend packet") moreItems.push({ label: "Resend packet", onClick: () => appealActionsRef.current?.faxPacket() });
     else if (item === "Preview PDF") moreItems.push({ label: "Preview PDF", onClick: handlePreviewPDF });
     else if (item === "Return to review") moreItems.push({ label: "Return to review", onClick: () => setReturnOpen(true) });
+  }
+  // The appeal packet builder's own actions moved out of the card
+  // (AppealPacketCard `hideActions`) — its secondary actions live in More
+  // now instead of duplicating a button inside the card (flow-script §7/§9).
+  if (next.stage === "appeal_build") {
+    moreItems.push(
+      { label: "Preview letter", onClick: () => appealActionsRef.current?.previewLetter() },
+      { label: "I submitted it another way", onClick: () => appealActionsRef.current?.markSubmitted() },
+    );
   }
   // ── Primary / secondary handlers ──────────────────────────────────
   function actionFor(label: string | null): (() => void) | undefined {
@@ -679,12 +724,19 @@ export default function AdminReferralWorkstation() {
           catch (e: any) { toast({ title: "Could not start the appeal", description: e.message, variant: "destructive" }); }
         };
       case "Start bridge enrollment":
-        return () => scrollTo(enrollmentRef);
+        return () => enrollmentActionsRef.current?.start();
       case "Fax packet":
+        return () => appealActionsRef.current?.faxPacket();
       case "Preview":
-        return () => scrollTo(appealPacketRef);
+        return () => appealActionsRef.current?.previewPacket();
       case "Record outcome (won / level 2 / final)":
-        return () => scrollTo(appealOutcomesRef);
+        return () => { setOutcomeChoice("won"); setOutcomeDialogOpen(true); };
+      case "Send for signature":
+        return () => enrollmentActionsRef.current?.sendForSignatures();
+      case "Fax enrollment":
+        return () => enrollmentActionsRef.current?.faxEnrollment();
+      case "Upload adjusted copy":
+        return () => scrollTo(enrollmentRef);
       case "Deliver":
         return () => setDeliverOpen(true);
       case "Return to review":
@@ -703,11 +755,31 @@ export default function AdminReferralWorkstation() {
   const primaryLabel = next.primary === "Submit PA" ? "File PA on CoverMyMeds" : next.primary;
   const secondaryLabel = next.secondary;
 
+  // canFax/canSend live on the cards' imperative handles (flow-script §7/§9
+  // — the ActionBar drives the action, but the card still owns the
+  // validation that decides whether it's allowed to run right now).
+  function gatingFor(label: string | null): { disabled?: boolean; title?: string } {
+    switch (label) {
+      case "Fax packet":
+        return { disabled: !appealActionsRef.current?.canFax, title: appealActionsRef.current?.faxBlockedReason };
+      case "Send for signature":
+      case "Fax enrollment":
+        return { disabled: !enrollmentActionsRef.current?.canSend, title: enrollmentActionsRef.current?.blockedReason };
+      default:
+        return {};
+    }
+  }
+
   const primarySpec = next.primary
-    ? { label: primaryLabel ?? next.primary, onClick: actionFor(next.primary), disabled: next.primary === "Mark handled" } // Mark handled: no endpoint yet (enrollment outcomes)
+    ? {
+        label: primaryLabel ?? next.primary,
+        onClick: actionFor(next.primary),
+        disabled: next.primary === "Mark handled" || gatingFor(next.primary).disabled, // Mark handled: no endpoint yet (enrollment outcomes)
+        title: gatingFor(next.primary).title,
+      }
     : null;
   const secondarySpec = secondaryLabel
-    ? { label: secondaryLabel, onClick: actionFor(secondaryLabel) }
+    ? { label: secondaryLabel, onClick: actionFor(secondaryLabel), ...gatingFor(secondaryLabel) }
     : null;
 
   const nextInQueueSpec = nextInQueue
@@ -909,10 +981,21 @@ export default function AdminReferralWorkstation() {
       case "appeal_build":
         cards.push(
           <div key="appeal_packet" ref={appealPacketRef}>
-            <AppealPacketCard referralId={id!} paStatus={referral.pa_status} appealStartedAt={referral.appeal_started_at} onChanged={reload} />
+            <AppealPacketCard
+              referralId={id!}
+              paStatus={referral.pa_status}
+              appealStartedAt={referral.appeal_started_at}
+              onChanged={reload}
+              hideActions
+              actionsRef={appealActionsRef}
+              onActionStateChange={bumpActionTick}
+            />
           </div>,
           // Collapsed while building — the outcome buttons matter once the
           // packet is sent, not while it's still being assembled (finding #2b).
+          // Not hidden here — the ActionBar has no "Record outcome" action at
+          // this stage (More is just Archive), so hiding these would drop
+          // functionality rather than relocate it.
           <CollapsibleSection key="appeal_outcomes" title="Appeal outcomes" defaultOpen={false}>
             <div ref={appealOutcomesRef}>
               <PAAppealCard referral={referral} referralId={id!} onChanged={reload} />
@@ -923,10 +1006,18 @@ export default function AdminReferralWorkstation() {
       case "appeal_sent":
         cards.push(
           <div key="appeal_outcomes" ref={appealOutcomesRef}>
-            <PAAppealCard referral={referral} referralId={id!} onChanged={reload} />
+            <PAAppealCard referral={referral} referralId={id!} onChanged={reload} hideActions />
           </div>,
           <div key="appeal_packet" ref={appealPacketRef}>
-            <AppealPacketCard referralId={id!} paStatus={referral.pa_status} appealStartedAt={referral.appeal_started_at} onChanged={reload} />
+            <AppealPacketCard
+              referralId={id!}
+              paStatus={referral.pa_status}
+              appealStartedAt={referral.appeal_started_at}
+              onChanged={reload}
+              hideActions
+              actionsRef={appealActionsRef}
+              onActionStateChange={bumpActionTick}
+            />
           </div>,
         );
         break;
@@ -941,7 +1032,15 @@ export default function AdminReferralWorkstation() {
           cards.push(
             <CollapsibleSection key="enrollment" title={enrollmentHeaderLabel} defaultOpen={isEnrollmentLed}>
               <div ref={enrollmentRef}>
-                <EnrollmentCard referralId={id!} paStatus={referral.pa_status} status={referral.status} onChanged={reload} />
+                <EnrollmentCard
+                  referralId={id!}
+                  paStatus={referral.pa_status}
+                  status={referral.status}
+                  onChanged={reload}
+                  hideActions
+                  actionsRef={enrollmentActionsRef}
+                  onActionStateChange={bumpActionTick}
+                />
               </div>
             </CollapsibleSection>,
           );
@@ -1020,6 +1119,11 @@ export default function AdminReferralWorkstation() {
         );
         break;
       case "closed":
+        // No ActionBar action exists for the enrollment track at this stage
+        // (closed's own primary/secondary are always null, and the resolver
+        // never promotes the track's here — see nextAction.ts) — hiding the
+        // card's buttons would drop functionality with nothing to replace
+        // it, so hideActions stays off.
         cards.push(
           <DefinitionList key="status_strip" title="Status" rows={[{ label: "Status", value: <StatusBadge status="closed" variant="outline" context="admin" /> }]} />,
           <CollapsibleSection key="enrollment" title={enrollmentHeaderLabel} defaultOpen={isEnrollmentLed}>
@@ -1050,7 +1154,19 @@ export default function AdminReferralWorkstation() {
       cards.push(
         <CollapsibleSection key="enrollment-track" title={enrollmentHeaderLabel} defaultOpen={isEnrollmentLed}>
           <div ref={enrollmentRef}>
-            <EnrollmentCard referralId={id!} paStatus={referral.pa_status} status={referral.status} onChanged={reload} />
+            {/* hideActions only when the enrollment track actually won the
+                row's ActionBar slot (flow-script §4's "+1" mechanic) — when
+                the referral's own stage still owns primary/secondary, the
+                card's own buttons are the only way to act on it. */}
+            <EnrollmentCard
+              referralId={id!}
+              paStatus={referral.pa_status}
+              status={referral.status}
+              onChanged={reload}
+              hideActions={isEnrollmentLed}
+              actionsRef={enrollmentActionsRef}
+              onActionStateChange={bumpActionTick}
+            />
           </div>
         </CollapsibleSection>,
       );
@@ -1303,6 +1419,49 @@ export default function AdminReferralWorkstation() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDecisionOpen(false)}>Cancel</Button>
             <Button onClick={submitDecision} disabled={recordingDecision}>{recordingDecision ? "Saving..." : "Record decision"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Record the appeal outcome (appeal_sent ActionBar primary) — same
+          three outcomes, labels, and toasts PAAppealCard's own buttons had. ── */}
+      <Dialog open={outcomeDialogOpen} onOpenChange={setOutcomeDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Record the appeal outcome</DialogTitle>
+          </DialogHeader>
+          <RadioGroup value={outcomeChoice} onValueChange={(v) => setOutcomeChoice(v as "won" | "level2" | "final")} className="flex flex-col gap-3">
+            <label className="flex items-start gap-2 text-sm">
+              <RadioGroupItem value="won" className="mt-0.5" />
+              <span>
+                <span className="font-medium">Appeal won</span>
+                <span className="block text-xs text-muted-foreground">PA becomes approved. You'll then record the new approval number/letter on the PA card before sending.</span>
+              </span>
+            </label>
+            <label className="flex items-start gap-2 text-sm">
+              <RadioGroupItem value="level2" className="mt-0.5" />
+              <span>
+                <span className="font-medium">Lost — hand off (Level 2)</span>
+                <span className="block text-xs text-muted-foreground">The clinic will be emailed that the insurer now works with their office directly, and this leaves the appeal tab.</span>
+              </span>
+            </label>
+            <label className="flex items-start gap-2 text-sm">
+              <RadioGroupItem value="final" className="mt-0.5" />
+              <span>
+                <span className="font-medium">Lost — final (no level 2)</span>
+                <span className="block text-xs text-muted-foreground">For drugs with no second appeal level. The clinic will be emailed that the payer's decision is final, with bridge/cash as remaining options.</span>
+              </span>
+            </label>
+          </RadioGroup>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOutcomeDialogOpen(false)}>Cancel</Button>
+            <Button
+              className={outcomeChoice === "won" ? "bg-success text-success-foreground hover:bg-success/90" : undefined}
+              disabled={recordingOutcome}
+              onClick={submitOutcome}
+            >
+              {recordingOutcome ? "Saving…" : outcomeChoice === "won" ? "Appeal won" : "Confirm"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

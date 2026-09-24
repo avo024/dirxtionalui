@@ -15,6 +15,9 @@ interface ActionSpec {
   onClick?: () => void;
   icon?: ReactNode;
   disabled?: boolean;
+  /** Shown as the button's native tooltip — used to explain why an action
+   *  is disabled (e.g. a missing fax number). */
+  title?: string;
   /** Pass "success" to render the primary action as the green confirm button. */
   variant?: string;
 }
@@ -91,7 +94,7 @@ export function ActionBar({ status, tone, icon, request, secondary, primary, mor
         )}
 
         {secondary && (
-          <Button variant="outline" onClick={secondary.onClick} disabled={secondary.disabled}>
+          <Button variant="outline" onClick={secondary.onClick} disabled={secondary.disabled} title={secondary.title}>
             {secondary.icon}
             {secondary.label}
           </Button>
@@ -103,6 +106,7 @@ export function ActionBar({ status, tone, icon, request, secondary, primary, mor
             className={primary.variant === "success" ? "bg-success text-success-foreground hover:bg-success/90" : undefined}
             onClick={primary.onClick}
             disabled={primary.disabled}
+            title={primary.title}
           >
             {primary.icon}
             {primary.label}
