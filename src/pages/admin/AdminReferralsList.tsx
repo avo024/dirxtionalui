@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { QueueList } from "@/components/patterns/QueueList";
 import { QueueRow } from "@/components/patterns/QueueRow";
 import { FilterToolbar } from "@/components/patterns/FilterToolbar";
+import { QueueBrief } from "@/components/patterns/QueueBrief";
 import { adminApi } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { resolveNextAction, ballKey, groupKey, stageLabelForQueue, type NextAction } from "@/lib/nextAction";
@@ -20,6 +21,13 @@ import { toNextActionInput, toQueueRow, type QueueRowData } from "@/lib/queueRow
 
 type Tab = "us" | "others" | "all";
 type GroupBy = "action" | "stage" | "clinic" | "none";
+type UrgencyFilter = "any" | "overdue" | "attention";
+
+const URGENCY_FILTER_OPTIONS: { value: UrgencyFilter; label: string }[] = [
+  { value: "any", label: "Any urgency" },
+  { value: "overdue", label: "Overdue" },
+  { value: "attention", label: "Needs attention" },
+];
 
 // flow-script stage order, used both for "Group by: Stage" ordering and the
 // stage filter dropdown on the work tabs (Alex, phase 3b follow-up).
@@ -255,6 +263,9 @@ export default function AdminReferralsList() {
   });
   const [groupBy, setGroupBy] = useState<GroupBy>("action");
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  // Morning-brief urgency filter (work tabs only) — set by clicking a
+  // brief-strip number, or via the "Any urgency" select.
+  const [urgencyFilter, setUrgencyFilter] = useState<UrgencyFilter>("any");
 
   // All tab defaults to all-time (Alex, live review 2026-09-23: a month-scoped
   // default showed "All 0" while work tabs showed rows). Month select still offers this month and back.
@@ -336,6 +347,8 @@ export default function AdminReferralsList() {
       if (q && !((r.raw.patient_name || "").toLowerCase().includes(q) || (r.raw.id || "").toLowerCase().includes(q))) return false;
       if (stageFilter !== "any" && stageLabelForQueue(r.next.stage) !== stageFilter) return false;
       if (clinicFilter !== "all" && r.raw.clinic_name !== clinicFilter) return false;
+      if (urgencyFilter === "overdue" && !r.next.overdue) return false;
+      if (urgencyFilter === "attention" && !(r.next.interrupt && !r.next.overdue)) return false;
       return true;
     });
   };
@@ -350,8 +363,8 @@ export default function AdminReferralsList() {
     });
   };
 
-  const filteredUsRows = useMemo(() => applyWorkFilters(usRows), [usRows, search, stageFilter, clinicFilter]);
-  const filteredOthersRows = useMemo(() => applyWorkFilters(othersRows), [othersRows, search, stageFilter, clinicFilter]);
+  const filteredUsRows = useMemo(() => applyWorkFilters(usRows), [usRows, search, stageFilter, clinicFilter, urgencyFilter]);
+  const filteredOthersRows = useMemo(() => applyWorkFilters(othersRows), [othersRows, search, stageFilter, clinicFilter, urgencyFilter]);
 
   // ── Grouping: Waiting on us ──
   const usGroups: Group[] | null = useMemo(() => {
@@ -419,6 +432,76 @@ export default function AdminReferralsList() {
     setStatusFilter("any");
     setStageFilter("any");
     setClinicFilter("all");
+    setUrgencyFilter("any");
+  };
+
+  // ── Morning brief (flow-script "Group by" section follow-up, Alex 2026-09-23)
+  // ── all-time, non-archived (workRows/workQueueRows), independent of the
+  // active tab/filters below. ──
+  const briefOverdueCount = useMemo(() => workQueueRows.filter((r) => r.next.overdue).length, [workQueueRows]);
+  const briefAttentionCount = useMemo(
+    () => workQueueRows.filter((r) => !!r.next.interrupt && !r.next.overdue).length,
+    [workQueueRows],
+  );
+  const briefWaitingOnUsCount = usRows.length;
+  const briefSentThisWeekCount = useMemo(() => {
+    const cutoff = now.getTime() - 7 * 24 * 60 * 60 * 1000;
+    return workRows.filter((r: any) => {
+      if (r.status !== "sent_to_pharmacy" || !r.updated_at) return false;
+      const t = new Date(r.updated_at).getTime();
+      return t >= cutoff && t <= now.getTime();
+    }).length;
+  }, [workRows, now]);
+  const briefByClinic = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const r of usRows) {
+      const c = r.raw.clinic_name || "No clinic";
+      map.set(c, (map.get(c) ?? 0) + 1);
+    }
+    return [...map.entries()]
+      .map(([clinic, count]) => ({ clinic, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+  }, [usRows]);
+
+  const goToUsAnyStage = (urgency: UrgencyFilter) => {
+    setTab("us");
+    setStageFilter("any");
+    setUrgencyFilter(urgency);
+    setPage(1);
+    const next = new URLSearchParams(searchParams);
+    next.set("tab", "us");
+    next.delete("filter");
+    setSearchParams(next, { replace: true });
+  };
+  const briefOverdueClick = () => goToUsAnyStage("overdue");
+  const briefAttentionClick = () => goToUsAnyStage("attention");
+  const briefWaitingOnUsClick = () => {
+    clearFilters();
+    setTab("us");
+    setPage(1);
+    const next = new URLSearchParams(searchParams);
+    next.set("tab", "us");
+    next.delete("filter");
+    setSearchParams(next, { replace: true });
+  };
+  const briefSentThisWeekClick = () => {
+    setTab("all");
+    setStatusFilter("sent_to_pharmacy");
+    setPage(1);
+    const next = new URLSearchParams(searchParams);
+    next.set("tab", "all");
+    next.delete("filter");
+    setSearchParams(next, { replace: true });
+  };
+  const briefClinicClick = (clinic: string) => {
+    setTab("us");
+    setClinicFilter(clinic);
+    setPage(1);
+    const next = new URLSearchParams(searchParams);
+    next.set("tab", "us");
+    next.delete("filter");
+    setSearchParams(next, { replace: true });
   };
 
   const archiveRow = async (id: string, list: "work" | "all") => {
@@ -492,6 +575,19 @@ export default function AdminReferralsList() {
         <p className="text-sm text-muted-foreground">Manage and review referrals from all clinics</p>
       </div>
 
+      <QueueBrief
+        overdueCount={briefOverdueCount}
+        attentionCount={briefAttentionCount}
+        waitingOnUsCount={briefWaitingOnUsCount}
+        sentThisWeekCount={briefSentThisWeekCount}
+        byClinic={briefByClinic}
+        onOverdueClick={briefOverdueClick}
+        onAttentionClick={briefAttentionClick}
+        onWaitingOnUsClick={briefWaitingOnUsClick}
+        onSentThisWeekClick={briefSentThisWeekClick}
+        onClinicClick={briefClinicClick}
+      />
+
       <Tabs value={tab} onValueChange={handleTabChange}>
         <TabsList className={underlineTabsListClass}>
           <TabsTrigger value="us" className={underlineTabsTriggerClass}>
@@ -541,6 +637,20 @@ export default function AdminReferralsList() {
             onChange: (v) => { setClinicFilter(v === "All Clinics" ? "all" : v); setPage(1); },
             width: "180px",
           },
+          ...(tab === "us" || tab === "others"
+            ? [
+                {
+                  options: URGENCY_FILTER_OPTIONS.map((u) => u.label),
+                  value: URGENCY_FILTER_OPTIONS.find((u) => u.value === urgencyFilter)?.label,
+                  onChange: (label: string) => {
+                    const opt = URGENCY_FILTER_OPTIONS.find((u) => u.label === label);
+                    setUrgencyFilter(opt?.value ?? "any");
+                    setPage(1);
+                  },
+                  width: "170px",
+                },
+              ]
+            : []),
           ...(tab === "us"
             ? [
                 {

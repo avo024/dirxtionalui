@@ -99,7 +99,7 @@ export default function AdminInvites() {
     <PageContainer>
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-2xl font-semibold font-editorial text-foreground">Clinic Invites</h1>
+          <h1 className="text-2xl font-semibold text-foreground">Clinic Invites</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Send and manage invitations for clinic users.
           </p>

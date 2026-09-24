@@ -94,7 +94,7 @@ export default function AdminSupportList() {
   return (
     <PageContainer>
       <div className="mb-5">
-        <h1 className="text-2xl font-semibold font-editorial text-foreground">Support</h1>
+        <h1 className="text-2xl font-semibold text-foreground">Support</h1>
         <p className="text-sm text-muted-foreground mt-1">Clinic support cases and product feedback</p>
       </div>
 

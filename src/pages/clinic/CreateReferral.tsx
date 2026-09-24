@@ -429,7 +429,7 @@ export default function CreateReferral() {
       <PageContainer fade={false}>
         <div className="animate-in fade-in slide-in-from-bottom-1 duration-300 flex flex-col items-center gap-3 text-center py-10 max-w-lg mx-auto">
           <span className="flex h-16 w-16 items-center justify-center rounded-full bg-success/15 text-success"><CheckCircle width={34} height={34} strokeWidth={1.75} /></span>
-          <h1 className="text-2xl font-semibold font-editorial text-foreground">We'll Take It From Here!</h1>
+          <h1 className="text-2xl font-semibold text-foreground">We'll Take It From Here!</h1>
           <p className="text-sm text-muted-foreground">Referral submitted successfully! Our AI is extracting the details now and our team will review within the hour.</p>
           <div className="font-mono text-sm font-semibold rounded-md bg-muted px-3 py-1.5 text-foreground">REF-{String(Math.floor(Math.random() * 900000) + 100000)}</div>
           <div className="flex items-center gap-2 mt-2">
@@ -461,7 +461,7 @@ export default function CreateReferral() {
     <PageContainer fade={false}>
       {/* Bar A — header */}
       <div>
-        <h1 className="text-2xl font-semibold font-editorial text-foreground">New Referral</h1>
+        <h1 className="text-2xl font-semibold text-foreground">New Referral</h1>
         <p className="text-sm text-muted-foreground mt-1">Quick 4-step process to submit a referral</p>
       </div>
 

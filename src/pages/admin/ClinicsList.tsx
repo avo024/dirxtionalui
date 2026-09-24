@@ -33,7 +33,7 @@ export default function ClinicsList() {
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-2xl font-semibold font-editorial text-foreground flex items-center gap-2">
+          <h1 className="text-2xl font-semibold text-foreground flex items-center gap-2">
             Clinics
             {!isLoading && !isError && (
               <span className="text-sm font-medium text-muted-foreground">{items.length}</span>

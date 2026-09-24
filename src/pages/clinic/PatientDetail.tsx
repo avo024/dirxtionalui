@@ -152,7 +152,7 @@ export default function PatientDetail() {
       {/* Header */}
       <div className="flex items-center justify-between mb-5 gap-4 flex-wrap">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-semibold font-editorial text-foreground">{fullName}</h1>
+          <h1 className="text-2xl font-semibold text-foreground">{fullName}</h1>
           <span className="text-sm text-muted-foreground">{patient.dob ? `${formatDateShort(patient.dob)} · Age ${getAge(patient.dob)}` : "—"}</span>
           <IdChip id={patient.id} />
         </div>

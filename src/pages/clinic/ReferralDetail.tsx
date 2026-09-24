@@ -302,7 +302,7 @@ export default function ReferralDetail() {
       <div className="flex items-start justify-between gap-4 flex-wrap mb-5">
         <div>
           <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-2xl font-semibold font-editorial text-foreground">{referral.patient_name || patientFullName}</h1>
+            <h1 className="text-2xl font-semibold text-foreground">{referral.patient_name || patientFullName}</h1>
             <StatusBadge status={referral.status} size="md" showIcon variant="soft" />
             <span className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-0.5 text-xs font-mono text-muted-foreground">
               {referral.id.toUpperCase()}

@@ -152,7 +152,7 @@ export default function ReferralsList() {
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-2xl font-semibold font-editorial text-foreground">My Referrals</h1>
+          <h1 className="text-2xl font-semibold text-foreground">My Referrals</h1>
           <p className="text-sm text-muted-foreground mt-1">View and track all your submitted referrals</p>
         </div>
         <Button asChild>

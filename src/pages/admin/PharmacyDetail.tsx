@@ -105,7 +105,7 @@ export default function PharmacyDetail() {
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">{getInitials(p.name)}</span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-xl font-semibold font-editorial text-foreground truncate">{p.name}</h1>
+            <h1 className="text-xl font-semibold text-foreground truncate">{p.name}</h1>
             <StatusPill active={p.is_active} />
             {p.accepts_no_insurance && (
               <span className="inline-flex items-center gap-1 rounded-full bg-warning/15 text-[#92610B] px-2 py-0.5 text-[11px] font-medium">

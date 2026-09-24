@@ -114,7 +114,7 @@ export default function CreatePatient() {
       <PageContainer className="max-w-xl mx-auto">
         <div className="flex flex-col items-center gap-3 text-center py-10">
           <span className="flex h-16 w-16 items-center justify-center rounded-full bg-success/15 text-success"><Check width={32} height={32} strokeWidth={1.75} /></span>
-          <h1 className="text-2xl font-semibold font-editorial text-foreground">Patient added</h1>
+          <h1 className="text-2xl font-semibold text-foreground">Patient added</h1>
           <p className="text-sm text-muted-foreground"><b className="text-foreground font-semibold">{created.name.trim() || "The patient"}</b> has been added to the system.</p>
 
           <div className="flex items-center gap-3 w-full rounded-lg border border-border bg-card p-4 text-left mt-2">
@@ -142,7 +142,7 @@ export default function CreatePatient() {
       </Button>
 
       <div className="mb-5">
-        <h1 className="text-2xl font-semibold font-editorial text-foreground">Add New Patient</h1>
+        <h1 className="text-2xl font-semibold text-foreground">Add New Patient</h1>
         <p className="text-sm text-muted-foreground mt-1">Enter patient demographics to add them to the system</p>
       </div>
 

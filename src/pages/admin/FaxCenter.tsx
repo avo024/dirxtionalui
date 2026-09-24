@@ -145,7 +145,7 @@ export default function FaxCenter() {
   return (
     <PageContainer>
       <div className="mb-5">
-        <h1 className="text-2xl font-semibold font-editorial text-foreground">Fax Center</h1>
+        <h1 className="text-2xl font-semibold text-foreground">Fax Center</h1>
         <p className="text-sm text-muted-foreground mt-1">All inbound and outbound fax traffic across referrals, appeals, and enrollments</p>
       </div>
 

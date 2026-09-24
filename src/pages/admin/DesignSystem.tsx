@@ -21,6 +21,7 @@ import { DefinitionList } from "@/components/patterns/DefinitionList";
 import { FilterToolbar } from "@/components/patterns/FilterToolbar";
 import { QueueList } from "@/components/patterns/QueueList";
 import { QueueRow } from "@/components/patterns/QueueRow";
+import { QueueBrief } from "@/components/patterns/QueueBrief";
 import { StageHeader } from "@/components/patterns/StageHeader";
 import { DocumentsSheet } from "@/components/patterns/DocumentsSheet";
 import { ActionBar } from "@/components/patterns/ActionBar";
@@ -314,6 +315,46 @@ export default function DesignSystem() {
           ]}
           trailing={<Button size="sm"><Icon name="ClipboardList" size={16} />New referral</Button>}
         />
+      </Section>
+
+      {/* ── QueueBrief ──────────────────────────────────────────────── */}
+      <Section title="QueueBrief" description="Morning-brief strip above the queue, collapsed and expanded. Fake numbers.">
+        <div className="flex flex-col gap-3">
+          <QueueBrief
+            demoExpanded={false}
+            overdueCount={3}
+            attentionCount={2}
+            waitingOnUsCount={12}
+            sentThisWeekCount={5}
+            byClinic={[
+              { clinic: "Sagebrush Derm", count: 5 },
+              { clinic: "Piney Woods Family Med", count: 4 },
+              { clinic: "Rio Grande Rheumatology", count: 3 },
+            ]}
+            onOverdueClick={() => {}}
+            onAttentionClick={() => {}}
+            onWaitingOnUsClick={() => {}}
+            onSentThisWeekClick={() => {}}
+            onClinicClick={() => {}}
+          />
+          <QueueBrief
+            demoExpanded={true}
+            overdueCount={3}
+            attentionCount={2}
+            waitingOnUsCount={12}
+            sentThisWeekCount={5}
+            byClinic={[
+              { clinic: "Sagebrush Derm", count: 5 },
+              { clinic: "Piney Woods Family Med", count: 4 },
+              { clinic: "Rio Grande Rheumatology", count: 3 },
+            ]}
+            onOverdueClick={() => {}}
+            onAttentionClick={() => {}}
+            onWaitingOnUsClick={() => {}}
+            onSentThisWeekClick={() => {}}
+            onClinicClick={() => {}}
+          />
+        </div>
       </Section>
 
       {/* ── QueueRow / QueueList ────────────────────────────────────── */}

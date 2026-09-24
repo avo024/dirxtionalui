@@ -98,7 +98,7 @@ export default function AdminAddonRequests() {
   return (
     <PageContainer>
       <div className="mb-5">
-        <h1 className="text-2xl font-semibold font-editorial text-foreground">Add-on Requests</h1>
+        <h1 className="text-2xl font-semibold text-foreground">Add-on Requests</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Approve or deny add-on requests from clinics
         </p>

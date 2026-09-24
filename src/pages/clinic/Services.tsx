@@ -78,7 +78,7 @@ export default function Services() {
     const status = (error as Error & { status?: number }).status;
     return (
       <PageContainer className="max-w-2xl">
-        <h1 className="text-2xl font-semibold font-editorial text-foreground mb-2">Services</h1>
+        <h1 className="text-2xl font-semibold text-foreground mb-2">Services</h1>
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
             {status === 403
@@ -98,7 +98,7 @@ export default function Services() {
   return (
     <PageContainer className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold font-editorial text-foreground">Services</h1>
+        <h1 className="text-2xl font-semibold text-foreground">Services</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Manage your Dirxctional plan and add-on services
         </p>

@@ -108,7 +108,7 @@ export default function PatientsList() {
     <PageContainer>
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-2xl font-semibold font-editorial text-foreground">Patients</h1>
+          <h1 className="text-2xl font-semibold text-foreground">Patients</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage your patients and their referrals</p>
         </div>
         <Button asChild data-tour="add-patient">

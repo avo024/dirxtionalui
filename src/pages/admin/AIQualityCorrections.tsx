@@ -106,7 +106,7 @@ export default function AIQualityCorrections() {
         <Link className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-3" to="/admin/ai-quality">
           <ArrowLeft width={15} height={15} strokeWidth={1.75} />Back to overview
         </Link>
-        <h1 className="text-2xl font-semibold font-editorial text-foreground">Corrections feed</h1>
+        <h1 className="text-2xl font-semibold text-foreground">Corrections feed</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Every reviewer edit, newest first. The amber tint marks edits the model was confident about (≥ 0.85).
         </p>

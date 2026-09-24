@@ -229,7 +229,7 @@ export default function ClinicDetail() {
       <div className="flex items-center gap-3 mb-6">
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">{getInitials(clinic.name)}</span>
         <div className="min-w-0 flex-1">
-          <h1 className="text-xl font-semibold font-editorial text-foreground truncate">{clinic.name}</h1>
+          <h1 className="text-xl font-semibold text-foreground truncate">{clinic.name}</h1>
           <p className="text-sm text-muted-foreground">{[clinic.specialty, clinic.email].filter(Boolean).join(" · ") || "—"}</p>
         </div>
         <Button variant="outline" onClick={() => setEditing(clinic)}>
