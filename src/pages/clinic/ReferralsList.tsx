@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FilterToolbar } from "@/components/patterns/FilterToolbar";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
+import { IdChip } from "@/components/patterns/IdChip";
 import { clinicApi } from "@/lib/api";
 import { mapReferralsFromBackend } from "@/lib/dataMapper";
 import { useToast } from "@/hooks/use-toast";
@@ -218,7 +219,7 @@ export default function ReferralsList() {
             <TableBody>
               {paginated.map((r: any) => (
                 <TableRow key={r.id} className="cursor-pointer" onClick={() => navigate(`/clinic/referrals/${r.id}`)}>
-                  <TableCell><span className="font-mono text-xs text-muted-foreground">{(r.id || "").toUpperCase()}</span></TableCell>
+                  <TableCell><IdChip id={r.id} /></TableCell>
                   <TableCell><span className="font-semibold text-foreground">{r.patient_name}</span></TableCell>
                   <TableCell>{r.drug || r.drug_requested || "—"}</TableCell>
                   <TableCell>

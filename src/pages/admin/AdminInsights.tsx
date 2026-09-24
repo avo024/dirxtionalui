@@ -5,9 +5,6 @@ import { adminApi } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { format, subDays } from "date-fns";
-import "../clinic/wizard.css";
-import "../clinic/dashboard.css";
-import "./admin-dashboard.css";
 
 /**
  * Insights — the analytical view, separated from the operational dashboard.
@@ -70,28 +67,30 @@ export default function AdminInsights() {
   }, [referrals]);
 
   if (loading) {
-    return <div className="rw-page" style={{ display: "flex", justifyContent: "center", padding: 64 }}><span className="rw-spin" style={{ color: "var(--color-teal)" }}><Loader2 size={26} /></span></div>;
+    return (
+      <div className="rw-page flex justify-center py-16">
+        <Loader2 width={26} height={26} strokeWidth={1.75} className="animate-spin text-primary" />
+      </div>
+    );
   }
 
   const Tile = ({ label, value, sub }: { label: string; value: string | number; sub?: string }) => (
-    <div className="dh-muted-card" style={{ cursor: "default" }}>
-      <div className="dh-muted-top"><span className="dh-muted-lbl">{label}</span></div>
-      <span className="dh-muted-val num">{value}</span>
-      {sub && <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{sub}</span>}
+    <div className="bg-card border border-border rounded-lg p-3.5">
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
+      <div className="text-2xl font-semibold text-foreground mt-1">{value}</div>
+      {sub && <span className="text-[11px] text-muted-foreground">{sub}</span>}
     </div>
   );
 
   return (
-    <div className="rw-page dh-page rw-fade">
-      <div className="dh-header">
-        <div className="dh-greet">
-          <h1 className="dh-h1 serif">Insights</h1>
-          <p className="dh-sub">Pipeline analytics — volumes, ratios, and trends across all clinics</p>
-        </div>
+    <div className="rw-page rw-fade">
+      <div className="mb-5">
+        <h1 className="text-2xl font-semibold serif text-foreground">Insights</h1>
+        <p className="text-sm text-muted-foreground mt-1">Pipeline analytics — volumes, ratios, and trends across all clinics</p>
       </div>
 
       {/* Headline tiles */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12, marginBottom: 18 }}>
+      <div className="grid gap-3 mb-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))" }}>
         <Tile label="Total referrals" value={stats.total} sub="all time" />
         <Tile label="Last 30 days" value={stats.last30} sub={`~${stats.avgPerDay}/day`} />
         <Tile label="Sent to pharmacy" value={stats.sent} sub="all time" />
@@ -100,7 +99,7 @@ export default function AdminInsights() {
       </div>
 
       {/* PA mix */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12, marginBottom: 18 }}>
+      <div className="grid gap-3 mb-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))" }}>
         <Tile label="PA required" value={stats.paRequired} sub="excl. bridge" />
         <Tile label="PA approved" value={stats.paApproved} />
         <Tile label="PA denied" value={stats.paDenied} />
@@ -108,10 +107,13 @@ export default function AdminInsights() {
       </div>
 
       {/* Charts (moved off the operational dashboard) */}
-      <div className="ad-charts-2up">
-        <div className="ad-chart-card">
-          <div className="ad-chart-head"><div><h3 className="ad-chart-title">Referrals by Status</h3><p className="ad-chart-sub">All-time distribution</p></div></div>
-          <div className="ad-chart-body">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="bg-card border border-border rounded-lg">
+          <div className="px-[var(--density-card-pad)] pt-[var(--density-card-pad)]">
+            <h3 className="text-sm font-semibold text-foreground">Referrals by Status</h3>
+            <p className="text-xs text-muted-foreground">All-time distribution</p>
+          </div>
+          <div className="p-[var(--density-card-pad)]">
             {pieData.length ? (
               <ResponsiveContainer width="100%" height={250}>
                 <PieChart>
@@ -121,13 +123,20 @@ export default function AdminInsights() {
                   <Tooltip /><Legend />
                 </PieChart>
               </ResponsiveContainer>
-            ) : <div className="ad-chart-na"><Inbox size={26} />No referrals yet</div>}
+            ) : (
+              <div className="flex flex-col items-center justify-center gap-2 h-[250px] text-sm text-muted-foreground">
+                <Inbox width={26} height={26} strokeWidth={1.75} />No referrals yet
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="ad-chart-card">
-          <div className="ad-chart-head"><div><h3 className="ad-chart-title">Referrals Over Time</h3><p className="ad-chart-sub">Last 30 days</p></div></div>
-          <div className="ad-chart-body">
+        <div className="bg-card border border-border rounded-lg">
+          <div className="px-[var(--density-card-pad)] pt-[var(--density-card-pad)]">
+            <h3 className="text-sm font-semibold text-foreground">Referrals Over Time</h3>
+            <p className="text-xs text-muted-foreground">Last 30 days</p>
+          </div>
+          <div className="p-[var(--density-card-pad)]">
             <ResponsiveContainer width="100%" height={250}>
               <LineChart data={lineData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E4" />
@@ -142,16 +151,19 @@ export default function AdminInsights() {
       </div>
 
       {/* Volume by clinic */}
-      <div className="ad-chart-card" style={{ marginTop: 18 }}>
-        <div className="ad-chart-head"><div><h3 className="ad-chart-title">Volume by Clinic</h3><p className="ad-chart-sub">All-time referral count</p></div></div>
-        <div style={{ padding: "6px 18px 16px" }}>
+      <div className="bg-card border border-border rounded-lg mt-4">
+        <div className="px-[var(--density-card-pad)] pt-[var(--density-card-pad)]">
+          <h3 className="text-sm font-semibold text-foreground">Volume by Clinic</h3>
+          <p className="text-xs text-muted-foreground">All-time referral count</p>
+        </div>
+        <div className="px-[var(--density-card-pad)] pb-[var(--density-card-pad)] pt-1.5">
           {stats.clinics.length === 0 ? (
-            <p style={{ color: "var(--text-muted)", fontSize: 13 }}>No clinics yet.</p>
+            <p className="text-sm text-muted-foreground">No clinics yet.</p>
           ) : stats.clinics.map(([name, count]) => (
-            <div key={name} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0" }}>
-              <BarChart3 size={13} style={{ color: "var(--color-teal-700)", flexShrink: 0 }} />
-              <span style={{ fontSize: 13, color: "var(--text-body)", flex: 1 }}>{name}</span>
-              <span className="num" style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{count}</span>
+            <div key={name} className="flex items-center gap-2.5 py-1.5">
+              <BarChart3 width={14} height={14} strokeWidth={1.75} className="text-primary shrink-0" />
+              <span className="text-sm text-foreground flex-1">{name}</span>
+              <span className="text-sm font-semibold text-foreground">{count}</span>
             </div>
           ))}
         </div>

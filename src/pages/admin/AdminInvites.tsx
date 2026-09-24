@@ -95,28 +95,28 @@ export default function AdminInvites() {
   const listMissing = !!error;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="rw-page rw-fade">
+      <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Clinic Invites</h1>
+          <h1 className="text-2xl font-semibold serif text-foreground">Clinic Invites</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Send and manage invitations for clinic users.
           </p>
         </div>
         <Button onClick={() => setNewOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
+          <Plus width={16} height={16} strokeWidth={1.75} />
           New Invite
         </Button>
       </div>
 
       <section className="rounded-lg border border-border bg-card">
         <div className="px-5 py-3 border-b border-border">
-          <h2 className="text-sm font-medium text-foreground">Pending invites</h2>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">Pending invites</h2>
         </div>
 
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            <Loader2 width={20} height={20} strokeWidth={1.75} className="animate-spin text-muted-foreground" />
           </div>
         ) : listMissing ? (
           <div className="px-5 py-8 text-sm text-muted-foreground">
@@ -172,7 +172,7 @@ export default function AdminInvites() {
                               onClick={() => copyLink(invite.token)}
                               aria-label="Copy invite link"
                             >
-                              <Copy className="h-4 w-4" />
+                              <Copy width={16} height={16} strokeWidth={1.75} />
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>Copy link</TooltipContent>
@@ -186,7 +186,7 @@ export default function AdminInvites() {
                               disabled={resendMutation.isPending}
                               aria-label="Resend email"
                             >
-                              <Mail className="h-4 w-4" />
+                              <Mail width={16} height={16} strokeWidth={1.75} />
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>Resend email</TooltipContent>
@@ -199,7 +199,7 @@ export default function AdminInvites() {
                               onClick={() => setRevokeTarget(invite)}
                               aria-label="Revoke invite"
                             >
-                              <Trash2 className="h-4 w-4 text-destructive" />
+                              <Trash2 width={16} height={16} strokeWidth={1.75} className="text-destructive" />
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>Revoke</TooltipContent>

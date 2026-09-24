@@ -9,8 +9,10 @@ import { useWaitingOnUsCount } from "@/hooks/useWaitingOnUsCount";
 import logo from "@/assets/logo.png";
 
 const navItems = [
+  // Referrals (the queue) is the default landing surface — Dashboard is
+  // retired in phase 6b and kept below it for now (Alex, phase 6a).
+  { label: "Referrals", icon: FileText, path: "/admin/referrals" },
   { label: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
-  { label: "All Referrals", icon: FileText, path: "/admin/referrals" },
   // Analytics live on their own page (gate by role later — workers don't
   // need clinic volumes and trend lines on the daily surface).
   { label: "Insights", icon: BarChart3, path: "/admin/insights" },
@@ -65,7 +67,7 @@ export function AdminSidebar() {
             (item.path === "/admin/ai-quality" && location.pathname.startsWith("/admin/ai-quality")) ||
             (item.path === "/admin/support" && location.pathname.startsWith("/admin/support/"));
           const badgeCount =
-            item.label === "All Referrals" ? waitingOnUsCount :
+            item.label === "Referrals" ? waitingOnUsCount :
             item.label === "Add-on Requests" ? pendingAddonCount :
             item.label === "Fax Center" ? inboundNewFaxCount :
             0;

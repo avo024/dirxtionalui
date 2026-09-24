@@ -8,6 +8,7 @@ import { CreatedByAvatar } from "@/components/CreatedByAvatar";
 import { NotificationBell } from "@/components/NotificationBell";
 import { Button } from "@/components/ui/button";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
+import { IdChip } from "@/components/patterns/IdChip";
 import { useAuth } from "@/contexts/AuthContext";
 import { clinicApi, getMyClinic } from "@/lib/api";
 import { useTour } from "@/components/tutorials/useTour";
@@ -165,7 +166,7 @@ export default function ClinicDashboard() {
               <div className="rounded-lg border border-border bg-card overflow-hidden">
                 <Table>
                   <TableHeader>
-                    <TableRow><TableHead>Patient</TableHead><TableHead>Drug</TableHead><TableHead>Status</TableHead><TableHead>Created</TableHead><TableHead className="text-right">Actions</TableHead></TableRow>
+                    <TableRow><TableHead>Patient</TableHead><TableHead>Drug</TableHead><TableHead>Status</TableHead><TableHead>Created</TableHead></TableRow>
                   </TableHeader>
                   <TableBody>
                     {inProgressReferrals.slice(0, 6).map((r) => (
@@ -174,9 +175,6 @@ export default function ClinicDashboard() {
                         <TableCell>{r.drug || r.drug_requested || "—"}</TableCell>
                         <TableCell><StatusBadge status={r.status} variant="soft" /></TableCell>
                         <TableCell className="text-muted-foreground">{r.created_at ? formatDateShort(r.created_at) : "—"}</TableCell>
-                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                          <Button asChild size="sm" variant="outline"><Link to={`/clinic/referrals/${r.id}`}>View</Link></Button>
-                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -200,22 +198,19 @@ export default function ClinicDashboard() {
                     <TableRow>
                       <TableHead>ID</TableHead><TableHead>Patient Name</TableHead><TableHead>Drug</TableHead><TableHead>Status</TableHead>
                       <TableHead>PA Status</TableHead><TableHead>Created</TableHead><TableHead>Updated</TableHead>
-                      <TableHead className="text-right">Actions</TableHead><TableHead className="w-8" />
+                      <TableHead className="w-8" />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {sortedRecentReferrals.map((r) => (
                       <TableRow key={r.id} className="cursor-pointer" onClick={() => navigate(`/clinic/referrals/${r.id}`)}>
-                        <TableCell><span className="font-mono text-xs text-muted-foreground">{(r.id || "").toUpperCase()}</span></TableCell>
+                        <TableCell><IdChip id={r.id} /></TableCell>
                         <TableCell><span className="font-semibold text-foreground">{r.patient_name}</span></TableCell>
                         <TableCell>{r.drug || r.drug_requested || "—"}</TableCell>
                         <TableCell><StatusBadge status={r.status} variant="soft" /></TableCell>
                         <TableCell><ClinicPABadge status={r.pa_status} appealOutcome={r.appeal_outcome} /></TableCell>
                         <TableCell className="text-muted-foreground">{r.created_at ? formatDateShort(r.created_at) : "—"}</TableCell>
                         <TableCell className="text-muted-foreground">{r.updated_at ? formatDateShort(r.updated_at) : "—"}</TableCell>
-                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                          <Button asChild size="sm" variant="outline"><Link to={`/clinic/referrals/${r.id}`}><FileSearch width={14} height={14} strokeWidth={1.75} />View</Link></Button>
-                        </TableCell>
                         <TableCell><CreatedByAvatar name={r.created_by_name} /></TableCell>
                       </TableRow>
                     ))}

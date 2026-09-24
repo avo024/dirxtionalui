@@ -1,32 +1,59 @@
 import { useState, useEffect } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import {
-  FileText, Clock, CheckCircle, XCircle, Send, Loader2, CalendarDays, RefreshCw,
-  ArrowRight, ClipboardCheck, AlertTriangle, Zap, Inbox,
+  FileText, Clock, CheckCircle, XCircle, Send, Loader2, CalendarDays,
+  ArrowRight, ClipboardCheck, AlertTriangle, Zap,
 } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ClinicPABadge } from "@/components/ClinicPABadge";
 import { NotificationBell } from "@/components/NotificationBell";
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { adminApi } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { formatDateShort, getFormattedDate } from "@/lib/dateUtils";
-import "../clinic/wizard.css";
-import "../clinic/dashboard.css";
-import "./admin-dashboard.css";
+import { cn } from "@/lib/utils";
 
 type Tone = "warning" | "primary" | "destructive";
-const TONE_STYLE: Record<Tone, { fg: string; bg: string }> = {
-  warning: { fg: "var(--color-warning)", bg: "color-mix(in srgb, var(--color-warning) 12%, transparent)" },
-  primary: { fg: "var(--color-navy)", bg: "color-mix(in srgb, var(--color-navy) 10%, transparent)" },
-  destructive: { fg: "var(--color-error)", bg: "color-mix(in srgb, var(--color-error) 10%, transparent)" },
+const TONE_STYLE: Record<Tone, string> = {
+  warning: "bg-warning/12 text-warning",
+  primary: "bg-primary/10 text-primary",
+  destructive: "bg-destructive/10 text-destructive",
 };
 function StatIcon({ tone, icon: Icon, size = 18 }: { tone: Tone; icon: any; size?: number }) {
-  const t = TONE_STYLE[tone];
-  return <span className="dh-stat-ic" style={{ background: t.bg, color: t.fg }}><Icon size={size} /></span>;
+  return (
+    <span className={cn("flex shrink-0 items-center justify-center rounded-md", TONE_STYLE[tone])} style={{ width: size + 16, height: size + 16 }}>
+      <Icon width={size} height={size} strokeWidth={1.75} />
+    </span>
+  );
 }
 const ExpiredTag = () => (
-  <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 600, padding: "1px 6px", borderRadius: 9999, background: "color-mix(in srgb, var(--color-warning) 16%, transparent)", color: "#92610B" }}><AlertTriangle size={10} />Ins. Expired</span>
+  <span className="inline-flex items-center gap-1 rounded-full bg-warning/16 text-[#92610B] px-1.5 py-0.5 text-[10px] font-semibold">
+    <AlertTriangle width={10} height={10} strokeWidth={1.75} />Ins. Expired
+  </span>
 );
+
+function ActionCard({ tone, icon, value, label, sub, to, onClick }: { tone: Tone; icon: any; value: number | string; label: string; sub: string; to: string; onClick?: (e: React.MouseEvent) => void }) {
+  return (
+    <Link
+      to={to}
+      onClick={onClick}
+      className={cn(
+        "flex items-center gap-3 rounded-lg border bg-card p-4 no-underline transition-colors hover:bg-muted/40",
+        tone === "destructive" ? "border-destructive/30" : tone === "warning" ? "border-warning/30" : "border-border",
+      )}
+    >
+      <StatIcon tone={tone} icon={icon} size={20} />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline gap-2">
+          <span className="text-xl font-semibold text-foreground">{value}</span>
+          <span className="text-sm font-semibold text-foreground">{label}</span>
+        </div>
+        <span className="text-xs text-muted-foreground">{sub}</span>
+      </div>
+      <ArrowRight width={16} height={16} strokeWidth={1.75} className="text-muted-foreground shrink-0" />
+    </Link>
+  );
+}
 
 export default function AdminDashboard() {
   const [referrals, setReferrals] = useState<any[]>([]);
@@ -55,7 +82,11 @@ export default function AdminDashboard() {
   }, [location.key]);
 
   if (loading) {
-    return <div className="rw-page" style={{ display: "flex", justifyContent: "center", padding: 64 }}><span className="rw-spin" style={{ color: "var(--color-teal)" }}><Loader2 size={26} /></span></div>;
+    return (
+      <div className="rw-page flex justify-center py-16">
+        <Loader2 width={26} height={26} strokeWidth={1.75} className="animate-spin text-primary" />
+      </div>
+    );
   }
 
   // Filed/in-appeal PAs live in their own tabs, and handed-off/final appeals
@@ -79,8 +110,10 @@ export default function AdminDashboard() {
 
   const today = new Date().toDateString();
   const countToday = (status: string) => referrals.filter((r) => r.status === status && r.updated_at && new Date(r.updated_at).toDateString() === today).length;
+  // Cards link straight into the v2 queue's tabs/filters (AdminReferralsList
+  // reads ?tab= and ?filter= deep links) — the dashboard is retired in 6b.
   const STAT: Record<string, any> = {
-    total: { label: "Total Referrals", value: referrals.length, icon: FileText, tone: "primary", sub: "All clinics", link: "/admin/referrals?filter=all" },
+    total: { label: "Total Referrals", value: referrals.length, icon: FileText, tone: "primary", sub: "All clinics", link: "/admin/referrals?tab=all" },
     needs_review: { label: "Needs Review", value: needsReview.length, icon: Clock, tone: "warning", sub: "Awaiting review", link: "/admin/referrals?filter=needs_review" },
     rejected: { label: "Rejected Today", value: countToday("rejected"), icon: XCircle, tone: "destructive", sub: "Today", link: "/admin/referrals?filter=rejected" },
     approved: { label: "Approved Today", value: countToday("approved_to_send"), icon: CheckCircle, tone: "primary", sub: "Today", link: "/admin/referrals?filter=approved_to_send" },
@@ -91,140 +124,149 @@ export default function AdminDashboard() {
   const mutedStats = [STAT.approved, STAT.sent];
 
   return (
-    <div className="rw-page dh-page rw-fade">
+    <div className="rw-page rw-fade">
       {/* Header */}
-      <div className="dh-header">
-        <div className="dh-greet">
-          <h1 className="dh-h1 serif">Admin Dashboard</h1>
-          <p className="dh-sub">Overview of all referral activity</p>
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h1 className="text-2xl font-semibold serif text-foreground">Admin Dashboard</h1>
+          <p className="text-sm text-muted-foreground mt-1">Overview of all referral activity</p>
         </div>
-        <div className="dh-header-right">
+        <div className="flex items-center gap-3">
           <NotificationBell referrals={referrals} noteField="latest_clinic_note_at" actionStatus={null} linkBase="/admin/referrals" />
-          <div className="dh-date"><CalendarDays size={15} /><span>{getFormattedDate()}</span></div>
+          <div className="inline-flex items-center gap-1.5 text-sm text-muted-foreground"><CalendarDays width={15} height={15} strokeWidth={1.75} /><span>{getFormattedDate()}</span></div>
         </div>
       </div>
 
       {/* PA checks due — the 72h follow-up discipline, front and center */}
       {((paCounts.pa_followup_due ?? 0) + (paCounts.appeal_followup_due ?? 0)) > 0 && (
-        <Link to="/admin/referrals?filter=pa_pending" className="dh-action-card destructive" style={{ marginBottom: 14 }}>
-          <StatIcon tone="destructive" icon={AlertTriangle} size={20} />
-          <div className="dh-action-meta">
-            <div className="dh-action-head">
-              <span className="dh-action-val num">{(paCounts.pa_followup_due ?? 0) + (paCounts.appeal_followup_due ?? 0)}</span>
-              <span className="dh-action-lbl">PA checks due</span>
-            </div>
-            <span className="dh-action-sub">
-              {paCounts.pa_followup_due ?? 0} PA{(paCounts.pa_followup_due ?? 0) === 1 ? "" : "s"} past the 72h follow-up
-              {(paCounts.appeal_followup_due ?? 0) > 0 && ` · ${paCounts.appeal_followup_due} appeal${paCounts.appeal_followup_due === 1 ? "" : "s"}`} — check CoverMyMeds and record the decision
-            </span>
-          </div>
-          <span className="dh-action-arrow"><ArrowRight size={16} /></span>
-        </Link>
+        <ActionCard
+          tone="destructive"
+          icon={AlertTriangle}
+          to="/admin/referrals?filter=pa_pending"
+          value={(paCounts.pa_followup_due ?? 0) + (paCounts.appeal_followup_due ?? 0)}
+          label="PA checks due"
+          sub={`${paCounts.pa_followup_due ?? 0} PA${(paCounts.pa_followup_due ?? 0) === 1 ? "" : "s"} past the 72h follow-up${(paCounts.appeal_followup_due ?? 0) > 0 ? ` · ${paCounts.appeal_followup_due} appeal${paCounts.appeal_followup_due === 1 ? "" : "s"}` : ""} — check CoverMyMeds and record the decision`}
+        />
       )}
 
       {/* Delivery issues — the pharmacy says it never arrived; highest urgency */}
       {(paCounts.delivery_issues ?? 0) > 0 && (
-        <Link to="/admin/referrals?filter=delivery_issues" className="dh-action-card destructive" style={{ marginBottom: 14 }}>
-          <StatIcon tone="destructive" icon={AlertTriangle} size={20} />
-          <div className="dh-action-meta">
-            <div className="dh-action-head">
-              <span className="dh-action-val num">{paCounts.delivery_issues}</span>
-              <span className="dh-action-lbl">Delivery issue{paCounts.delivery_issues === 1 ? "" : "s"}</span>
-            </div>
-            <span className="dh-action-sub">
-              The clinic reports the pharmacy never received it — check with the pharmacy, then reset for resend or resolve the case
-            </span>
-          </div>
-          <span className="dh-action-arrow"><ArrowRight size={16} /></span>
-        </Link>
+        <div className="mt-3.5">
+          <ActionCard
+            tone="destructive"
+            icon={AlertTriangle}
+            to="/admin/referrals?filter=delivery_issues"
+            value={paCounts.delivery_issues}
+            label={`Delivery issue${paCounts.delivery_issues === 1 ? "" : "s"}`}
+            sub="The clinic reports the pharmacy never received it — check with the pharmacy, then reset for resend or resolve the case"
+          />
+        </div>
       )}
 
       {/* Task replies to review — the clinic answered; an admin needs to
           review the reply/upload and mark the task complete. */}
       {(paCounts.tasks_awaiting_review ?? 0) > 0 && (
-        <Link
-          to="/admin/referrals?filter=task_replies"
-          className="dh-action-card warning"
-          style={{ marginBottom: 14 }}
-          onClick={async (e) => {
-            // Exactly one reply waiting → skip the list, open that referral.
-            if (paCounts.tasks_awaiting_review === 1) {
-              e.preventDefault();
-              try {
-                const res = await adminApi.getReferrals({ view: "task_replies" });
-                const only = (res.items || [])[0];
-                if (only) { navigate(`/admin/referrals/${only.id}`); return; }
-              } catch { /* fall through to the filtered list */ }
-              navigate("/admin/referrals?filter=task_replies");
-            }
-          }}
-        >
-          <StatIcon tone="warning" icon={ClipboardCheck} size={20} />
-          <div className="dh-action-meta">
-            <div className="dh-action-head">
-              <span className="dh-action-val num">{paCounts.tasks_awaiting_review}</span>
-              <span className="dh-action-lbl">Task {paCounts.tasks_awaiting_review === 1 ? "reply" : "replies"} to review</span>
-            </div>
-            <span className="dh-action-sub">
-              The clinic answered — review the reply or upload and mark the task complete
-            </span>
-          </div>
-          <span className="dh-action-arrow"><ArrowRight size={16} /></span>
-        </Link>
+        <div className="mt-3.5">
+          <ActionCard
+            tone="warning"
+            icon={ClipboardCheck}
+            to="/admin/referrals?filter=task_replies"
+            value={paCounts.tasks_awaiting_review}
+            label={`Task ${paCounts.tasks_awaiting_review === 1 ? "reply" : "replies"} to review`}
+            sub="The clinic answered — review the reply or upload and mark the task complete"
+            onClick={async (e) => {
+              // Exactly one reply waiting → skip the list, open that referral.
+              if (paCounts.tasks_awaiting_review === 1) {
+                e.preventDefault();
+                try {
+                  const res = await adminApi.getReferrals({ view: "task_replies" });
+                  const only = (res.items || [])[0];
+                  if (only) { navigate(`/admin/referrals/${only.id}`); return; }
+                } catch { /* fall through to the filtered list */ }
+                navigate("/admin/referrals?filter=task_replies");
+              }
+            }}
+          />
+        </div>
       )}
 
       {/* Action-split stats */}
-      <div className="ad-split">
-        <div className="ad-split-action">
+      <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-3 mt-3.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {actionStats.map((s) => (
-            <Link key={s.label} to={s.link} className={`dh-action-card ${s.tone === "warning" ? "warning" : "destructive"}`}>
-              <StatIcon tone={s.tone} icon={s.icon} size={20} />
-              <div className="dh-action-meta">
-                <div className="dh-action-head"><span className="dh-action-val num">{s.value}</span><span className="dh-action-lbl">{s.label}</span></div>
-                <span className="dh-action-sub">{s.sub}</span>
-              </div>
-              <span className="dh-action-arrow"><ArrowRight size={16} /></span>
-            </Link>
+            <ActionCard key={s.label} tone={s.tone} icon={s.icon} to={s.link} value={s.value} label={s.label} sub={s.sub} />
           ))}
         </div>
-        <div className="ad-split-muted">
+        <div className="grid grid-cols-2 gap-3">
           {mutedStats.map((s) => (
-            <Link key={s.label} to={s.link} className="dh-muted-card">
-              <div className="dh-muted-top"><span className="dh-muted-lbl">{s.label}</span><StatIcon tone={s.tone} icon={s.icon} size={15} /></div>
-              <span className="dh-muted-val num">{s.value}</span>
+            <Link key={s.label} to={s.link} className="rounded-lg border border-border bg-card p-3.5 no-underline hover:bg-muted/40 transition-colors">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-medium text-muted-foreground">{s.label}</span>
+                <StatIcon tone={s.tone} icon={s.icon} size={15} />
+              </div>
+              <span className="text-xl font-semibold text-foreground">{s.value}</span>
             </Link>
           ))}
         </div>
       </div>
 
       {/* Needs Attention */}
-      <div>
-        <div className="dh-sec-head">
-          <h2>Needs Attention {needsAttention.length > 0 && <span className="ad-sec-count">{needsAttention.length}</span>}</h2>
-          <Link to="/admin/referrals" className="dh-viewall">View all →</Link>
+      <div className="mt-6">
+        <div className="flex items-center justify-between mb-2.5">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground flex items-center gap-2">
+            Needs Attention {needsAttention.length > 0 && <span className="text-xs font-medium text-muted-foreground">{needsAttention.length}</span>}
+          </h2>
+          <Link to="/admin/referrals" className="text-sm font-medium text-primary hover:underline">View all →</Link>
         </div>
         {needsAttention.length > 0 ? (
-          <div className="dh-table-wrap">
-            <table className="dh-table">
-              <thead><tr><th>ID</th><th>Patient</th><th>Clinic</th><th>Drug</th><th>PA Status</th><th>Status</th><th>Created</th><th className="r">Actions</th></tr></thead>
-              <tbody>
+          <div className="rounded-lg border border-border bg-card overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>ID</TableHead>
+                  <TableHead>Patient</TableHead>
+                  <TableHead>Clinic</TableHead>
+                  <TableHead>Drug</TableHead>
+                  <TableHead>PA Status</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Created</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {needsAttention.slice(0, 25).map((r: any) => (
-                  <tr key={r.id} onClick={() => navigate(`/admin/referrals/${r.id}`)}>
-                    <td><span className="dh-id">{(r.id || "").toUpperCase()}</span></td>
-                    <td><span className="dh-pt"><span className="dh-pt-nm">{r.patient_name}</span></span></td>
-                    <td className="dh-muted-cell">{r.clinic_name || "—"}</td>
-                    <td><span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>{r.drug || r.drug_requested || "—"}{r.is_bridge_program && <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 600, padding: "1px 6px", borderRadius: 9999, background: "var(--color-teal-50)", color: "var(--color-teal-700)" }}><Zap size={10} />Bridge</span>}</span></td>
-                    <td><ClinicPABadge status={r.pa_status} appealOutcome={r.appeal_outcome} /></td>
-                    <td><span style={{ display: "inline-flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}><StatusBadge status={r.status} />{r.insurance_expired && <ExpiredTag />}</span></td>
-                    <td className="dh-muted-cell">{r.created_at ? formatDateShort(r.created_at) : "—"}</td>
-                    <td className="r" onClick={(e) => e.stopPropagation()}><button className="rw-btn primary sm" onClick={() => navigate(`/admin/referrals/${r.id}`)}><ClipboardCheck size={14} />Review</button></td>
-                  </tr>
+                  <TableRow key={r.id} className="cursor-pointer" onClick={() => navigate(`/admin/referrals/${r.id}`)}>
+                    <TableCell><span className="font-mono text-xs text-muted-foreground">{(r.id || "").toUpperCase()}</span></TableCell>
+                    <TableCell><span className="font-semibold text-foreground">{r.patient_name}</span></TableCell>
+                    <TableCell className="text-muted-foreground">{r.clinic_name || "—"}</TableCell>
+                    <TableCell>
+                      <span className="inline-flex items-center gap-1.5">
+                        {r.drug || r.drug_requested || "—"}
+                        {r.is_bridge_program && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-teal-600/10 text-teal-700 px-1.5 py-0.5 text-[10px] font-semibold">
+                            <Zap width={10} height={10} strokeWidth={1.75} />Bridge
+                          </span>
+                        )}
+                      </span>
+                    </TableCell>
+                    <TableCell><ClinicPABadge status={r.pa_status} appealOutcome={r.appeal_outcome} /></TableCell>
+                    <TableCell>
+                      <span className="inline-flex items-center gap-1.5 flex-wrap">
+                        <StatusBadge status={r.status} />
+                        {r.insurance_expired && <ExpiredTag />}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{r.created_at ? formatDateShort(r.created_at) : "—"}</TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         ) : (
-          <div className="dh-empty"><div className="dh-empty-ic"><CheckCircle size={26} /></div><h3>All caught up</h3><p>No referrals need attention right now.</p></div>
+          <div className="flex flex-col items-center gap-2 py-16 text-center">
+            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-muted text-muted-foreground"><CheckCircle width={26} height={26} strokeWidth={1.75} /></span>
+            <h3 className="text-base font-semibold text-foreground">All caught up</h3>
+            <p className="text-sm text-muted-foreground">No referrals need attention right now.</p>
+          </div>
         )}
       </div>
     </div>

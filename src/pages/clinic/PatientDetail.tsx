@@ -4,6 +4,7 @@ import { ArrowLeft, Plus, User, Shield, FileText, Pill, ClipboardList, Loader2, 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { underlineTabsListClass, underlineTabsTriggerClass } from "@/components/patterns/underlineTabs";
 import { DefinitionList } from "@/components/patterns/DefinitionList";
+import { IdChip } from "@/components/patterns/IdChip";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ClinicPABadge } from "@/components/ClinicPABadge";
 import { PAStatusBadge } from "@/components/PAStatusBadge";
@@ -153,7 +154,7 @@ export default function PatientDetail() {
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-semibold serif text-foreground">{fullName}</h1>
           <span className="text-sm text-muted-foreground">{patient.dob ? `${formatDateShort(patient.dob)} · Age ${getAge(patient.dob)}` : "—"}</span>
-          <span className="inline-flex items-center rounded-full border border-border px-2.5 py-0.5 text-xs font-mono text-muted-foreground">{(patient.id || "").slice(0, 8).toUpperCase()}</span>
+          <IdChip id={patient.id} />
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={beginEdit}><Pencil width={16} height={16} strokeWidth={1.75} />Edit patient</Button>
@@ -223,20 +224,17 @@ export default function PatientDetail() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Referral ID</TableHead><TableHead>Drug</TableHead><TableHead>Status</TableHead>
-                    <TableHead>PA status</TableHead><TableHead>Created</TableHead><TableHead className="text-right">Actions</TableHead>
+                    <TableHead>PA status</TableHead><TableHead>Created</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {referrals.map((r: any) => (
                     <TableRow key={r.id} className="cursor-pointer" onClick={() => navigate(`/clinic/referrals/${r.id}`)}>
-                      <TableCell><span className="font-mono text-xs text-muted-foreground">{r.id.toUpperCase()}</span></TableCell>
+                      <TableCell><IdChip id={r.id} /></TableCell>
                       <TableCell>{r.drug || r.drug_requested || "—"}</TableCell>
                       <TableCell><StatusBadge status={r.status} variant="soft" /></TableCell>
                       <TableCell><ClinicPABadge status={r.pa_status} appealOutcome={r.appeal_outcome} /></TableCell>
                       <TableCell className="text-muted-foreground">{r.created_at ? formatDateShort(r.created_at) : "—"}</TableCell>
-                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                        <Button size="sm" variant="outline" onClick={() => navigate(`/clinic/referrals/${r.id}`)}>View</Button>
-                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

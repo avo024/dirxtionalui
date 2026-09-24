@@ -35,6 +35,8 @@ interface MessageThreadProps {
   ours?: "ours" | "clinic";
   hint?: string;
   className?: string;
+  /** Replaces the composer with a locked bar (e.g. a resolved/closed case) — pass a message and an action to unlock. */
+  locked?: { message: string; actionLabel: string; onAction: () => void; actionDisabled?: boolean };
 }
 
 function resolveSide(message: ThreadMessage, ours: "ours" | "clinic"): "ours" | "clinic" {
@@ -62,6 +64,7 @@ export function MessageThread({
   ours = "ours",
   hint = "Visible to the clinic",
   className,
+  locked,
 }: MessageThreadProps) {
   return (
     <div className={cn("bg-card border border-border rounded-lg overflow-hidden flex flex-col", className)}>
@@ -127,26 +130,35 @@ export function MessageThread({
         })}
       </div>
 
-      <div className="border-t border-border p-3 flex flex-col gap-2">
-        <Textarea
-          rows={3}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          className="resize-none"
-        />
-        <div className="flex items-center gap-2">
-          <Button type="button" variant="ghost" size="sm" onClick={onAttach}>
-            <Paperclip width={16} height={16} strokeWidth={1.75} aria-hidden="true" />
-            Attach
-          </Button>
-          <span className="ml-auto text-xs text-muted-foreground">{hint}</span>
-          <Button type="button" size="sm" onClick={onSend} disabled={value.trim().length === 0}>
-            <Send width={16} height={16} strokeWidth={1.75} aria-hidden="true" />
-            Send
+      {locked ? (
+        <div className="border-t border-border p-3 flex items-center justify-between gap-3 bg-muted/40">
+          <span className="text-sm text-muted-foreground">{locked.message}</span>
+          <Button type="button" variant="outline" size="sm" disabled={locked.actionDisabled} onClick={locked.onAction}>
+            {locked.actionLabel}
           </Button>
         </div>
-      </div>
+      ) : (
+        <div className="border-t border-border p-3 flex flex-col gap-2">
+          <Textarea
+            rows={3}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={placeholder}
+            className="resize-none"
+          />
+          <div className="flex items-center gap-2">
+            <Button type="button" variant="ghost" size="sm" onClick={onAttach}>
+              <Paperclip width={16} height={16} strokeWidth={1.75} aria-hidden="true" />
+              Attach
+            </Button>
+            <span className="ml-auto text-xs text-muted-foreground">{hint}</span>
+            <Button type="button" size="sm" onClick={onSend} disabled={value.trim().length === 0}>
+              <Send width={16} height={16} strokeWidth={1.75} aria-hidden="true" />
+              Send
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

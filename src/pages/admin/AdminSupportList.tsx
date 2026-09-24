@@ -1,14 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Loader2, LifeBuoy, MessageSquareHeart, ChevronRight, Inbox, AlertTriangle } from "lucide-react";
+import { Loader2, LifeBuoy, MessageSquareHeart, ChevronRight, Inbox, AlertTriangle } from "lucide-react";
 import { adminApi, type SupportCaseSummary } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { getRelativeTime } from "@/lib/dateUtils";
 import { SupportStatusBadge } from "@/components/SupportStatusBadge";
-import "../clinic/wizard.css";
-import "../clinic/dashboard.css";
-import "../clinic/referrals.css";
-import "./admin-support.css";
+import { FilterToolbar } from "@/components/patterns/FilterToolbar";
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 
 const STATUS_FILTERS = [
   { value: "all", label: "All" },
@@ -22,20 +21,27 @@ const CAT_TABS = [
   { value: "feedback", label: "Feedback" },
   { value: "delivery_issue", label: "Delivery" },
 ];
-
+const ASSIGNED_TABS = [
+  { value: "all", label: "Everyone" },
+  { value: "me", label: "Mine" },
+  { value: "unassigned", label: "Unclaimed" },
+];
 
 function CategoryChip({ category }: { category: string }) {
   if (category === "delivery_issue") {
     return (
-      <span className="as-cat delivery_issue">
-        <span className="ci"><AlertTriangle size={12} /></span>Delivery issue
+      <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 text-destructive px-2 py-0.5 text-[11px] font-semibold">
+        <AlertTriangle width={12} height={12} strokeWidth={1.75} />Delivery issue
       </span>
     );
   }
   const isFeedback = category === "feedback";
   return (
-    <span className={`as-cat ${category}`}>
-      <span className="ci">{isFeedback ? <MessageSquareHeart size={12} /> : <LifeBuoy size={12} />}</span>
+    <span className={cn(
+      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold",
+      isFeedback ? "bg-teal-600/10 text-teal-700" : "bg-primary/10 text-primary",
+    )}>
+      {isFeedback ? <MessageSquareHeart width={12} height={12} strokeWidth={1.75} /> : <LifeBuoy width={12} height={12} strokeWidth={1.75} />}
       {isFeedback ? "Feedback" : "Support"}
     </span>
   );
@@ -85,84 +91,103 @@ export default function AdminSupportList() {
   const chipCount = (v: string) => (v === "all" ? totalCount : counts[v] || 0);
 
   return (
-    <div className="rw-page rl-page rw-fade">
-      <div className="rl-header">
-        <div>
-          <h1 className="rl-h1 serif">Support</h1>
-          <p className="rl-sub">Clinic support cases and product feedback</p>
-        </div>
+    <div className="rw-page rw-fade">
+      <div className="mb-5">
+        <h1 className="text-2xl font-semibold serif text-foreground">Support</h1>
+        <p className="text-sm text-muted-foreground mt-1">Clinic support cases and product feedback</p>
       </div>
 
-      <div className="rl-toolbar as-toolbar">
-        <div className="rl-seg">
-          {STATUS_FILTERS.map((f) => (
-            <button key={f.value} className={`rl-seg-btn${status === f.value ? " on" : ""}`} onClick={() => setStatus(f.value)}>
-              {f.label}<span className="rl-seg-n num">{chipCount(f.value)}</span>
+      <div className="flex items-center justify-between gap-3 flex-wrap mb-2.5">
+        <FilterToolbar
+          filters={STATUS_FILTERS.map((f) => ({ value: f.value, label: f.label, count: chipCount(f.value) }))}
+          active={status}
+          onFilter={setStatus}
+        />
+        <div className="inline-flex items-center rounded-md border border-border bg-card p-0.5">
+          {ASSIGNED_TABS.map((t) => (
+            <button
+              key={t.value}
+              type="button"
+              onClick={() => setAssigned(t.value)}
+              className={cn(
+                "inline-flex items-center rounded-[calc(var(--radius)-4px)] px-3 h-[var(--density-control-h-xs)] text-sm font-medium transition-colors",
+                assigned === t.value ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted",
+              )}
+            >
+              {t.label}
             </button>
           ))}
         </div>
-        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-          <div className="rl-seg">
-            {[{ value: "all", label: "Everyone" }, { value: "me", label: "Mine" }, { value: "unassigned", label: "Unclaimed" }].map((t) => (
-              <button key={t.value} className={`rl-seg-btn${assigned === t.value ? " on" : ""}`} onClick={() => setAssigned(t.value)}>{t.label}</button>
-            ))}
-          </div>
-          <select className="rl-select" style={{ border: "1px solid var(--border-default)", borderRadius: "var(--radius-md)", height: 38, padding: "0 10px", background: "#fff" }}
-            value={category} onChange={(e) => setCategory(e.target.value)}>
-            {CAT_TABS.map((t) => <option key={t.value} value={t.value}>{t.value === "all" ? "All categories" : t.label}</option>)}
-          </select>
-        </div>
       </div>
 
-      <div className="rl-toolbar" style={{ marginTop: 2, gap: 12 }}>
-        <div className="rl-search">
-          <span className="rl-search-ic"><Search size={16} /></span>
-          <input className="rl-search-input" placeholder="Search by clinic or subject (all time)…" value={search} onChange={(e) => setSearch(e.target.value)} />
-        </div>
-
+      <div className="mb-4">
+        <FilterToolbar
+          search={search}
+          onSearch={setSearch}
+          searchPlaceholder="Search by clinic or subject (all time)…"
+          selects={[
+            {
+              options: CAT_TABS.map((t) => (t.value === "all" ? "All categories" : t.label)),
+              value: category === "all" ? "All categories" : CAT_TABS.find((t) => t.value === category)?.label,
+              onChange: (label) => {
+                const t = CAT_TABS.find((o) => (o.value === "all" ? "All categories" : o.label) === label);
+                if (t) setCategory(t.value);
+              },
+              width: "180px",
+            },
+          ]}
+        />
       </div>
 
       {loading ? (
-        <div style={{ display: "flex", justifyContent: "center", padding: 64 }}>
-          <span className="rw-spin" style={{ color: "var(--color-teal)" }}><Loader2 size={26} /></span>
+        <div className="flex justify-center py-16">
+          <Loader2 width={26} height={26} strokeWidth={1.75} className="animate-spin text-primary" />
         </div>
       ) : items.length > 0 ? (
-        <div className="dh-table-wrap as-table-wrap">
-          <table className="dh-table as-table">
-            <thead>
-              <tr><th>Clinic</th><th>Subject</th><th>Category</th><th>Status</th><th>Assigned</th><th>Last activity</th><th className="r"></th></tr>
-            </thead>
-            <tbody>
+        <div className="rounded-lg border border-border bg-card overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Clinic</TableHead>
+                <TableHead>Subject</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Assigned</TableHead>
+                <TableHead>Last activity</TableHead>
+                <TableHead className="w-8" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {items.map((c) => (
-                <tr key={c.id} onClick={() => navigate(`/admin/support/${c.id}`)}>
-                  <td className="as-clinic">
-                    <span className="as-clinic-wrap">
-                      {c.needs_reply && <span className="as-reply-dot" title="Needs reply — clinic spoke last" />}
-                      <span className="as-clinic-nm">{c.clinic_name}</span>
+                <TableRow key={c.id} className="cursor-pointer" onClick={() => navigate(`/admin/support/${c.id}`)}>
+                  <TableCell>
+                    <span className="inline-flex items-center gap-1.5">
+                      {c.needs_reply && <span className="h-1.5 w-1.5 rounded-full bg-destructive shrink-0" title="Needs reply — clinic spoke last" />}
+                      <span className="font-semibold text-foreground">{c.clinic_name}</span>
                     </span>
-                  </td>
-                  <td>
-                    <div className="as-subject" title={c.subject}>{c.subject}</div>
-                    <span className="as-id">#{c.short_id}</span>
+                  </TableCell>
+                  <TableCell>
+                    <div className="truncate max-w-[280px]" title={c.subject}>{c.subject}</div>
+                    <span className="font-mono text-xs text-muted-foreground">#{c.short_id}</span>
                     {c.referral_id && (
-                      <span className="as-id" style={{ color: "var(--color-teal-700)", fontWeight: 600 }}> · Ref #{c.referral_short}</span>
+                      <span className="font-mono text-xs text-teal-700 font-semibold"> · Ref #{c.referral_short}</span>
                     )}
-                  </td>
-                  <td><CategoryChip category={c.category} /></td>
-                  <td><SupportStatusBadge status={c.status} /></td>
-                  <td className="as-activity">{c.assigned_admin_name || <span style={{ opacity: 0.45 }}>—</span>}</td>
-                  <td className="as-activity">{getRelativeTime(c.last_message_at || c.updated_at)}</td>
-                  <td className="r"><span className="as-open-cta"><ChevronRight size={16} /></span></td>
-                </tr>
+                  </TableCell>
+                  <TableCell><CategoryChip category={c.category} /></TableCell>
+                  <TableCell><SupportStatusBadge status={c.status} /></TableCell>
+                  <TableCell className="text-muted-foreground">{c.assigned_admin_name || <span className="opacity-45">—</span>}</TableCell>
+                  <TableCell className="text-muted-foreground">{getRelativeTime(c.last_message_at || c.updated_at)}</TableCell>
+                  <TableCell><ChevronRight width={16} height={16} strokeWidth={1.75} className="text-muted-foreground" /></TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       ) : (
-        <div className="dh-empty">
-          <div className="dh-empty-ic sm"><Inbox size={20} /></div>
-          <p className="rl-empty-t">No cases here</p>
-          <p className="rl-empty-s">Nothing matches these filters. When a clinic opens a case or sends feedback, it lands here.</p>
+        <div className="flex flex-col items-center gap-2 py-16 text-center">
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground"><Inbox width={20} height={20} strokeWidth={1.75} /></span>
+          <p className="text-sm font-semibold text-foreground">No cases here</p>
+          <p className="text-sm text-muted-foreground">Nothing matches these filters. When a clinic opens a case or sends feedback, it lands here.</p>
         </div>
       )}
     </div>

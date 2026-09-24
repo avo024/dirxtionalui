@@ -12,7 +12,13 @@ import { toast } from "@/hooks/use-toast";
 import { DrugCombobox } from "@/components/DrugCombobox";
 import { NewPatientModal } from "@/components/NewPatientModal";
 import { PAStatusBadge } from "@/components/PAStatusBadge";
-import "./wizard.css";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 type Patient = {
   id: string;
@@ -108,23 +114,25 @@ const INSURANCE_FIELDS: FieldCfg[] = [
 ];
 
 /* ── small presentational helpers (module scope so inputs keep focus) ── */
-function Btn({ variant = "outline", sm, children, ...rest }: any) {
-  return <button className={`rw-btn ${variant}${sm ? " sm" : ""}`} {...rest}>{children}</button>;
-}
 function RwField({ label, required, helper, children }: { label: string; required?: boolean; helper?: string; children: React.ReactNode }) {
   return (
-    <div className="rw-field">
-      <label className="rw-label">{label}{required && <span className="rw-req">*</span>}</label>
+    <div className="flex flex-col gap-1.5">
+      <Label className="text-xs font-medium text-muted-foreground">{label}{required && <span className="text-destructive ml-0.5">*</span>}</Label>
       {children}
-      {helper && <span className="rw-hint">{helper}</span>}
+      {helper && <span className="text-xs text-muted-foreground">{helper}</span>}
     </div>
   );
 }
 function NoticeStrip({ icon: Icon, tone, children }: { icon: any; tone?: "teal" | "warn"; children: React.ReactNode }) {
   return (
-    <div className={`rw-strip${tone ? " " + tone : ""}`}>
-      <span className="si"><Icon size={18} /></span>
-      <p>{children}</p>
+    <div className={cn(
+      "flex items-start gap-2.5 rounded-lg border px-3.5 py-3",
+      tone === "teal" ? "border-teal-600/25 bg-teal-600/5" : tone === "warn" ? "border-warning/30 bg-warning/8" : "border-border bg-muted/40",
+    )}>
+      <span className={cn("shrink-0 mt-0.5", tone === "teal" ? "text-teal-700" : tone === "warn" ? "text-warning" : "text-muted-foreground")}>
+        <Icon width={18} height={18} strokeWidth={1.75} />
+      </span>
+      <p className="text-sm text-foreground m-0">{children}</p>
     </div>
   );
 }
@@ -134,9 +142,9 @@ function ManualField({ field, data, setField }: { field: FieldCfg; data: any; se
   if (field.kind === "switch") {
     return (
       <RwField label={field.label}>
-        <div style={{ display: "flex", alignItems: "center", gap: 11, height: 40 }}>
-          <button type="button" className={`rw-switch${v ? " on" : ""}`} onClick={() => setField(field.key, !v)} aria-pressed={!!v}><i /></button>
-          <span style={{ fontSize: ".875rem", color: "var(--text-muted)" }}>{v ? "Yes" : "No"}</span>
+        <div className="flex items-center gap-2.5 h-10">
+          <Switch checked={!!v} onCheckedChange={(val) => setField(field.key, val)} />
+          <span className="text-sm text-muted-foreground">{v ? "Yes" : "No"}</span>
         </div>
       </RwField>
     );
@@ -151,23 +159,25 @@ function ManualField({ field, data, setField }: { field: FieldCfg; data: any; se
   if (field.kind === "select") {
     return (
       <RwField label={field.label} required={field.required} helper={field.helper}>
-        <select className="rw-select" value={v || ""} onChange={(e) => setField(field.key, e.target.value)}>
-          <option value="" disabled>{field.placeholder || "Select"}</option>
-          {field.options!.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
+        <Select value={v || undefined} onValueChange={(val) => setField(field.key, val)}>
+          <SelectTrigger><SelectValue placeholder={field.placeholder || "Select"} /></SelectTrigger>
+          <SelectContent>
+            {field.options!.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
       </RwField>
     );
   }
   if (field.kind === "date") {
     return (
       <RwField label={field.label} required={field.required} helper={field.helper}>
-        <input className="rw-input" type="date" value={v || ""} onChange={(e) => setField(field.key, e.target.value)} />
+        <Input type="date" value={v || ""} onChange={(e) => setField(field.key, e.target.value)} />
       </RwField>
     );
   }
   return (
     <RwField label={field.label} required={field.required} helper={field.helper}>
-      <input className="rw-input" type={field.type || "text"} value={v || ""} maxLength={field.maxLength}
+      <Input type={field.type || "text"} value={v || ""} maxLength={field.maxLength}
         placeholder={field.placeholder} onChange={(e) => setField(field.key, e.target.value)} />
     </RwField>
   );
@@ -416,19 +426,19 @@ export default function CreateReferral() {
   if (submitted) {
     return (
       <div className="rw-page">
-        <div className="rw-success rw-fade">
-          <div className="sc"><CheckCircle size={34} /></div>
-          <h1>We'll Take It From Here!</h1>
-          <p>Referral submitted successfully! Our AI is extracting the details now and our team will review within the hour.</p>
-          <div className="rw-refchip">REF-{String(Math.floor(Math.random() * 900000) + 100000)}</div>
-          <div className="rw-success-actions">
-            <Btn variant="primary" onClick={() => navigate("/clinic/dashboard")}>Back to Dashboard</Btn>
-            <Btn variant="outline" onClick={() => navigate("/clinic/referrals")}>View Referrals</Btn>
-            <Btn variant="outline" onClick={() => {
+        <div className="rw-fade flex flex-col items-center gap-3 text-center py-10 max-w-lg mx-auto">
+          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-success/15 text-success"><CheckCircle width={34} height={34} strokeWidth={1.75} /></span>
+          <h1 className="text-2xl font-semibold serif text-foreground">We'll Take It From Here!</h1>
+          <p className="text-sm text-muted-foreground">Referral submitted successfully! Our AI is extracting the details now and our team will review within the hour.</p>
+          <div className="font-mono text-sm font-semibold rounded-md bg-muted px-3 py-1.5 text-foreground">REF-{String(Math.floor(Math.random() * 900000) + 100000)}</div>
+          <div className="flex items-center gap-2 mt-2">
+            <Button onClick={() => navigate("/clinic/dashboard")}>Back to Dashboard</Button>
+            <Button variant="outline" onClick={() => navigate("/clinic/referrals")}>View Referrals</Button>
+            <Button variant="outline" onClick={() => {
               setSelectedPatient(null); setReferralMethod(null); setUploadedFiles([]); setIsPacket(false);
               setInsuranceChoice(null); setConfirmAccuracy(false);
               setSelectedPharmacyId(defaultPharmacyId); setCurrentStep(0); setSubmitted(false);
-            }}>Create Another</Btn>
+            }}>Create Another</Button>
           </div>
         </div>
       </div>
@@ -450,29 +460,47 @@ export default function CreateReferral() {
     <div className="rw-page">
       {/* Bar A — header */}
       <div>
-        <h1 className="rw-h1 serif">New Referral</h1>
-        <p className="rw-sub">Quick 4-step process to submit a referral</p>
+        <h1 className="text-2xl font-semibold serif text-foreground">New Referral</h1>
+        <p className="text-sm text-muted-foreground mt-1">Quick 4-step process to submit a referral</p>
       </div>
 
-      <div className="rw-wrap two-col">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6 mt-5">
         <div>
           {/* Bar B — progress + segmented stepper */}
-          <div className="rw-mt">
-            <div className="rw-progress-head">
-              <span className="rw-progress-lbl">Step {currentStep + 1} of {STEPS.length}: {STEPS[currentStep].label}</span>
-              <span className="rw-progress-pct">{progress}%</span>
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-sm font-medium text-foreground">Step {currentStep + 1} of {STEPS.length}: {STEPS[currentStep].label}</span>
+              <span className="text-sm text-muted-foreground">{progress}%</span>
             </div>
-            <div className="rw-track"><i style={{ width: progress + "%" }} /></div>
+            <Progress value={progress} className="h-1.5" />
           </div>
-          <div className="rw-seg" data-tour="wizard-steps">
+          <div className="flex items-stretch gap-1 mt-4" data-tour="wizard-steps">
             {STEPS.map((s, i) => {
               const done = i < currentStep, current = i === currentStep;
               return (
-                <button key={s.key} type="button" className={`${done ? "done" : ""}${current ? " current" : ""}`}
-                  onClick={() => done && setCurrentStep(i)} disabled={!done && !current}>
-                  <span className="k">{done ? <Check size={12} /> : `0${i + 1}`}</span>
-                  <span className="l">{s.label}</span>
-                  {(done || current) && <span className="bar" style={{ width: current ? "40%" : "100%" }} />}
+                <button
+                  key={s.key}
+                  type="button"
+                  className={cn(
+                    "flex-1 flex flex-col gap-1.5 rounded-md px-2.5 py-2 text-left transition-colors",
+                    current ? "bg-primary/8" : "hover:bg-muted",
+                    !done && !current && "cursor-not-allowed opacity-60",
+                  )}
+                  onClick={() => done && setCurrentStep(i)}
+                  disabled={!done && !current}
+                >
+                  <span className="flex items-center gap-1.5">
+                    <span className={cn(
+                      "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold",
+                      done ? "bg-success text-success-foreground" : current ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
+                    )}>
+                      {done ? <Check width={12} height={12} strokeWidth={2} /> : `0${i + 1}`}
+                    </span>
+                    <span className={cn("text-xs font-semibold", current || done ? "text-foreground" : "text-muted-foreground")}>{s.label}</span>
+                  </span>
+                  <span className="h-1 rounded-full bg-muted overflow-hidden">
+                    {(done || current) && <span className="block h-full bg-primary" style={{ width: current ? "40%" : "100%" }} />}
+                  </span>
                 </button>
               );
             })}
@@ -480,21 +508,21 @@ export default function CreateReferral() {
 
           {/* Bar C — sticky patient banner */}
           {selectedPatient && currentStep > 0 && (
-            <div className="rw-banner sticky">
-              <span className="rw-ava-ic"><Users size={17} /></span>
+            <div className="sticky top-0 z-10 flex items-center gap-2.5 rounded-lg border border-border bg-card px-3.5 py-2.5 mt-4">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"><Users width={17} height={17} strokeWidth={1.75} /></span>
               <div>
-                <div className="nm">{getPatientName(selectedPatient)}</div>
-                <div className="meta">DOB: {formatDateShort(selectedPatient.dob || "")} · {getPatientPhone(selectedPatient)}</div>
+                <div className="text-sm font-semibold text-foreground">{getPatientName(selectedPatient)}</div>
+                <div className="text-xs text-muted-foreground">DOB: {formatDateShort(selectedPatient.dob || "")} · {getPatientPhone(selectedPatient)}</div>
               </div>
             </div>
           )}
 
           {/* Card content */}
-          <div className="rw-card" data-tour="wizard-body">
+          <div className="bg-card border border-border rounded-lg p-5 mt-4" data-tour="wizard-body">
             {currentStep === 0 && (
               <Step1Patient
                 search={patientSearch} setSearch={setPatientSearch} results={filteredPatients}
-                selected={selectedPatient} onSelect={(p) => { setSelectedPatient(p); setPatientMode("existing"); setPatientSearch(""); if (p.last_drug) setManualData((d) => ({ ...d, drugRequested: p.last_drug || "" })); }}
+                selected={selectedPatient} onSelect={(p: Patient) => { setSelectedPatient(p); setPatientMode("existing"); setPatientSearch(""); if (p.last_drug) setManualData((d) => ({ ...d, drugRequested: p.last_drug || "" })); }}
                 onClear={() => setSelectedPatient(null)} onAddNew={() => setShowNewPatientModal(true)}
                 getName={getPatientName} getPhone={getPatientPhone}
               />
@@ -503,13 +531,13 @@ export default function CreateReferral() {
             {currentStep === 1 && !referralMethod && <MethodFork onPick={setReferralMethod} />}
 
             {currentStep === 1 && referralMethod === "upload" && (
-              <div className="rw-fade rw-stack" style={{ gap: 22 }}>
-                <div className="rw-step-head" style={{ marginBottom: 0 }}>
-                  <p className="rw-eyebrow">Step 2 of 4</p>
-                  <h2 className="rw-step-title">Upload Documents</h2>
-                  <p className="rw-step-desc">Upload all relevant documents for this referral</p>
+              <div className="rw-fade flex flex-col gap-5">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-primary">Step 2 of 4</p>
+                  <h2 className="text-lg font-semibold text-foreground mt-1">Upload Documents</h2>
+                  <p className="text-sm text-muted-foreground mt-0.5">Upload all relevant documents for this referral</p>
                 </div>
-                <SmartDropzone files={uploadedFiles} onFiles={(fl) => fl.forEach(handleRealFileUpload)} removeFile={removeFile} setTag={setFileTag} isPacket={isPacket} setPacket={setIsPacket} />
+                <SmartDropzone files={uploadedFiles} onFiles={(fl: File[]) => fl.forEach(handleRealFileUpload)} removeFile={removeFile} setTag={setFileTag} isPacket={isPacket} setPacket={setIsPacket} />
                 <BridgeBlock choice={insuranceChoice} onChange={setInsuranceChoice} showErrors={showSubmitErrors} />
                 <NoticeStrip icon={Sparkles} tone="teal">Our AI will automatically extract patient info, provider details, drug information, and more from your documents.</NoticeStrip>
                 <NoticeStrip icon={CheckCircle}>Our team will handle the PA and process</NoticeStrip>
@@ -517,15 +545,15 @@ export default function CreateReferral() {
             )}
 
             {currentStep === 1 && referralMethod === "manual" && (
-              <div className="rw-fade rw-stack" style={{ gap: 22 }}>
-                <div className="rw-step-head" style={{ marginBottom: 0 }}>
-                  <p className="rw-eyebrow">Step 2 of 4</p>
-                  <h2 className="rw-step-title">Enter Referral Information</h2>
-                  <p className="rw-step-desc">Fill in the details below</p>
+              <div className="rw-fade flex flex-col gap-5">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-primary">Step 2 of 4</p>
+                  <h2 className="text-lg font-semibold text-foreground mt-1">Enter Referral Information</h2>
+                  <p className="text-sm text-muted-foreground mt-0.5">Fill in the details below</p>
                 </div>
                 <ManualScroll
                   data={manualData} setField={setField}
-                  choice={insuranceChoice} setChoice={(c) => { setInsuranceChoice(c); setManualData((d) => ({ ...d, hasInsurance: c === "has" })); }}
+                  choice={insuranceChoice} setChoice={(c: "has" | "bridge") => { setInsuranceChoice(c); setManualData((d) => ({ ...d, hasInsurance: c === "has" })); }}
                   showErrors={showSubmitErrors}
                 />
                 <NoticeStrip icon={CheckCircle}>Our team will handle the PA and process</NoticeStrip>
@@ -551,30 +579,38 @@ export default function CreateReferral() {
           </div>
 
           {/* Bar D — footer */}
-          <div className="rw-foot" data-tour="wizard-next">
-            <Btn variant="outline" onClick={goBack}><ArrowLeft size={15} />{currentStep === 0 ? "Cancel" : "Back"}</Btn>
-            {currentStep === 0 && <Btn variant="primary" onClick={goNext} disabled={!canProceedStep1}>Next: Referral Method<ArrowRight size={15} /></Btn>}
-            {currentStep === 1 && referralMethod && <Btn variant="primary" onClick={goNext} disabled={!canProceedStep2}>Next: Choose Pharmacy<ArrowRight size={15} /></Btn>}
-            {currentStep === 2 && <Btn variant="primary" onClick={goNext} disabled={!canProceedStep3}>Continue to Review<ArrowRight size={15} /></Btn>}
+          <div className="flex items-center justify-between mt-4" data-tour="wizard-next">
+            <Button variant="outline" onClick={goBack}><ArrowLeft width={15} height={15} strokeWidth={1.75} />{currentStep === 0 ? "Cancel" : "Back"}</Button>
+            {currentStep === 0 && <Button onClick={goNext} disabled={!canProceedStep1}>Next: Referral Method<ArrowRight width={15} height={15} strokeWidth={1.75} /></Button>}
+            {currentStep === 1 && referralMethod && <Button onClick={goNext} disabled={!canProceedStep2}>Next: Choose Pharmacy<ArrowRight width={15} height={15} strokeWidth={1.75} /></Button>}
+            {currentStep === 2 && <Button onClick={goNext} disabled={!canProceedStep3}>Continue to Review<ArrowRight width={15} height={15} strokeWidth={1.75} /></Button>}
             {currentStep === 3 && (
-              <Btn variant="success" onClick={handleSubmit} disabled={!confirmAccuracy || submitting}>
-                {submitting ? <><span className="rw-spin"><Loader2 size={15} /></span>Submitting…</> : <><Check size={15} />Submit Referral</>}
-              </Btn>
+              <Button className="bg-success text-success-foreground hover:bg-success/90" onClick={handleSubmit} disabled={!confirmAccuracy || submitting}>
+                {submitting ? <><Loader2 width={15} height={15} strokeWidth={1.75} className="animate-spin" />Submitting…</> : <><Check width={15} height={15} strokeWidth={1.75} />Submit Referral</>}
+              </Button>
             )}
           </div>
         </div>
 
         {/* Live summary rail */}
-        <aside className="rw-rail">
-          <div className="rw-summary">
-            <div className="rw-summary-head"><h3>Referral summary</h3><ClipboardList size={16} style={{ color: "var(--text-muted)" }} /></div>
-            <div className="rw-summary-body">
+        <aside>
+          <div className="bg-card border border-border rounded-lg overflow-hidden sticky top-4">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+              <h3 className="text-sm font-semibold text-foreground">Referral summary</h3>
+              <ClipboardList width={16} height={16} strokeWidth={1.75} className="text-muted-foreground" />
+            </div>
+            <div className="p-2">
               {summaryRows.map((r) => (
-                <div className="rw-sum-row" key={r.k}>
-                  <span className={`rw-sum-ic${r.v ? " done" : ""}`}>{r.v ? <Check size={14} /> : <r.icon size={14} />}</span>
-                  <div style={{ minWidth: 0 }}>
-                    <div className="rw-sum-k">{r.k}</div>
-                    <div className={`rw-sum-v${r.v ? "" : " muted"}`}>{r.v || "Not yet"}</div>
+                <div className="flex items-start gap-2.5 px-2 py-2" key={r.k}>
+                  <span className={cn(
+                    "flex h-6 w-6 shrink-0 items-center justify-center rounded-full",
+                    r.v ? "bg-success/15 text-success" : "bg-muted text-muted-foreground",
+                  )}>
+                    {r.v ? <Check width={14} height={14} strokeWidth={1.75} /> : <r.icon width={14} height={14} strokeWidth={1.75} />}
+                  </span>
+                  <div className="min-w-0">
+                    <div className="text-xs text-muted-foreground">{r.k}</div>
+                    <div className={cn("text-sm font-medium truncate", r.v ? "text-foreground" : "text-muted-foreground")}>{r.v || "Not yet"}</div>
                   </div>
                 </div>
               ))}
@@ -596,52 +632,52 @@ export default function CreateReferral() {
 function Step1Patient({ search, setSearch, results, selected, onSelect, onClear, onAddNew, getName, getPhone }: any) {
   return (
     <div className="rw-fade">
-      <div className="rw-step-head">
-        <p className="rw-eyebrow">Step 1 of 4</p>
-        <h2 className="rw-step-title">Select Patient</h2>
-        <p className="rw-step-desc">Search for an existing patient or add a new one</p>
+      <div className="mb-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-primary">Step 1 of 4</p>
+        <h2 className="text-lg font-semibold text-foreground mt-1">Select Patient</h2>
+        <p className="text-sm text-muted-foreground mt-0.5">Search for an existing patient or add a new one</p>
       </div>
-      <div className="rw-row-bar">
-        <div className="rw-search-wrap">
-          <span className="rw-search-ic"><Search size={16} /></span>
-          <input className="rw-input" placeholder="Search by name, DOB, or phone..." value={search} onChange={(e) => setSearch(e.target.value)} />
+      <div className="flex items-center gap-2.5 mb-3">
+        <div className="relative flex-1">
+          <Search width={16} height={16} strokeWidth={1.75} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input className="pl-9" placeholder="Search by name, DOB, or phone..." value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <Btn variant="outline" onClick={onAddNew}><UserPlus size={15} />Add New Patient</Btn>
+        <Button variant="outline" onClick={onAddNew}><UserPlus width={15} height={15} strokeWidth={1.75} />Add New Patient</Button>
       </div>
 
       {results.length > 0 && (
-        <div className="rw-results">
+        <div className="flex flex-col gap-1.5 mb-3">
           {results.map((p: Patient) => (
-            <button key={p.id} className="rw-result" onClick={() => onSelect(p)}>
-              <div className="nm">{getName(p)}</div>
-              <div className="meta">DOB: {formatDateShort(p.dob || "")} · Last: <b>{p.last_drug || "—"}</b></div>
+            <button key={p.id} type="button" className="text-left rounded-md border border-border px-3.5 py-2.5 hover:bg-muted/50 transition-colors" onClick={() => onSelect(p)}>
+              <div className="text-sm font-semibold text-foreground">{getName(p)}</div>
+              <div className="text-xs text-muted-foreground">DOB: {formatDateShort(p.dob || "")} · Last: <b className="font-semibold">{p.last_drug || "—"}</b></div>
             </button>
           ))}
         </div>
       )}
 
       {selected && (
-        <div className="rw-selcard">
-          <div className="top">
-            <div className="who">
-              <span className="rw-ava-ic"><Users size={17} /></span>
-              <span style={{ fontSize: ".875rem", fontWeight: 600, color: "var(--text-primary)" }}>{getName(selected)}</span>
+        <div className="flex flex-col gap-2 rounded-lg border border-primary/25 bg-primary/5 p-3.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"><Users width={17} height={17} strokeWidth={1.75} /></span>
+              <span className="text-sm font-semibold text-foreground">{getName(selected)}</span>
             </div>
-            <button className="rw-x" onClick={onClear} aria-label="Clear selected patient"><X size={16} /></button>
+            <button type="button" className="text-muted-foreground hover:text-foreground" onClick={onClear} aria-label="Clear selected patient"><X width={16} height={16} strokeWidth={1.75} /></button>
           </div>
-          <div style={{ fontSize: ".75rem", color: "var(--text-muted)" }}>DOB: {formatDateShort(selected.dob || "")} · Phone: {getPhone(selected)}</div>
-          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-            <Pill size={13} style={{ color: "var(--text-muted)" }} />
-            <span style={{ fontSize: ".75rem", color: "var(--text-muted)" }}>Last drug: {selected.last_drug || "—"} {selected.last_dosage || ""}</span>
+          <div className="text-xs text-muted-foreground">DOB: {formatDateShort(selected.dob || "")} · Phone: {getPhone(selected)}</div>
+          <div className="flex items-center gap-1.5">
+            <Pill width={13} height={13} strokeWidth={1.75} className="text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">Last drug: {selected.last_drug || "—"} {selected.last_dosage || ""}</span>
           </div>
           <PAStatusBadge status={(selected.pa_status as any) || "none"} expirationDate={selected.pa_expiration_date} />
         </div>
       )}
 
       {!selected && !search && (
-        <div className="rw-empty">
-          <span className="rw-empty-ic"><Users size={28} /></span>
-          <p style={{ margin: 0, fontSize: ".875rem" }}>Search above or add a new patient to continue</p>
+        <div className="flex flex-col items-center gap-2 py-10 text-center">
+          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-muted text-muted-foreground"><Users width={28} height={28} strokeWidth={1.75} /></span>
+          <p className="text-sm text-muted-foreground m-0">Search above or add a new patient to continue</p>
         </div>
       )}
     </div>
@@ -652,27 +688,32 @@ function Step1Patient({ search, setSearch, results, selected, onSelect, onClear,
 function MethodFork({ onPick }: { onPick: (m: "upload" | "manual") => void }) {
   return (
     <div className="rw-fade">
-      <div className="rw-step-head">
-        <p className="rw-eyebrow">Step 2 of 4</p>
-        <h2 className="rw-step-title">How would you like to create this referral?</h2>
-        <p className="rw-step-desc">Choose your preferred method</p>
+      <div className="mb-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-primary">Step 2 of 4</p>
+        <h2 className="text-lg font-semibold text-foreground mt-1">How would you like to create this referral?</h2>
+        <p className="text-sm text-muted-foreground mt-0.5">Choose your preferred method</p>
       </div>
-      <div className="rw-fork">
-        <button className="rw-fork-card" onClick={() => onPick("upload")}>
-          <span className="rw-fork-ic navy"><Upload size={22} /></span>
-          <div className="rw-fork-title"><h3>Upload Documents</h3><span className="rw-badge-rec">Recommended</span></div>
-          <p>Our AI will extract all information from your documents</p>
-          <ul className="rw-checklist">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <button type="button" className="flex flex-col items-start gap-2 rounded-lg border border-border p-5 text-left hover:border-primary/40 hover:bg-primary/5 transition-colors" onClick={() => onPick("upload")}>
+          <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary"><Upload width={22} height={22} strokeWidth={1.75} /></span>
+          <div className="flex items-center gap-2">
+            <h3 className="text-base font-semibold text-foreground">Upload Documents</h3>
+            <span className="inline-flex items-center rounded-full bg-success/15 text-success px-2 py-0.5 text-[10px] font-bold">Recommended</span>
+          </div>
+          <p className="text-sm text-muted-foreground">Our AI will extract all information from your documents</p>
+          <ul className="flex flex-col gap-1.5 mt-1">
             {["Faster (AI does the work)", "More accurate", "Less typing"].map((c) => (
-              <li key={c}><span className="ck"><Check size={15} /></span>{c}</li>
+              <li key={c} className="flex items-center gap-1.5 text-sm text-foreground">
+                <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-success/15 text-success"><Check width={11} height={11} strokeWidth={2} /></span>{c}
+              </li>
             ))}
           </ul>
         </button>
-        <button className="rw-fork-card" onClick={() => onPick("manual")}>
-          <span className="rw-fork-ic stone"><Pencil size={22} /></span>
-          <div className="rw-fork-title"><h3>Manual Entry</h3></div>
-          <p>Type in the information yourself</p>
-          <p className="italic">Use this if you don't have documents ready</p>
+        <button type="button" className="flex flex-col items-start gap-2 rounded-lg border border-border p-5 text-left hover:border-primary/40 hover:bg-muted/40 transition-colors" onClick={() => onPick("manual")}>
+          <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-muted text-foreground"><Pencil width={22} height={22} strokeWidth={1.75} /></span>
+          <h3 className="text-base font-semibold text-foreground">Manual Entry</h3>
+          <p className="text-sm text-muted-foreground">Type in the information yourself</p>
+          <p className="text-sm text-muted-foreground italic">Use this if you don't have documents ready</p>
         </button>
       </div>
     </div>
@@ -685,36 +726,59 @@ function SmartDropzone({ files, onFiles, removeFile, setTag, isPacket, setPacket
   const inputRef = useRef<HTMLInputElement>(null);
   return (
     <div>
-      <input ref={inputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif" multiple style={{ display: "none" }}
+      <input ref={inputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif" multiple className="hidden"
         onChange={(e) => { if (e.target.files?.length) onFiles(Array.from(e.target.files)); e.target.value = ""; }} />
-      <div className={`rw-dropzone${drag ? " drag" : ""}`} onClick={() => inputRef.current?.click()}
+      <div
+        className={cn(
+          "flex flex-col items-center gap-2 rounded-lg border-2 border-dashed px-6 py-10 text-center cursor-pointer transition-colors",
+          drag ? "border-primary bg-primary/5" : "border-border hover:border-primary/40 hover:bg-muted/30",
+        )}
+        onClick={() => inputRef.current?.click()}
         onDragOver={(e) => { e.preventDefault(); setDrag(true); }} onDragLeave={() => setDrag(false)}
-        onDrop={(e) => { e.preventDefault(); setDrag(false); if (e.dataTransfer.files.length) onFiles(Array.from(e.dataTransfer.files)); }}>
-        <span className="dz-ic"><Upload size={22} /></span>
-        <div className="dz-t">Choose files or drag &amp; drop</div>
-        <div className="dz-s">Referral form, insurance cards, chart notes, labs — drop them all here. PDF, JPG, PNG.</div>
+        onDrop={(e) => { e.preventDefault(); setDrag(false); if (e.dataTransfer.files.length) onFiles(Array.from(e.dataTransfer.files)); }}
+      >
+        <span className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-primary"><Upload width={22} height={22} strokeWidth={1.75} /></span>
+        <div className="text-sm font-semibold text-foreground">Choose files or drag &amp; drop</div>
+        <div className="text-xs text-muted-foreground max-w-sm">Referral form, insurance cards, chart notes, labs — drop them all here. PDF, JPG, PNG.</div>
       </div>
 
-      <label className={`rw-packet${isPacket ? " on" : ""}`} onClick={(e) => { e.preventDefault(); setPacket(!isPacket); }}>
-        <span className={`rw-check${isPacket ? " on" : ""}`}>{isPacket && <Check size={13} />}</span>
+      <label
+        className={cn(
+          "flex items-start gap-2.5 rounded-lg border px-3.5 py-3 mt-3 cursor-pointer transition-colors",
+          isPacket ? "border-primary/40 bg-primary/5" : "border-border hover:bg-muted/30",
+        )}
+        onClick={(e) => { e.preventDefault(); setPacket(!isPacket); }}
+      >
+        <span className={cn(
+          "flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded border mt-0.5",
+          isPacket ? "bg-primary border-primary text-primary-foreground" : "border-input",
+        )}>
+          {isPacket && <Check width={12} height={12} strokeWidth={2} />}
+        </span>
         <div>
-          <div className="pt">This is one combined packet</div>
-          <div className="ps">Everything is in a single multi-page file — we'll treat it as one packet.</div>
+          <div className="text-sm font-semibold text-foreground">This is one combined packet</div>
+          <div className="text-xs text-muted-foreground">Everything is in a single multi-page file — we'll treat it as one packet.</div>
         </div>
       </label>
 
       {files.length > 0 && (
-        <div className="rw-filelist">
+        <div className="flex flex-col gap-2 mt-3">
           {files.map((f: UploadedFile) => (
-            <div className="rw-filerow" key={f.id}>
-              <span className="fic"><FileCheck size={17} /></span>
-              <div className="fmeta"><div className="fn">{f.name}</div><div className="fs">{f.size}</div></div>
+            <div className="flex items-center gap-2.5 rounded-md border border-border px-3 py-2" key={f.id}>
+              <span className="text-success shrink-0"><FileCheck width={17} height={17} strokeWidth={1.75} /></span>
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-medium text-foreground truncate">{f.name}</div>
+                <div className="text-xs text-muted-foreground">{f.size}</div>
+              </div>
               {!isPacket && (
-                <select className="rw-chip-tag" value={f.tag} onChange={(e) => setTag(f.id, e.target.value)}>
-                  {FILE_TYPE_TAGS.map((t) => <option key={t} value={t}>{t}</option>)}
-                </select>
+                <Select value={f.tag} onValueChange={(v) => setTag(f.id, v)}>
+                  <SelectTrigger className="h-8 w-[190px] text-xs shrink-0"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {FILE_TYPE_TAGS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               )}
-              <button className="rm" onClick={() => removeFile(f.id)} aria-label="Remove file"><X size={16} /></button>
+              <button type="button" className="text-muted-foreground hover:text-foreground shrink-0" onClick={() => removeFile(f.id)} aria-label="Remove file"><X width={16} height={16} strokeWidth={1.75} /></button>
             </div>
           ))}
         </div>
@@ -727,20 +791,39 @@ function SmartDropzone({ files, onFiles, removeFile, setTag, isPacket, setPacket
 function BridgeBlock({ choice, onChange, showErrors }: { choice: "has" | "bridge" | null; onChange: (c: "has" | "bridge") => void; showErrors: boolean }) {
   const missing = showErrors && choice == null;
   return (
-    <div className="rw-bridge">
-      <div className="rw-bridge-head"><Shield size={16} style={{ color: "var(--color-navy)" }} /><h3>Bridge program? <span className="rw-req">*</span></h3></div>
-      <p className="rw-bridge-help">Is this referral being routed through a manufacturer-funded bridge program (e.g., Dupixent MyWay, Humira Complete)?</p>
-      <div className="rw-bridge-opts">
-        <label className={`rw-choicebox${choice === "has" ? " on" : ""}`} onClick={(e) => { e.preventDefault(); onChange("has"); }}>
-          <span className={`rw-radio${choice === "has" ? " on" : ""}`}>{choice === "has" && <i />}</span>
-          <div><div className="rw-choice-t">No bridge program</div><div className="rw-choice-s">Standard insurance billing</div></div>
+    <div className="rounded-lg border border-border p-4">
+      <div className="flex items-center gap-2 mb-1.5">
+        <Shield width={16} height={16} strokeWidth={1.75} className="text-primary" />
+        <h3 className="text-sm font-semibold text-foreground">Bridge program? <span className="text-destructive">*</span></h3>
+      </div>
+      <p className="text-sm text-muted-foreground mb-3">Is this referral being routed through a manufacturer-funded bridge program (e.g., Dupixent MyWay, Humira Complete)?</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <label
+          className={cn(
+            "flex items-start gap-2.5 rounded-lg border p-3.5 cursor-pointer transition-colors",
+            choice === "has" ? "border-primary/50 bg-primary/5" : "border-border hover:bg-muted/30",
+          )}
+          onClick={(e) => { e.preventDefault(); onChange("has"); }}
+        >
+          <span className={cn("flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full border mt-0.5", choice === "has" ? "border-primary" : "border-input")}>
+            {choice === "has" && <span className="h-2.5 w-2.5 rounded-full bg-primary" />}
+          </span>
+          <div><div className="text-sm font-semibold text-foreground">No bridge program</div><div className="text-xs text-muted-foreground">Standard insurance billing</div></div>
         </label>
-        <label className={`rw-choicebox${choice === "bridge" ? " on" : ""}`} onClick={(e) => { e.preventDefault(); onChange("bridge"); }}>
-          <span className={`rw-radio${choice === "bridge" ? " on" : ""}`}>{choice === "bridge" && <i />}</span>
-          <div><div className="rw-choice-t">Yes, bridge program</div><div className="rw-choice-s">Manufacturer-funded — insurance not used</div></div>
+        <label
+          className={cn(
+            "flex items-start gap-2.5 rounded-lg border p-3.5 cursor-pointer transition-colors",
+            choice === "bridge" ? "border-primary/50 bg-primary/5" : "border-border hover:bg-muted/30",
+          )}
+          onClick={(e) => { e.preventDefault(); onChange("bridge"); }}
+        >
+          <span className={cn("flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full border mt-0.5", choice === "bridge" ? "border-primary" : "border-input")}>
+            {choice === "bridge" && <span className="h-2.5 w-2.5 rounded-full bg-primary" />}
+          </span>
+          <div><div className="text-sm font-semibold text-foreground">Yes, bridge program</div><div className="text-xs text-muted-foreground">Manufacturer-funded — insurance not used</div></div>
         </label>
       </div>
-      {missing && <p className="rw-errmsg" style={{ marginTop: 10 }}>Please choose an option to continue.</p>}
+      {missing && <p className="text-xs text-destructive mt-2.5">Please choose an option to continue.</p>}
     </div>
   );
 }
@@ -748,29 +831,35 @@ function BridgeBlock({ choice, onChange, showErrors }: { choice: "has" | "bridge
 /* ── Manual single-scroll ── */
 function ManualScroll({ data, setField, choice, setChoice, showErrors }: any) {
   const sections = [
-    { key: "clinical", title: "Medication / Medical Information", icon: Pill, fields: CLINICAL_FIELDS, body: null as any },
-    { key: "provider", title: "Prescriber Information", icon: Stethoscope, fields: PROVIDER_FIELDS, body: null as any },
+    { key: "clinical", title: "Medication / Medical Information", icon: Pill, fields: CLINICAL_FIELDS },
+    { key: "provider", title: "Prescriber Information", icon: Stethoscope, fields: PROVIDER_FIELDS },
   ];
   return (
-    <div>
+    <div className="flex flex-col gap-6">
       {sections.map((s) => (
-        <div className="rw-scroll-sect" key={s.key}>
-          <div className="rw-sticky-head"><h3><span className="ti"><s.icon size={16} /></span>{s.title}</h3></div>
-          <div className="rw-grid2">
+        <div key={s.key}>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><s.icon width={16} height={16} strokeWidth={1.75} /></span>
+            <h3 className="text-sm font-semibold text-foreground">{s.title}</h3>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {s.fields.map((f) => <ManualField key={f.key} field={f} data={data} setField={setField} />)}
           </div>
         </div>
       ))}
-      <div className="rw-scroll-sect">
-        <div className="rw-sticky-head"><h3><span className="ti"><Shield size={16} /></span>Insurance Information<span className="rw-req">*</span></h3></div>
-        <div className="rw-stack" style={{ gap: 16 }}>
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Shield width={16} height={16} strokeWidth={1.75} /></span>
+          <h3 className="text-sm font-semibold text-foreground">Insurance Information<span className="text-destructive ml-0.5">*</span></h3>
+        </div>
+        <div className="flex flex-col gap-4">
           <BridgeBlock choice={choice} onChange={setChoice} showErrors={showErrors} />
           {choice === "has" && (
-            <div className="rw-grid2" style={{ paddingTop: 16, borderTop: "1px solid var(--border-default)" }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-border">
               {INSURANCE_FIELDS.map((f) => <ManualField key={f.key} field={f} data={data} setField={setField} />)}
             </div>
           )}
-          {choice === "bridge" && <div className="rw-info-note">Bridge program — manufacturer-funded. No insurance fields needed.</div>}
+          {choice === "bridge" && <div className="rounded-md bg-muted/50 px-3.5 py-2.5 text-sm text-muted-foreground">Bridge program — manufacturer-funded. No insurance fields needed.</div>}
         </div>
       </div>
     </div>
@@ -780,11 +869,11 @@ function ManualScroll({ data, setField, choice, setChoice, showErrors }: any) {
 /* ── Step 3 — pharmacy dropdown ── */
 function Step3Pharmacy({ loading, pharmacies, selectedId, defaultId, onSelect, selected }: any) {
   return (
-    <div className="rw-fade rw-stack" style={{ gap: 18 }}>
-      <div className="rw-step-head" style={{ marginBottom: 0 }}>
-        <p className="rw-eyebrow">Step 3 of 4</p>
-        <h2 className="rw-step-title">Select pharmacy for this referral</h2>
-        <p className="rw-step-desc">Defaults to your clinic's preferred pharmacy. Change if this referral needs a different one.</p>
+    <div className="rw-fade flex flex-col gap-4">
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wide text-primary">Step 3 of 4</p>
+        <h2 className="text-lg font-semibold text-foreground mt-1">Select pharmacy for this referral</h2>
+        <p className="text-sm text-muted-foreground mt-0.5">Defaults to your clinic's preferred pharmacy. Change if this referral needs a different one.</p>
       </div>
 
       {!loading && !defaultId && (
@@ -792,31 +881,37 @@ function Step3Pharmacy({ loading, pharmacies, selectedId, defaultId, onSelect, s
       )}
 
       {loading ? (
-        <div style={{ display: "flex", justifyContent: "center", padding: 48 }}><span className="rw-spin" style={{ color: "var(--text-muted)" }}><Loader2 size={26} /></span></div>
+        <div className="flex justify-center py-12"><Loader2 width={26} height={26} strokeWidth={1.75} className="animate-spin text-muted-foreground" /></div>
       ) : pharmacies.length === 0 ? (
-        <div className="rw-empty"><p style={{ margin: 0, fontSize: ".875rem" }}>No pharmacies available for your clinic. Contact Dirxctional support.</p></div>
+        <div className="flex flex-col items-center gap-2 py-10 text-center"><p className="text-sm text-muted-foreground m-0">No pharmacies available for your clinic. Contact Dirxctional support.</p></div>
       ) : (
         <>
           <RwField label="Pharmacy">
-            <select className="rw-select" value={selectedId || ""} onChange={(e) => onSelect(e.target.value)}>
-              <option value="" disabled>Select a pharmacy…</option>
-              {pharmacies.map((p: any) => (
-                <option key={p.id} value={p.id}>{p.name}{p.id === defaultId ? " (Default)" : ""}</option>
-              ))}
-            </select>
+            <Select value={selectedId || undefined} onValueChange={onSelect}>
+              <SelectTrigger><SelectValue placeholder="Select a pharmacy…" /></SelectTrigger>
+              <SelectContent>
+                {pharmacies.map((p: any) => (
+                  <SelectItem key={p.id} value={p.id}>{p.name}{p.id === defaultId ? " (Default)" : ""}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </RwField>
           {selected && (
-            <div className="rw-review">
-              <div className="rw-review-head"><span className="rw-review-ic"><Pill size={15} /></span><h3>{selected.name}</h3>
-                {defaultId && selectedId === defaultId && <span className="rw-badge-default" style={{ marginLeft: "auto" }}>Default</span>}
+            <div className="rounded-lg border border-border p-4">
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Pill width={15} height={15} strokeWidth={1.75} /></span>
+                <h3 className="text-sm font-semibold text-foreground">{selected.name}</h3>
+                {defaultId && selectedId === defaultId && (
+                  <span className="ml-auto inline-flex items-center rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[11px] font-semibold">Default</span>
+                )}
               </div>
-              <div style={{ fontSize: ".8125rem", color: "var(--text-muted)" }}>
+              <div className="text-sm text-muted-foreground">
                 {[selected.address, [selected.city, selected.state].filter(Boolean).join(", ")].filter(Boolean).join(" · ") || "—"}
-                {selected.phone && <div style={{ fontFamily: "var(--font-mono)", marginTop: 3 }}>{selected.phone}</div>}
+                {selected.phone && <div className="font-mono text-xs mt-0.5">{selected.phone}</div>}
               </div>
             </div>
           )}
-          {defaultId && selectedId === defaultId && <p className="rw-hint">Default pharmacy for your clinic — change if needed.</p>}
+          {defaultId && selectedId === defaultId && <p className="text-xs text-muted-foreground">Default pharmacy for your clinic — change if needed.</p>}
         </>
       )}
     </div>
@@ -826,43 +921,52 @@ function Step3Pharmacy({ loading, pharmacies, selectedId, defaultId, onSelect, s
 /* ── Step 4 — review ── */
 function ReviewCard({ icon: Icon, title, action, children }: any) {
   return (
-    <div className="rw-review">
-      <div className="rw-review-head"><span className="rw-review-ic"><Icon size={15} /></span><h3>{title}</h3>{action && <span style={{ marginLeft: "auto" }}>{action}</span>}</div>
+    <div className="rounded-lg border border-border p-4">
+      <div className="flex items-center gap-2 mb-2.5">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Icon width={15} height={15} strokeWidth={1.75} /></span>
+        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+        {action && <span className="ml-auto">{action}</span>}
+      </div>
       {children}
     </div>
   );
 }
 function ReviewField({ label, value }: { label: string; value?: string }) {
-  return <div className="rw-rev-field"><div className="rk">{label}</div><div className="rv">{value || "—"}</div></div>;
+  return (
+    <div>
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="text-sm font-medium text-foreground">{value || "—"}</div>
+    </div>
+  );
 }
 function Step4Review({ patient, getName, pharmacy, isDefault, method, choice, files, manualData, confirm, setConfirm }: any) {
   return (
-    <div className="rw-fade rw-stack" style={{ gap: 16 }}>
-      <div className="rw-step-head" style={{ marginBottom: 6 }}>
-        <p className="rw-eyebrow">Step 4 of 4</p>
-        <h2 className="rw-step-title">Submit Referral</h2>
-        <p className="rw-step-desc">Confirm and submit your referral for processing</p>
+    <div className="rw-fade flex flex-col gap-4">
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wide text-primary">Step 4 of 4</p>
+        <h2 className="text-lg font-semibold text-foreground mt-1">Submit Referral</h2>
+        <p className="text-sm text-muted-foreground mt-0.5">Confirm and submit your referral for processing</p>
       </div>
 
       <ReviewCard icon={Users} title="Patient Information">
-        <div className="rw-grid2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <ReviewField label="Name" value={patient ? getName(patient) : "—"} />
           <ReviewField label="DOB" value={patient?.dob ? formatDateShort(patient.dob) : "—"} />
         </div>
       </ReviewCard>
 
-      <ReviewCard icon={Pill} title="Pharmacy" action={isDefault ? <span className="rw-badge-default">Default</span> : null}>
-        <div style={{ fontSize: ".875rem", fontWeight: 500, color: "var(--text-primary)" }}>{pharmacy?.name || "—"}</div>
-        {pharmacy && <div style={{ fontSize: ".75rem", color: "var(--text-muted)", marginTop: 2 }}>{[pharmacy.city, pharmacy.state].filter(Boolean).join(", ")}</div>}
+      <ReviewCard icon={Pill} title="Pharmacy" action={isDefault ? <span className="inline-flex items-center rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[11px] font-semibold">Default</span> : null}>
+        <div className="text-sm font-medium text-foreground">{pharmacy?.name || "—"}</div>
+        {pharmacy && <div className="text-xs text-muted-foreground mt-0.5">{[pharmacy.city, pharmacy.state].filter(Boolean).join(", ")}</div>}
       </ReviewCard>
 
       <ReviewCard icon={Shield} title="Insurance">
         {choice === "bridge" ? (
-          <div style={{ fontSize: ".875rem", color: "var(--text-primary)" }}>Bridge program — manufacturer-funded</div>
+          <div className="text-sm text-foreground">Bridge program — manufacturer-funded</div>
         ) : method === "upload" ? (
-          <div style={{ fontSize: ".875rem", color: "var(--text-muted)" }}>Insurance details will be extracted from your uploaded documents.</div>
+          <div className="text-sm text-muted-foreground">Insurance details will be extracted from your uploaded documents.</div>
         ) : (
-          <div className="rw-grid2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <ReviewField label="Payer" value={manualData.primaryInsuranceName} />
             <ReviewField label="Member ID" value={manualData.primaryMemberId} />
           </div>
@@ -871,12 +975,12 @@ function Step4Review({ patient, getName, pharmacy, isDefault, method, choice, fi
 
       {files.length > 0 && (
         <ReviewCard icon={FileText} title="Documents Uploaded">
-          <div className="rw-stack" style={{ gap: 7 }}>
+          <div className="flex flex-col gap-1.5">
             {files.map((f: UploadedFile) => (
-              <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: ".875rem" }}>
-                <span style={{ color: "var(--color-success)", display: "inline-flex" }}><CheckCircle size={15} /></span>
-                <span style={{ color: "var(--text-primary)" }}>{f.name}</span>
-                <span style={{ color: "var(--text-muted)" }}>({f.size})</span>
+              <div key={f.id} className="flex items-center gap-2 text-sm">
+                <span className="text-success shrink-0"><CheckCircle width={15} height={15} strokeWidth={1.75} /></span>
+                <span className="text-foreground">{f.name}</span>
+                <span className="text-muted-foreground">({f.size})</span>
               </div>
             ))}
           </div>
@@ -886,9 +990,14 @@ function Step4Review({ patient, getName, pharmacy, isDefault, method, choice, fi
       <NoticeStrip icon={Sparkles} tone="teal">Our AI will automatically extract patient info, provider details, drug information, and more from your documents.</NoticeStrip>
       <NoticeStrip icon={Shield}>Our team will handle the prior authorization process.</NoticeStrip>
 
-      <label className="rw-choicebox" style={{ background: "var(--color-stone-50)" }} onClick={(e) => { e.preventDefault(); setConfirm(!confirm); }}>
-        <span className={`rw-check${confirm ? " on" : ""}`}>{confirm && <Check size={13} />}</span>
-        <span className="rw-choice-plain">I confirm all information is accurate and complete.</span>
+      <label className="flex items-start gap-2.5 rounded-lg border border-border bg-muted/30 p-3.5 cursor-pointer" onClick={(e) => { e.preventDefault(); setConfirm(!confirm); }}>
+        <span className={cn(
+          "flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded border mt-0.5",
+          confirm ? "bg-primary border-primary text-primary-foreground" : "border-input",
+        )}>
+          {confirm && <Check width={12} height={12} strokeWidth={2} />}
+        </span>
+        <span className="text-sm text-foreground">I confirm all information is accurate and complete.</span>
       </label>
     </div>
   );

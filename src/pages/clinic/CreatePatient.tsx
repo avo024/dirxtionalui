@@ -6,8 +6,12 @@ import {
 } from "lucide-react";
 import { clinicApi } from "@/lib/api";
 import { toast } from "sonner";
-import "./wizard.css";
-import "./create-patient.css";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 const US_STATES = [
   ["AL", "Alabama"], ["AK", "Alaska"], ["AZ", "Arizona"], ["AR", "Arkansas"], ["CA", "California"], ["CO", "Colorado"],
@@ -106,22 +110,24 @@ export default function CreatePatient() {
 
   if (created) {
     return (
-      <div className="rw-page cp-page rw-fade">
-        <div className="cp-success">
-          <div className="sc"><Check size={32} /></div>
-          <h1>Patient added</h1>
-          <p><b style={{ color: "var(--text-primary)", fontWeight: 600 }}>{created.name.trim() || "The patient"}</b> has been added to the system.</p>
-          <div className="cp-offer">
-            <div className="cp-offer-ic"><FilePlus2 size={20} /></div>
-            <div className="cp-offer-tx">
-              <div className="t">Create a referral for {firstName(created.name)}?</div>
-              <div className="s">Start a new referral while the details are fresh.</div>
+      <div className="rw-page rw-fade max-w-xl mx-auto">
+        <div className="flex flex-col items-center gap-3 text-center py-10">
+          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-success/15 text-success"><Check width={32} height={32} strokeWidth={1.75} /></span>
+          <h1 className="text-2xl font-semibold serif text-foreground">Patient added</h1>
+          <p className="text-sm text-muted-foreground"><b className="text-foreground font-semibold">{created.name.trim() || "The patient"}</b> has been added to the system.</p>
+
+          <div className="flex items-center gap-3 w-full rounded-lg border border-border bg-card p-4 text-left mt-2">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><FilePlus2 width={20} height={20} strokeWidth={1.75} /></span>
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-semibold text-foreground">Create a referral for {firstName(created.name)}?</div>
+              <div className="text-xs text-muted-foreground">Start a new referral while the details are fresh.</div>
             </div>
-            <button className="rw-btn primary" onClick={() => navigate(`/clinic/referrals/new?patientId=${created.id}`)}><ArrowRight size={15} />Create referral</button>
+            <Button onClick={() => navigate(`/clinic/referrals/new?patientId=${created.id}`)}><ArrowRight width={15} height={15} strokeWidth={1.75} />Create referral</Button>
           </div>
-          <div className="cp-success-actions">
-            <button className="rw-btn outline" onClick={() => navigate("/clinic/patients")}><Users size={15} />Back to Patients</button>
-            <button className="rw-btn ghost" onClick={reset}><Plus size={15} />Add another patient</button>
+
+          <div className="flex items-center gap-2 mt-2">
+            <Button variant="outline" onClick={() => navigate("/clinic/patients")}><Users width={15} height={15} strokeWidth={1.75} />Back to Patients</Button>
+            <Button variant="ghost" onClick={reset}><Plus width={15} height={15} strokeWidth={1.75} />Add another patient</Button>
           </div>
         </div>
       </div>
@@ -129,24 +135,27 @@ export default function CreatePatient() {
   }
 
   return (
-    <div className="rw-page cp-page rw-fade">
-      <button className="cp-back" onClick={() => navigate("/clinic/patients")}><span className="ci"><ArrowLeft size={16} /></span>Back to Patients</button>
+    <div className="rw-page rw-fade max-w-3xl mx-auto">
+      <Button variant="ghost" size="sm" className="-ml-2 mb-3 text-muted-foreground" onClick={() => navigate("/clinic/patients")}>
+        <ArrowLeft width={16} height={16} strokeWidth={1.75} />Back to Patients
+      </Button>
 
-      <div className="cp-head">
-        <h1 className="cp-title">Add New Patient</h1>
-        <p className="cp-sub">Enter patient demographics to add them to the system</p>
+      <div className="mb-5">
+        <h1 className="text-2xl font-semibold serif text-foreground">Add New Patient</h1>
+        <p className="text-sm text-muted-foreground mt-1">Enter patient demographics to add them to the system</p>
       </div>
 
-      <div className="cp-card cp-onecard">
+      <div className="bg-card border border-border rounded-lg divide-y divide-border">
         {SECTIONS.map((s) => (
-          <div className="cp-sec" key={s.key} id={`cp-sec-${s.key}`}>
-            <div className="cp-sec-head">
-              <span className="cp-sec-ic"><s.icon size={18} /></span>
-              <div>
-                <h3 className="cp-sec-title">{s.title}{s.optional && <span className="cp-opt-tag">Optional</span>}</h3>
-              </div>
+          <div className="p-5" key={s.key} id={`cp-sec-${s.key}`}>
+            <div className="flex items-center gap-2.5 mb-4">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><s.icon width={16} height={16} strokeWidth={1.75} /></span>
+              <h3 className="text-sm font-semibold text-foreground">
+                {s.title}
+                {s.optional && <span className="ml-2 text-xs font-normal text-muted-foreground">Optional</span>}
+              </h3>
             </div>
-            <div className="cp-grid">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {s.fields.map((f) => (
                 <CpField key={f.key} f={f} value={form[f.key] || ""} onChange={(v) => set(f.key, v)} onBlur={() => touch(f.key)} error={errorFor(f)} ok={okFor(f)} />
               ))}
@@ -155,49 +164,74 @@ export default function CreatePatient() {
         ))}
       </div>
 
-      <div className="cp-actions">
-        <span className={`cp-act-note${submitted && nameInvalid ? " err" : ""}`}>
-          {submitted && nameInvalid ? <><CircleAlert size={13} />Full Name is required to create the patient</> : <>Full Name is required</>}
+      <div className="flex items-center justify-end gap-3 mt-4">
+        <span className={cn("mr-auto text-xs", submitted && nameInvalid ? "text-destructive font-medium inline-flex items-center gap-1" : "text-muted-foreground")}>
+          {submitted && nameInvalid ? <><CircleAlert width={13} height={13} strokeWidth={1.75} />Full Name is required to create the patient</> : <>Full Name is required</>}
         </span>
-        <button className="rw-btn outline" onClick={() => navigate("/clinic/patients")}>Cancel</button>
-        <button className="rw-btn primary" onClick={submit} disabled={submitting}>
-          {submitting ? <><span className="rw-spin"><Loader2 size={15} /></span>Creating…</> : <><UserPlus size={15} />Create Patient</>}
-        </button>
+        <Button variant="outline" onClick={() => navigate("/clinic/patients")}>Cancel</Button>
+        <Button onClick={submit} disabled={submitting}>
+          {submitting ? <><Loader2 width={15} height={15} strokeWidth={1.75} className="animate-spin" />Creating…</> : <><UserPlus width={15} height={15} strokeWidth={1.75} />Create Patient</>}
+        </Button>
       </div>
     </div>
   );
 }
 
 function CpField({ f, value, onChange, onBlur, error, ok }: { f: Field; value: string; onChange: (v: string) => void; onBlur: () => void; error: string | null; ok: boolean }) {
-  const errCls = error ? " err" : ok ? " ok" : "";
+  const stateCls = error ? "border-destructive focus-visible:ring-destructive" : ok ? "border-success" : "";
   let control: React.ReactNode;
   if (f.kind === "textarea") {
-    control = <textarea className={`cp-textarea${errCls}`} value={value} placeholder={f.placeholder} onChange={(e) => onChange(e.target.value)} onBlur={onBlur} />;
+    control = <Textarea value={value} placeholder={f.placeholder} onChange={(e) => onChange(e.target.value)} onBlur={onBlur} className={cn("resize-none", stateCls)} />;
   } else if (f.kind === "select") {
     control = (
-      <select className={`cp-select${errCls}`} value={value} onChange={(e) => onChange(e.target.value)} onBlur={onBlur} style={{ color: value ? "var(--text-body)" : "var(--color-stone-400)" }}>
-        <option value="" disabled>{f.placeholder}</option>
-        {f.options!.map((o) => <option key={o} value={o} style={{ color: "var(--text-body)" }}>{o}</option>)}
-      </select>
+      <Select value={value || undefined} onValueChange={onChange}>
+        <SelectTrigger className={stateCls}>
+          <SelectValue placeholder={f.placeholder} />
+        </SelectTrigger>
+        <SelectContent>
+          {f.options!.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+        </SelectContent>
+      </Select>
     );
   } else if (f.kind === "state") {
     control = <StateTypeahead value={value} onChange={onChange} error={!!error} />;
   } else if (f.kind === "date") {
-    control = <input className={`cp-input${errCls}`} type="date" value={value} onChange={(e) => onChange(e.target.value)} onBlur={onBlur} />;
+    control = <Input type="date" value={value} onChange={(e) => onChange(e.target.value)} onBlur={onBlur} className={stateCls} />;
   } else {
     const adorn = error ? "err" : ok ? "ok" : null;
     control = (
-      <div className={`cp-control${adorn ? " has-adorn" : ""}`}>
-        <input className={`cp-input${errCls}`} type={f.kind === "email" ? "email" : f.kind === "tel" ? "tel" : "text"} value={value} placeholder={f.placeholder} maxLength={f.maxLength} onChange={(e) => onChange(e.target.value)} onBlur={onBlur} />
-        {adorn && <span className={`cp-adorn ${adorn}`}>{adorn === "ok" ? <Check size={16} /> : <CircleAlert size={16} />}</span>}
+      <div className="relative">
+        <Input
+          id={f.key === "full_name" ? "full_name" : undefined}
+          type={f.kind === "email" ? "email" : f.kind === "tel" ? "tel" : "text"}
+          value={value}
+          placeholder={f.placeholder}
+          maxLength={f.maxLength}
+          onChange={(e) => onChange(e.target.value)}
+          onBlur={onBlur}
+          className={cn(adorn && "pr-9", stateCls)}
+        />
+        {adorn && (
+          <span className={cn("absolute right-2.5 top-1/2 -translate-y-1/2", adorn === "ok" ? "text-success" : "text-destructive")}>
+            {adorn === "ok" ? <Check width={16} height={16} strokeWidth={1.75} /> : <CircleAlert width={16} height={16} strokeWidth={1.75} />}
+          </span>
+        )}
       </div>
     );
   }
   return (
-    <div className={`cp-field${f.col === "full" ? " full" : ""}`}>
-      <label className="cp-label">{f.label}{f.required && <span className="cp-req">*</span>}{!f.required && <span className="cp-opt">Optional</span>}</label>
+    <div className={cn("flex flex-col gap-1.5", f.col === "full" && "sm:col-span-2")}>
+      <Label className="text-xs font-medium text-muted-foreground">
+        {f.label}
+        {f.required && <span className="text-destructive ml-0.5">*</span>}
+        {!f.required && <span className="ml-1.5 font-normal text-muted-foreground/70">Optional</span>}
+      </Label>
       {control}
-      {error ? <span className="cp-errmsg"><CircleAlert size={13} />{error}</span> : f.maxLength ? <span className="cp-hint">{(value || "").length}/{f.maxLength}</span> : null}
+      {error ? (
+        <span className="inline-flex items-center gap-1 text-xs text-destructive"><CircleAlert width={13} height={13} strokeWidth={1.75} />{error}</span>
+      ) : f.maxLength ? (
+        <span className="text-xs text-muted-foreground">{(value || "").length}/{f.maxLength}</span>
+      ) : null}
     </div>
   );
 }
@@ -228,14 +262,17 @@ function StateTypeahead({ value, onChange, error }: { value: string; onChange: (
     if (!s) return label;
     const i = label.toLowerCase().indexOf(s.toLowerCase());
     if (i < 0) return label;
-    return <>{label.slice(0, i)}<mark>{label.slice(i, i + s.length)}</mark>{label.slice(i + s.length)}</>;
+    return <>{label.slice(0, i)}<mark className="bg-warning/30 text-foreground rounded-sm">{label.slice(i, i + s.length)}</mark>{label.slice(i + s.length)}</>;
   };
 
   return (
-    <div className="cp-ta" ref={wrapRef}>
-      <div className="cp-control">
-        <span className="cp-ta-ic"><Search size={15} /></span>
-        <input className={`cp-input${error ? " err" : ""}`} value={display} placeholder="Search state…"
+    <div className="relative" ref={wrapRef}>
+      <div className="relative">
+        <Search width={15} height={15} strokeWidth={1.75} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={display}
+          placeholder="Search state…"
+          className={cn("pl-8", value && !open && "pr-8", error && "border-destructive")}
           onFocus={() => { setOpen(true); setActive(0); }}
           onChange={(e) => { setQ(e.target.value); setOpen(true); setActive(0); }}
           onKeyDown={(e) => {
@@ -243,17 +280,34 @@ function StateTypeahead({ value, onChange, error }: { value: string; onChange: (
             else if (e.key === "ArrowUp") { e.preventDefault(); setActive((i) => Math.max(0, i - 1)); }
             else if (e.key === "Enter") { e.preventDefault(); if (matches[active]) pick(matches[active]); }
             else if (e.key === "Escape") setOpen(false);
-          }} />
-        {value && !open && <button className="cp-ta-clear" onClick={() => onChange("")} aria-label="Clear state"><X size={14} /></button>}
+          }}
+        />
+        {value && !open && (
+          <button type="button" className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" onClick={() => onChange("")} aria-label="Clear state">
+            <X width={14} height={14} strokeWidth={1.75} />
+          </button>
+        )}
       </div>
       {open && (
-        <div className="cp-ta-menu">
-          {matches.length === 0 ? <div className="cp-ta-empty">No states match “{q}”</div> :
+        <div className="absolute z-10 mt-1 w-full max-h-60 overflow-auto rounded-md border border-border bg-popover shadow-md p-1">
+          {matches.length === 0 ? (
+            <div className="px-2.5 py-3 text-sm text-muted-foreground">No states match "{q}"</div>
+          ) : (
             matches.map((o, i) => (
-              <button key={o.value} className={`cp-ta-opt${i === active ? " active" : ""}`} onMouseEnter={() => setActive(i)} onClick={() => pick(o)}>
-                <span className="code">{o.value}</span><span>{hl(o.label)}</span>
+              <button
+                key={o.value}
+                type="button"
+                className={cn(
+                  "flex w-full items-center gap-2 rounded-sm px-2.5 py-1.5 text-sm text-left",
+                  i === active ? "bg-accent text-accent-foreground" : "text-foreground",
+                )}
+                onMouseEnter={() => setActive(i)}
+                onClick={() => pick(o)}
+              >
+                <span className="font-mono text-xs text-muted-foreground w-6 shrink-0">{o.value}</span><span>{hl(o.label)}</span>
               </button>
-            ))}
+            ))
+          )}
         </div>
       )}
     </div>

@@ -68,7 +68,7 @@ export default function Services() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader2 width={26} height={26} strokeWidth={1.75} className="animate-spin text-primary" />
       </div>
     );
   }
@@ -76,8 +76,8 @@ export default function Services() {
   if (error) {
     const status = (error as Error & { status?: number }).status;
     return (
-      <div className="max-w-2xl">
-        <h1 className="text-3xl font-semibold tracking-tight mb-2">Services</h1>
+      <div className="rw-page rw-fade max-w-2xl">
+        <h1 className="text-2xl font-semibold serif text-foreground mb-2">Services</h1>
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
             {status === 403
@@ -95,10 +95,10 @@ export default function Services() {
   const availableCatalog = catalog.filter((a) => a.state !== "active");
 
   return (
-    <div className="space-y-6">
+    <div className="rw-page rw-fade space-y-6">
       <div>
-        <h1 className="text-3xl font-semibold tracking-tight">Services</h1>
-        <p className="text-muted-foreground mt-1">
+        <h1 className="text-2xl font-semibold serif text-foreground">Services</h1>
+        <p className="text-sm text-muted-foreground mt-1">
           Manage your Dirxctional plan and add-on services
         </p>
       </div>
@@ -112,7 +112,7 @@ export default function Services() {
         <CardContent>
           <div className="flex items-start gap-4">
             <div className="h-12 w-12 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-              <Sparkles className="h-6 w-6" />
+              <Sparkles width={20} height={20} strokeWidth={1.75} />
             </div>
             <div className="space-y-1">
               <p className="text-sm font-medium">Plan</p>
@@ -150,7 +150,7 @@ export default function Services() {
                 className="flex flex-wrap items-start justify-between gap-4 p-4 rounded-lg border bg-card"
               >
                 <div className="flex items-start gap-3 min-w-0 flex-1">
-                  <div className="h-10 w-10 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                  <div className="h-10 w-10 rounded-lg bg-success/15 text-success flex items-center justify-center shrink-0">
                     <DynamicIcon name={addon.addon_icon} className="h-5 w-5" />
                   </div>
                   <div className="min-w-0">
@@ -171,8 +171,8 @@ export default function Services() {
                       </p>
                     )}
                   </div>
-                  <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-transparent">
-                    <Check className="h-3 w-3 mr-1" /> Active
+                  <Badge className="bg-success/15 text-success hover:bg-success/15 border-transparent">
+                    <Check width={12} height={12} strokeWidth={1.75} /> Active
                   </Badge>
                 </div>
               </div>
@@ -218,8 +218,8 @@ export default function Services() {
                       ${addon.monthly_price_usd}/mo
                     </p>
                     {addon.state === "requested" ? (
-                      <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-transparent">
-                        <Clock className="h-3 w-3 mr-1" /> Requested
+                      <Badge className="bg-warning/15 text-[#92610B] hover:bg-warning/15 border-transparent">
+                        <Clock width={12} height={12} strokeWidth={1.75} /> Requested
                       </Badge>
                     ) : (
                       <Button
@@ -254,7 +254,7 @@ export default function Services() {
                 className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-lg border bg-card"
               >
                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="h-10 w-10 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                  <div className="h-10 w-10 rounded-lg bg-warning/15 text-[#92610B] flex items-center justify-center shrink-0">
                     <DynamicIcon name={req.addon_icon} className="h-5 w-5" />
                   </div>
                   <div className="min-w-0">
@@ -334,7 +334,7 @@ export default function Services() {
               disabled={requestMutation.isPending}
             >
               {requestMutation.isPending && (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 width={14} height={14} strokeWidth={1.75} className="animate-spin" />
               )}
               Submit request
             </Button>

@@ -269,6 +269,9 @@ export default function AdminReferralsList() {
   const [workLoading, setWorkLoading] = useState(true);
   const [allRows, setAllRows] = useState<any[]>([]);
   const [allLoading, setAllLoading] = useState(false);
+  // All tab loads lazily (only once opened) — until it has, show workRows.length
+  // as the count instead of a misleading 0 (Alex, phase 6a live-walk fix).
+  const [allLoadedOnce, setAllLoadedOnce] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -295,6 +298,7 @@ export default function AdminReferralsList() {
       .then((res) => {
         if (cancelled) return;
         setAllRows(res.items || []);
+        setAllLoadedOnce(true);
       })
       .catch((err: any) => toast({ title: "Error", description: err.message || "Failed to load referrals", variant: "destructive" }))
       .finally(() => !cancelled && setAllLoading(false));
@@ -500,7 +504,7 @@ export default function AdminReferralsList() {
           </TabsTrigger>
           <TabsTrigger value="all" className={underlineTabsTriggerClass}>
             All
-            <CountBadge n={filteredAllRows.length} />
+            <CountBadge n={allLoadedOnce ? filteredAllRows.length : workRows.length} />
           </TabsTrigger>
         </TabsList>
       </Tabs>
