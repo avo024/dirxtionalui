@@ -261,7 +261,7 @@ export default function AdminReferralsList() {
     if (initialFilter === "appeal") return "Appeal";
     return "any";
   });
-  const [groupBy, setGroupBy] = useState<GroupBy>("action");
+  const [groupBy, setGroupBy] = useState<GroupBy>("stage"); // Stage is the default (Alex, 2026-09-24): the verb is already the left column
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   // Morning-brief urgency filter (work tabs only) — set by clicking a
   // brief-strip number, or via the "Any urgency" select.
@@ -655,7 +655,7 @@ export default function AdminReferralsList() {
           ...(tab === "us"
             ? [
                 {
-                  options: ["Group by: Action", "Group by: Stage", "Group by: Clinic", "Group by: List"],
+                  options: ["Group by: Stage", "Group by: Action", "Group by: Clinic", "Group by: List"],
                   value: `Group by: ${groupBy === "action" ? "Action" : groupBy === "stage" ? "Stage" : groupBy === "clinic" ? "Clinic" : "List"}`,
                   onChange: (v: string) => {
                     setGroupBy(v.endsWith("Action") ? "action" : v.endsWith("Stage") ? "stage" : v.endsWith("Clinic") ? "clinic" : "none");
