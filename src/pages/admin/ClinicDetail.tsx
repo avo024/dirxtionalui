@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -14,8 +14,9 @@ import { Combobox } from "@/components/ui/combobox";
 import { DefinitionList } from "@/components/patterns/DefinitionList";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { adminApi, type AdminClinic, type AdminInvite, type AdminClinicUser } from "@/lib/api";
-import { CLINIC_ROLES, roleLabel } from "@/lib/roles";
+import { CLINIC_ROLES, DEFAULT_CLINIC_ROLE, type ClinicRoleValue, roleLabel } from "@/lib/roles";
 import { formatDateForTable } from "@/lib/dateUtils";
+import { useClinicHasOfficeManager } from "@/hooks/useClinicHasOfficeManager";
 import { toast } from "sonner";
 import { PageContainer } from "@/components/patterns/PageContainer";
 
@@ -134,6 +135,8 @@ function TeamInvitesPanel({ clinic }: { clinic: AdminClinic }) {
   const queryClient = useQueryClient();
   const [email, setEmail] = useState("");
   const [touched, setTouched] = useState(false);
+  const [role, setRole] = useState<ClinicRoleValue>(DEFAULT_CLINIC_ROLE);
+  const [roleTouched, setRoleTouched] = useState(false);
   const [revokeTarget, setRevokeTarget] = useState<AdminInvite | null>(null);
 
   const { data } = useQuery({
@@ -144,12 +147,26 @@ function TeamInvitesPanel({ clinic }: { clinic: AdminClinic }) {
 
   const valid = EMAIL_RE.test(email.trim());
 
+  const { hasOfficeManager, hasPendingOfficeManagerInvite, loading: omLoading } =
+    useClinicHasOfficeManager(clinic.id);
+  const needsOfficeManager = !omLoading && !hasOfficeManager && !hasPendingOfficeManagerInvite;
+  const showOfficeManagerNote = needsOfficeManager && role === "office_manager";
+  const showSendAnywayWarning = needsOfficeManager && role !== "office_manager";
+
+  // Soft default: first invite for a clinic should be the office manager.
+  // Only auto-applies while the admin hasn't manually picked a role.
+  useEffect(() => {
+    if (omLoading || roleTouched) return;
+    setRole(needsOfficeManager ? "office_manager" : DEFAULT_CLINIC_ROLE);
+  }, [omLoading, needsOfficeManager, roleTouched]);
+
   const createMut = useMutation({
-    mutationFn: (addr: string) => adminApi.createInvite({ clinic_id: clinic.id, email: addr }),
+    mutationFn: (addr: string) => adminApi.createInvite({ clinic_id: clinic.id, email: addr, role }),
     onSuccess: (_d, addr) => {
       toast.success(`Invite sent to ${addr}`);
-      setEmail(""); setTouched(false);
+      setEmail(""); setTouched(false); setRoleTouched(false);
       queryClient.invalidateQueries({ queryKey: ["admin", "invites"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "clinic-team", clinic.id] });
     },
     onError: (e: any) => toast.error(e?.message || "Failed to send invite"),
   });
@@ -203,11 +220,35 @@ function TeamInvitesPanel({ clinic }: { clinic: AdminClinic }) {
               className={`pl-8 ${touched && !valid ? "border-destructive" : ""}`}
             />
           </div>
+          <Combobox
+            size="sm"
+            className="h-9 w-44 shrink-0"
+            placeholder="Select a role"
+            value={role}
+            onValueChange={(v) => {
+              setRole(v as ClinicRoleValue);
+              setRoleTouched(true);
+            }}
+            options={CLINIC_ROLES.map((r) => ({ value: r.value, label: r.label, hint: r.description }))}
+            searchable={false}
+          />
           <Button onClick={submit} disabled={createMut.isPending}>
-            <MailPlus width={15} height={15} strokeWidth={1.75} />Invite member
+            <MailPlus width={15} height={15} strokeWidth={1.75} />
+            {showSendAnywayWarning ? "Send anyway" : "Invite member"}
           </Button>
         </div>
         {touched && !valid && <p className="text-xs text-destructive">Enter a valid email address.</p>}
+        {showOfficeManagerNote && (
+          <p className="rounded-md bg-teal-50 px-2.5 py-2 text-xs text-teal-700">
+            This clinic has no office manager yet — invite them first. They'll own clinic settings and get every
+            referral that needs action.
+          </p>
+        )}
+        {showSendAnywayWarning && (
+          <p className="rounded-md border border-amber-300/60 bg-amber-50 px-2.5 py-2 text-xs text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
+            No office manager yet — send this anyway?
+          </p>
+        )}
         <p className="text-xs text-muted-foreground">Sends an invitation to join <strong>{clinic.name}</strong> on Dirxctional.</p>
       </div>
 

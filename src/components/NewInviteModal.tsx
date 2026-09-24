@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import { adminApi, type AdminClinic } from "@/lib/api";
 import { CLINIC_ROLES, DEFAULT_CLINIC_ROLE, type ClinicRoleValue } from "@/lib/roles";
+import { useClinicHasOfficeManager } from "@/hooks/useClinicHasOfficeManager";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
@@ -27,6 +28,7 @@ export function NewInviteModal({ open, onOpenChange }: NewInviteModalProps) {
   const [clinicId, setClinicId] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<ClinicRoleValue>(DEFAULT_CLINIC_ROLE);
+  const [roleTouched, setRoleTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const { data: clinicsData, isLoading: loadingClinics } = useQuery({
@@ -38,14 +40,35 @@ export function NewInviteModal({ open, onOpenChange }: NewInviteModalProps) {
 
   const clinics: AdminClinic[] = clinicsData?.items ?? [];
 
+  const { hasOfficeManager, hasPendingOfficeManagerInvite, loading: omLoading } =
+    useClinicHasOfficeManager(clinicId || undefined);
+  const needsOfficeManager = !!clinicId && !omLoading && !hasOfficeManager && !hasPendingOfficeManagerInvite;
+
   useEffect(() => {
     if (!open) {
       setClinicId("");
       setEmail("");
       setRole(DEFAULT_CLINIC_ROLE);
+      setRoleTouched(false);
       setError(null);
     }
   }, [open]);
+
+  // Clinic selection changed — clear the manual-override flag so the
+  // office-manager default can re-apply for the newly selected clinic.
+  useEffect(() => {
+    setRoleTouched(false);
+  }, [clinicId]);
+
+  // Soft default: first invite for a clinic should be the office manager.
+  // Only auto-applies while the admin hasn't manually picked a role.
+  useEffect(() => {
+    if (!clinicId || omLoading || roleTouched) return;
+    setRole(needsOfficeManager ? "office_manager" : DEFAULT_CLINIC_ROLE);
+  }, [clinicId, omLoading, needsOfficeManager, roleTouched]);
+
+  const showOfficeManagerNote = needsOfficeManager && role === "office_manager";
+  const showSendAnywayWarning = needsOfficeManager && role !== "office_manager";
 
   const createMutation = useMutation({
     mutationFn: () => adminApi.createInvite({ clinic_id: clinicId, email: email.trim(), role }),
@@ -120,11 +143,24 @@ export function NewInviteModal({ open, onOpenChange }: NewInviteModalProps) {
               id="role"
               placeholder="Select a role"
               value={role}
-              onValueChange={(v) => setRole(v as ClinicRoleValue)}
+              onValueChange={(v) => {
+                setRole(v as ClinicRoleValue);
+                setRoleTouched(true);
+              }}
               options={CLINIC_ROLES.map((r) => ({ value: r.value, label: r.label, hint: r.description }))}
               searchable={false}
             />
-            <p className="text-xs text-muted-foreground">Tip: invite the office manager first.</p>
+            {showOfficeManagerNote && (
+              <p className="rounded-md bg-teal-50 px-2.5 py-2 text-xs text-teal-700">
+                This clinic has no office manager yet — invite them first. They'll own clinic settings and get every
+                referral that needs action.
+              </p>
+            )}
+            {showSendAnywayWarning && (
+              <p className="rounded-md border border-amber-300/60 bg-amber-50 px-2.5 py-2 text-xs text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
+                No office manager yet — send this anyway?
+              </p>
+            )}
           </div>
 
           {error && (
@@ -139,7 +175,7 @@ export function NewInviteModal({ open, onOpenChange }: NewInviteModalProps) {
             </Button>
             <Button type="submit" disabled={createMutation.isPending}>
               {createMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Send Invite
+              {showSendAnywayWarning ? "Send anyway" : "Send Invite"}
             </Button>
           </DialogFooter>
         </form>
