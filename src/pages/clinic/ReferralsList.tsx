@@ -1,14 +1,15 @@
 import { useState, useMemo, useEffect } from "react";
-import { Link, useSearchParams, useLocation, useNavigate } from "react-router-dom";
-import { Plus, FileSearch, ChevronLeft, ChevronRight, Eye, Archive, RotateCcw } from "lucide-react";
+import { Link, useSearchParams, useLocation } from "react-router-dom";
+import { Plus, FileSearch, ChevronLeft, ChevronRight, Archive, RotateCcw } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ClinicPABadge } from "@/components/ClinicPABadge";
-import { CreatedByAvatar } from "@/components/CreatedByAvatar";
+import { LinkRow } from "@/components/patterns/LinkRow";
+import { getInitials } from "@/components/CreatedByAvatar";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FilterToolbar } from "@/components/patterns/FilterToolbar";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
-import { IdChip } from "@/components/patterns/IdChip";
 import { clinicApi } from "@/lib/api";
 import { mapReferralsFromBackend } from "@/lib/dataMapper";
 import { useToast } from "@/hooks/use-toast";
@@ -74,7 +75,7 @@ export default function ReferralsList() {
   const [showArchived, setShowArchived] = useState(false);
   const { toast } = useToast();
   const location = useLocation();
-  const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
     async function fetchReferrals() {
@@ -162,10 +163,7 @@ export default function ReferralsList() {
     <PageContainer>
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">My Referrals</h1>
-          <p className="text-sm text-muted-foreground mt-1">View and track all your submitted referrals</p>
-        </div>
+        <h1 className="text-2xl font-semibold font-editorial text-foreground">My Referrals</h1>
         <Button asChild>
           <Link to="/clinic/referrals/new"><Plus width={16} height={16} strokeWidth={1.75} />New Referral</Link>
         </Button>
@@ -215,22 +213,24 @@ export default function ReferralsList() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>ID</TableHead>
                 <TableHead>Patient</TableHead>
                 <TableHead>Drug</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead data-tour="referrals-pa-col">PA Status</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead>Updated</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-                <TableHead className="w-8" />
+                {showArchived && <TableHead className="text-right" />}
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginated.map((r: any) => (
-                <TableRow key={r.id} className="cursor-pointer" onClick={() => navigate(`/clinic/referrals/${r.id}`)}>
-                  <TableCell><IdChip id={r.id} /></TableCell>
-                  <TableCell><span className="font-semibold text-foreground">{r.patient_name}</span></TableCell>
+                <LinkRow key={r.id} to={`/clinic/referrals/${r.id}`}>
+                  <TableCell>
+                    <Link to={`/clinic/referrals/${r.id}`} className="font-semibold text-foreground no-underline hover:underline focus-visible:outline-none">{r.patient_name}</Link>
+                    {r.created_by_name && r.created_by_name !== user?.name && (
+                      <span title={`Created by ${r.created_by_name}`} className="ml-2 text-[11px] text-muted-foreground">{getInitials(r.created_by_name)}</span>
+                    )}
+                  </TableCell>
                   <TableCell>{r.drug || r.drug_requested || "—"}</TableCell>
                   <TableCell>
                     <div className="flex flex-col gap-1">
@@ -255,8 +255,8 @@ export default function ReferralsList() {
                   <TableCell><ClinicPABadge status={r.pa_status} appealOutcome={r.appeal_outcome} /></TableCell>
                   <TableCell className="text-muted-foreground">{r.created_at ? formatDateShort(r.created_at) : "—"}</TableCell>
                   <TableCell className="text-muted-foreground">{r.updated_at ? formatDateShort(r.updated_at) : "—"}</TableCell>
-                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                    {showArchived ? (
+                  {showArchived && (
+                    <TableCell className="text-right">
                       <Button
                         size="sm"
                         variant="outline"
@@ -272,14 +272,9 @@ export default function ReferralsList() {
                       >
                         <RotateCcw width={14} height={14} strokeWidth={1.75} />Unarchive
                       </Button>
-                    ) : (
-                      <Button asChild size="sm" variant="outline">
-                        <Link to={`/clinic/referrals/${r.id}`}><Eye width={14} height={14} strokeWidth={1.75} />View</Link>
-                      </Button>
-                    )}
-                  </TableCell>
-                  <TableCell><CreatedByAvatar name={r.created_by_name} /></TableCell>
-                </TableRow>
+                    </TableCell>
+                  )}
+                </LinkRow>
               ))}
             </TableBody>
           </Table>

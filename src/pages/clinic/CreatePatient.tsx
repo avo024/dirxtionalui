@@ -143,7 +143,7 @@ export default function CreatePatient() {
       </Button>
 
       <div className="mb-5">
-        <h1 className="text-2xl font-semibold text-foreground">Add New Patient</h1>
+        <h1 className="text-2xl font-semibold font-editorial text-foreground">Add New Patient</h1>
         <p className="text-sm text-muted-foreground mt-1">Enter patient demographics to add them to the system</p>
       </div>
 

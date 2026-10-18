@@ -1,9 +1,10 @@
 import { useState, useMemo, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Plus, Users, ChevronLeft, ChevronRight, Loader2, ChevronsUpDown, ChevronUp, ChevronDown } from "lucide-react";
 import { PAStatusBadge } from "@/components/PAStatusBadge";
 import { Button } from "@/components/ui/button";
 import { FilterToolbar } from "@/components/patterns/FilterToolbar";
+import { LinkRow } from "@/components/patterns/LinkRow";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { clinicApi } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
@@ -51,7 +52,6 @@ function getAge(dob: string) {
 }
 
 export default function PatientsList() {
-  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
@@ -108,7 +108,7 @@ export default function PatientsList() {
     <PageContainer>
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Patients</h1>
+          <h1 className="text-2xl font-semibold font-editorial text-foreground">Patients</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage your patients and their referrals</p>
         </div>
         <Button asChild data-tour="add-patient">
@@ -139,15 +139,14 @@ export default function PatientsList() {
                 <TableHead>Last drug</TableHead>
                 <TableHead>PA status</TableHead>
                 <SortTh col="created">Last referral</SortTh>
-                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginated.map((p) => (
-                <TableRow key={p.id} className="cursor-pointer" onClick={() => navigate(`/clinic/patients/${p.id}`)}>
+                <LinkRow key={p.id} to={`/clinic/patients/${p.id}`}>
                   <TableCell>
                     <div className="flex flex-col">
-                      <span className="font-semibold text-foreground">{p.full_name || "—"}</span>
+                      <Link to={`/clinic/patients/${p.id}`} className="font-semibold text-foreground no-underline hover:underline focus-visible:outline-none">{p.full_name || "—"}</Link>
                       <span className="text-xs text-muted-foreground">{p.dob ? `${formatDateShort(p.dob)} (${getAge(p.dob)})` : "—"}</span>
                     </div>
                   </TableCell>
@@ -158,13 +157,7 @@ export default function PatientsList() {
                   </TableCell>
                   <TableCell><PAStatusBadge status={p.pa_status || "none"} expirationDate={p.pa_expiration_date} /></TableCell>
                   <TableCell className="text-muted-foreground">{p.created_at ? formatDateShort(p.created_at) : "—"}</TableCell>
-                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                    <span className="inline-flex gap-2 justify-end">
-                      <Button asChild size="sm" variant="outline"><Link to={`/clinic/patients/${p.id}`}>View</Link></Button>
-                      <Button asChild size="sm"><Link to={`/clinic/referrals/new?patientId=${p.id}`}>New Referral</Link></Button>
-                    </span>
-                  </TableCell>
-                </TableRow>
+                </LinkRow>
               ))}
             </TableBody>
           </Table>
