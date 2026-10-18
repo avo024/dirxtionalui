@@ -93,7 +93,7 @@ export function ClinicSettingsModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><Icon name="pharmacy" size={20} className="text-primary" />Clinic Settings</DialogTitle>
+          <DialogTitle className="flex items-center gap-2"><Icon name="clinic" size={20} className="text-primary" />Clinic Settings</DialogTitle>
         </DialogHeader>
 
         {loadingClinic ? (
