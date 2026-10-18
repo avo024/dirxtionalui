@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { AuthProvider } from "@/contexts/AuthContext";
 
@@ -48,12 +48,16 @@ import ClinicSupportCenter from "@/pages/clinic/ClinicSupportCenter";
 
 const queryClient = new QueryClient();
 
+// Demo build (vite.demo.config.ts) is served statically with no SPA fallback,
+// so it routes on the URL hash. VITE_DEMO is undefined in the prod build.
+const Router = import.meta.env.VITE_DEMO ? HashRouter : BrowserRouter;
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
+      <Router>
         <AuthProvider>
           <InviteAccepter />
           <PageErrorBoundary>
@@ -108,7 +112,7 @@ const App = () => (
           </Routes>
           </PageErrorBoundary>
         </AuthProvider>
-      </BrowserRouter>
+      </Router>
     </TooltipProvider>
   </QueryClientProvider>
 );
