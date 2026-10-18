@@ -3,13 +3,12 @@ import { Link, useSearchParams, useLocation } from "react-router-dom";
 import { Plus, FileSearch, ChevronLeft, ChevronRight, Archive, RotateCcw } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ClinicPABadge } from "@/components/ClinicPABadge";
-import { LinkRow } from "@/components/patterns/LinkRow";
-import { getInitials } from "@/components/CreatedByAvatar";
+import { ListRows, ListRow } from "@/components/patterns/ListRow";
+import { EmptyState } from "@/components/patterns/EmptyState";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FilterToolbar } from "@/components/patterns/FilterToolbar";
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { clinicApi } from "@/lib/api";
 import { mapReferralsFromBackend } from "@/lib/dataMapper";
 import { useToast } from "@/hooks/use-toast";
@@ -163,7 +162,7 @@ export default function ReferralsList() {
     <PageContainer>
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
-        <h1 className="text-2xl font-semibold font-editorial text-foreground">My Referrals</h1>
+        <h1 className="ty-title">My Referrals</h1>
         <Button asChild>
           <Link to="/clinic/referrals/new"><Plus width={16} height={16} strokeWidth={1.75} />New Referral</Link>
         </Button>
@@ -209,76 +208,54 @@ export default function ReferralsList() {
           {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-14 w-full" />)}
         </div>
       ) : filtered.length > 0 ? (
-        <div data-tour="referrals-table" className="rounded-lg border border-border bg-card overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Patient</TableHead>
-                <TableHead>Drug</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead data-tour="referrals-pa-col">PA Status</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Updated</TableHead>
-                {showArchived && <TableHead className="text-right" />}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {paginated.map((r: any) => (
-                <LinkRow key={r.id} to={`/clinic/referrals/${r.id}`}>
-                  <TableCell>
-                    <Link to={`/clinic/referrals/${r.id}`} className="font-semibold text-foreground no-underline hover:underline focus-visible:outline-none">{r.patient_name}</Link>
-                    {r.created_by_name && r.created_by_name !== user?.name && (
-                      <span title={`Created by ${r.created_by_name}`} className="ml-2 text-[11px] text-muted-foreground">{getInitials(r.created_by_name)}</span>
-                    )}
-                  </TableCell>
-                  <TableCell>{r.drug || r.drug_requested || "—"}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-col gap-1">
-                      <span className="inline-flex items-center gap-1.5 flex-wrap">
-                        <StatusBadge status={r.status} variant="soft" />
-                        {(r.open_task_count ?? 0) > 0 && (
-                          <span
-                            title="Your Dirxctional team is waiting on a reply or document"
-                            className="inline-flex items-center rounded-full bg-warning/15 text-[#92610B] px-2 py-0.5 text-[10px] font-bold"
-                          >
-                            Request
-                          </span>
-                        )}
-                      </span>
-                      {(r.open_task_count ?? 0) > 0 && r.open_task_preview && (
-                        <span title={r.open_task_preview} className="text-[11.5px] text-muted-foreground max-w-[280px] truncate">
-                          "{r.open_task_preview}"
-                        </span>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell><ClinicPABadge status={r.pa_status} appealOutcome={r.appeal_outcome} /></TableCell>
-                  <TableCell className="text-muted-foreground">{r.created_at ? formatDateShort(r.created_at) : "—"}</TableCell>
-                  <TableCell className="text-muted-foreground">{r.updated_at ? formatDateShort(r.updated_at) : "—"}</TableCell>
-                  {showArchived && (
-                    <TableCell className="text-right">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={async () => {
-                          try {
-                            await clinicApi.unarchiveReferral(r.id);
-                            setReferrals((prev: any) => prev.filter((x: any) => x.id !== r.id));
-                            toast({ title: "Referral restored" });
-                          } catch (e: any) {
-                            toast({ title: "Error", description: e.message, variant: "destructive" });
-                          }
-                        }}
-                      >
-                        <RotateCcw width={14} height={14} strokeWidth={1.75} />Unarchive
-                      </Button>
-                    </TableCell>
+        <ListRows
+          data-tour="referrals-table"
+          head={["Patient · drug", <span key="st" data-tour="referrals-pa-col">Status</span>, { label: "Updated", r: true }, ...(showArchived ? [""] : []), ""]}
+          cols={showArchived ? "minmax(0,1.7fr) minmax(0,1fr) 112px 112px 16px" : undefined}
+        >
+          {paginated.map((r: any) => (
+            <ListRow
+              key={r.id}
+              to={`/clinic/referrals/${r.id}`}
+              patient={<Link to={`/clinic/referrals/${r.id}`} className="no-underline hover:underline focus-visible:outline-none" style={{ color: "inherit" }}>{r.patient_name}</Link>}
+              sub={
+                <>
+                  <span>{r.drug || r.drug_requested || "—"}</span>
+                  {r.created_by_name && r.created_by_name !== user?.name && (
+                    <><span className="sep">·</span><span>by {r.created_by_name}</span></>
                   )}
-                </LinkRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+                </>
+              }
+              request={
+                (r.open_task_count ?? 0) > 0
+                  ? (r.open_task_preview ? `Your team asked: ${r.open_task_preview}` : "Your Dirxctional team sent a request")
+                  : r.status === "rejected" && r.rejection_reason
+                    ? String(r.rejection_reason).slice(0, 90)
+                    : undefined
+              }
+              status={<StatusBadge status={r.status} />}
+              extra={<ClinicPABadge status={r.pa_status} appealOutcome={r.appeal_outcome} />}
+              when={r.updated_at ? formatDateShort(r.updated_at) : "—"}
+              action={showArchived ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={async () => {
+                    try {
+                      await clinicApi.unarchiveReferral(r.id);
+                      setReferrals((prev: any) => prev.filter((x: any) => x.id !== r.id));
+                      toast({ title: "Referral restored" });
+                    } catch (e: any) {
+                      toast({ title: "Error", description: e.message, variant: "destructive" });
+                    }
+                  }}
+                >
+                  <RotateCcw width={14} height={14} strokeWidth={1.75} />Unarchive
+                </Button>
+              ) : undefined}
+            />
+          ))}
+        </ListRows>
       ) : search || activeFilter !== "all" ? (
         <div className="flex flex-col items-center gap-2 py-16 text-center">
           <span className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground"><FileSearch width={20} height={20} strokeWidth={1.75} /></span>
@@ -287,11 +264,13 @@ export default function ReferralsList() {
           <Button size="sm" variant="outline" onClick={clearFilters}>Clear Filters</Button>
         </div>
       ) : (
-        <div className="flex flex-col items-center gap-2 py-16 text-center">
-          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-muted text-muted-foreground"><FileSearch width={26} height={26} strokeWidth={1.75} /></span>
-          <h3 className="text-base font-semibold text-foreground">You haven't created any referrals yet</h3>
-          <p className="text-sm text-muted-foreground">Create your first referral to get started</p>
-          <Button asChild><Link to="/clinic/referrals/new"><Plus width={16} height={16} strokeWidth={1.75} />Create Your First Referral</Link></Button>
+        <div className="lr-list">
+          <EmptyState
+            art="referrals"
+            title="You haven't created any referrals yet"
+            text="Create your first referral to get started."
+            actions={<Button asChild><Link to="/clinic/referrals/new"><Plus width={16} height={16} strokeWidth={1.75} />Create Your First Referral</Link></Button>}
+          />
         </div>
       )}
 

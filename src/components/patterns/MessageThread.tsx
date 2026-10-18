@@ -1,3 +1,4 @@
+import { EmptyState, type EmptyArtName } from "@/components/patterns/EmptyState";
 import { File as FileIcon, Paperclip, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,9 @@ interface MessageThreadProps {
   onAttach?: () => void;
   placeholder?: string;
   empty?: string;
+  /** When set, the empty thread shows this line illustration + title (clinic surfaces). */
+  emptyArt?: EmptyArtName;
+  emptyTitle?: string;
   /** Which side represents the current viewer; default "ours" (the admin/internal team). */
   ours?: "ours" | "clinic";
   hint?: string;
@@ -61,6 +65,8 @@ export function MessageThread({
   onAttach,
   placeholder,
   empty = "No messages yet.",
+  emptyArt,
+  emptyTitle,
   ours = "ours",
   hint = "Visible to the clinic",
   className,
@@ -70,7 +76,11 @@ export function MessageThread({
     <div className={cn("bg-card border border-border rounded-lg overflow-hidden flex flex-col", className)}>
       <div className="max-h-[56vh] min-h-[160px] overflow-y-auto">
         {messages.length === 0 && (
-          <div className="flex items-center justify-center h-[160px] text-sm text-muted-foreground">{empty}</div>
+          emptyArt ? (
+            <EmptyState art={emptyArt} title={emptyTitle || "No messages yet"} text={empty} size="sm" />
+          ) : (
+            <div className="flex items-center justify-center h-[160px] text-sm text-muted-foreground">{empty}</div>
+          )
         )}
         {messages.map((message, i) => {
           if (message.system) {

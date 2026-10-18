@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ClinicSettingsModal } from "@/components/ClinicSettingsModal";
 import { useSupportUnread } from "@/components/support/useSupportUnread";
 import { clinicApi } from "@/lib/api";
-import logo from "@/assets/logo.png";
+import logo from "@/assets/logo-white.svg";
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/clinic/dashboard", tour: "nav-dashboard" },
@@ -38,12 +38,12 @@ export function ClinicSidebar() {
     <>
     <aside className="w-60 shrink-0 border-r border-sidebar-border bg-sidebar flex flex-col h-screen sticky top-0">
       {/* Logo */}
-      <div className="flex items-center justify-center px-5 py-5 bg-white border-b border-sidebar-border">
-        <img src={logo} alt="Dirxctional" className="w-auto h-auto max-w-[185px]" />
+      <div className="flex items-center px-5 pt-[22px] pb-[18px]">
+        <img src={logo} alt="Dirxctional" className="w-auto h-auto max-w-[168px]" />
       </div>
 
       {/* Clinic name + settings */}
-      <div className="px-5 py-3 border-b border-sidebar-border">
+      <div className="px-5 py-3 border-y border-sidebar-border">
         <p className="text-xs text-sidebar-foreground/60">Clinic</p>
         <div className="flex items-center gap-2">
           <p className="text-sm font-medium text-sidebar-accent-foreground truncate flex-1">{user?.clinic_name}</p>
@@ -78,9 +78,7 @@ export function ClinicSidebar() {
               <item.icon className="h-4 w-4" />
               {item.label}
               {item.label === "My Referrals" && actionCount > 0 && (
-                <span className="ml-auto rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-bold text-amber-950" title="Your Dirxctional team needs something on a referral">
-                  {actionCount}
-                </span>
+                <span className="sb3-n" title="Your Dirxctional team needs something on a referral">{actionCount}</span>
               )}
             </Link>
           );

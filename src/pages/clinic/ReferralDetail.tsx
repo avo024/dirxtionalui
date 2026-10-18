@@ -30,6 +30,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Combobox } from "@/components/ui/combobox";
 import { DatePicker } from "@/components/ui/date-picker";
 import { PageContainer } from "@/components/patterns/PageContainer";
+import { ReferralHeader, type ReferralHeaderBand } from "@/components/patterns/ReferralHeader";
+import { EmptyState } from "@/components/patterns/EmptyState";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Two-pane Documents tab kicks in at >=1024px; below that a Sheet is used
 // instead of squeezing a resizable split onto a narrow viewport.
@@ -175,6 +178,7 @@ const isEmpty = (v: any) => v === undefined || v === null || v === "" || v === "
 export default function ReferralDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [referral, setReferral] = useState<any>(null);
   const [documents, setDocuments] = useState<any[]>([]);
   const [history, setHistory] = useState<any[]>([]);
@@ -403,59 +407,23 @@ export default function ReferralDetail() {
   const deliveryViewerDocs = deliveryDocsToViewerDocs(referral.delivery);
   const selectedDeliveryDoc = selectedDeliveryDocId ? deliveryViewerDocs.find((d: any) => d.id === selectedDeliveryDocId) : undefined;
 
-  return (
-    <PageContainer>
-      <button className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-4" onClick={() => navigate(-1)}>
-        <ArrowLeft width={15} height={15} strokeWidth={1.75} />Back to Referrals
-      </button>
-
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4 flex-wrap mb-5">
-        <div>
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-2xl font-semibold font-editorial text-foreground">{referral.patient_name || patientFullName}</h1>
-            <StatusBadge status={referral.status} size="md" showIcon variant="soft" />
-            <span className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-0.5 text-xs font-mono text-muted-foreground">
-              {referral.id.toUpperCase()}
-              <button title="Copy ID" onClick={() => copy(referral.id, "Referral ID")}><Copy width={12} height={12} strokeWidth={1.75} /></button>
-            </span>
-            {referral.pa_status && <ClinicPABadge status={referral.pa_status} appealOutcome={referral.appeal_outcome} />}
-          </div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1.5">
-            <b className="text-foreground font-semibold">{referral.drug || "—"}</b>
-            <span>·</span><span>Created {formatDateShort(referral.created_at)}</span>
-            {referral.created_by_name && <><span>·</span><span>by {referral.created_by_name}</span></>}
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {(referral.status === "ready_for_review" || referral.status === "uploaded") && (
-            <Button size="sm" variant="outline" onClick={() => setEditing(true)}><Pencil width={14} height={14} strokeWidth={1.75} />Edit details</Button>
-          )}
-          <Button size="sm" variant="outline" onClick={() => window.print()}><Printer width={14} height={14} strokeWidth={1.75} />Print</Button>
-          {(referral.status === "uploaded" || referral.status === "rejected") && (
-            <Button
-              size="sm"
-              variant="outline"
-              title="Hide this referral from your list (reversible from the Archived view)"
-              onClick={async () => {
-                if (!window.confirm("Archive this referral? It will be hidden from your list — you can restore it anytime from the Archived view.")) return;
-                try {
-                  await clinicApi.archiveReferral(id!);
-                  toast({ title: "Referral archived", description: "Find it under Archived on My Referrals if you need it back." });
-                  navigate("/clinic/referrals");
-                } catch (e: any) {
-                  toast({ title: "Couldn't archive", description: e.message, variant: "destructive" });
-                }
-              }}
-            >
-              <Inbox width={14} height={14} strokeWidth={1.75} />Archive
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* FixPanel (rejected) or success banner */}
-      {rejected ? (
+  const openTasks = tasks.filter((t) => t.status === "open");
+  const reloadTasks = async () => {
+    const [t, d] = await Promise.all([
+      clinicApi.getReferralTasks(id!).catch(() => ({ items: [] })),
+      clinicApi.getReferralDocuments(id!).catch(() => ({ items: [] })),
+    ]);
+    setTasks(t.items || []);
+    setDocuments(d.items || []);
+  };
+  const sentDocs = referral.status === "sent_to_pharmacy" && !rejected && openTasks.length === 0;
+  const pharmacyPlace = [referral.pharmacy_city, referral.pharmacy_state].filter(Boolean).join(", ");
+  let band: ReferralHeaderBand | null = null;
+  if (rejected) {
+    band = {
+      k: "To fix",
+      h: "clinic",
+      body: (
         <FixPanel
           reason={referral.rejection_reason}
           items={fixItems}
@@ -466,45 +434,123 @@ export default function ReferralDetail() {
           uploading={uploadingCategory === "supplemental"}
           onResubmit={handleResubmit}
         />
-      ) : referral.status === "sent_to_pharmacy" ? (
-        // Sent: the header pill + "Sent to <pharmacy>" card say it once. The
-        // delivery card carries the pharmacy action; legacy rows without a
-        // delivery record keep the action here.
-        !referral.delivery ? <div className="mb-5"><DeliveryIssueReporter referralId={id!} onReported={loadData} /></div> : null
-      ) : referral.status === "approved_to_send" && referral.pharmacy_name ? (
-        <Alert variant="success" className="mb-5">
-          <CheckCircle width={18} height={18} strokeWidth={1.75} />
-          <AlertDescription>
-            <p className="font-semibold text-foreground mb-1">Referral Approved &amp; Sending</p>
-            <p className="text-sm text-muted-foreground mb-2">This referral is approved and on its way to the pharmacy.</p>
-            <div className="flex flex-wrap gap-6 text-sm">
-              <div><p className="text-xs text-muted-foreground">Pharmacy</p><p className="font-medium text-foreground">{referral.pharmacy_name}</p></div>
-              {[referral.pharmacy_city, referral.pharmacy_state].filter(Boolean).join(", ") && (
-                <div><p className="text-xs text-muted-foreground">Location</p><p className="font-medium text-foreground">{[referral.pharmacy_city, referral.pharmacy_state].filter(Boolean).join(", ")}</p></div>
-              )}
-              {(referral.pharmacy_phone || referral.pharmacy_email) && (
-                <div><p className="text-xs text-muted-foreground">Contact</p><p className="font-medium text-foreground">{referral.pharmacy_phone || referral.pharmacy_email}</p></div>
-              )}
-            </div>
-          </AlertDescription>
-        </Alert>
-      ) : null}
+      ),
+    };
+  } else if (openTasks.length > 0) {
+    band = { k: "Your team asked", h: "clinic", body: <ClinicTasksPanel embedded tasks={tasks} referralId={id!} onChanged={reloadTasks} /> };
+  } else if (referral.status === "sent_to_pharmacy") {
+    const d = referral.delivery;
+    const viaLabel = (d?.via || []).join(" and ");
+    band = {
+      k: "Sent",
+      h: "pharm",
+      body: (
+        <>
+          <div>
+            <b>{d?.pharmacy_name || referral.pharmacy_name || "The pharmacy"}</b>
+            {!d && pharmacyPlace && <> · {pharmacyPlace}</>}
+            {!d && (referral.pharmacy_phone || referral.pharmacy_email) && <> · <span className="font-mono text-[13px]">{referral.pharmacy_phone || referral.pharmacy_email}</span></>}
+          </div>
+          {d && <div className="line2">{formatDateTime(d.sent_at)}{viaLabel && ` · by ${viaLabel}`}</div>}
+          <div className="acts"><DeliveryIssueReporter quiet referralId={id!} onReported={loadData} /></div>
+        </>
+      ),
+    };
+  } else if (referral.status === "approved_to_send") {
+    band = {
+      k: "Approved",
+      h: "dx",
+      body: (
+        <>
+          <div><b>{referral.pharmacy_name ? `Your Dirxctional team is sending this to ${referral.pharmacy_name}.` : "Your Dirxctional team is sending this to the pharmacy."}</b></div>
+          <div className="line2">
+            {[pharmacyPlace, referral.pharmacy_phone || referral.pharmacy_email].filter(Boolean).join(" · ")}
+            {(pharmacyPlace || referral.pharmacy_phone || referral.pharmacy_email) ? " · " : ""}nothing needed from you
+          </div>
+        </>
+      ),
+    };
+  } else if (referral.status === "closed") {
+    band = {
+      k: "Closed",
+      h: "done",
+      body: (
+        <>
+          <div><b>This referral is closed.</b></div>
+          <div className="line2">{statusDescriptions.closed}</div>
+        </>
+      ),
+    };
+  }
 
-      {/* Action needed — open tasks from the Dirxctional team (not a rejection:
-          nothing is wrong, something extra is needed to keep this moving). */}
-      {tasks.some((t) => t.status === "open") && (
-        <ClinicTasksPanel
-          tasks={tasks}
-          referralId={id!}
-          onChanged={async () => {
-            const [t, d] = await Promise.all([
-              clinicApi.getReferralTasks(id!).catch(() => ({ items: [] })),
-              clinicApi.getReferralDocuments(id!).catch(() => ({ items: [] })),
-            ]);
-            setTasks(t.items || []);
-            setDocuments(d.items || []);
-          }}
-        />
+  return (
+    <PageContainer>
+      <button className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-4" onClick={() => navigate(-1)}>
+        <ArrowLeft width={15} height={15} strokeWidth={1.75} />Back to Referrals
+      </button>
+
+      <ReferralHeader
+        patient={referral.patient_name || patientFullName}
+        status={<StatusBadge status={referral.status} variant="outline" size="lg" />}
+        pa={referral.pa_status ? <ClinicPABadge status={referral.pa_status} appealOutcome={referral.appeal_outcome} /> : null}
+        drug={referral.drug}
+        created={formatDateShort(referral.created_at)}
+        by={referral.created_by_name}
+        me={user?.name}
+        tools={
+          <>
+            <button type="button" className="ib" title="Copy referral ID" aria-label="Copy referral ID" onClick={() => copy(referral.id, "Referral ID")}><Copy width={16} height={16} strokeWidth={1.75} /></button>
+            {(referral.status === "ready_for_review" || referral.status === "uploaded") && (
+              <button type="button" className="ib" title="Edit details" aria-label="Edit details" onClick={() => setEditing(true)}><Pencil width={16} height={16} strokeWidth={1.75} /></button>
+            )}
+            <button type="button" className="ib" title="Print" aria-label="Print" onClick={() => window.print()}><Printer width={16} height={16} strokeWidth={1.75} /></button>
+            {(referral.status === "uploaded" || referral.status === "rejected") && (
+              <button
+                type="button"
+                className="ib"
+                title="Archive — hide this referral from your list (reversible from the Archived view)"
+                aria-label="Archive"
+                onClick={async () => {
+                  if (!window.confirm("Archive this referral? It will be hidden from your list — you can restore it anytime from the Archived view.")) return;
+                  try {
+                    await clinicApi.archiveReferral(id!);
+                    toast({ title: "Referral archived", description: "Find it under Archived on My Referrals if you need it back." });
+                    navigate("/clinic/referrals");
+                  } catch (e: any) {
+                    toast({ title: "Couldn't archive", description: e.message, variant: "destructive" });
+                  }
+                }}
+              >
+                <Inbox width={16} height={16} strokeWidth={1.75} />
+              </button>
+            )}
+          </>
+        }
+        band={band}
+        docs={
+          sentDocs && referral.delivery?.documents?.length > 0 ? (
+            <>
+              {referral.delivery.documents.map((doc: any) => (
+                <div key={doc.id} className="rh-doc">
+                  <span className="sp" />
+                  <span className="nm"><FileText width={16} height={16} strokeWidth={1.75} /><span className="truncate">{doc.label}</span></span>
+                  <span className="tl">
+                    <button type="button" className="ib" aria-label={`Preview ${doc.label}`} title="Preview" onClick={() => { selectDeliveryDoc(doc.id); setTab("documents"); }}><Eye width={16} height={16} strokeWidth={1.75} /></button>
+                    <button type="button" className="ib" aria-label={`Download ${doc.label}`} title="Download" onClick={() => downloadDeliveryDoc(doc.id)}><Download width={16} height={16} strokeWidth={1.75} /></button>
+                  </span>
+                </div>
+              ))}
+              {referral.delivery.legacy && (
+                <p className="px-6 pb-3 text-xs text-muted-foreground italic">Earlier deliveries only list the referral packet.</p>
+              )}
+            </>
+          ) : null
+        }
+      />
+
+      {/* Rejected AND a team request at once: the request keeps its own card. */}
+      {rejected && openTasks.length > 0 && (
+        <ClinicTasksPanel tasks={tasks} referralId={id!} onChanged={reloadTasks} />
       )}
 
       {/* Tabs */}
@@ -518,16 +564,6 @@ export default function ReferralDetail() {
 
         {/* OVERVIEW */}
         <TabsContent value="overview" className="pt-5">
-          {referral.delivery && (
-            <div className="mb-4">
-              <DeliverySentCard
-                delivery={referral.delivery}
-                onPreview={(docId) => { selectDeliveryDoc(docId); setTab("documents"); }}
-                onDownload={downloadDeliveryDoc}
-                footer={referral.status === "sent_to_pharmacy" ? <DeliveryIssueReporter referralId={id!} onReported={loadData} /> : undefined}
-              />
-            </div>
-          )}
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-4 items-start">
             <div className="flex flex-col gap-4">
               <InfoCardDL icon={<User width={16} height={16} strokeWidth={1.75} />} title="Patient Information" obj={patient} fields={PATIENT_FIELDS} section="patient" flagCount={flagCount("patient")} isFlagged={isFlagged} />
@@ -535,7 +571,7 @@ export default function ReferralDetail() {
               <InfoCardDL icon={<Stethoscope width={16} height={16} strokeWidth={1.75} />} title="Provider Information" obj={provider} fields={PROVIDER_FIELDS} section="provider" flagCount={flagCount("provider")} isFlagged={isFlagged} />
             </div>
             <div className="flex flex-col gap-4">
-              {referral.status !== "sent_to_pharmacy" && (
+              {!["sent_to_pharmacy", "rejected", "approved_to_send", "closed"].includes(referral.status) && (
                 <StatusCard status={referral.status} desc={statusDescriptions[referral.status] || "In progress."} />
               )}
               <InsurancePA referral={referral} insurance={insurance} priorAuth={priorAuth} reloadOnUpdate={loadData} referralId={id!} isFlagged={isFlagged} />
@@ -547,21 +583,8 @@ export default function ReferralDetail() {
             a preview beside it (two-pane resizable split >=1024px, a Sheet
             below that). Preview first, download second. */}
         <TabsContent value="documents" className="pt-5">
-          {referral.delivery && (
-            <div className="mb-4">
-              <DeliverySentCard
-                delivery={referral.delivery}
-                onPreview={selectDeliveryDoc}
-                onDownload={downloadDeliveryDoc}
-              />
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mt-4 mb-2">All documents</h3>
-            </div>
-          )}
           {documents.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 py-16 text-center">
-              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground"><FileText width={20} height={20} strokeWidth={1.75} /></span>
-              <p className="text-sm font-semibold text-foreground">No documents yet</p>
-            </div>
+            <div className="lr-list"><EmptyState art="documents" title="No documents yet" text="Documents uploaded to this referral will appear here." /></div>
           ) : selectedDoc && !isNarrowForDocs ? (
             <div className="h-[70vh] min-h-[460px] rounded-lg border border-border overflow-hidden">
               <ResizablePanelGroup direction="horizontal" className="h-full">
@@ -789,7 +812,9 @@ export default function ReferralDetail() {
             onSend={addNote}
             onAttach={() => noteFileRef.current?.click()}
             placeholder="Add a note about this referral… (or attach a document with the clip)"
-            empty="No notes yet — anything you write here stays with this referral, and your Dirxctional team sees it."
+            emptyArt="notes"
+            emptyTitle="No notes yet"
+            empty="Anything you write here stays with this referral, and your Dirxctional team sees it."
             hint={attachingNote ? "Attaching document…" : sendingNote ? "Sending…" : "Visible to your Dirxctional team"}
           />
           <input
@@ -845,55 +870,6 @@ function DocumentPreviewPane({ doc, documents, referralId, onClose, animate, fet
           className="h-full"
         />
       </div>
-    </div>
-  );
-}
-
-/* ── "Sent to <pharmacy>" — what actually went out on the referral's most
-   recent delivery, filtered to what the clinic is allowed to see (referral
-   packet + PA approval letter always, plus the clinic's own uploaded extras;
-   see _clinic_delivery_for_referral, app/routes/referrals.py). Shared between
-   the Overview tab (top card) and the Documents tab ("Sent to pharmacy"
-   section) — 2026-09-24, Alex. ── */
-function DeliverySentCard({ delivery, onPreview, onDownload, footer }: {
-  delivery: any; onPreview: (docId: string) => void; onDownload: (docId: string) => void; footer?: React.ReactNode;
-}) {
-  if (!delivery) return null;
-  const viaLabel = (delivery.via || []).join(" and ");
-  return (
-    <div className="bg-card border border-border rounded-lg p-4">
-      <div className="flex items-center gap-2 mb-0.5">
-        <Send width={15} height={15} strokeWidth={1.75} className="text-muted-foreground shrink-0" />
-        <h3 className="text-sm font-semibold text-foreground">Sent to {delivery.pharmacy_name || "the pharmacy"}</h3>
-      </div>
-      <p className="text-xs text-muted-foreground mb-3">
-        Sent {formatDateTime(delivery.sent_at)}{viaLabel && ` · by ${viaLabel}`}
-      </p>
-      {delivery.documents?.length > 0 && (
-        <div className="flex flex-col gap-2">
-          {delivery.documents.map((doc: any) => {
-            const DocIcon = docIcon(doc.filename || doc.label || "");
-            return (
-              <div key={doc.id} className="flex items-center gap-2.5 rounded-md border border-border px-3 py-2">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary">
-                  <DocIcon width={14} height={14} strokeWidth={1.75} />
-                </span>
-                <p className="flex-1 min-w-0 text-xs font-medium text-foreground truncate">{doc.label}</p>
-                <Button size="sm" variant="outline" onClick={() => onPreview(doc.id)}>
-                  <Eye width={14} height={14} strokeWidth={1.75} />Preview
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => onDownload(doc.id)}>
-                  <Download width={14} height={14} strokeWidth={1.75} />Download
-                </Button>
-              </div>
-            );
-          })}
-        </div>
-      )}
-      {delivery.legacy && (
-        <p className="text-xs text-muted-foreground mt-2.5 italic">Earlier deliveries only list the referral packet.</p>
-      )}
-      {footer && <div className="mt-3 pt-3 border-t border-border flex justify-end [&>div]:mt-0">{footer}</div>}
     </div>
   );
 }
@@ -1030,40 +1006,28 @@ function FixPanel({ reason, items = [], canResubmit, resubmitting, onEdit, onUpl
   const total = items.length;
 
   return (
-    <div className="rounded-lg border border-border bg-card overflow-hidden mb-5">
-      <Alert variant="destructive" className="rounded-none border-0 border-b border-border">
-        <AlertTriangle width={18} height={18} strokeWidth={1.75} />
-        <AlertDescription>
-          <p className="font-semibold text-foreground mb-1">Referral Needs Attention</p>
-          <p>{reason || "This referral needs attention. Contact our team for details."}</p>
-        </AlertDescription>
-      </Alert>
+    <div>
+      <div>
+        <b>{reason || "This referral needs attention. Contact our team for details."}</b>
+      </div>
 
-      <div className="p-4">
-        <div className="flex items-center gap-2 mb-2.5">
-          <p className="text-sm font-semibold text-foreground">What's needed</p>
-          {total > 0 && (
-            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-bold ${canResubmit ? "bg-success/13 text-success" : "bg-warning/14 text-[#B45309]"}`}>
-              {doneCount}/{total} resolved
-            </span>
-          )}
-        </div>
-        <ul className="flex flex-col gap-2 mb-4">
+      <div>
+        <ul className="rh-check">
           {total === 0 && (
-            <li className="flex items-center gap-2 text-sm text-muted-foreground">
+            <li className="text-muted-foreground">
               <Checkbox checked={false} disabled />Review what needs attention and correct the referral.
             </li>
           )}
           {items.map((it: any) => (
-            <li key={it.kind + it.id} className="flex items-center gap-2 text-sm">
+            <li key={it.kind + it.id}>
               <Checkbox checked={!!it.done} disabled />
               <span className={it.done ? "text-muted-foreground line-through" : "text-foreground"}>{it.label}</span>
-              {!it.done && <AlertTriangle width={12} height={12} strokeWidth={1.75} className="text-warning" />}
             </li>
           ))}
+          {total > 0 && <li><span className="prog">{doneCount}/{total} resolved</span></li>}
         </ul>
 
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="acts">
           <Button variant="outline" onClick={onEdit}><Pencil width={15} height={15} strokeWidth={1.75} />Edit referral details</Button>
           <Button variant="outline" onClick={() => setShowUpload((v: boolean) => !v)}><Upload width={15} height={15} strokeWidth={1.75} />Upload documents</Button>
           <Tooltip>
@@ -1271,7 +1235,7 @@ function ExpiredInsuranceBanner({ referralId, onUpdated }: { referralId: string;
 }
 
 /* ── Action-needed panel: open tasks from the Dirxctional team ── */
-function ClinicTasksPanel({ tasks, referralId, onChanged }: { tasks: any[]; referralId: string; onChanged: () => Promise<void> }) {
+function ClinicTasksPanel({ tasks, referralId, onChanged, embedded }: { tasks: any[]; referralId: string; onChanged: () => Promise<void>; embedded?: boolean }) {
   const [replies, setReplies] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const fileRefs = useRef<Record<string, HTMLInputElement | null>>({});
@@ -1320,14 +1284,18 @@ function ClinicTasksPanel({ tasks, referralId, onChanged }: { tasks: any[]; refe
   const allSent = open.length === 0;
 
   return (
-    <div className={`rounded-lg border p-4 mb-5 ${allSent ? "border-success/40 bg-success/6" : "border-warning/50 bg-warning/8"}`}>
-      <div className="flex items-center gap-2 mb-1">
-        {allSent ? <CheckCircle width={17} height={17} strokeWidth={1.75} className="text-success" /> : <ClipboardList width={17} height={17} strokeWidth={1.75} className="text-[#B45309]" />}
-        <h3 className="text-sm font-semibold text-foreground">Action needed from your office</h3>
-      </div>
-      <p className="text-xs text-muted-foreground mb-3">
-        Nothing is wrong with this referral — your Dirxctional team just needs something extra to keep it moving.
-      </p>
+    <div className={embedded ? "" : `rounded-lg border p-4 mb-5 ${allSent ? "border-success/40 bg-success/6" : "border-warning/50 bg-warning/8"}`}>
+      {!embedded && (
+        <>
+          <div className="flex items-center gap-2 mb-1">
+            {allSent ? <CheckCircle width={17} height={17} strokeWidth={1.75} className="text-success" /> : <ClipboardList width={17} height={17} strokeWidth={1.75} className="text-[#B45309]" />}
+            <h3 className="text-sm font-semibold text-foreground">Action needed from your office</h3>
+          </div>
+          <p className="text-xs text-muted-foreground mb-3">
+            Nothing is wrong with this referral — your Dirxctional team just needs something extra to keep it moving.
+          </p>
+        </>
+      )}
       <div className="flex flex-col gap-2.5">
         {tasks.map((t) => {
           const isOpen = t.status === "open";
@@ -1397,7 +1365,7 @@ function ClinicTasksPanel({ tasks, referralId, onChanged }: { tasks: any[]; refe
   );
 }
 
-function DeliveryIssueReporter({ referralId, onReported }: { referralId: string; onReported: () => void }) {
+function DeliveryIssueReporter({ referralId, onReported, quiet }: { referralId: string; onReported: () => void; quiet?: boolean }) {
   const [open, setOpen] = useState(false);
   const [details, setDetails] = useState("");
   const [sending, setSending] = useState(false);
@@ -1422,7 +1390,7 @@ function DeliveryIssueReporter({ referralId, onReported }: { referralId: string;
 
   if (openedCaseId) {
     return (
-      <div className="mt-3 bg-primary/5 border border-primary/15 rounded-md p-4 max-w-[560px]">
+      <div className="bg-primary/5 border border-primary/15 rounded-md p-4 max-w-[560px]">
         <p className="text-base font-bold text-primary flex items-center gap-2"><CheckCircle width={18} height={18} strokeWidth={1.75} />Urgent case opened — #{openedCaseId.slice(0, 8)}</p>
         <p className="text-sm text-foreground mt-2 leading-relaxed">
           Our team has been <b>alerted immediately</b> — delivery issues are a top priority for us.
@@ -1438,9 +1406,11 @@ function DeliveryIssueReporter({ referralId, onReported }: { referralId: string;
   }
 
   return (
-    <div className="mt-3">
+    <div className={quiet ? "" : "mt-3"}>
       {!open ? (
-        <Button size="sm" variant="outline" onClick={() => setOpen(true)}>Pharmacy didn't receive this?</Button>
+        quiet
+          ? <button type="button" className="p3-quiet" onClick={() => setOpen(true)}>Pharmacy didn't receive this?</button>
+          : <Button size="sm" variant="outline" onClick={() => setOpen(true)}>Pharmacy didn't receive this?</Button>
       ) : (
         <div className="bg-warning/7 border border-warning/30 rounded-md p-3.5 max-w-[560px]">
           <p className="text-sm font-semibold text-foreground mb-2">Tell us what the pharmacy said</p>

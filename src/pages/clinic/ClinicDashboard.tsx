@@ -1,14 +1,14 @@
 import { Link, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { XCircle, Plus, FileSearch, AlertTriangle, ArrowRight, Store, MessageCircle, ChevronRight } from "lucide-react";
+import { Plus, Store } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ClinicPABadge } from "@/components/ClinicPABadge";
-import { getInitials } from "@/components/CreatedByAvatar";
-import { LinkRow } from "@/components/patterns/LinkRow";
+import { ListRows, ListRow } from "@/components/patterns/ListRow";
+import { TodayStrip, type TodayLine } from "@/components/patterns/TodayStrip";
+import { EmptyState } from "@/components/patterns/EmptyState";
 import { NotificationBell } from "@/components/NotificationBell";
 import { Button } from "@/components/ui/button";
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { useAuth } from "@/contexts/AuthContext";
 import { clinicApi, getMyClinic } from "@/lib/api";
 import { useTour } from "@/components/tutorials/useTour";
@@ -66,12 +66,64 @@ export default function ClinicDashboard() {
   const urgencyOrder: Record<string, number> = { rejected: 0, needs_info: 1, ready_for_review: 2, processing: 3, approved_to_send: 4, uploaded: 5 };
   const sortedRecentReferrals = [...referrals].sort((a, b) => (urgencyOrder[a.status] ?? 99) - (urgencyOrder[b.status] ?? 99)).slice(0, 5);
 
+  const processingReferrals = referrals.filter((r) => ["processing", "uploaded"].includes(r.status));
+  const lines: TodayLine[] = [];
+  if (needsAttentionCount > 0) {
+    const items: TodayLine["items"] = rejectedReferrals.map((ref) => ({
+      text: ref.patient_name,
+      to: `/clinic/referrals/${ref.id}`,
+      note: `${ref.drug_requested || ref.drug || "—"} · ${ref.rejection_reason ? ref.rejection_reason.slice(0, 90) + "…" : "Review required"}`,
+    }));
+    if (openTaskCount > 0) {
+      items.push({
+        text: `${openTaskCount} request${openTaskCount > 1 ? "s" : ""} from your Dirxctional team`,
+        to: "/clinic/referrals?filter=action_needed",
+        note: "Open the referral with the \"Action needed\" card to reply or upload.",
+      });
+    }
+    lines.push({ key: "needs", label: "Needs you", count: needsAttentionCount, items });
+  }
+  if (supportUnread) {
+    lines.push({
+      key: "reply",
+      label: "Dirxctional replied",
+      items: [{ text: "Your support request has a reply", to: "/clinic/support", onClick: () => bumpSupport() }],
+      action: { label: "Read reply", to: "/clinic/support", onClick: () => bumpSupport() },
+    });
+  }
+  if (lines.length > 0 && processingReferrals.length > 0) {
+    lines.push({
+      key: "processing",
+      label: "Processing",
+      count: processingReferrals.length,
+      items: processingReferrals.slice(0, 4).map((r) => ({ text: r.patient_name, note: r.drug || r.drug_requested || undefined })),
+    });
+  }
+
+  const refRow = (r: any) => (
+    <ListRow
+      key={r.id}
+      to={`/clinic/referrals/${r.id}`}
+      patient={<Link to={`/clinic/referrals/${r.id}`} className="no-underline hover:underline focus-visible:outline-none" style={{ color: "inherit" }}>{r.patient_name}</Link>}
+      sub={
+        <>
+          <span>{r.drug || r.drug_requested || "—"}</span>
+          {r.created_by_name && r.created_by_name !== user?.name && (<><span className="sep">·</span><span>by {r.created_by_name}</span></>)}
+        </>
+      }
+      status={<StatusBadge status={r.status} />}
+      extra={<ClinicPABadge status={r.pa_status} appealOutcome={r.appeal_outcome} />}
+      when={r.updated_at ? formatDateShort(r.updated_at) : r.created_at ? formatDateShort(r.created_at) : "—"}
+    />
+  );
+  const refHead = ["Patient · drug", "Status", { label: "Updated", r: true }, ""];
+
   return (
     <PageContainer>
       {/* Header */}
       <div className="flex items-center justify-between mb-5 gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold font-editorial text-foreground">{getGreeting()}, {user?.clinic_name}</h1>
+          <h1 className="ty-title">{getGreeting()}, {user?.clinic_name}</h1>
         </div>
         <div className="flex items-center gap-3">
           <NotificationBell referrals={referrals} noteField="latest_admin_note_at" actionStatus="rejected" linkBase="/clinic/referrals" />
@@ -97,140 +149,46 @@ export default function ClinicDashboard() {
         </div>
       ) : (
         <>
-          {/* Action needed from your office — open tasks + rejected referrals first. */}
-          <div data-tour="dashboard-stats" className="mb-6">
-            <div className="flex items-center gap-2 mb-2.5">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">Action needed from your office</h2>
-              {needsAttentionCount > 0 && (
-                <span className="inline-flex items-center rounded-full bg-destructive/12 text-destructive px-2 py-0.5 text-[11px] font-bold">{needsAttentionCount}</span>
-              )}
-            </div>
-            {needsAttentionCount === 0 && !supportUnread ? (
-              <div className="rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
-                Nothing needs your attention right now.
-              </div>
-            ) : (
-              <div className="rounded-lg border border-border bg-card overflow-hidden divide-y divide-border">
-                {supportUnread && (
-                  <Link
-                    to="/clinic/support"
-                    onClick={() => bumpSupport()}
-                    className="flex items-center gap-3 border-l-[3px] border-l-primary px-4 py-3 no-underline hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
-                  >
-                    <MessageCircle width={16} height={16} strokeWidth={1.75} className="text-primary shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-foreground">Dirxctional replied to your support request</p>
-                      <p className="text-xs text-muted-foreground truncate">Open Help &amp; Support to read the reply.</p>
-                    </div>
-                    <ChevronRight width={16} height={16} strokeWidth={1.75} className="text-muted-foreground shrink-0" />
-                  </Link>
-                )}
-                {rejectedReferrals.map((ref) => (
-                  <Link
-                    key={ref.id}
-                    to={`/clinic/referrals/${ref.id}`}
-                    className="flex items-center gap-3 border-l-[3px] border-l-destructive px-4 py-3 no-underline hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
-                  >
-                    <XCircle width={16} height={16} strokeWidth={1.75} className="text-destructive shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-foreground">{ref.patient_name} — needs attention</p>
-                      <p className="text-xs text-muted-foreground truncate">{ref.drug_requested || ref.drug || "—"} · {ref.rejection_reason ? ref.rejection_reason.slice(0, 90) + "…" : "Review required"}</p>
-                    </div>
-                    <ChevronRight width={16} height={16} strokeWidth={1.75} className="text-muted-foreground shrink-0" />
-                  </Link>
-                ))}
-                {openTaskCount > 0 && (
-                  <Link
-                    to="/clinic/referrals?filter=action_needed"
-                    className="flex items-center gap-3 border-l-[3px] border-l-warning px-4 py-3 no-underline hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
-                  >
-                    <AlertTriangle width={16} height={16} strokeWidth={1.75} className="text-[#B45309] shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-foreground">{openTaskCount} request{openTaskCount > 1 ? "s" : ""} from your Dirxctional team</p>
-                      <p className="text-xs text-muted-foreground">Open the referral with the "Action needed" card to reply or upload.</p>
-                    </div>
-                    <ChevronRight width={16} height={16} strokeWidth={1.75} className="text-muted-foreground shrink-0" />
-                  </Link>
-                )}
-              </div>
-            )}
+          {/* Today — what needs the office, what Dirxctional replied, what is processing. */}
+          <div className="mb-6">
+            <TodayStrip
+              data-tour="dashboard-stats"
+              lines={lines}
+              emptyNote="Every referral is with your Dirxctional team or already at the pharmacy."
+            />
           </div>
 
-          {/* In progress — compact table */}
+          {/* In progress */}
           <div className="mb-6">
-            <div className="flex items-center gap-2 mb-2.5">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">In progress</h2>
-              <span className="text-xs font-medium text-muted-foreground">{inProgressReferrals.length}</span>
+            <div className="p3-sec">
+              <h2 className="ty-sec">In progress<span className="n">{inProgressReferrals.length}</span></h2>
             </div>
             {inProgressReferrals.length > 0 ? (
-              <div className="rounded-lg border border-border bg-card overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow><TableHead>Patient</TableHead><TableHead>Drug</TableHead><TableHead>Status</TableHead><TableHead>Created</TableHead></TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {inProgressReferrals.slice(0, 6).map((r) => (
-                      <LinkRow key={r.id} to={`/clinic/referrals/${r.id}`}>
-                        <TableCell>
-                          <Link to={`/clinic/referrals/${r.id}`} className="font-semibold text-foreground no-underline hover:underline focus-visible:outline-none">{r.patient_name}</Link>
-                          {r.created_by_name && r.created_by_name !== user?.name && (
-                            <span title={`Created by ${r.created_by_name}`} className="ml-2 text-[11px] text-muted-foreground">{getInitials(r.created_by_name)}</span>
-                          )}
-                        </TableCell>
-                        <TableCell>{r.drug || r.drug_requested || "—"}</TableCell>
-                        <TableCell><StatusBadge status={r.status} variant="soft" /></TableCell>
-                        <TableCell className="text-muted-foreground">{r.created_at ? formatDateShort(r.created_at) : "—"}</TableCell>
-                      </LinkRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+              <ListRows head={refHead}>{inProgressReferrals.slice(0, 6).map(refRow)}</ListRows>
             ) : (
-              <div className="rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted-foreground">Nothing in progress.</div>
+              <div className="lr-list">
+                <EmptyState art="caught-up" title="All caught up" text="Nothing is in progress. New referrals you submit will show up here." />
+              </div>
             )}
           </div>
 
           {/* Recent referrals */}
           {referrals.length > 0 ? (
             <div>
-              <div className="flex items-center justify-between mb-2.5">
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">Recent</h2>
-                <Link to="/clinic/referrals" className="text-sm text-primary font-medium hover:underline">View All →</Link>
+              <div className="p3-sec">
+                <h2 className="ty-sec">Recent</h2>
+                <Link to="/clinic/referrals" className="p3-link">View All →</Link>
               </div>
-              <div className="rounded-lg border border-border bg-card overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Patient Name</TableHead><TableHead>Drug</TableHead><TableHead>Status</TableHead>
-                      <TableHead>PA Status</TableHead><TableHead>Created</TableHead><TableHead>Updated</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {sortedRecentReferrals.map((r) => (
-                      <LinkRow key={r.id} to={`/clinic/referrals/${r.id}`}>
-                        <TableCell>
-                          <Link to={`/clinic/referrals/${r.id}`} className="font-semibold text-foreground no-underline hover:underline focus-visible:outline-none">{r.patient_name}</Link>
-                          {r.created_by_name && r.created_by_name !== user?.name && (
-                            <span title={`Created by ${r.created_by_name}`} className="ml-2 text-[11px] text-muted-foreground">{getInitials(r.created_by_name)}</span>
-                          )}
-                        </TableCell>
-                        <TableCell>{r.drug || r.drug_requested || "—"}</TableCell>
-                        <TableCell><StatusBadge status={r.status} variant="soft" /></TableCell>
-                        <TableCell><ClinicPABadge status={r.pa_status} appealOutcome={r.appeal_outcome} /></TableCell>
-                        <TableCell className="text-muted-foreground">{r.created_at ? formatDateShort(r.created_at) : "—"}</TableCell>
-                        <TableCell className="text-muted-foreground">{r.updated_at ? formatDateShort(r.updated_at) : "—"}</TableCell>
-                      </LinkRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+              <ListRows head={refHead}>{sortedRecentReferrals.map(refRow)}</ListRows>
             </div>
           ) : (
-            <div className="flex flex-col items-center gap-2 py-16 text-center">
-              <span className="flex h-14 w-14 items-center justify-center rounded-full bg-muted text-muted-foreground"><FileSearch width={26} height={26} strokeWidth={1.75} /></span>
-              <h3 className="text-base font-semibold text-foreground">No referrals yet</h3>
-              <p className="text-sm text-muted-foreground">Create your first referral to get started</p>
-              <Button asChild><Link to="/clinic/referrals/new"><Plus width={16} height={16} strokeWidth={1.75} />New Referral</Link></Button>
+            <div className="lr-list">
+              <EmptyState
+                art="referrals"
+                title="No referrals yet"
+                text="Create your first referral to get started."
+                actions={<Button asChild><Link to="/clinic/referrals/new"><Plus width={16} height={16} strokeWidth={1.75} />New Referral</Link></Button>}
+              />
             </div>
           )}
         </>

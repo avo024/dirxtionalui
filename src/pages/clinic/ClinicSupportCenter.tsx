@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { MessageThread } from "@/components/patterns/MessageThread";
+import { EmptyState } from "@/components/patterns/EmptyState";
 import { formatDateShort, getRelativeTime } from "@/lib/dateUtils";
 import { toast } from "@/hooks/use-toast";
 import { SupportStatusBadge } from "@/components/SupportStatusBadge";
@@ -99,7 +100,7 @@ export default function ClinicSupportCenter() {
           {loading ? (
             <div className="flex justify-center py-10"><Loader2 width={22} height={22} className="animate-spin text-primary" /></div>
           ) : cases.length === 0 ? (
-            <div className="p-5 text-center text-sm text-muted-foreground">No requests yet. Click <b>New request</b> to ask us anything.</div>
+            <EmptyState art="support" size="sm" title="No requests yet" text="Click New request to ask us anything." />
           ) : (
             <div className="flex flex-col">
               {cases.map((c) => (
@@ -221,6 +222,8 @@ function CaseView({ caseId }: { caseId: string }) {
         onChange={setDraft}
         onSend={send}
         placeholder="Write a reply…"
+        emptyArt="support"
+        emptyTitle="No messages yet"
         hint="Sent to your Dirxctional team"
       />
       {sending && <span className="text-xs text-muted-foreground">Sending…</span>}

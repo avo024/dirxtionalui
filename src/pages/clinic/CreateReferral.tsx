@@ -5,6 +5,7 @@ import {
   Stethoscope, Shield, CheckCircle, Loader2, AlertTriangle, Search, X, Sparkles,
   Pencil, ClipboardList, FileCheck,
 } from "lucide-react";
+import { Stepper } from "@/components/patterns/Stepper";
 import { clinicApi, pharmacyApi, getMyClinic } from "@/lib/api";
 import { mapManualFormToBackend } from "@/lib/dataMapper";
 import { formatDateShort } from "@/lib/dateUtils";
@@ -460,43 +461,13 @@ export default function CreateReferral() {
     <PageContainer fade={false}>
       {/* Bar A — header */}
       <div>
-        <h1 className="text-2xl font-semibold font-editorial text-foreground">New Referral</h1>
+        <h1 className="ty-title">New Referral</h1>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6 mt-5">
         <div>
-          {/* Bar B — segmented stepper */}
-          <div className="flex items-stretch gap-1" data-tour="wizard-steps">
-            {STEPS.map((s, i) => {
-              const done = i < currentStep, current = i === currentStep;
-              return (
-                <button
-                  key={s.key}
-                  type="button"
-                  className={cn(
-                    "flex-1 flex flex-col gap-1.5 rounded-md px-2.5 py-2 text-left transition-colors",
-                    current ? "bg-primary/8" : "hover:bg-muted",
-                    !done && !current && "cursor-not-allowed opacity-60",
-                  )}
-                  onClick={() => done && setCurrentStep(i)}
-                  disabled={!done && !current}
-                >
-                  <span className="flex items-center gap-1.5">
-                    <span className={cn(
-                      "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold",
-                      done ? "bg-success text-success-foreground" : current ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
-                    )}>
-                      {done ? <Check width={12} height={12} strokeWidth={2} /> : `0${i + 1}`}
-                    </span>
-                    <span className={cn("text-xs font-semibold", current || done ? "text-foreground" : "text-muted-foreground")}>{s.label}</span>
-                  </span>
-                  <span className="h-1 rounded-full bg-muted overflow-hidden">
-                    {(done || current) && <span className="block h-full bg-primary" style={{ width: current ? "40%" : "100%" }} />}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+          {/* Bar B — stepper */}
+          <div className="mb-4"><Stepper data-tour="wizard-steps" steps={STEPS.map((x) => x.label)} current={currentStep} onStep={setCurrentStep} /></div>
 
           {/* Bar C — sticky patient banner */}
           {selectedPatient && currentStep > 0 && (
@@ -525,7 +496,6 @@ export default function CreateReferral() {
             {currentStep === 1 && referralMethod === "upload" && (
               <div className="animate-in fade-in slide-in-from-bottom-1 duration-300 flex flex-col gap-5">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-primary">Step 2 of 4</p>
                   <h2 className="text-lg font-semibold text-foreground mt-1">Upload Documents</h2>
                   <p className="text-sm text-muted-foreground mt-0.5">Upload all relevant documents for this referral</p>
                 </div>
@@ -539,7 +509,6 @@ export default function CreateReferral() {
             {currentStep === 1 && referralMethod === "manual" && (
               <div className="animate-in fade-in slide-in-from-bottom-1 duration-300 flex flex-col gap-5">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-primary">Step 2 of 4</p>
                   <h2 className="text-lg font-semibold text-foreground mt-1">Enter Referral Information</h2>
                   <p className="text-sm text-muted-foreground mt-0.5">Fill in the details below</p>
                 </div>
@@ -625,7 +594,6 @@ function Step1Patient({ search, setSearch, results, selected, onSelect, onClear,
   return (
     <div className="animate-in fade-in slide-in-from-bottom-1 duration-300">
       <div className="mb-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-primary">Step 1 of 4</p>
         <h2 className="text-lg font-semibold text-foreground mt-1">Select Patient</h2>
         <p className="text-sm text-muted-foreground mt-0.5">Search for an existing patient or add a new one</p>
       </div>
@@ -681,7 +649,6 @@ function MethodFork({ onPick }: { onPick: (m: "upload" | "manual") => void }) {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-1 duration-300">
       <div className="mb-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-primary">Step 2 of 4</p>
         <h2 className="text-lg font-semibold text-foreground mt-1">How would you like to create this referral?</h2>
         <p className="text-sm text-muted-foreground mt-0.5">Choose your preferred method</p>
       </div>
@@ -864,7 +831,6 @@ function Step3Pharmacy({ loading, pharmacies, selectedId, defaultId, onSelect, s
   return (
     <div className="animate-in fade-in slide-in-from-bottom-1 duration-300 flex flex-col gap-4">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-primary">Step 3 of 4</p>
         <h2 className="text-lg font-semibold text-foreground mt-1">Select pharmacy for this referral</h2>
         <p className="text-sm text-muted-foreground mt-0.5">Defaults to your clinic's preferred pharmacy. Change if this referral needs a different one.</p>
       </div>
@@ -934,7 +900,6 @@ function Step4Review({ patient, getName, pharmacy, isDefault, method, choice, fi
   return (
     <div className="animate-in fade-in slide-in-from-bottom-1 duration-300 flex flex-col gap-4">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-primary">Step 4 of 4</p>
         <h2 className="text-lg font-semibold text-foreground mt-1">Submit Referral</h2>
         <p className="text-sm text-muted-foreground mt-0.5">Confirm and submit your referral for processing</p>
       </div>

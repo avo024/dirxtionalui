@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { adminApi } from "@/lib/api";
 import { adminAddonsApi } from "@/lib/servicesApi";
 import { useWaitingOnUsCount } from "@/hooks/useWaitingOnUsCount";
-import logo from "@/assets/logo.png";
+import logo from "@/assets/logo-white.svg";
 
 const navItems = [
   // Referrals (the queue) is the default landing surface — Dashboard was
@@ -47,12 +47,12 @@ export function AdminSidebar() {
   return (
     <aside className="w-60 shrink-0 border-r border-sidebar-border bg-sidebar flex flex-col h-screen sticky top-0">
       {/* Logo */}
-      <div className="flex items-center justify-center px-5 py-5 bg-white border-b border-sidebar-border">
-        <img src={logo} alt="Dirxctional" className="w-auto h-auto max-w-[185px]" />
+      <div className="flex items-center px-5 pt-[22px] pb-[18px]">
+        <img src={logo} alt="Dirxctional" className="w-auto h-auto max-w-[168px]" />
       </div>
 
       {/* Role */}
-      <div className="px-5 py-3 border-b border-sidebar-border">
+      <div className="px-5 py-3 border-y border-sidebar-border">
         <p className="text-xs text-sidebar-foreground/60">Role</p>
         <p className="text-sm font-medium text-sidebar-accent-foreground">Internal Admin</p>
       </div>
@@ -84,9 +84,7 @@ export function AdminSidebar() {
               <item.icon className="h-4 w-4" />
               {item.label}
               {badgeCount > 0 && (
-                <span className="ml-auto h-5 min-w-[20px] rounded-full bg-sidebar-primary text-sidebar-primary-foreground flex items-center justify-center text-xs px-1.5 font-semibold">
-                  {badgeCount}
-                </span>
+                <span className="sb3-n" data-tone="teal">{badgeCount}</span>
               )}
             </Link>
           );

@@ -1,7 +1,15 @@
 import { cn } from "@/lib/utils";
 import type { ReferralStatus } from "@/data/mockData";
 import { statusLabels } from "@/data/mockData";
-import { Upload, Loader2, CheckCircle, Send, XCircle } from "lucide-react";
+
+/**
+ * Status language v3 (direction A — holder glyph). A small mark before the
+ * label says who holds the referral: square = Dirxctional, diamond = payer,
+ * ring = pharmacy, triangle = clinic, dash = finished. One hue per holder
+ * (tokens --st-* in index.css). Needs Attention is the only filled (loud) mark.
+ * Labels never change.
+ */
+export type Holder = "clinic" | "dx" | "payer" | "pharm" | "done";
 
 // Clinic labels are the existing mockData.statusLabels, unchanged.
 // Admin labels are a distinct, shorter vocabulary for the internal queue —
@@ -17,58 +25,49 @@ const adminLabels: Record<ReferralStatus, string> = {
   closed: "Closed",
 };
 
-const statusStyles: Record<string, string> = {
-  uploaded: "bg-status-uploaded-bg text-status-uploaded-fg",
-  processing: "bg-status-processing-bg text-status-processing-fg",
-  ready_for_review: "bg-status-review-bg text-status-review-fg",
-  approved: "bg-status-approved-bg text-status-approved-fg",
-  approved_to_send: "bg-status-approved-bg text-status-approved-fg",
-  sent_to_pharmacy: "bg-status-sent-bg text-status-sent-fg",
-  rejected: "bg-status-rejected-bg text-status-rejected-fg",
-  closed: "bg-muted text-muted-foreground",
+const holderFor: Record<string, { h: Holder; loud?: boolean }> = {
+  uploaded: { h: "dx" },
+  processing: { h: "dx" },
+  ready_for_review: { h: "dx" },
+  approved: { h: "dx" },
+  approved_to_send: { h: "dx" },
+  sent_to_pharmacy: { h: "pharm" },
+  rejected: { h: "clinic", loud: true },
+  closed: { h: "done" },
 };
 
-const dotStyles: Record<string, string> = {
-  uploaded: "bg-status-uploaded-fg",
-  processing: "bg-status-processing-fg",
-  ready_for_review: "bg-status-review-fg",
-  approved: "bg-status-approved-fg",
-  approved_to_send: "bg-status-approved-fg",
-  sent_to_pharmacy: "bg-status-sent-fg",
-  rejected: "bg-status-rejected-fg",
-  closed: "bg-muted-foreground",
-};
+export interface HolderMarkProps {
+  h: Holder;
+  label: React.ReactNode;
+  variant?: "text" | "outline" | "soft";
+  size?: "sm" | "md" | "lg";
+  loud?: boolean;
+  className?: string;
+}
 
-const textFgStyles: Record<string, string> = {
-  uploaded: "text-status-uploaded-fg",
-  processing: "text-status-processing-fg",
-  ready_for_review: "text-status-review-fg",
-  approved: "text-status-approved-fg",
-  approved_to_send: "text-status-approved-fg",
-  sent_to_pharmacy: "text-status-sent-fg",
-  rejected: "text-status-rejected-fg",
-  closed: "text-muted-foreground",
-};
-
-const statusIcons: Record<string, React.ElementType> = {
-  uploaded: Upload,
-  processing: Loader2,
-  ready_for_review: Loader2,
-  approved: CheckCircle,
-  approved_to_send: CheckCircle,
-  sent_to_pharmacy: Send,
-  rejected: XCircle,
-  closed: XCircle,
-};
+/** Raw holder mark — also used for labels outside the referral/PA sets. */
+export function HolderMark({ h, label, variant = "text", size = "sm", loud, className }: HolderMarkProps) {
+  return (
+    <span
+      className={cn("sx", className)}
+      data-h={h}
+      data-v={variant === "text" ? undefined : variant}
+      data-size={size === "sm" ? "sm" : "lg"}
+      data-loud={loud ? "" : undefined}
+    >
+      <span className="g" aria-hidden="true" />
+      {label}
+    </span>
+  );
+}
 
 interface StatusBadgeProps {
   status: ReferralStatus;
   size?: "sm" | "md" | "lg";
+  /** Kept for API compatibility; the holder glyph replaces icons. */
   showIcon?: boolean;
   className?: string;
-  /** Visual weight. "text" (default) = dot + plain label, no chrome.
-   *  "outline" = 1px bordered pill. "soft" = today's tinted pill (unchanged
-   *  look). Clinic pages keep passing no variant (or "soft") through Phase 5. */
+  /** "text" (default, table rows) · "outline" (page headers) · "soft" (clinic dashboard chips). */
   variant?: "text" | "outline" | "soft";
   context?: "clinic" | "admin";
 }
@@ -76,87 +75,14 @@ interface StatusBadgeProps {
 export function StatusBadge({
   status,
   size = "sm",
-  showIcon = false,
   className,
   variant = "text",
   context = "clinic",
 }: StatusBadgeProps) {
-  const Icon = statusIcons[status];
-  const known = Boolean(statusStyles[status]);
-
-  if (!known) {
-    return (
-      <span
-        className={cn(
-          "inline-flex items-center rounded-full font-medium px-2.5 py-0.5 text-xs bg-secondary text-muted-foreground",
-          className,
-        )}
-      >
-        {status}
-      </span>
-    );
+  const spec = holderFor[status];
+  if (!spec) {
+    return <HolderMark h="done" label={status} variant={variant} size={size} className={className} />;
   }
-
   const labels = context === "admin" ? adminLabels : statusLabels;
-  const label = labels[status];
-
-  const marker = showIcon ? (
-    <Icon className={cn("h-3.5 w-3.5", textFgStyles[status])} />
-  ) : (
-    <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", dotStyles[status])} />
-  );
-
-  if (variant === "soft") {
-    const sizeClasses = {
-      sm: "px-2.5 py-0.5 text-xs gap-1.5",
-      md: "px-3 py-1 text-sm gap-2",
-      lg: "px-4 py-1.5 text-sm gap-2 font-semibold",
-    };
-    return (
-      <span
-        className={cn(
-          "inline-flex items-center rounded-full font-medium",
-          statusStyles[status],
-          sizeClasses[size],
-          className,
-        )}
-      >
-        {marker}
-        {label}
-      </span>
-    );
-  }
-
-  if (variant === "outline") {
-    const sizeClasses = {
-      sm: "px-2.5 py-0.5 text-xs gap-1.5",
-      md: "px-3 py-1 text-sm gap-2",
-      lg: "px-4 py-1.5 text-sm gap-2 font-semibold",
-    };
-    return (
-      <span
-        className={cn(
-          "inline-flex items-center rounded-full border border-border bg-transparent font-medium text-foreground",
-          sizeClasses[size],
-          className,
-        )}
-      >
-        {marker}
-        {label}
-      </span>
-    );
-  }
-
-  // variant === "text"
-  const sizeClasses = {
-    sm: "text-xs gap-1.5",
-    md: "text-sm gap-2",
-    lg: "text-sm gap-2 font-semibold",
-  };
-  return (
-    <span className={cn("inline-flex items-center font-medium text-foreground", sizeClasses[size], className)}>
-      {marker}
-      {label}
-    </span>
-  );
+  return <HolderMark h={spec.h} loud={spec.loud} label={labels[status]} variant={variant} size={size} className={className} />;
 }
