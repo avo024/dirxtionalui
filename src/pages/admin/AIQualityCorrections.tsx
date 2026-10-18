@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Loader2, Check, ChevronDown } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAIQualityCorrections } from "@/hooks/useAIQuality";
@@ -104,7 +104,7 @@ export default function AIQualityCorrections() {
       {/* Header */}
       <div className="mb-5">
         <Link className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-3" to="/admin/ai-quality">
-          <ArrowLeft width={15} height={15} strokeWidth={1.75} />Back to overview
+          <Icon name="back" />Back to overview
         </Link>
         <h1 className="text-2xl font-semibold text-foreground">Corrections feed</h1>
         <p className="text-sm text-muted-foreground mt-1">
@@ -140,7 +140,7 @@ export default function AIQualityCorrections() {
                   "flex h-4 w-4 items-center justify-center rounded border",
                   highConfOnly ? "bg-primary border-primary text-primary-foreground" : "border-input",
                 )}>
-                  {highConfOnly && <Check width={12} height={12} strokeWidth={2} />}
+                  {highConfOnly && <Icon name="check" size={14} strokeWidth={2} />}
                 </span>
                 High-confidence only (≥ 0.85)
               </button>
@@ -152,7 +152,7 @@ export default function AIQualityCorrections() {
 
       {/* List */}
       {query.isLoading && accumulated.length === 0 ? (
-        <div className="flex justify-center py-16"><Loader2 width={26} height={26} strokeWidth={1.75} className="animate-spin text-primary" /></div>
+        <div className="flex justify-center py-16"><Icon name="spinner" size={24} className="animate-spin text-primary" /></div>
       ) : query.isError ? (
         <div className="bg-card border border-destructive/30 rounded-lg p-[var(--density-card-pad)] text-sm text-destructive">
           Failed to load corrections: {(query.error as Error)?.message}
@@ -177,7 +177,7 @@ export default function AIQualityCorrections() {
       {nextCursor && (
         <div className="flex justify-center mt-4">
           <Button variant="outline" disabled={query.isFetching} onClick={() => setCursor(nextCursor)}>
-            <ChevronDown width={15} height={15} strokeWidth={1.75} />{query.isFetching ? "Loading…" : "Load more"}
+            <Icon name="chevron-down" />{query.isFetching ? "Loading…" : "Load more"}
           </Button>
         </div>
       )}

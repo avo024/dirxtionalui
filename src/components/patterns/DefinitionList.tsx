@@ -1,5 +1,5 @@
 import { useState, type KeyboardEvent, type ReactNode } from "react";
-import { AlertTriangle, Copy, Loader2, Pencil } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
@@ -126,7 +126,7 @@ function RowValue({ row }: { row: DefinitionRow }) {
           />
         )}
         {saving ? (
-          <Loader2 width={14} height={14} className="animate-spin text-muted-foreground shrink-0 mt-1.5" aria-label="Saving" />
+          <Icon name="spinner" size={14} className="animate-spin text-muted-foreground shrink-0 mt-1.5" aria-label="Saving" />
         ) : (
           <div className="flex items-center gap-1 shrink-0">
             <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={save}>
@@ -168,7 +168,7 @@ function RowValue({ row }: { row: DefinitionRow }) {
           onClick={() => copyToClipboard(row.value as string)}
           className="shrink-0 text-muted-foreground hover:text-foreground"
         >
-          <Copy width={14} height={14} strokeWidth={1.75} aria-hidden="true" />
+          <Icon name="copy" size={14} />
         </button>
       )}
       {row.edit && (
@@ -178,7 +178,7 @@ function RowValue({ row }: { row: DefinitionRow }) {
           onClick={startEdit}
           className="shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100 focus-visible:opacity-100 hover:text-foreground transition-opacity"
         >
-          <Pencil width={13} height={13} strokeWidth={1.75} aria-hidden="true" />
+          <Icon name="edit" size={14} />
         </button>
       )}
     </>
@@ -222,7 +222,7 @@ export function DefinitionList({ title, icon, action, flagged, density, rows, cl
           >
             <div className={cn("flex items-center gap-1.5 text-muted-foreground", rail ? "text-xs" : "text-sm")}>
               {row.flag && (
-                <AlertTriangle width={14} height={14} strokeWidth={1.75} className="text-warning shrink-0" aria-hidden="true" />
+                <Icon name="alert-triangle" size={14} className="text-warning shrink-0" />
               )}
               <span className="truncate">{row.label}</span>
             </div>

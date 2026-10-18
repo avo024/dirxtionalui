@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Calendar as CalendarIcon } from "lucide-react"
+import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -93,7 +93,7 @@ export function ChronoSelect({
             className,
           )}
         >
-          <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
+          <Icon name="calendar" className="mr-2 text-primary" />
           {value ? format(value, "MMM d, yyyy") : placeholder}
         </Button>
       </PopoverTrigger>

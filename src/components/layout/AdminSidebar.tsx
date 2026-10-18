@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { FileText, Building2, Hospital, LogOut, LineChart, MessageSquare, BarChart3, Printer } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { adminApi } from "@/lib/api";
@@ -11,15 +11,15 @@ import logo from "@/assets/logo-white.svg";
 const navItems = [
   // Referrals (the queue) is the default landing surface — Dashboard was
   // retired in phase 6b; /admin and /admin/dashboard now redirect here.
-  { label: "Referrals", icon: FileText, path: "/admin/referrals" },
+  { label: "Referrals", icon: "document", path: "/admin/referrals" },
   // Analytics live on their own page (gate by role later — workers don't
   // need clinic volumes and trend lines on the daily surface).
-  { label: "Insights", icon: BarChart3, path: "/admin/insights" },
-  { label: "AI Quality", icon: LineChart, path: "/admin/ai-quality" },
-  { label: "Pharmacies", icon: Building2, path: "/admin/pharmacies" },
-  { label: "Clinics", icon: Hospital, path: "/admin/clinics" },
-  { label: "Support", icon: MessageSquare, path: "/admin/support" },
-  { label: "Fax Center", icon: Printer, path: "/admin/faxes" },
+  { label: "Insights", icon: "chart", path: "/admin/insights" },
+  { label: "AI Quality", icon: "trend", path: "/admin/ai-quality" },
+  { label: "Pharmacies", icon: "pharmacy", path: "/admin/pharmacies" },
+  { label: "Clinics", icon: "clinic", path: "/admin/clinics" },
+  { label: "Support", icon: "message", path: "/admin/support" },
+  { label: "Fax Center", icon: "print", path: "/admin/faxes" },
   // Add-on Requests hidden until add-ons exist (Services is hidden on the clinic side too).
   // { label: "Add-on Requests", icon: Inbox, path: "/admin/addon-requests" },
   // Invites retired — folded into Clinic Detail as "Team & Invites" (clinic-scoped).
@@ -81,7 +81,7 @@ export function AdminSidebar() {
                   : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
               )}
             >
-              <item.icon className="h-4 w-4" />
+              <Icon name={item.icon} />
               {item.label}
               {badgeCount > 0 && (
                 <span className="sb3-n" data-tone="teal">{badgeCount}</span>
@@ -97,7 +97,7 @@ export function AdminSidebar() {
           onClick={logout}
           className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground transition-colors w-full"
         >
-          <LogOut className="h-4 w-4" />
+          <Icon name="sign-out" />
           Sign Out
         </button>
       </div>

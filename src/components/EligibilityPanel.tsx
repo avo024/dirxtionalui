@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { RefreshCw, ShieldCheck, AlertTriangle, XCircle, HelpCircle, ChevronDown } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { adminApi } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { getRelativeTime } from "@/lib/dateUtils";
@@ -87,32 +87,32 @@ export function EligibilityPanel({ referral, referralId }: { referral: Eligibili
 
   let tone: ChipTone;
   let chipLabel: string;
-  let ChipIcon = HelpCircle;
+  let ChipIcon = "help";
 
   switch (status) {
     case "verified":
-      tone = "green"; chipLabel = "Verified vs payer ✓"; ChipIcon = ShieldCheck; break;
+      tone = "green"; chipLabel = "Verified vs payer ✓"; ChipIcon = "prior-auth"; break;
     case "mismatch": {
       const n = mismatches.length;
-      tone = "amber"; chipLabel = `Needs review — ${n} mismatch${n === 1 ? "" : "es"}`; ChipIcon = AlertTriangle; break;
+      tone = "amber"; chipLabel = `Needs review — ${n} mismatch${n === 1 ? "" : "es"}`; ChipIcon = "alert-triangle"; break;
     }
     case "inactive":
-      tone = "red"; chipLabel = "Coverage inactive"; ChipIcon = XCircle; break;
+      tone = "red"; chipLabel = "Coverage inactive"; ChipIcon = "x-circle"; break;
     case "payer_unmatched":
     case "error":
       // We had insurance data and tried, but got no usable signal — one quiet
       // grey chip so the admin knows to check the insurance manually.
       // (skipped is handled by the early return above — it renders nothing.)
-      tone = "grey"; chipLabel = "Not verified"; ChipIcon = HelpCircle; break;
+      tone = "grey"; chipLabel = "Not verified"; ChipIcon = "help"; break;
     default:
-      tone = "grey"; chipLabel = "Not checked yet"; ChipIcon = HelpCircle; break;
+      tone = "grey"; chipLabel = "Not checked yet"; ChipIcon = "help"; break;
   }
 
   return (
     <Card className="p-[var(--density-card-pad)]">
       <div className="flex items-center gap-2.5">
         <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary">
-          <ShieldCheck width={15} height={15} strokeWidth={1.75} />
+          <Icon name="prior-auth" />
         </span>
         <h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">Insurance Eligibility</h3>
         {referralId && (
@@ -125,12 +125,12 @@ export function EligibilityPanel({ referral, referralId }: { referral: Eligibili
             title="Re-run the insurance check (use after correcting a mismatch)"
             className="ml-auto h-7 gap-1.5 px-2.5 text-xs"
           >
-            <RefreshCw width={12} height={12} className={rechecking ? "animate-spin" : undefined} />
+            <Icon name="refresh" size={14} className={rechecking ? "animate-spin" : undefined} />
             Re-check
           </Button>
         )}
         <span className={cn("inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold", TONE_CLASS[tone], !referralId && "ml-auto")}>
-          <ChipIcon width={12} height={12} />
+          <Icon name={ChipIcon} size={14} />
           {chipLabel}
         </span>
       </div>
@@ -154,7 +154,7 @@ export function EligibilityPanel({ referral, referralId }: { referral: Eligibili
               className="rounded-md border border-warning/35 bg-warning/[0.09] px-2.5 py-2"
             >
               <div className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-                <AlertTriangle width={13} height={13} className="shrink-0 text-warning" />
+                <Icon name="alert-triangle" size={14} className="shrink-0 text-warning" />
                 {fieldLabel(m.field)}
               </div>
               <div className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
@@ -181,7 +181,7 @@ export function EligibilityPanel({ referral, referralId }: { referral: Eligibili
             onClick={() => setShowPayload((v) => !v)}
             className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
           >
-            <ChevronDown width={13} height={13} className={cn("transition-transform", showPayload && "rotate-180")} />
+            <Icon name="chevron-down" size={14} className={cn("transition-transform", showPayload && "rotate-180")} />
             Payer details
           </button>
           {showPayload && (

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { fetchAuthSession } from "aws-amplify/auth";
@@ -59,7 +59,7 @@ export default function Callback() {
               </>
             ) : (
               <>
-                <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+                <Icon name="spinner" size={24} className="animate-spin text-primary mx-auto" />
                 <p className="text-sm text-muted-foreground">
                   Signing you in…
                 </p>

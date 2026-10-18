@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "react-router-dom";
-import { Loader2, Inbox, BarChart3 } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { adminApi } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
@@ -77,7 +77,7 @@ export default function AdminInsights() {
   if (loading) {
     return (
       <PageContainer fade={false} className="flex justify-center py-16">
-        <Loader2 width={26} height={26} strokeWidth={1.75} className="animate-spin text-primary" />
+        <Icon name="spinner" size={24} className="animate-spin text-primary" />
       </PageContainer>
     );
   }
@@ -149,7 +149,7 @@ export default function AdminInsights() {
               </ResponsiveContainer>
             ) : (
               <div className="flex flex-col items-center justify-center gap-2 h-[250px] text-sm text-muted-foreground">
-                <Inbox width={26} height={26} strokeWidth={1.75} />No referrals yet
+                <Icon name="referrals" size={24} />No referrals yet
               </div>
             )}
           </div>
@@ -185,7 +185,7 @@ export default function AdminInsights() {
             <p className="text-sm text-muted-foreground">No clinics yet.</p>
           ) : stats.clinics.map(([name, count]) => (
             <div key={name} className="flex items-center gap-2.5 py-1.5">
-              <BarChart3 width={14} height={14} strokeWidth={1.75} className="text-primary shrink-0" />
+              <Icon name="chart" size={14} className="text-primary shrink-0" />
               <span className="text-sm text-foreground flex-1">{name}</span>
               <span className="text-sm font-semibold text-foreground">{count}</span>
             </div>

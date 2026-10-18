@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Users, ChevronLeft, ChevronRight, Loader2, ChevronsUpDown, ChevronUp, ChevronDown } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { PAStatusBadge } from "@/components/PAStatusBadge";
 import { Button } from "@/components/ui/button";
 import { FilterToolbar } from "@/components/patterns/FilterToolbar";
@@ -95,8 +95,8 @@ export default function PatientsList() {
 
   const SortCaret = ({ col }: { col: "name" | "dob" | "created" }) => {
     const active = sort?.col === col;
-    const Icon = !active ? ChevronsUpDown : sort!.dir === "asc" ? ChevronUp : ChevronDown;
-    return <Icon width={13} height={13} strokeWidth={1.75} className={active ? "text-foreground" : "text-muted-foreground/60"} />;
+    const caretIcon = !active ? "chevrons-updown" : sort!.dir === "asc" ? "chevron-up" : "chevron-down";
+    return <Icon name={caretIcon} size={14} className={active ? "text-foreground" : "text-muted-foreground/60"} />;
   };
   const SortHead = ({ col, children }: { col: "name" | "dob" | "created"; children: React.ReactNode }) => (
     <button className="inline-flex items-center gap-1 hover:text-foreground" onClick={() => onSort(col)}>{children}<SortCaret col={col} /></button>
@@ -110,7 +110,7 @@ export default function PatientsList() {
           <p className="text-sm text-muted-foreground mt-1">Manage your patients and their referrals</p>
         </div>
         <Button asChild data-tour="add-patient">
-          <Link to="/clinic/patients/new"><Plus width={16} height={16} strokeWidth={1.75} />New Patient</Link>
+          <Link to="/clinic/patients/new"><Icon name="add" />New Patient</Link>
         </Button>
       </div>
 
@@ -126,7 +126,7 @@ export default function PatientsList() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-12"><Loader2 width={26} height={26} className="animate-spin text-primary" /></div>
+        <div className="flex justify-center py-12"><Icon name="spinner" size={24} className="animate-spin text-primary" /></div>
       ) : paginated.length > 0 ? (
         <ListRows
           cols="minmax(0,1.5fr) minmax(0,1fr) minmax(0,1fr) minmax(0,.9fr) 104px 16px"
@@ -158,7 +158,7 @@ export default function PatientsList() {
         </ListRows>
       ) : search || filter !== "all" ? (
         <div className="flex flex-col items-center gap-2 py-16 text-center">
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-muted-foreground"><Users width={18} height={18} strokeWidth={1.75} /></span>
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-muted-foreground"><Icon name="patients" size={20} /></span>
           <p className="text-sm font-semibold text-foreground">No patients found</p>
           <p className="text-sm text-muted-foreground">Try adjusting your search or filters</p>
           <Button size="sm" variant="outline" onClick={() => { setSearch(""); setFilter("all"); }}>Clear Filters</Button>
@@ -169,7 +169,7 @@ export default function PatientsList() {
             art="patients"
             title="No patients yet"
             text="Add your first patient to get started."
-            actions={<Button asChild><Link to="/clinic/patients/new"><Plus width={16} height={16} strokeWidth={1.75} />Add Your First Patient</Link></Button>}
+            actions={<Button asChild><Link to="/clinic/patients/new"><Icon name="add" />Add Your First Patient</Link></Button>}
           />
         </div>
       )}
@@ -178,7 +178,7 @@ export default function PatientsList() {
         <div className="flex items-center justify-between mt-4">
           <span className="text-xs text-muted-foreground">Showing {startItem}-{endItem} of {filtered.length} patients</span>
           <div className="flex items-center gap-2">
-            <Button size="sm" variant="outline" disabled={safePage === 1} onClick={() => setCurrentPage(safePage - 1)}><ChevronLeft width={15} height={15} strokeWidth={1.75} />Prev</Button>
+            <Button size="sm" variant="outline" disabled={safePage === 1} onClick={() => setCurrentPage(safePage - 1)}><Icon name="chevron-left" />Prev</Button>
             <div className="flex items-center gap-1">
               {pageWindow(totalPages, safePage).map((n, i) =>
                 n === "…" ? (
@@ -195,7 +195,7 @@ export default function PatientsList() {
               )}
             </div>
             <span className="text-xs text-muted-foreground">Page {safePage} of {totalPages}</span>
-            <Button size="sm" variant="outline" disabled={safePage === totalPages} onClick={() => setCurrentPage(safePage + 1)}>Next<ChevronRight width={15} height={15} strokeWidth={1.75} /></Button>
+            <Button size="sm" variant="outline" disabled={safePage === totalPages} onClick={() => setCurrentPage(safePage + 1)}>Next<Icon name="chevron-right" /></Button>
           </div>
         </div>
       )}

@@ -1,30 +1,29 @@
-import { CircleDot, Clock, CheckCircle2 } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 
 // Status pill for clinic support cases: open -> in_progress -> resolved.
-const MAP: Record<string, { label: string; bg: string; fg: string; Icon: typeof CircleDot }> = {
+const MAP: Record<string, { label: string; bg: string; fg: string; icon: string }> = {
   open: {
     label: "Open",
     bg: "color-mix(in srgb, var(--color-warning, #d97706) 15%, transparent)",
     fg: "#92610B",
-    Icon: CircleDot,
+    icon: "circle-dot",
   },
   in_progress: {
     label: "In progress",
     bg: "var(--color-teal-50)",
     fg: "var(--color-teal-700)",
-    Icon: Clock,
+    icon: "clock",
   },
   resolved: {
     label: "Resolved",
     bg: "color-mix(in srgb, var(--status-approved-fg, #16a34a) 14%, transparent)",
     fg: "var(--status-approved-fg, #16a34a)",
-    Icon: CheckCircle2,
+    icon: "check-circle",
   },
 };
 
 export function SupportStatusBadge({ status }: { status: string }) {
   const s = MAP[status] || MAP.open;
-  const Icon = s.Icon;
   return (
     <span
       style={{
@@ -33,7 +32,7 @@ export function SupportStatusBadge({ status }: { status: string }) {
         borderRadius: 9999, background: s.bg, color: s.fg, whiteSpace: "nowrap",
       }}
     >
-      <Icon size={12} />{s.label}
+      <Icon name={s.icon} size={14} />{s.label}
     </span>
   );
 }

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { Loader2, AlertTriangle, ExternalLink, RefreshCw, Pencil } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { adminApi } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { useAdminProfile } from "@/hooks/useAdminProfile";
@@ -779,7 +779,7 @@ export default function AdminReferralWorkstation() {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-3" />
+          <Icon name="spinner" size={24} className="animate-spin text-primary mx-auto mb-3" />
           <p className="text-muted-foreground">Loading referral...</p>
         </div>
       </div>
@@ -1325,7 +1325,7 @@ export default function AdminReferralWorkstation() {
                   title="Re-run the insurance check"
                   className="h-7 gap-1.5 px-2.5 text-xs"
                 >
-                  <RefreshCw width={12} height={12} className={insuranceRechecking ? "animate-spin" : undefined} />
+                  <Icon name="refresh" size={14} className={insuranceRechecking ? "animate-spin" : undefined} />
                   Re-check
                 </Button>
                 <Button
@@ -1336,7 +1336,7 @@ export default function AdminReferralWorkstation() {
                   title="Edit insurance in All Fields"
                   className="h-7 gap-1.5 px-2.5 text-xs"
                 >
-                  <Pencil width={12} height={12} />
+                  <Icon name="edit" size={14} />
                   Edit
                 </Button>
               </div>
@@ -1430,7 +1430,7 @@ export default function AdminReferralWorkstation() {
             action={
               <Button variant="outline" size="sm" asChild>
                 <a href="https://www.covermymeds.com" target="_blank" rel="noreferrer">
-                  <ExternalLink width={14} height={14} strokeWidth={1.75} />
+                  <Icon name="external-link" size={14} />
                   Open CoverMyMeds
                 </a>
               </Button>
@@ -1769,7 +1769,7 @@ export default function AdminReferralWorkstation() {
         {next.interrupt && (
           <div className="px-[26px] pt-3">
             <Alert variant="destructive" className="border-warning/40 bg-warning/10 text-foreground">
-              <AlertTriangle className="h-4 w-4" />
+              <Icon name="alert-triangle" />
               <AlertTitle>{next.interrupt.verb}</AlertTitle>
               <AlertDescription>{interruptExplain}</AlertDescription>
             </Alert>

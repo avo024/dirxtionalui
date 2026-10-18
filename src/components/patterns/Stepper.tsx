@@ -1,5 +1,5 @@
 import { Fragment } from "react";
-import { Check } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 
 interface StepperProps {
   steps: string[];
@@ -23,7 +23,7 @@ export function Stepper({ steps, current, onStep, ...rest }: StepperProps) {
               onClick={() => done && onStep?.(i)}
               style={{ cursor: done ? "pointer" : "default" }}
             >
-              <span className="n">{done ? <Check width={14} height={14} strokeWidth={2} aria-hidden="true" /> : i + 1}</span>
+              <span className="n">{done ? <Icon name="check" size={14} strokeWidth={2} /> : i + 1}</span>
               {s}
             </li>
           </Fragment>

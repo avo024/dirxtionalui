@@ -1,9 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  ArrowLeft, Loader2, UserPlus, User, MapPin, Stethoscope, Users, Search, X,
-  Check, CircleAlert, Plus, ArrowRight, FilePlus2,
-} from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { clinicApi } from "@/lib/api";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -31,29 +28,29 @@ type Field = {
   key: string; label: string; required?: boolean; placeholder?: string;
   kind?: "text" | "email" | "tel" | "date" | "select" | "state" | "textarea"; maxLength?: number; col?: "full"; options?: string[];
 };
-const SECTIONS: { key: string; title: string; icon: any; optional?: boolean; fields: Field[] }[] = [
-  { key: "required", title: "Required", icon: UserPlus, fields: [
+const SECTIONS: { key: string; title: string; icon: string; optional?: boolean; fields: Field[] }[] = [
+  { key: "required", title: "Required", icon: "user-plus", fields: [
     { key: "full_name", label: "Full Name", required: true, placeholder: "First Last", col: "full" },
   ]},
-  { key: "demographics", title: "Patient Demographics", icon: User, fields: [
+  { key: "demographics", title: "Patient Demographics", icon: "patient", fields: [
     { key: "dob", label: "Date of Birth", kind: "date" },
     { key: "gender", label: "Gender", kind: "select", placeholder: "Select gender", options: ["Male", "Female", "Other", "Prefer not to say"] },
     { key: "phone_primary", label: "Phone", kind: "tel", placeholder: "(555) 123-4567" },
     { key: "phone_alternate", label: "Alternate Phone", kind: "tel", placeholder: "(555) 987-6543" },
     { key: "email", label: "Email", kind: "email", placeholder: "patient@email.com", col: "full" },
   ]},
-  { key: "address", title: "Address", icon: MapPin, fields: [
+  { key: "address", title: "Address", icon: "map-pin", fields: [
     { key: "address", label: "Street Address", placeholder: "123 Main St", col: "full" },
     { key: "city", label: "City", placeholder: "City" },
     { key: "state", label: "State", kind: "state" },
     { key: "zip", label: "Zip", placeholder: "12345", maxLength: 5 },
   ]},
-  { key: "medical", title: "Medical", icon: Stethoscope, fields: [
+  { key: "medical", title: "Medical", icon: "prescriber", fields: [
     { key: "height", label: "Height", placeholder: `e.g., 5'6" or 66 inches` },
     { key: "weight", label: "Weight", placeholder: "e.g., 140 lbs" },
     { key: "allergies", label: "Allergies", kind: "textarea", placeholder: "e.g., Penicillin, sulfa drugs", col: "full" },
   ]},
-  { key: "guardian", title: "Guardian", icon: Users, optional: true, fields: [
+  { key: "guardian", title: "Guardian", icon: "patients", optional: true, fields: [
     { key: "authorized_representative", label: "Authorized Representative", placeholder: "Guardian name" },
     { key: "authorized_representative_phone", label: "Representative Phone", placeholder: "(555) 123-4567" },
   ]},
@@ -114,22 +111,22 @@ export default function CreatePatient() {
     return (
       <PageContainer className="max-w-xl mx-auto">
         <div className="flex flex-col items-center gap-3 text-center py-10">
-          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-success/15 text-success"><Check width={32} height={32} strokeWidth={1.75} /></span>
+          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-success/15 text-success"><Icon name="check" size={24} /></span>
           <h1 className="text-2xl font-semibold text-foreground">Patient added</h1>
           <p className="text-sm text-muted-foreground"><b className="text-foreground font-semibold">{created.name.trim() || "The patient"}</b> has been added to the system.</p>
 
           <div className="flex items-center gap-3 w-full rounded-lg border border-border bg-card p-4 text-left mt-2">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><FilePlus2 width={20} height={20} strokeWidth={1.75} /></span>
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon name="new-referral" size={20} /></span>
             <div className="min-w-0 flex-1">
               <div className="text-sm font-semibold text-foreground">Create a referral for {firstName(created.name)}?</div>
               <div className="text-xs text-muted-foreground">Start a new referral while the details are fresh.</div>
             </div>
-            <Button onClick={() => navigate(`/clinic/referrals/new?patientId=${created.id}`)}><ArrowRight width={15} height={15} strokeWidth={1.75} />Create referral</Button>
+            <Button onClick={() => navigate(`/clinic/referrals/new?patientId=${created.id}`)}><Icon name="forward" />Create referral</Button>
           </div>
 
           <div className="flex items-center gap-2 mt-2">
-            <Button variant="outline" onClick={() => navigate("/clinic/patients")}><Users width={15} height={15} strokeWidth={1.75} />Back to Patients</Button>
-            <Button variant="ghost" onClick={reset}><Plus width={15} height={15} strokeWidth={1.75} />Add another patient</Button>
+            <Button variant="outline" onClick={() => navigate("/clinic/patients")}><Icon name="patients" />Back to Patients</Button>
+            <Button variant="ghost" onClick={reset}><Icon name="add" />Add another patient</Button>
           </div>
         </div>
       </PageContainer>
@@ -139,7 +136,7 @@ export default function CreatePatient() {
   return (
     <PageContainer className="max-w-3xl mx-auto">
       <Button variant="ghost" size="sm" className="-ml-2 mb-3 text-muted-foreground" onClick={() => navigate("/clinic/patients")}>
-        <ArrowLeft width={16} height={16} strokeWidth={1.75} />Back to Patients
+        <Icon name="back" />Back to Patients
       </Button>
 
       <div className="mb-5">
@@ -151,7 +148,7 @@ export default function CreatePatient() {
         {SECTIONS.map((s) => (
           <div className="p-5" key={s.key} id={`cp-sec-${s.key}`}>
             <div className="flex items-center gap-2.5 mb-4">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><s.icon width={16} height={16} strokeWidth={1.75} /></span>
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Icon name={s.icon} /></span>
               <h3 className="text-sm font-semibold text-foreground">
                 {s.title}
                 {s.optional && <span className="ml-2 text-xs font-normal text-muted-foreground">Optional</span>}
@@ -168,11 +165,11 @@ export default function CreatePatient() {
 
       <div className="flex items-center justify-end gap-3 mt-4">
         <span className={cn("mr-auto text-xs", submitted && nameInvalid ? "text-destructive font-medium inline-flex items-center gap-1" : "text-muted-foreground")}>
-          {submitted && nameInvalid ? <><CircleAlert width={13} height={13} strokeWidth={1.75} />Full Name is required to create the patient</> : <>Full Name is required</>}
+          {submitted && nameInvalid ? <><Icon name="alert-circle" size={14} />Full Name is required to create the patient</> : <>Full Name is required</>}
         </span>
         <Button variant="outline" onClick={() => navigate("/clinic/patients")}>Cancel</Button>
         <Button onClick={submit} disabled={submitting}>
-          {submitting ? <><Loader2 width={15} height={15} strokeWidth={1.75} className="animate-spin" />Creating…</> : <><UserPlus width={15} height={15} strokeWidth={1.75} />Create Patient</>}
+          {submitting ? <><Icon name="spinner" className="animate-spin" />Creating…</> : <><Icon name="user-plus" />Create Patient</>}
         </Button>
       </div>
     </PageContainer>
@@ -222,7 +219,7 @@ function CpField({ f, value, onChange, onBlur, error, ok }: { f: Field; value: s
         />
         {adorn && (
           <span className={cn("absolute right-2.5 top-1/2 -translate-y-1/2", adorn === "ok" ? "text-success" : "text-destructive")}>
-            {adorn === "ok" ? <Check width={16} height={16} strokeWidth={1.75} /> : <CircleAlert width={16} height={16} strokeWidth={1.75} />}
+            {adorn === "ok" ? <Icon name="check" /> : <Icon name="alert-circle" />}
           </span>
         )}
       </div>
@@ -237,7 +234,7 @@ function CpField({ f, value, onChange, onBlur, error, ok }: { f: Field; value: s
       </Label>
       {control}
       {error ? (
-        <span className="inline-flex items-center gap-1 text-xs text-destructive"><CircleAlert width={13} height={13} strokeWidth={1.75} />{error}</span>
+        <span className="inline-flex items-center gap-1 text-xs text-destructive"><Icon name="alert-circle" size={14} />{error}</span>
       ) : f.maxLength ? (
         <span className="text-xs text-muted-foreground">{(value || "").length}/{f.maxLength}</span>
       ) : null}
@@ -277,7 +274,7 @@ function StateTypeahead({ value, onChange, error }: { value: string; onChange: (
   return (
     <div className="relative" ref={wrapRef}>
       <div className="relative">
-        <Search width={15} height={15} strokeWidth={1.75} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <Icon name="search" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
         <Input
           value={display}
           placeholder="Search state…"
@@ -293,7 +290,7 @@ function StateTypeahead({ value, onChange, error }: { value: string; onChange: (
         />
         {value && !open && (
           <button type="button" className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" onClick={() => onChange("")} aria-label="Clear state">
-            <X width={14} height={14} strokeWidth={1.75} />
+            <Icon name="close" size={14} />
           </button>
         )}
       </div>

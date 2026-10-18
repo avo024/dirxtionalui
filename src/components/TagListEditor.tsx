@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { X, Plus } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 
 function getDisplayText(item: any): string {
   if (typeof item === "string") return item;
@@ -53,7 +53,7 @@ export function TagListEditor({ label, items, onChange, placeholder = "Add item.
           <Badge key={i} variant="secondary" className="text-xs gap-1 pr-1">
             {getDisplayText(item)}
             <button onClick={() => handleRemove(i)} className="ml-0.5 hover:text-destructive">
-              <X className="h-3 w-3" />
+              <Icon name="close" size={14} />
             </button>
           </Badge>
         ))}
@@ -68,7 +68,7 @@ export function TagListEditor({ label, items, onChange, placeholder = "Add item.
           className="h-7 text-xs flex-1"
         />
         <Button type="button" variant="outline" size="sm" className="h-7 px-2" onClick={handleAdd} disabled={!inputValue.trim()}>
-          <Plus className="h-3 w-3" />
+          <Icon name="add" size={14} />
         </Button>
       </div>
     </div>

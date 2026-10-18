@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -92,7 +92,7 @@ export function DrugCombobox({
           )}
         >
           <span className="truncate">{value || placeholder}</span>
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <Icon name="chevrons-updown" className="ml-2 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
@@ -105,7 +105,7 @@ export function DrugCombobox({
           <CommandList>
             {loading && (
               <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Searching...
+                <Icon name="spinner" className="mr-2 animate-spin" /> Searching...
               </div>
             )}
             {!loading && items.length === 0 && !showFreeText && (
@@ -121,12 +121,10 @@ export function DrugCombobox({
                     className="flex items-center justify-between gap-2"
                   >
                     <div className="flex items-center gap-2 min-w-0">
-                      <Check
-                        className={cn(
+                      <Icon name="check" className={cn(
                           "h-4 w-4 shrink-0",
                           value === item.drug_name ? "opacity-100" : "opacity-0",
-                        )}
-                      />
+                        )} />
                       <span className="truncate">
                         <span className="font-medium">{item.drug_name}</span>
                         {item.generic_name && (

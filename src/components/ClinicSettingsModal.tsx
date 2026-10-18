@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Building2 } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -93,11 +93,11 @@ export function ClinicSettingsModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><Building2 className="h-5 w-5 text-primary" />Clinic Settings</DialogTitle>
+          <DialogTitle className="flex items-center gap-2"><Icon name="pharmacy" size={20} className="text-primary" />Clinic Settings</DialogTitle>
         </DialogHeader>
 
         {loadingClinic ? (
-          <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+          <div className="flex justify-center py-12"><Icon name="spinner" size={24} className="animate-spin text-muted-foreground" /></div>
         ) : (
           <div className="space-y-4">
             {readOnly && (
@@ -143,7 +143,7 @@ export function ClinicSettingsModal({
           </Button>
           {!readOnly && (
             <Button onClick={() => mut.mutate()} disabled={mut.isPending || loadingClinic || !form.name.trim()}>
-              {mut.isPending && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}Save Settings
+              {mut.isPending && <Icon name="spinner" className="animate-spin mr-1.5" />}Save Settings
             </Button>
           )}
         </div>

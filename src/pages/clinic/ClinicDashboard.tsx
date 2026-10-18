@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Plus, Store } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ClinicPABadge } from "@/components/ClinicPABadge";
 import { ListRows, ListRow } from "@/components/patterns/ListRow";
@@ -127,18 +127,18 @@ export default function ClinicDashboard() {
         </div>
         <div className="flex items-center gap-3">
           <NotificationBell referrals={referrals} noteField="latest_admin_note_at" actionStatus="rejected" linkBase="/clinic/referrals" />
-          <Button asChild><Link to="/clinic/referrals/new"><Plus width={16} height={16} strokeWidth={1.75} />New Referral</Link></Button>
+          <Button asChild><Link to="/clinic/referrals/new"><Icon name="add" />New Referral</Link></Button>
         </div>
       </div>
 
       {needsDefaultPharmacy && (
         <div className="flex items-center gap-3.5 px-4.5 py-3.5 mb-4 rounded-lg border border-primary/20 bg-primary/5">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-card border border-primary/20 text-primary"><Store width={18} height={18} strokeWidth={1.75} /></span>
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-card border border-primary/20 text-primary"><Icon name="pharmacy" size={20} /></span>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-foreground">Set your default pharmacy</p>
             <p className="text-xs text-muted-foreground mt-0.5">Pick the pharmacy your referrals should default to — you can change it any time in Clinic Settings.</p>
           </div>
-          <Button size="sm" onClick={() => setSettingsOpen(true)}><Store width={14} height={14} strokeWidth={1.75} />Set pharmacy</Button>
+          <Button size="sm" onClick={() => setSettingsOpen(true)}><Icon name="pharmacy" size={14} />Set pharmacy</Button>
         </div>
       )}
 
@@ -187,7 +187,7 @@ export default function ClinicDashboard() {
                 art="referrals"
                 title="No referrals yet"
                 text="Create your first referral to get started."
-                actions={<Button asChild><Link to="/clinic/referrals/new"><Plus width={16} height={16} strokeWidth={1.75} />New Referral</Link></Button>}
+                actions={<Button asChild><Link to="/clinic/referrals/new"><Icon name="add" />New Referral</Link></Button>}
               />
             </div>
           )}

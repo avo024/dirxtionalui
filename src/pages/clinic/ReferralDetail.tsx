@@ -1,10 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import {
-  ArrowLeft, FileText, Clock, User, Pill, Stethoscope, Shield, Copy, CheckCircle,
-  Send, Upload, Loader2, XCircle, AlertTriangle, Image, RefreshCw,
-  Circle, Inbox, Save, X, Pencil, ArrowRight, Printer, Paperclip, ClipboardList, Download, Eye,
-} from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ClinicPABadge } from "@/components/ClinicPABadge";
 import { Button } from "@/components/ui/button";
@@ -96,15 +92,15 @@ const VISIBLE_EVENTS = new Set(Object.keys(EVENT_LABELS));
 
 function eventLabel(t: string) { return EVENT_LABELS[t] || t.replace(/_/g, " ").replace(/\b\w/, (c) => c.toUpperCase()); }
 function eventIcon(t: string) {
-  if (["referral_created", "referral_finalized", "referral_resubmitted"].includes(t)) return Send;
-  if (t === "document_uploaded") return FileText;
-  if (t === "referral_edited_by_clinic") return Pencil;
-  if (t === "ai_extraction_completed" || t === "ai_extraction_completed_auto") return CheckCircle;
-  if (["referral_approved", "delivery_completed", "sent_to_pharmacy", "pa_approved", "pa_appeal_won", "task_completed"].includes(t)) return CheckCircle;
-  if (["referral_rejected", "referral_rejectd", "delivery_failed", "pa_denied", "pa_appeal_final", "delivery_issue_reported"].includes(t)) return XCircle;
-  if (["pa_submitted", "pa_processing", "pa_appeal_started", "pa_appeal_level2"].includes(t)) return Clock;
-  if (t === "task_created") return ClipboardList;
-  return Circle;
+  if (["referral_created", "referral_finalized", "referral_resubmitted"].includes(t)) return "send";
+  if (t === "document_uploaded") return "document";
+  if (t === "referral_edited_by_clinic") return "edit";
+  if (t === "ai_extraction_completed" || t === "ai_extraction_completed_auto") return "check-circle";
+  if (["referral_approved", "delivery_completed", "sent_to_pharmacy", "pa_approved", "pa_appeal_won", "task_completed"].includes(t)) return "check-circle";
+  if (["referral_rejected", "referral_rejectd", "delivery_failed", "pa_denied", "pa_appeal_final", "delivery_issue_reported"].includes(t)) return "x-circle";
+  if (["pa_submitted", "pa_processing", "pa_appeal_started", "pa_appeal_level2"].includes(t)) return "clock";
+  if (t === "task_created") return "clipboard-list";
+  return "circle";
 }
 function eventColorClass(t: string) {
   if (["referral_approved", "delivery_completed", "sent_to_pharmacy", "pa_approved", "pa_appeal_won", "task_completed"].includes(t)) return "bg-success/12 text-success";
@@ -115,7 +111,7 @@ function eventColorClass(t: string) {
 }
 function docIcon(filename: string) {
   const ext = filename?.split(".").pop()?.toLowerCase();
-  return ["jpg", "jpeg", "png", "tiff", "tif"].includes(ext || "") ? Image : FileText;
+  return ["jpg", "jpeg", "png", "tiff", "tif"].includes(ext || "") ? "image" : "document";
 }
 
 // The delivery summary (referral.delivery, from _clinic_delivery_for_referral in
@@ -346,7 +342,7 @@ export default function ReferralDetail() {
   };
 
   if (loading) {
-    return <PageContainer fade={false} className="flex justify-center py-20"><Loader2 width={26} height={26} className="animate-spin text-primary" /></PageContainer>;
+    return <PageContainer fade={false} className="flex justify-center py-20"><Icon name="spinner" size={24} className="animate-spin text-primary" /></PageContainer>;
   }
   if (error || !referral) {
     return (
@@ -486,7 +482,7 @@ export default function ReferralDetail() {
   return (
     <PageContainer>
       <button className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-4" onClick={() => navigate(-1)}>
-        <ArrowLeft width={15} height={15} strokeWidth={1.75} />Back to Referrals
+        <Icon name="back" />Back to Referrals
       </button>
 
       <ReferralHeader
@@ -499,11 +495,11 @@ export default function ReferralDetail() {
         me={user?.name}
         tools={
           <>
-            <button type="button" className="ib" title="Copy referral ID" aria-label="Copy referral ID" onClick={() => copy(referral.id, "Referral ID")}><Copy width={16} height={16} strokeWidth={1.75} /></button>
+            <button type="button" className="ib" title="Copy referral ID" aria-label="Copy referral ID" onClick={() => copy(referral.id, "Referral ID")}><Icon name="copy" /></button>
             {(referral.status === "ready_for_review" || referral.status === "uploaded") && (
-              <button type="button" className="ib" title="Edit details" aria-label="Edit details" onClick={() => setEditing(true)}><Pencil width={16} height={16} strokeWidth={1.75} /></button>
+              <button type="button" className="ib" title="Edit details" aria-label="Edit details" onClick={() => setEditing(true)}><Icon name="edit" /></button>
             )}
-            <button type="button" className="ib" title="Print" aria-label="Print" onClick={() => window.print()}><Printer width={16} height={16} strokeWidth={1.75} /></button>
+            <button type="button" className="ib" title="Print" aria-label="Print" onClick={() => window.print()}><Icon name="print" /></button>
             {(referral.status === "uploaded" || referral.status === "rejected") && (
               <button
                 type="button"
@@ -521,7 +517,7 @@ export default function ReferralDetail() {
                   }
                 }}
               >
-                <Inbox width={16} height={16} strokeWidth={1.75} />
+                <Icon name="referrals" />
               </button>
             )}
           </>
@@ -533,10 +529,10 @@ export default function ReferralDetail() {
               {referral.delivery.documents.map((doc: any) => (
                 <div key={doc.id} className="rh-doc">
                   <span className="sp" />
-                  <span className="nm"><FileText width={16} height={16} strokeWidth={1.75} /><span className="truncate">{doc.label}</span></span>
+                  <span className="nm"><Icon name="document" /><span className="truncate">{doc.label}</span></span>
                   <span className="tl">
-                    <button type="button" className="ib" aria-label={`Preview ${doc.label}`} title="Preview" onClick={() => { selectDeliveryDoc(doc.id); setTab("documents"); }}><Eye width={16} height={16} strokeWidth={1.75} /></button>
-                    <button type="button" className="ib" aria-label={`Download ${doc.label}`} title="Download" onClick={() => downloadDeliveryDoc(doc.id)}><Download width={16} height={16} strokeWidth={1.75} /></button>
+                    <button type="button" className="ib" aria-label={`Preview ${doc.label}`} title="Preview" onClick={() => { selectDeliveryDoc(doc.id); setTab("documents"); }}><Icon name="eye" /></button>
+                    <button type="button" className="ib" aria-label={`Download ${doc.label}`} title="Download" onClick={() => downloadDeliveryDoc(doc.id)}><Icon name="download" /></button>
                   </span>
                 </div>
               ))}
@@ -566,9 +562,9 @@ export default function ReferralDetail() {
         <TabsContent value="overview" className="pt-5">
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-4 items-start">
             <div className="flex flex-col gap-4">
-              <InfoCardDL icon={<User width={16} height={16} strokeWidth={1.75} />} title="Patient Information" obj={patient} fields={PATIENT_FIELDS} section="patient" flagCount={flagCount("patient")} isFlagged={isFlagged} />
-              <InfoCardDL icon={<Pill width={16} height={16} strokeWidth={1.75} />} title="Clinical Information" obj={clinical} fields={CLINICAL_FIELDS} section="clinical" flagCount={flagCount("clinical")} isFlagged={isFlagged} />
-              <InfoCardDL icon={<Stethoscope width={16} height={16} strokeWidth={1.75} />} title="Provider Information" obj={provider} fields={PROVIDER_FIELDS} section="provider" flagCount={flagCount("provider")} isFlagged={isFlagged} />
+              <InfoCardDL icon={<Icon name="patient" />} title="Patient Information" obj={patient} fields={PATIENT_FIELDS} section="patient" flagCount={flagCount("patient")} isFlagged={isFlagged} />
+              <InfoCardDL icon={<Icon name="medication" />} title="Clinical Information" obj={clinical} fields={CLINICAL_FIELDS} section="clinical" flagCount={flagCount("clinical")} isFlagged={isFlagged} />
+              <InfoCardDL icon={<Icon name="prescriber" />} title="Provider Information" obj={provider} fields={PROVIDER_FIELDS} section="provider" flagCount={flagCount("provider")} isFlagged={isFlagged} />
             </div>
             <div className="flex flex-col gap-4">
               {!["sent_to_pharmacy", "rejected", "approved_to_send", "closed"].includes(referral.status) && (
@@ -608,7 +604,7 @@ export default function ReferralDetail() {
                             "flex h-7 w-7 shrink-0 items-center justify-center rounded-md",
                             active ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground",
                           )}>
-                            <DocIcon width={14} height={14} strokeWidth={1.75} />
+                            <Icon name={DocIcon} size={14} />
                           </span>
                           <div className="flex-1 min-w-0">
                             <p className={cn("text-xs font-semibold truncate", active ? "text-primary" : "text-foreground")}>
@@ -649,7 +645,7 @@ export default function ReferralDetail() {
                     className="flex items-center gap-3 px-4 py-3 border-b border-border last:border-0 cursor-pointer hover:bg-muted/40"
                     onClick={() => selectDoc(doc.id)}
                   >
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><DocIcon width={16} height={16} strokeWidth={1.75} /></span>
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Icon name={DocIcon} size={16} /></span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-foreground truncate">{doc.original_filename || doc.file_name || doc.name || "Document"}</p>
                       <p className="text-xs text-muted-foreground">
@@ -659,10 +655,10 @@ export default function ReferralDetail() {
                       </p>
                     </div>
                     <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); selectDoc(doc.id); }}>
-                      <Eye width={14} height={14} strokeWidth={1.75} />Preview
+                      <Icon name="eye" size={14} />Preview
                     </Button>
                     <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); downloadDoc(doc.id); }}>
-                      <Download width={14} height={14} strokeWidth={1.75} />Download
+                      <Icon name="download" size={14} />Download
                     </Button>
                   </div>
                 );
@@ -711,7 +707,7 @@ export default function ReferralDetail() {
                             "flex h-7 w-7 shrink-0 items-center justify-center rounded-md",
                             active ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground",
                           )}>
-                            <DocIcon width={14} height={14} strokeWidth={1.75} />
+                            <Icon name={DocIcon} size={14} />
                           </span>
                           <div className="flex-1 min-w-0">
                             <p className={cn("text-xs font-semibold truncate", active ? "text-primary" : "text-foreground")}>
@@ -757,7 +753,7 @@ export default function ReferralDetail() {
 
           {rejected && (
             <p className="text-xs text-muted-foreground mt-3 flex items-center gap-1.5">
-              <ClipboardList width={13} height={13} strokeWidth={1.75} />To add missing documents, use "Upload documents" in the fix panel above.
+              <Icon name="clipboard-list" size={14} />To add missing documents, use "Upload documents" in the fix panel above.
             </p>
           )}
         </TabsContent>
@@ -767,13 +763,13 @@ export default function ReferralDetail() {
           {visibleHistory.length > 0 ? (
             <div className="flex flex-col">
               {visibleHistory.map((event: any, i: number, arr: any[]) => {
-                const Icon = eventIcon(event.event_type);
+                const evIcon = eventIcon(event.event_type);
                 let label = eventLabel(event.event_type);
                 if (event.event_type === "document_uploaded" && event.metadata?.filename) label += `: ${event.metadata.filename}`;
                 return (
                   <div key={i} className="flex gap-3">
                     <div className="flex flex-col items-center">
-                      <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${eventColorClass(event.event_type)}`}><Icon width={15} height={15} strokeWidth={1.75} /></span>
+                      <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${eventColorClass(event.event_type)}`}><Icon name={evIcon} size={16} /></span>
                       {i < arr.length - 1 && <span className="w-px flex-1 bg-border my-1" />}
                     </div>
                     <div className="pb-5 min-w-0">
@@ -789,7 +785,7 @@ export default function ReferralDetail() {
             </div>
           ) : (
             <div className="flex flex-col items-center gap-2 py-16 text-center">
-              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground"><Clock width={20} height={20} strokeWidth={1.75} /></span>
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground"><Icon name="clock" size={20} /></span>
               <p className="text-sm font-semibold text-foreground">No history yet</p>
               <p className="text-sm text-muted-foreground">Events will appear here as the referral progresses.</p>
             </div>
@@ -856,9 +852,9 @@ function DocumentPreviewPane({ doc, documents, referralId, onClose, animate, fet
     <div className={cn("h-full flex flex-col bg-card", animate && "animate-in slide-in-from-right-8 fade-in duration-200")}>
       <div className="flex items-center gap-2 border-b border-border px-4 py-2.5">
         <p className="text-sm font-semibold text-foreground truncate flex-1">{doc.original_filename || doc.file_name || doc.name || "Document"}</p>
-        <Button size="sm" variant="outline" onClick={download}><Download width={14} height={14} strokeWidth={1.75} />Download</Button>
+        <Button size="sm" variant="outline" onClick={download}><Icon name="download" size={14} />Download</Button>
         <button type="button" aria-label="Close preview" className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground" onClick={onClose}>
-          <X width={16} height={16} strokeWidth={1.75} />
+          <Icon name="close" />
         </button>
       </div>
       <div className="flex-1 min-h-0">
@@ -893,10 +889,10 @@ function StatusCard({ status, desc }: { status: string; desc: string }) {
       <div className="mb-2"><StatusBadge status={status as ReferralStatus} size="lg" showIcon variant="soft" /></div>
       <p className="text-sm text-muted-foreground leading-relaxed">{desc}</p>
       {status === "rejected" && (
-        <p className="flex items-center gap-1.5 text-xs text-destructive mt-2"><ArrowRight width={14} height={14} strokeWidth={1.75} />Flagged for attention at review — fix &amp; resubmit to continue</p>
+        <p className="flex items-center gap-1.5 text-xs text-destructive mt-2"><Icon name="forward" size={14} />Flagged for attention at review — fix &amp; resubmit to continue</p>
       )}
       {status === "closed" && (
-        <p className="flex items-center gap-1.5 text-xs text-muted-foreground mt-2"><ArrowRight width={14} height={14} strokeWidth={1.75} />Closed after the insurance appeal — see Prior Authorization below for your options</p>
+        <p className="flex items-center gap-1.5 text-xs text-muted-foreground mt-2"><Icon name="forward" size={14} />Closed after the insurance appeal — see Prior Authorization below for your options</p>
       )}
     </div>
   );
@@ -908,7 +904,7 @@ function InsurancePA({ referral, insurance, priorAuth, reloadOnUpdate, referralI
     return (
       <DefinitionList
         title="Insurance & PA"
-        icon={<Shield width={16} height={16} strokeWidth={1.75} />}
+        icon={<Icon name="shield" />}
         rows={[{ label: "Bridge Program", value: "PA not required" }]}
       />
     );
@@ -930,12 +926,12 @@ function InsurancePA({ referral, insurance, priorAuth, reloadOnUpdate, referralI
     <>
       <DefinitionList
         title="Insurance"
-        icon={<Shield width={16} height={16} strokeWidth={1.75} />}
+        icon={<Icon name="shield" />}
         action={
           referral.insurance_expired ? (
-            <span className="inline-flex items-center gap-1 text-xs font-semibold text-destructive"><XCircle width={14} height={14} strokeWidth={1.75} />Expired</span>
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-destructive"><Icon name="x-circle" size={14} />Expired</span>
           ) : (
-            <span className="inline-flex items-center gap-1 text-xs font-semibold text-success"><CheckCircle width={14} height={14} strokeWidth={1.75} />Valid</span>
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-success"><Icon name="check-circle" size={14} />Valid</span>
           )
         }
         rows={[
@@ -967,7 +963,7 @@ function InsurancePA({ referral, insurance, priorAuth, reloadOnUpdate, referralI
                 onClick={() => { navigator.clipboard?.writeText(referral.pa_reference); toast({ title: "Key copied" }); }}
                 className="inline-flex items-center rounded-md border border-primary/20 px-1.5 py-1 text-primary"
               >
-                <Copy width={13} height={13} strokeWidth={1.75} />
+                <Icon name="copy" size={14} />
               </button>
             </div>
             <p className="text-[11.5px] leading-relaxed text-primary">
@@ -1028,13 +1024,13 @@ function FixPanel({ reason, items = [], canResubmit, resubmitting, onEdit, onUpl
         </ul>
 
         <div className="acts">
-          <Button variant="outline" onClick={onEdit}><Pencil width={15} height={15} strokeWidth={1.75} />Edit referral details</Button>
-          <Button variant="outline" onClick={() => setShowUpload((v: boolean) => !v)}><Upload width={15} height={15} strokeWidth={1.75} />Upload documents</Button>
+          <Button variant="outline" onClick={onEdit}><Icon name="edit" />Edit referral details</Button>
+          <Button variant="outline" onClick={() => setShowUpload((v: boolean) => !v)}><Icon name="upload" />Upload documents</Button>
           <Tooltip>
             <TooltipTrigger asChild>
               <span>
                 <Button onClick={onResubmit} disabled={!canResubmit || resubmitting}>
-                  {resubmitting ? <Loader2 width={15} height={15} className="animate-spin" /> : <RefreshCw width={15} height={15} strokeWidth={1.75} />}Resubmit
+                  {resubmitting ? <Icon name="spinner" className="animate-spin" /> : <Icon name="refresh" />}Resubmit
                 </Button>
               </span>
             </TooltipTrigger>
@@ -1051,7 +1047,7 @@ function FixPanel({ reason, items = [], canResubmit, resubmitting, onEdit, onUpl
                   <ul className="flex flex-col gap-1.5 items-center">
                     {items.filter((i: any) => i.kind === "doc").map((d: any) => (
                       <li key={d.id} className={`flex items-center gap-2 text-sm ${d.done ? "text-muted-foreground line-through" : "text-foreground"}`}>
-                        {d.done ? <CheckCircle width={14} height={14} strokeWidth={1.75} className="text-success" /> : <Circle width={14} height={14} strokeWidth={1.75} />}
+                        {d.done ? <Icon name="check-circle" size={14} className="text-success" /> : <Icon name="circle" size={14} />}
                         {d.label}
                       </li>
                     ))}
@@ -1070,10 +1066,10 @@ function FixPanel({ reason, items = [], canResubmit, resubmitting, onEdit, onUpl
 
 /* ── Edit drawer ── */
 const EDIT_GROUPS = [
-  { section: "patient", label: "Patient", icon: User, fields: PATIENT_FIELDS },
-  { section: "clinical", label: "Clinical", icon: Stethoscope, fields: CLINICAL_FIELDS },
-  { section: "provider", label: "Provider", icon: Stethoscope, fields: PROVIDER_FIELDS },
-  { section: "insurance", label: "Insurance", icon: Shield, fields: [
+  { section: "patient", label: "Patient", icon: "patient", fields: PATIENT_FIELDS },
+  { section: "clinical", label: "Clinical", icon: "prescriber", fields: CLINICAL_FIELDS },
+  { section: "provider", label: "Provider", icon: "prescriber", fields: PROVIDER_FIELDS },
+  { section: "insurance", label: "Insurance", icon: "shield", fields: [
     { k: "primary_insurance_name", label: "Primary Insurance" }, { k: "primary_member_id", label: "Member ID" },
     { k: "secondary_insurance_name", label: "Secondary Insurance" }, { k: "notes", label: "Insurance Notes" },
   ] },
@@ -1107,18 +1103,18 @@ function EditDrawer({ referralId, data, flaggedSet, onClose, onSaved }: any) {
       <div className="fixed right-0 top-0 z-50 h-full w-full max-w-[560px] bg-card border-l border-border flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div><h3 className="text-base font-semibold">Edit Referral Details</h3><p className="text-xs text-muted-foreground mt-0.5">Correct any extracted fields, then save — it returns to our team for review.</p></div>
-          <button className="text-muted-foreground hover:text-foreground" onClick={onClose} aria-label="Close"><X width={18} height={18} strokeWidth={1.75} /></button>
+          <button className="text-muted-foreground hover:text-foreground" onClick={onClose} aria-label="Close"><Icon name="close" size={20} /></button>
         </div>
         <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-5">
           {flaggedSet && flaggedSet.size > 0 && (
             <div className="flex items-center gap-2 px-3 py-2.5 rounded-md bg-warning/12 border border-warning/35 text-[#92400E] text-sm font-semibold">
-              <AlertTriangle width={15} height={15} strokeWidth={1.75} className="shrink-0" />
+              <Icon name="alert-triangle" className="shrink-0" />
               {flaggedSet.size} field{flaggedSet.size > 1 ? "s" : ""} flagged by our team — highlighted below.
             </div>
           )}
           {EDIT_GROUPS.map((g) => (
             <div key={g.section}>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 flex items-center gap-1.5"><g.icon width={15} height={15} strokeWidth={1.75} />{g.label}</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 flex items-center gap-1.5"><Icon name={g.icon} size={16} />{g.label}</p>
               <div className="grid grid-cols-2 gap-3">
                 {g.fields.map((f: any) => {
                   const flag = !!(flaggedSet && flaggedSet.has(`${g.section}.${f.k}`));
@@ -1126,7 +1122,7 @@ function EditDrawer({ referralId, data, flaggedSet, onClose, onSaved }: any) {
                   const span = f.k === "notes" || f.k === "allergies" || f.k === "address";
                   return (
                     <div key={f.k} className={span ? "col-span-2" : undefined}>
-                      <Label className="text-xs flex items-center gap-1">{f.label}{flag && <AlertTriangle width={12} height={12} strokeWidth={1.75} className="text-warning" />}</Label>
+                      <Label className="text-xs flex items-center gap-1">{f.label}{flag && <Icon name="alert-triangle" size={14} className="text-warning" />}</Label>
                       {f.bool ? (
                         <Combobox
                           className="mt-1"
@@ -1150,7 +1146,7 @@ function EditDrawer({ referralId, data, flaggedSet, onClose, onSaved }: any) {
         </div>
         <div className="flex justify-end gap-2 px-5 py-4 border-t border-border">
           <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
-          <Button onClick={save} disabled={saving}>{saving ? <Loader2 width={15} height={15} className="animate-spin" /> : <Save width={15} height={15} strokeWidth={1.75} />}Save Details</Button>
+          <Button onClick={save} disabled={saving}>{saving ? <Icon name="spinner" className="animate-spin" /> : <Icon name="save" />}Save Details</Button>
         </div>
       </div>
     </>
@@ -1166,7 +1162,7 @@ function UploadZone({ label, uploading, onUpload }: { label: string; uploading: 
       onClick={() => ref.current?.click()}
     >
       <input ref={ref} type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif" onChange={(e) => { const f = e.target.files?.[0]; if (f) onUpload(f); e.target.value = ""; }} />
-      <span className="text-muted-foreground">{uploading ? <Loader2 width={22} height={22} className="animate-spin" /> : <Upload width={22} height={22} strokeWidth={1.75} />}</span>
+      <span className="text-muted-foreground">{uploading ? <Icon name="spinner" size={24} className="animate-spin" /> : <Icon name="upload" size={24} />}</span>
       <div className="text-sm font-medium text-foreground">{label}</div>
       <div className="text-xs text-muted-foreground">Click to upload</div>
     </div>
@@ -1202,7 +1198,7 @@ function ExpiredInsuranceBanner({ referralId, onUpdated }: { referralId: string;
   return (
     <div className="mt-3.5 rounded-md border border-warning/40 bg-warning/8 p-3.5">
       <div className="flex gap-2 items-start">
-        <AlertTriangle width={16} height={16} strokeWidth={1.75} className="text-[#B45309] shrink-0 mt-0.5" />
+        <Icon name="alert-triangle" className="text-[#B45309] shrink-0 mt-0.5" />
         <div>
           <p className="text-sm font-semibold text-[#92400E]">Insurance on file has expired</p>
           <p className="text-xs text-[#B45309] mt-0.5">Upload a current card or enter the new plan details to continue.</p>
@@ -1210,12 +1206,12 @@ function ExpiredInsuranceBanner({ referralId, onUpdated }: { referralId: string;
       </div>
       {!mode && !uploading && (
         <div className="flex gap-2 mt-3">
-          <Button size="sm" onClick={() => fileRef.current?.click()}><Upload width={14} height={14} strokeWidth={1.75} />Upload Card</Button>
-          <Button size="sm" variant="outline" onClick={() => setMode("manual")}><Pencil width={14} height={14} strokeWidth={1.75} />Enter Manually</Button>
+          <Button size="sm" onClick={() => fileRef.current?.click()}><Icon name="upload" size={14} />Upload Card</Button>
+          <Button size="sm" variant="outline" onClick={() => setMode("manual")}><Icon name="edit" size={14} />Enter Manually</Button>
           <input ref={fileRef} type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif" onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = ""; }} />
         </div>
       )}
-      {uploading && <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2.5"><Loader2 width={14} height={14} className="animate-spin" />Uploading and re-extracting...</div>}
+      {uploading && <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2.5"><Icon name="spinner" size={14} className="animate-spin" />Uploading and re-extracting...</div>}
       {mode === "manual" && (
         <div className="mt-3 flex flex-col gap-2.5">
           <div className="grid grid-cols-2 gap-2.5">
@@ -1225,7 +1221,7 @@ function ExpiredInsuranceBanner({ referralId, onUpdated }: { referralId: string;
             <div><Label className="text-xs">Policyholder</Label><Input className="h-8 text-sm mt-1" value={form.policyholder_name} onChange={(e) => setForm((f) => ({ ...f, policyholder_name: e.target.value }))} /></div>
           </div>
           <div className="flex gap-2">
-            <Button size="sm" onClick={saveManual} disabled={saving}>{saving ? <Loader2 width={14} height={14} className="animate-spin" /> : <CheckCircle width={14} height={14} strokeWidth={1.75} />}Save Insurance</Button>
+            <Button size="sm" onClick={saveManual} disabled={saving}>{saving ? <Icon name="spinner" size={14} className="animate-spin" /> : <Icon name="check-circle" size={14} />}Save Insurance</Button>
             <Button size="sm" variant="outline" onClick={() => setMode(null)}>Cancel</Button>
           </div>
         </div>
@@ -1288,7 +1284,7 @@ function ClinicTasksPanel({ tasks, referralId, onChanged, embedded }: { tasks: a
       {!embedded && (
         <>
           <div className="flex items-center gap-2 mb-1">
-            {allSent ? <CheckCircle width={17} height={17} strokeWidth={1.75} className="text-success" /> : <ClipboardList width={17} height={17} strokeWidth={1.75} className="text-[#B45309]" />}
+            {allSent ? <Icon name="check-circle" className="text-success" /> : <Icon name="clipboard-list" className="text-[#B45309]" />}
             <h3 className="text-sm font-semibold text-foreground">Action needed from your office</h3>
           </div>
           <p className="text-xs text-muted-foreground mb-3">
@@ -1313,9 +1309,9 @@ function ClinicTasksPanel({ tasks, referralId, onChanged, embedded }: { tasks: a
                         onClick={() => viewAttachment(a.id)}
                         className="flex items-center gap-2 w-full text-left text-sm px-2.5 py-2 rounded-md border border-primary/20 bg-primary/5 text-primary"
                       >
-                        <Paperclip width={14} height={14} strokeWidth={1.75} className="shrink-0" />
+                        <Icon name="attach" size={14} className="shrink-0" />
                         <span className="flex-1 font-semibold break-words">{a.filename}</span>
-                        <span className="inline-flex items-center gap-1 text-[11.5px] font-semibold shrink-0"><Download width={12} height={12} strokeWidth={1.75} />View / Download</span>
+                        <span className="inline-flex items-center gap-1 text-[11.5px] font-semibold shrink-0"><Icon name="download" size={14} />View / Download</span>
                       </button>
                     ))}
                   </div>
@@ -1329,7 +1325,7 @@ function ClinicTasksPanel({ tasks, referralId, onChanged, embedded }: { tasks: a
               {sent ? (
                 <div className="rounded-md bg-success/8 border border-success/25 px-3 py-2 text-sm">
                   {t.clinic_response && <p className="text-foreground mb-1">{t.clinic_response}</p>}
-                  <p className="flex items-center gap-1.5 text-xs font-semibold text-success"><CheckCircle width={13} height={13} strokeWidth={1.75} />Sent · waiting for your Dirxctional team</p>
+                  <p className="flex items-center gap-1.5 text-xs font-semibold text-success"><Icon name="check-circle" size={14} />Sent · waiting for your Dirxctional team</p>
                 </div>
               ) : (
                 <div className="flex flex-col gap-2">
@@ -1342,12 +1338,12 @@ function ClinicTasksPanel({ tasks, referralId, onChanged, embedded }: { tasks: a
                   />
                   <div className="flex gap-2 flex-wrap">
                     <Button size="sm" variant="outline" disabled={busy === t.id} onClick={() => fileRefs.current[t.id]?.click()}>
-                      <Upload width={14} height={14} strokeWidth={1.75} />{(t.attachments?.length ?? 0) > 0 ? "Upload the completed copy" : "Upload file"}
+                      <Icon name="upload" size={14} />{(t.attachments?.length ?? 0) > 0 ? "Upload the completed copy" : "Upload file"}
                     </Button>
                     <input ref={(el) => { fileRefs.current[t.id] = el; }} type="file" accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif" className="hidden"
                       onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadForTask(t.id, f); }} />
                     <Button size="sm" disabled={busy === t.id || !(replies[t.id] || "").trim()} onClick={() => sendReply(t.id)}>
-                      {busy === t.id ? <Loader2 width={14} height={14} className="animate-spin" /> : <Send width={14} height={14} strokeWidth={1.75} />}Send response
+                      {busy === t.id ? <Icon name="spinner" size={14} className="animate-spin" /> : <Icon name="send" size={14} />}Send response
                     </Button>
                   </div>
                 </div>
@@ -1391,14 +1387,14 @@ function DeliveryIssueReporter({ referralId, onReported, quiet }: { referralId: 
   if (openedCaseId) {
     return (
       <div className="bg-primary/5 border border-primary/15 rounded-md p-4 max-w-[560px]">
-        <p className="text-base font-bold text-primary flex items-center gap-2"><CheckCircle width={18} height={18} strokeWidth={1.75} />Urgent case opened — #{openedCaseId.slice(0, 8)}</p>
+        <p className="text-base font-bold text-primary flex items-center gap-2"><Icon name="check-circle" size={20} />Urgent case opened — #{openedCaseId.slice(0, 8)}</p>
         <p className="text-sm text-foreground mt-2 leading-relaxed">
           Our team has been <b>alerted immediately</b> — delivery issues are a top priority for us.
           Your message is attached to this referral for our team, and your case tracks it from
           here until it's resolved. We'll email you with every update.
         </p>
         <div className="flex gap-2 mt-3">
-          <Button size="sm" onClick={() => navigate(`/clinic/support?case=${openedCaseId}`)}>View my case<ArrowRight width={14} height={14} strokeWidth={1.75} /></Button>
+          <Button size="sm" onClick={() => navigate(`/clinic/support?case=${openedCaseId}`)}>View my case<Icon name="forward" size={14} /></Button>
           <Button size="sm" variant="outline" onClick={() => { setOpenedCaseId(null); onReported(); }}>Stay on this referral</Button>
         </div>
       </div>
@@ -1418,7 +1414,7 @@ function DeliveryIssueReporter({ referralId, onReported, quiet }: { referralId: 
           <div className="flex gap-2 justify-end mt-2">
             <Button size="sm" variant="outline" onClick={() => { setOpen(false); setDetails(""); }} disabled={sending}>Cancel</Button>
             <Button size="sm" onClick={submit} disabled={!details.trim() || sending}>
-              {sending ? <Loader2 width={14} height={14} className="animate-spin" /> : <Send width={14} height={14} strokeWidth={1.75} />}Report issue
+              {sending ? <Icon name="spinner" size={14} className="animate-spin" /> : <Icon name="send" size={14} />}Report issue
             </Button>
           </div>
           <p className="text-xs text-muted-foreground mt-2">This alerts our team immediately and opens a tracked request you can follow in Help &amp; Support.</p>

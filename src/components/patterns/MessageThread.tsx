@@ -1,5 +1,5 @@
 import { EmptyState, type EmptyArtName } from "@/components/patterns/EmptyState";
-import { File as FileIcon, Paperclip, Send } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -128,7 +128,7 @@ export function MessageThread({
                       onClick={att.onClick}
                       className="inline-flex items-center gap-1.5 self-start rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground hover:bg-accent"
                     >
-                      <FileIcon width={14} height={14} strokeWidth={1.75} aria-hidden="true" />
+                      <Icon name="document" size={14} />
                       {att.name}
                       {att.size && <span className="text-muted-foreground">{att.size}</span>}
                     </button>
@@ -158,12 +158,12 @@ export function MessageThread({
           />
           <div className="flex items-center gap-2">
             <Button type="button" variant="ghost" size="sm" onClick={onAttach}>
-              <Paperclip width={16} height={16} strokeWidth={1.75} aria-hidden="true" />
+              <Icon name="attach" />
               Attach
             </Button>
             <span className="ml-auto text-xs text-muted-foreground">{hint}</span>
             <Button type="button" size="sm" onClick={onSend} disabled={value.trim().length === 0}>
-              <Send width={16} height={16} strokeWidth={1.75} aria-hidden="true" />
+              <Icon name="send" />
               Send
             </Button>
           </div>

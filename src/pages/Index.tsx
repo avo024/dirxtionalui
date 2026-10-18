@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { useAuth } from "@/contexts/AuthContext";
 
 const Index = () => {
@@ -21,7 +21,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
-      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <Icon name="spinner" size={24} className="animate-spin text-primary" />
     </div>
   );
 };

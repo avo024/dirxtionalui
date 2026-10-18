@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ArrowLeft, ChevronDown, File, Pencil, Pin } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -56,7 +56,7 @@ export function StageHeader({
       <div className="min-w-0 flex-1 flex flex-col gap-1">
         {back && (
           <button type="button" onClick={back.onClick} className="-ml-1 mb-0.5 inline-flex w-fit items-center gap-1 rounded-md px-1 py-0.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted">
-            <ArrowLeft width={14} height={14} strokeWidth={1.75} aria-hidden="true" />
+            <Icon name="back" size={14} />
             {back.label}
           </button>
         )}
@@ -80,7 +80,7 @@ export function StageHeader({
             hasHandoff ? "bg-muted border-border text-foreground" : "border-dashed border-border text-muted-foreground italic",
           )}
         >
-          <Pin width={14} height={14} strokeWidth={1.75} className="shrink-0 mt-0.5" aria-hidden="true" />
+          <Icon name="pin" size={14} className="shrink-0 mt-0.5" />
           <span className="truncate">{hasHandoff ? handoff : "Add an internal handoff note for the next person"}</span>
           {onEditHandoff && (
             <button
@@ -89,7 +89,7 @@ export function StageHeader({
               aria-label="Edit handoff note"
               className="ml-auto shrink-0 text-muted-foreground hover:text-foreground"
             >
-              <Pencil width={14} height={14} strokeWidth={1.75} aria-hidden="true" />
+              <Icon name="edit" size={14} />
             </button>
           )}
         </div>
@@ -97,13 +97,13 @@ export function StageHeader({
 
       <div className="flex items-center gap-2 shrink-0">
         <Button variant="outline" size="sm" onClick={onDocuments}>
-          <File width={16} height={16} strokeWidth={1.75} aria-hidden="true" />
+          <Icon name="document" />
           Documents{typeof docCount === "number" ? ` (${docCount})` : ""}
         </Button>
         {moreItems && moreItems.length > 0 ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">More <ChevronDown width={16} height={16} strokeWidth={1.75} aria-hidden="true" /></Button>
+              <Button variant="outline" size="sm">More <Icon name="chevron-down" /></Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               {moreItems.map((m, i) => m === "-" ? <DropdownMenuSeparator key={`s${i}`} /> : <DropdownMenuItem key={m.label} onClick={m.onClick}>{m.label}</DropdownMenuItem>)}
@@ -112,7 +112,7 @@ export function StageHeader({
         ) : (
                   <Button variant="outline" size="sm" onClick={onMore}>
           More
-          <ChevronDown width={16} height={16} strokeWidth={1.75} aria-hidden="true" />
+          <Icon name="chevron-down" />
         </Button>
         )}
       </div>

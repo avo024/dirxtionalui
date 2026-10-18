@@ -1,9 +1,7 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  ArrowLeft, Pencil, Power, Ban, ShieldOff,
-} from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { PharmacyFormModal } from "@/components/PharmacyFormModal";
 import { getInitials } from "@/components/CreatedByAvatar";
@@ -72,7 +70,7 @@ export default function PharmacyDetail() {
     return (
       <PageContainer>
         <div className="flex flex-col items-center gap-2 py-16 text-center">
-          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10 text-destructive"><ShieldOff width={24} height={24} strokeWidth={1.75} /></span>
+          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10 text-destructive"><Icon name="shield-off" size={24} /></span>
           <h3 className="text-base font-semibold text-foreground">Pharmacy not found</h3>
           <p className="text-sm text-muted-foreground">We couldn't load this pharmacy.</p>
           <Button size="sm" onClick={() => navigate("/admin/pharmacies")}>Back to pharmacies</Button>
@@ -97,7 +95,7 @@ export default function PharmacyDetail() {
   return (
     <PageContainer>
       <Button variant="ghost" size="sm" className="mb-3 -ml-2 text-muted-foreground" onClick={() => navigate("/admin/pharmacies")}>
-        <ArrowLeft width={16} height={16} strokeWidth={1.75} />All pharmacies
+        <Icon name="back" />All pharmacies
       </Button>
 
       {/* Header */}
@@ -109,16 +107,16 @@ export default function PharmacyDetail() {
             <StatusPill active={p.is_active} />
             {p.accepts_no_insurance && (
               <span className="inline-flex items-center gap-1 rounded-full bg-warning/15 text-[#92610B] px-2 py-0.5 text-[11px] font-medium">
-                <ShieldOff width={12} height={12} strokeWidth={1.75} />Accepts no insurance
+                <Icon name="shield-off" size={14} />Accepts no insurance
               </span>
             )}
           </div>
           {p.city && <p className="text-sm text-muted-foreground">{[p.city, p.state].filter(Boolean).join(", ")}</p>}
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <Button variant="outline" onClick={() => setEditOpen(true)}><Pencil width={15} height={15} strokeWidth={1.75} />Edit</Button>
+          <Button variant="outline" onClick={() => setEditOpen(true)}><Icon name="edit" />Edit</Button>
           <Button variant="outline" className="disabled:opacity-40" disabled={!p.is_active} onClick={() => setDeactivateOpen(true)}>
-            <Power width={15} height={15} strokeWidth={1.75} />Deactivate
+            <Icon name="power" />Deactivate
           </Button>
         </div>
       </div>
@@ -136,7 +134,7 @@ export default function PharmacyDetail() {
             <div className="flex flex-wrap gap-1.5">
               {p.blocked_medications.map((m) => (
                 <span key={m} className="inline-flex items-center gap-1 rounded-full bg-destructive/10 text-destructive px-2.5 py-0.5 text-xs font-medium">
-                  <Ban width={12} height={12} strokeWidth={1.75} />{m}
+                  <Icon name="ban" size={14} />{m}
                 </span>
               ))}
             </div>

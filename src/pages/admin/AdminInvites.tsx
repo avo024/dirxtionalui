@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Copy, Mail, Trash2, Loader2 } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -106,7 +106,7 @@ export default function AdminInvites() {
           </p>
         </div>
         <Button onClick={() => setNewOpen(true)}>
-          <Plus width={16} height={16} strokeWidth={1.75} />
+          <Icon name="add" />
           New Invite
         </Button>
       </div>
@@ -118,7 +118,7 @@ export default function AdminInvites() {
 
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 width={20} height={20} strokeWidth={1.75} className="animate-spin text-muted-foreground" />
+            <Icon name="spinner" size={20} className="animate-spin text-muted-foreground" />
           </div>
         ) : listMissing ? (
           <div className="px-5 py-8 text-sm text-muted-foreground">
@@ -176,7 +176,7 @@ export default function AdminInvites() {
                               onClick={() => copyLink(invite.token)}
                               aria-label="Copy invite link"
                             >
-                              <Copy width={16} height={16} strokeWidth={1.75} />
+                              <Icon name="copy" />
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>Copy link</TooltipContent>
@@ -190,7 +190,7 @@ export default function AdminInvites() {
                               disabled={resendMutation.isPending}
                               aria-label="Resend email"
                             >
-                              <Mail width={16} height={16} strokeWidth={1.75} />
+                              <Icon name="mail" />
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>Resend email</TooltipContent>
@@ -203,7 +203,7 @@ export default function AdminInvites() {
                               onClick={() => setRevokeTarget(invite)}
                               aria-label="Revoke invite"
                             >
-                              <Trash2 width={16} height={16} strokeWidth={1.75} className="text-destructive" />
+                              <Icon name="delete" className="text-destructive" />
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>Revoke</TooltipContent>

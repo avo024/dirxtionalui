@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import {
   Dialog,
   DialogContent,
@@ -213,7 +213,7 @@ export function EditProfileModal({ open, onOpenChange }: EditProfileModalProps) 
 
             {clinicLoading ? (
               <div className="flex items-center justify-center py-4">
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                <Icon name="spinner" className="animate-spin text-muted-foreground" />
               </div>
             ) : (
               <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3 rounded-lg border border-border bg-muted/30 p-3">
@@ -236,7 +236,7 @@ export function EditProfileModal({ open, onOpenChange }: EditProfileModalProps) 
               Cancel
             </Button>
             <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {mutation.isPending && <Icon name="spinner" className="mr-2 animate-spin" />}
               Save Changes
             </Button>
           </DialogFooter>

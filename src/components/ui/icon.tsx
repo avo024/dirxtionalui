@@ -1,40 +1,74 @@
 import * as React from "react";
-import * as lucide from "lucide-react";
+import {
+  ICON_ALIASES,
+  resolveIconId,
+  type IconConceptId,
+  type LegacyIconName,
+} from "@/lib/icon-aliases";
+import { cn } from "@/lib/utils";
+import sprite from "@/assets/icons.svg?raw";
+import spriteExtra from "@/assets/icons-extra.svg?raw";
 
-/**
- * All lucide-react exports that render an SVG icon (i.e. every component,
- * excluding non-component helpers like `icons`, `createLucideIcon`, etc.).
- * We type-narrow to keys whose value looks like a React component.
- */
-type LucideModule = typeof lucide;
-export type IconName = {
-  [K in keyof LucideModule]: LucideModule[K] extends React.ComponentType<any> ? K : never;
-}[keyof LucideModule];
+export type IconName = IconConceptId | LegacyIconName;
 
-export interface IconProps extends Omit<React.SVGAttributes<SVGSVGElement>, "width" | "height"> {
-  name: IconName;
-  size?: 14 | 16 | 20;
+export interface IconProps
+  extends Omit<React.SVGAttributes<SVGSVGElement>, "width" | "height" | "name"> {
+  /** Concept id ("prior-auth") or legacy Lucide name ("ShieldCheck"). */
+  name: IconName | (string & {});
+  size?: 14 | 16 | 20 | 24;
   className?: string;
+  strokeWidth?: number;
+  /** When set the icon is announced (role="img"); otherwise it is aria-hidden. */
+  title?: string;
 }
 
 /**
- * Single entry point for lucide icons across the app: fixed stroke weight
- * (1.75), fixed size steps (14/16/20), and `aria-hidden` by default since
- * icons here are always paired with visible text. Use `ICONS` from
- * `@/lib/icons` for concept → icon lookups instead of importing lucide
- * components directly.
+ * The glyph sheet is inlined once (display:none) so `<use href="#id">` resolves
+ * in every build (prod, demo with base "./", file previews) without an extra request.
  */
-export function Icon({ name, size = 16, className, ...rest }: IconProps) {
-  const LucideIcon = lucide[name] as React.ComponentType<React.SVGAttributes<SVGSVGElement>>;
-  if (!LucideIcon) return null;
+export function IconSprite() {
   return (
-    <LucideIcon
-      width={size}
-      height={size}
-      strokeWidth={1.75}
+    <div
       aria-hidden="true"
-      className={className}
-      {...rest}
+      style={{ position: "absolute", width: 0, height: 0, overflow: "hidden" }}
+      dangerouslySetInnerHTML={{ __html: sprite + spriteExtra }}
     />
   );
 }
+
+/**
+ * Single entry point for icons: Dirxctional's own 1.75-stroke set, sizes
+ * 14/16/20/24, `aria-hidden` unless a `title` is given.
+ */
+export function Icon({
+  name,
+  size = 16,
+  className,
+  strokeWidth = 1.75,
+  title,
+  ...rest
+}: IconProps) {
+  const id = resolveIconId(name) ?? "box";
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden={title ? undefined : true}
+      role={title ? "img" : undefined}
+      data-icon={id}
+      className={cn("shrink-0", id === "spinner" && "animate-spin", className)}
+      {...rest}
+    >
+      {title ? <title>{title}</title> : null}
+      <use href={`#${id}`} />
+    </svg>
+  );
+}
+
+export { ICON_ALIASES };

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ArrowRight, ClipboardList, MoreHorizontal } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -67,7 +67,7 @@ export function ActionBar({ status, tone, icon, request, secondary, primary, mor
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm">
-                <MoreHorizontal width={16} height={16} strokeWidth={1.75} aria-hidden="true" />
+                <Icon name="menu-more" />
                 More
               </Button>
             </DropdownMenuTrigger>
@@ -87,7 +87,7 @@ export function ActionBar({ status, tone, icon, request, secondary, primary, mor
 
         {request && (
           <Button variant="outline" onClick={request.onClick}>
-            <ClipboardList width={16} height={16} strokeWidth={1.75} aria-hidden="true" />
+            <Icon name="clipboard-list" />
             Request from clinic
             {typeof request.openCount === "number" && request.openCount > 0 ? ` · ${request.openCount} open` : ""}
           </Button>
@@ -116,7 +116,7 @@ export function ActionBar({ status, tone, icon, request, secondary, primary, mor
         {next && (
           <Button variant="outline" onClick={next.onClick}>
             {next.label ?? "Next in queue"}
-            <ArrowRight width={16} height={16} strokeWidth={1.75} aria-hidden="true" />
+            <Icon name="forward" />
           </Button>
         )}
       </div>

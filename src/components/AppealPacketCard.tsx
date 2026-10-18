@@ -1,5 +1,5 @@
 import { useEffect, useImperativeHandle, useRef, useState } from "react";
-import { FileText, Send, Eye, CheckCircle2, AlertTriangle, Loader2, Check } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { formatDateShort } from "@/lib/dateUtils";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -417,11 +417,11 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
   return (
     <div className="rounded-lg border border-border bg-card shadow-sm p-[var(--density-card-pad)]">
       <div className="flex items-center gap-2.5 mb-3">
-        <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><FileText size={15} /></span>
+        <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Icon name="document" /></span>
         <h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">Appeal Packet</h3>
         {saving && (
           <span className="ml-auto inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-            <Loader2 size={11} className="animate-spin" />Saving…
+            <Icon name="spinner" size={14} className="animate-spin" />Saving…
           </span>
         )}
         {!saving && (
@@ -429,7 +429,7 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
             className="ml-auto inline-flex items-center gap-1 text-[11px] font-semibold text-success transition-opacity duration-300"
             style={{ opacity: savedFlash ? 1 : 0 }}
           >
-            <Check size={11} />Saved
+            <Icon name="check" size={14} />Saved
           </span>
         )}
       </div>
@@ -444,7 +444,7 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
       ) : justSubmitted || (packetId === null && !!appealStartedAt && !builderOpen) ? (
         // ── State A: sent packet exists ──
         <div className="flex flex-wrap items-center gap-2">
-          <CheckCircle2 size={15} className="text-success" />
+          <Icon name="check-circle" className="text-success" />
           <span className="text-sm font-semibold text-foreground">
             Appeal packet submitted — follow-up clock running
           </span>
@@ -460,14 +460,14 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
         // ── State B: no draft, not submitted ──
         <div className="rounded-md border border-warning/40 bg-warning/10 px-3.5 py-3">
           <div className="flex items-center gap-2">
-            <AlertTriangle size={15} className="text-warning" />
+            <Icon name="alert-triangle" className="text-warning" />
             <span className="text-sm font-bold text-foreground">Appeal packet not sent yet</span>
           </div>
           <p className="my-1.5 text-sm leading-relaxed text-muted-foreground">
             The 72-hour follow-up clock starts when the packet goes to the insurance company.
           </p>
           <button className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-45 disabled:cursor-not-allowed" onClick={() => setBuilderOpen(true)}>
-            <FileText size={13} />Build appeal packet
+            <Icon name="document" size={14} />Build appeal packet
           </button>
         </div>
       ) : (
@@ -641,7 +641,7 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
                       }}
                       className="shrink-0 p-0.5 text-teal-500"
                     >
-                      <Eye size={14} />
+                      <Icon name="eye" size={14} />
                     </button>
                   </div>
                 ))}
@@ -682,13 +682,13 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
               <>
                 <div className="flex flex-wrap gap-2">
                   <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" disabled={previewLoading} onClick={handlePreview}>
-                    {previewLoading ? <Loader2 size={13} className="animate-spin" /> : <Eye size={13} />}Preview letter
+                    {previewLoading ? <Icon name="spinner" size={14} className="animate-spin" /> : <Icon name="eye" size={14} />}Preview letter
                   </button>
                   <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" disabled={packetPreviewLoading} onClick={handlePacketPdfPreview} title="Cover page + letters + attached documents, merged — exactly what the payer's fax prints">
-                    {packetPreviewLoading ? <Loader2 size={13} className="animate-spin" /> : <FileText size={13} />}Preview whole packet
+                    {packetPreviewLoading ? <Icon name="spinner" size={14} className="animate-spin" /> : <Icon name="document" size={14} />}Preview whole packet
                   </button>
                   <button className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-45 disabled:cursor-not-allowed" disabled={sending || !faxNumber.trim()} onClick={() => setSendConfirmOpen(true)}>
-                    <Send size={13} />Fax the packet
+                    <Icon name="send" size={14} />Fax the packet
                   </button>
                 </div>
                 <button

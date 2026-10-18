@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { Link, useSearchParams, useLocation } from "react-router-dom";
-import { Plus, FileSearch, ChevronLeft, ChevronRight, Archive, RotateCcw } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ClinicPABadge } from "@/components/ClinicPABadge";
 import { ListRows, ListRow } from "@/components/patterns/ListRow";
@@ -164,7 +164,7 @@ export default function ReferralsList() {
       <div className="flex items-center justify-between mb-5">
         <h1 className="ty-title">My Referrals</h1>
         <Button asChild>
-          <Link to="/clinic/referrals/new"><Plus width={16} height={16} strokeWidth={1.75} />New Referral</Link>
+          <Link to="/clinic/referrals/new"><Icon name="add" />New Referral</Link>
         </Button>
       </div>
 
@@ -195,7 +195,7 @@ export default function ReferralsList() {
               variant={showArchived ? "default" : "outline"}
               onClick={() => setShowArchived((v) => !v)}
             >
-              <Archive width={14} height={14} strokeWidth={1.75} />
+              <Icon name="archive" size={14} />
               {showArchived ? "Back to referrals" : "Archived"}
             </Button>
           }
@@ -250,7 +250,7 @@ export default function ReferralsList() {
                     }
                   }}
                 >
-                  <RotateCcw width={14} height={14} strokeWidth={1.75} />Unarchive
+                  <Icon name="undo" size={14} />Unarchive
                 </Button>
               ) : undefined}
             />
@@ -258,7 +258,7 @@ export default function ReferralsList() {
         </ListRows>
       ) : search || activeFilter !== "all" ? (
         <div className="flex flex-col items-center gap-2 py-16 text-center">
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground"><FileSearch width={20} height={20} strokeWidth={1.75} /></span>
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground"><Icon name="document-search" size={20} /></span>
           <p className="text-sm font-semibold text-foreground">No referrals found</p>
           <p className="text-sm text-muted-foreground">Try adjusting your search or filters</p>
           <Button size="sm" variant="outline" onClick={clearFilters}>Clear Filters</Button>
@@ -269,7 +269,7 @@ export default function ReferralsList() {
             art="referrals"
             title="You haven't created any referrals yet"
             text="Create your first referral to get started."
-            actions={<Button asChild><Link to="/clinic/referrals/new"><Plus width={16} height={16} strokeWidth={1.75} />Create Your First Referral</Link></Button>}
+            actions={<Button asChild><Link to="/clinic/referrals/new"><Icon name="add" />Create Your First Referral</Link></Button>}
           />
         </div>
       )}
@@ -279,7 +279,7 @@ export default function ReferralsList() {
         <div className="flex items-center justify-between mt-4">
           <span className="text-xs text-muted-foreground">Showing {startItem}-{endItem} of {filtered.length} referrals</span>
           <div className="flex items-center gap-2">
-            <Button size="sm" variant="outline" disabled={safePage === 1} onClick={() => setCurrentPage(safePage - 1)}><ChevronLeft width={15} height={15} strokeWidth={1.75} />Prev</Button>
+            <Button size="sm" variant="outline" disabled={safePage === 1} onClick={() => setCurrentPage(safePage - 1)}><Icon name="chevron-left" />Prev</Button>
             <div className="flex items-center gap-1">
               {pageWindow(totalPages, safePage).map((n, i) =>
                 n === "…" ? (
@@ -296,7 +296,7 @@ export default function ReferralsList() {
               )}
             </div>
             <span className="text-xs text-muted-foreground">Page {safePage} of {totalPages}</span>
-            <Button size="sm" variant="outline" disabled={safePage === totalPages} onClick={() => setCurrentPage(safePage + 1)}>Next<ChevronRight width={15} height={15} strokeWidth={1.75} /></Button>
+            <Button size="sm" variant="outline" disabled={safePage === totalPages} onClick={() => setCurrentPage(safePage + 1)}>Next<Icon name="chevron-right" /></Button>
           </div>
         </div>
       )}

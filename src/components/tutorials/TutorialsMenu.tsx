@@ -1,4 +1,4 @@
-import { PlayCircle } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { TOURS, TUTORIAL_ORDER } from "./tours";
 
 /**
@@ -19,7 +19,7 @@ export function TutorialsMenu({ onRun }: { onRun: (key: string) => void }) {
             onClick={() => onRun(key)}
             className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted"
           >
-            <PlayCircle className="h-4 w-4 shrink-0 text-primary" />
+            <Icon name="play-circle" className="shrink-0 text-primary" />
             <span className="flex flex-col">
               <span className="font-medium leading-tight">{tour.label}</span>
               <span className="text-xs text-muted-foreground leading-tight">

@@ -1,8 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
-import {
-  ArrowLeft, ChevronDown, ChevronRight, FileText, AlertTriangle, ArrowRight, PenLine, Clock, Loader2,
-} from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAIQualityReferral } from "@/hooks/useAIQuality";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -58,7 +56,7 @@ export default function AIQualityReferral() {
   if (isLoading) {
     return (
       <PageContainer className="flex justify-center py-16">
-        <Loader2 width={26} height={26} strokeWidth={1.75} className="animate-spin text-primary" />
+        <Icon name="spinner" size={24} className="animate-spin text-primary" />
       </PageContainer>
     );
   }
@@ -67,7 +65,7 @@ export default function AIQualityReferral() {
     return (
       <PageContainer>
         <Link className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground" to="/admin/ai-quality">
-          <ArrowLeft width={15} height={15} strokeWidth={1.75} />Back to AI Quality
+          <Icon name="back" />Back to AI Quality
         </Link>
         <div className="bg-card border border-destructive/30 rounded-lg p-[var(--density-card-pad)] mt-4 text-sm text-destructive">
           Failed to load: {(error as Error)?.message ?? "Unknown error"}
@@ -81,13 +79,13 @@ export default function AIQualityReferral() {
       {/* Header */}
       <div className="flex items-center gap-3 flex-wrap mb-5">
         <Link className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground" to="/admin/ai-quality">
-          <ArrowLeft width={15} height={15} strokeWidth={1.75} />Back
+          <Icon name="back" />Back
         </Link>
         <span className="font-mono text-xs text-muted-foreground">{data.referral.id}</span>
         <StatusBadge status={data.referral.status as ReferralStatus} />
         <div className="ml-auto flex items-center gap-3 text-xs text-muted-foreground">
           <span>prompt <span className="font-mono text-foreground">{data.referral.prompt_version || "unknown"}</span></span>
-          <span className="inline-flex items-center gap-1"><Clock width={12} height={12} strokeWidth={1.75} />updated {getRelativeTime(data.referral.updated_at)}</span>
+          <span className="inline-flex items-center gap-1"><Icon name="clock" size={14} />updated {getRelativeTime(data.referral.updated_at)}</span>
         </div>
       </div>
 
@@ -129,7 +127,7 @@ function DocPreview({ doc }: { doc: AIQualityReferralDocument }) {
   return (
     <div className="rounded-md border border-border overflow-hidden">
       <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border bg-muted">
-        <FileText width={15} height={15} strokeWidth={1.75} className="text-muted-foreground" />
+        <Icon name="document" className="text-muted-foreground" />
         <span className="text-sm font-semibold text-foreground">{doc.doc_type}</span>
         <span className="text-xs text-muted-foreground">· {doc.original_filename}</span>
       </div>
@@ -180,7 +178,7 @@ function TreeGroup({
   return (
     <div className="rounded-md border border-border overflow-hidden">
       <button type="button" onClick={() => setOpen((o) => !o)} className="flex w-full items-center gap-2 px-3 py-2 bg-muted text-left">
-        {open ? <ChevronDown width={14} height={14} strokeWidth={1.75} className="text-muted-foreground" /> : <ChevronRight width={14} height={14} strokeWidth={1.75} className="text-muted-foreground" />}
+        {open ? <Icon name="chevron-down" size={14} className="text-muted-foreground" /> : <Icon name="chevron-right" size={14} className="text-muted-foreground" />}
         <span className="text-sm font-semibold text-foreground">{label}</span>
         <span className="ml-auto text-xs text-muted-foreground">{count} {count === 1 ? "field" : "fields"}</span>
       </button>
@@ -243,9 +241,9 @@ function Leaf({
         </div>
         {latest && (
           <div className="flex items-center gap-1.5 flex-wrap text-xs text-muted-foreground mt-0.5">
-            <PenLine width={12} height={12} strokeWidth={1.75} className="text-muted-foreground" />
+            <Icon name="edit" size={14} className="text-muted-foreground" />
             was <span className="line-through">{renderFieldValue(latest.model_value)}</span>
-            <ArrowRight width={11} height={11} strokeWidth={1.75} />
+            <Icon name="forward" size={14} />
             now <span className="font-semibold text-foreground">{renderFieldValue(latest.final_value)}</span>
             <span>·</span>
             <span>conf {confFmt(latest.model_confidence)}</span>
@@ -254,7 +252,7 @@ function Leaf({
             {corrections!.length > 1 && <span>· edited {corrections!.length}×</span>}
             {high && (
               <span className="inline-flex items-center gap-1 rounded-full bg-warning/15 text-[#92610B] px-1.5 py-0.5 text-[10px] font-bold">
-                <AlertTriangle width={10} height={10} strokeWidth={1.75} />high conf
+                <Icon name="alert-triangle" size={14} />high conf
               </span>
             )}
           </div>
@@ -272,7 +270,7 @@ function RawJson({ data }: { data: Record<string, any> }) {
   return (
     <div className="bg-card border border-border rounded-lg p-[var(--density-card-pad)] mt-4">
       <button type="button" onClick={() => setOpen((o) => !o)} className="inline-flex items-center gap-2 text-sm font-semibold text-foreground">
-        {open ? <ChevronDown width={15} height={15} strokeWidth={1.75} className="text-muted-foreground" /> : <ChevronRight width={15} height={15} strokeWidth={1.75} className="text-muted-foreground" />}
+        {open ? <Icon name="chevron-down" className="text-muted-foreground" /> : <Icon name="chevron-right" className="text-muted-foreground" />}
         Raw extracted JSON
         <span className="text-xs font-normal text-muted-foreground">extracted_data payload</span>
       </button>

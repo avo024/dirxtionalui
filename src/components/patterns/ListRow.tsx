@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 
 interface ListRowsProps {
@@ -83,7 +83,7 @@ export function ListRow({ to, patient, sub, request, status, extra, when, childr
       {children !== undefined ? children : <div className="st">{status}{extra}</div>}
       <span className="when">{when}</span>
       {action}
-      <span className="chev"><ChevronRight width={16} height={16} strokeWidth={1.75} aria-hidden="true" /></span>
+      <span className="chev"><Icon name="chevron-right" /></span>
     </div>
   );
 }

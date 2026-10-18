@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Search, X, ArrowRightLeft, CircleX, Check, AlertTriangle } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 
 // ── Canonical keys — MUST match the clinic FixPanel + backend ──
@@ -75,7 +75,7 @@ export function AdminRejectModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl max-h-[88vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-destructive"><CircleX className="h-5 w-5" />Reject referral</DialogTitle>
+          <DialogTitle className="flex items-center gap-2 text-destructive"><Icon name="x-circle" size={20} />Reject referral</DialogTitle>
           <DialogDescription>
             Structured rejection — the clinic gets a precise recovery checklist, not a paragraph to parse.
           </DialogDescription>
@@ -106,7 +106,7 @@ export function AdminRejectModal({
                       on ? "border-primary/40 bg-primary/[0.04] text-foreground" : "border-border hover:bg-secondary/50 text-muted-foreground")}>
                     <span className={cn("h-4 w-4 rounded border flex items-center justify-center shrink-0",
                       on ? "bg-primary border-primary text-primary-foreground" : "border-input")}>
-                      {on && <Check className="h-3 w-3" />}
+                      {on && <Icon name="check" size={14} />}
                     </span>
                     {d.label}
                   </button>
@@ -123,7 +123,7 @@ export function AdminRejectModal({
             </div>
             <p className="text-xs text-muted-foreground mb-2">Pick extracted fields needing correction. The clinic sees a ⚠ on that exact field.</p>
             <div className="relative mb-2">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Icon name="search" size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input className="pl-8 h-8 text-sm" placeholder="Search fields…" value={q} onChange={(e) => setQ(e.target.value)} />
             </div>
             <div className="max-h-44 overflow-y-auto rounded-md border border-border divide-y divide-border/60">
@@ -135,7 +135,7 @@ export function AdminRejectModal({
                     className={cn("flex items-center gap-2 w-full px-3 py-2 text-left text-sm transition-colors", on ? "bg-primary/[0.04]" : "hover:bg-secondary/40")}>
                     <span className={cn("h-4 w-4 rounded border flex items-center justify-center shrink-0",
                       on ? "bg-primary border-primary text-primary-foreground" : "border-input")}>
-                      {on && <Check className="h-3 w-3" />}
+                      {on && <Icon name="check" size={14} />}
                     </span>
                     <span className="flex-1 text-foreground">{f.label}</span>
                     <span className="text-[11px] font-mono text-muted-foreground">{f.path}</span>
@@ -150,7 +150,7 @@ export function AdminRejectModal({
                   return (
                     <span key={p} className="inline-flex items-center gap-1 text-xs bg-secondary rounded-full pl-2.5 pr-1 py-0.5">
                       {f ? f.label : p}
-                      <button onClick={() => toggleField(p)} className="p-0.5 rounded-full hover:bg-background" aria-label="Remove"><X className="h-3 w-3" /></button>
+                      <button onClick={() => toggleField(p)} className="p-0.5 rounded-full hover:bg-background" aria-label="Remove"><Icon name="close" size={14} /></button>
                     </span>
                   );
                 })}
@@ -160,10 +160,10 @@ export function AdminRejectModal({
         </div>
 
         <div className="flex items-center gap-2 pt-2 border-t border-border mt-1">
-          <span className="text-xs text-muted-foreground flex items-center gap-1.5 mr-auto"><ArrowRightLeft className="h-3.5 w-3.5" />Populates the clinic's Fix panel</span>
+          <span className="text-xs text-muted-foreground flex items-center gap-1.5 mr-auto"><Icon name="swap" size={14} />Populates the clinic's Fix panel</span>
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={submitting}>Cancel</Button>
           <Button variant="destructive" disabled={!canSubmit} onClick={submit}>
-            {submitting ? <span className="mr-1.5 inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" /> : <CircleX className="h-4 w-4 mr-1.5" />}
+            {submitting ? <span className="mr-1.5 inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" /> : <Icon name="x-circle" className="mr-1.5" />}
             Reject &amp; notify clinic
           </Button>
         </div>

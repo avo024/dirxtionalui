@@ -1,4 +1,4 @@
-import { Check, AlertTriangle, AlertCircle } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
@@ -15,7 +15,7 @@ export function ConfidenceIndicator({ confidence, className }: ConfidenceIndicat
       <Tooltip>
         <TooltipTrigger asChild>
           <span className={cn("inline-flex items-center text-success", className)}>
-            <Check className="h-4 w-4" />
+            <Icon name="check" />
           </span>
         </TooltipTrigger>
         <TooltipContent>Confidence: {percentage}%</TooltipContent>
@@ -28,7 +28,7 @@ export function ConfidenceIndicator({ confidence, className }: ConfidenceIndicat
       <Tooltip>
         <TooltipTrigger asChild>
           <span className={cn("inline-flex items-center text-warning", className)}>
-            <AlertTriangle className="h-4 w-4" />
+            <Icon name="alert-triangle" />
           </span>
         </TooltipTrigger>
         <TooltipContent>Confidence: {percentage}% — Please verify</TooltipContent>
@@ -40,7 +40,7 @@ export function ConfidenceIndicator({ confidence, className }: ConfidenceIndicat
     <Tooltip>
       <TooltipTrigger asChild>
         <span className={cn("inline-flex items-center text-destructive", className)}>
-          <AlertCircle className="h-4 w-4" />
+          <Icon name="alert-circle" />
         </span>
       </TooltipTrigger>
       <TooltipContent>Low confidence: {percentage}% — Manual review required</TooltipContent>

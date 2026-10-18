@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { Button } from "@/components/ui/button";
 import { getHeaders } from "@/lib/api";
 
@@ -168,7 +168,7 @@ export function ConsentReacceptModal() {
           >
             {submitting ? (
               <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Icon name="spinner" className="mr-2 animate-spin" />
                 Saving…
               </>
             ) : (

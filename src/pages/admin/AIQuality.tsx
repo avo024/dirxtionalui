@@ -1,9 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
-import {
-  Loader2, AlertTriangle, FileText, CheckCircle2, PencilLine,
-  ChevronsUpDown, ChevronUp, ChevronDown, ArrowRight,
-} from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAIQualityOverview, useAIQualityCorrections } from "@/hooks/useAIQuality";
 import { getRelativeTime } from "@/lib/dateUtils";
@@ -98,7 +95,7 @@ export default function AIQuality() {
 
   const SortTh = ({ k, children, right }: { k: SortKey; children: React.ReactNode; right?: boolean }) => {
     const active = sortKey === k;
-    const Caret = !active ? ChevronsUpDown : sortDir === "asc" ? ChevronUp : ChevronDown;
+    const Caret = !active ? "chevrons-updown" : sortDir === "asc" ? "chevron-up" : "chevron-down";
     return (
       <TableHead className={right ? "text-right" : undefined}>
         <button
@@ -107,7 +104,7 @@ export default function AIQuality() {
           className={cn("inline-flex items-center gap-1 hover:text-foreground", right && "flex-row-reverse")}
         >
           {children}
-          <Caret width={13} height={13} strokeWidth={1.75} className={active ? "text-foreground" : "opacity-50"} />
+          <Icon name={Caret} size={14} className={active ? "text-foreground" : "opacity-50"} />
         </button>
       </TableHead>
     );
@@ -118,10 +115,10 @@ export default function AIQuality() {
   const watchList = (overview.data?.top_problem_fields ?? []).filter((f) => f.high_conf_wrong_count > 0);
 
   const stats = [
-    { key: "extractions", label: "Extractions", tone: "primary", icon: FileText, value: String(totals?.extractions ?? 0), sub: "in window" },
-    { key: "acceptance", label: "Acceptance rate", tone: "success", icon: CheckCircle2, value: pct(totals?.acceptance_rate ?? null), sub: "no human edits" },
-    { key: "hcw", label: "High-confidence-but-edited", tone: "warning", icon: AlertTriangle, value: String(totals?.high_conf_wrong ?? 0), sub: "model was confident AND wrong" },
-    { key: "corrections", label: "Corrections logged", tone: "teal", icon: PencilLine, value: String(totals?.corrections ?? 0), sub: "across all fields" },
+    { key: "extractions", label: "Extractions", tone: "primary", icon: "document", value: String(totals?.extractions ?? 0), sub: "in window" },
+    { key: "acceptance", label: "Acceptance rate", tone: "success", icon: "check-circle", value: pct(totals?.acceptance_rate ?? null), sub: "no human edits" },
+    { key: "hcw", label: "High-confidence-but-edited", tone: "warning", icon: "alert-triangle", value: String(totals?.high_conf_wrong ?? 0), sub: "model was confident AND wrong" },
+    { key: "corrections", label: "Corrections logged", tone: "teal", icon: "edit", value: String(totals?.corrections ?? 0), sub: "across all fields" },
   ];
 
   return (
@@ -156,7 +153,7 @@ export default function AIQuality() {
       </div>
 
       {overview.isLoading ? (
-        <div className="flex justify-center py-16"><Loader2 width={26} height={26} strokeWidth={1.75} className="animate-spin text-primary" /></div>
+        <div className="flex justify-center py-16"><Icon name="spinner" size={24} className="animate-spin text-primary" /></div>
       ) : overview.isError ? (
         <div className="bg-card border border-destructive/30 rounded-lg p-[var(--density-card-pad)] text-sm text-destructive">
           Failed to load AI quality metrics: {(overview.error as Error)?.message}
@@ -170,7 +167,7 @@ export default function AIQuality() {
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-xs font-medium text-muted-foreground">{s.label}</p>
                   <span className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-md", STAT_TONE[s.tone])}>
-                    <s.icon width={16} height={16} strokeWidth={1.75} />
+                    <Icon name={s.icon} />
                   </span>
                 </div>
                 <p className="text-2xl font-semibold text-foreground">{s.value}</p>
@@ -185,12 +182,12 @@ export default function AIQuality() {
               <div className="flex items-start justify-between gap-4 mb-3">
                 <div>
                   <h2 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                    Watch list <AlertTriangle width={16} height={16} strokeWidth={1.75} className="text-warning" />
+                    Watch list <Icon name="alert-triangle" className="text-warning" />
                   </h2>
                   <p className="text-xs text-muted-foreground mt-0.5">Fields the model was confident about (≥ 0.85) but reviewers still corrected.</p>
                 </div>
                 <Link className="inline-flex items-center gap-1 text-sm font-medium text-primary shrink-0" to="/admin/ai-quality/corrections?high_conf_only=true">
-                  View high-conf corrections <ArrowRight width={14} height={14} strokeWidth={1.75} />
+                  View high-conf corrections <Icon name="forward" size={14} />
                 </Link>
               </div>
               <div className="grid gap-2.5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))" }}>
@@ -249,7 +246,7 @@ export default function AIQuality() {
                         <TableCell className="text-right">{row.edit_count}</TableCell>
                         <TableCell className="text-right">
                           <span className={cn("inline-flex items-center gap-1 justify-end", row.high_conf_wrong_count === 0 ? "text-muted-foreground" : "text-warning font-semibold")}>
-                            {row.high_conf_wrong_count > 0 && <AlertTriangle width={11} height={11} strokeWidth={1.75} />}{row.high_conf_wrong_count}
+                            {row.high_conf_wrong_count > 0 && <Icon name="alert-triangle" size={14} />}{row.high_conf_wrong_count}
                           </span>
                         </TableCell>
                         <TableCell className={cn("text-right font-semibold", acceptClass(row.acceptance_rate))}>{pct(row.acceptance_rate)}</TableCell>
@@ -302,10 +299,10 @@ export default function AIQuality() {
           <div className="bg-card border border-border rounded-lg overflow-hidden">
             <div className="flex items-center justify-between px-[var(--density-card-pad)] pt-[var(--density-card-pad)] pb-3">
               <h2 className="text-sm font-semibold text-foreground">Recent corrections</h2>
-              <Link className="inline-flex items-center gap-1 text-sm font-medium text-primary" to="/admin/ai-quality/corrections">View all <ArrowRight width={14} height={14} strokeWidth={1.75} /></Link>
+              <Link className="inline-flex items-center gap-1 text-sm font-medium text-primary" to="/admin/ai-quality/corrections">View all <Icon name="forward" size={14} /></Link>
             </div>
             {feed.isLoading ? (
-              <div className="flex justify-center py-8"><Loader2 width={22} height={22} strokeWidth={1.75} className="animate-spin text-muted-foreground" /></div>
+              <div className="flex justify-center py-8"><Icon name="spinner" size={24} className="animate-spin text-muted-foreground" /></div>
             ) : feed.data && feed.data.items.length > 0 ? (
               <div>
                 {feed.data.items.map((c, i) => (

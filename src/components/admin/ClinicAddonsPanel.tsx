@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { ChevronDown, Loader2, Plus, X } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -99,7 +99,7 @@ export function ClinicAddonsPanel({ clinicId, clinicName }: Props) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-10">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <Icon name="spinner" size={24} className="animate-spin text-primary" />
       </div>
     );
   }
@@ -130,7 +130,7 @@ export function ClinicAddonsPanel({ clinicId, clinicName }: Props) {
           </p>
         </div>
         <Button onClick={() => setAddOpen(true)}>
-          <Plus className="h-4 w-4 mr-1" /> Add service
+          <Icon name="add" className="mr-1" /> Add service
         </Button>
       </div>
 
@@ -175,7 +175,7 @@ export function ClinicAddonsPanel({ clinicId, clinicName }: Props) {
                   }}
                   aria-label="Remove"
                 >
-                  <X className="h-4 w-4" />
+                  <Icon name="close" />
                 </Button>
               </div>
             </div>
@@ -186,7 +186,7 @@ export function ClinicAddonsPanel({ clinicId, clinicName }: Props) {
       {data.history.length > 0 && (
         <Collapsible className="mt-6">
           <CollapsibleTrigger className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground">
-            <ChevronDown className="h-4 w-4" />
+            <Icon name="chevron-down" />
             Deactivated history ({data.history.length})
           </CollapsibleTrigger>
           <CollapsibleContent className="mt-3 space-y-2">
@@ -277,7 +277,7 @@ export function ClinicAddonsPanel({ clinicId, clinicName }: Props) {
               disabled={!selectedAddonId || addMutation.isPending}
             >
               {addMutation.isPending && (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Icon name="spinner" className="mr-2 animate-spin" />
               )}
               Activate
             </Button>
@@ -332,7 +332,7 @@ export function ClinicAddonsPanel({ clinicId, clinicName }: Props) {
               disabled={removeMutation.isPending}
             >
               {removeMutation.isPending && (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Icon name="spinner" className="mr-2 animate-spin" />
               )}
               Remove
             </AlertDialogAction>
