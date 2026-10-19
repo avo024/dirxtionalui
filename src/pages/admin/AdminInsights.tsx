@@ -49,7 +49,6 @@ export default function AdminInsights() {
   // allReferrals feeds the widgets that carry their own range (today tiles,
   // last 30 days, the 30-day line); referrals is the month-scoped set.
   const [allReferrals, setAllReferrals] = useState<any[]>([]);
-  const [monthReferrals, setMonthReferrals] = useState<any[] | null>(null);
   const [counts, setCounts] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const location = useLocation();
@@ -74,18 +73,16 @@ export default function AdminInsights() {
     let live = true;
     setCounts(null);
     adminApi.getReferralCounts(resolvedMonth).then((c) => { if (live) setCounts(c); }).catch(() => {});
-    if (resolvedMonth === ALL) {
-      setMonthReferrals(null);
-    } else {
-      adminApi.getReferrals({ month: resolvedMonth })
-        .then((response) => { if (live) setMonthReferrals(response.items || []); })
-        .catch((err: any) => toast({ title: "Error", description: err.message || "Failed to load referrals", variant: "destructive" }));
-    }
     return () => { live = false; };
   }, [resolvedMonth, location.key]);
 
-  // The selected month's referrals; "All time" reuses the full list.
-  const referrals = resolvedMonth === ALL ? allReferrals : (monthReferrals ?? []);
+  // The selected month's referrals, by created_at — the same window the
+  // counts endpoint uses (the list endpoint's ?month= is last-activity, not
+  // creation, so it is not used here). "All time" is the full list.
+  const referrals = useMemo(
+    () => (resolvedMonth === ALL ? allReferrals : allReferrals.filter((r) => r.created_at && monthValue(new Date(r.created_at)) === resolvedMonth)),
+    [allReferrals, resolvedMonth],
+  );
   const period = resolvedMonth === ALL ? "All time" : monthLabel(resolvedMonth);
 
   const stats = useMemo(() => {
