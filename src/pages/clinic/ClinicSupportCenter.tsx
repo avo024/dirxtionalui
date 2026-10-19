@@ -66,7 +66,7 @@ export default function ClinicSupportCenter() {
   return (
     <PageContainer>
       <div className="mb-5">
-        <h1 className="text-2xl font-semibold text-foreground">Help &amp; Support</h1>
+        <h1 className="text-2xl font-semibold font-editorial text-foreground">Help &amp; Support</h1>
         <p className="text-sm text-muted-foreground mt-1">Have a question, run into an issue, or want to share an idea? We're here to help — most messages get a reply the same day.</p>
       </div>
 

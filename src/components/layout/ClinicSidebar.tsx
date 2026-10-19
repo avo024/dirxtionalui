@@ -77,9 +77,6 @@ export function ClinicSidebar() {
             >
               <item.icon className="h-4 w-4" />
               {item.label}
-              {item.label === "New Referral" && (
-                <span className="ml-auto h-5 w-5 rounded bg-sidebar-primary/15 text-sidebar-primary flex items-center justify-center text-xs">+</span>
-              )}
               {item.label === "My Referrals" && actionCount > 0 && (
                 <span className="ml-auto rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-bold text-amber-950" title="Your Dirxctional team needs something on a referral">
                   {actionCount}
@@ -106,11 +103,6 @@ export function ClinicSidebar() {
         >
           <HelpCircle className="h-4 w-4" />
           <span className="flex-1">Help &amp; Support</span>
-          {hasUnread && (
-            <span className="animate-pulse rounded-full bg-teal-400 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-teal-950">
-              New
-            </span>
-          )}
         </Link>
       </div>
 

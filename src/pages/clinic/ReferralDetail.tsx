@@ -413,7 +413,7 @@ export default function ReferralDetail() {
       <div className="flex items-start justify-between gap-4 flex-wrap mb-5">
         <div>
           <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-2xl font-semibold text-foreground">{referral.patient_name || patientFullName}</h1>
+            <h1 className="text-2xl font-semibold font-editorial text-foreground">{referral.patient_name || patientFullName}</h1>
             <StatusBadge status={referral.status} size="md" showIcon variant="soft" />
             <span className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-0.5 text-xs font-mono text-muted-foreground">
               {referral.id.toUpperCase()}
@@ -466,16 +466,17 @@ export default function ReferralDetail() {
           uploading={uploadingCategory === "supplemental"}
           onResubmit={handleResubmit}
         />
-      ) : (referral.status === "approved_to_send" || referral.status === "sent_to_pharmacy") && referral.pharmacy_name ? (
+      ) : referral.status === "sent_to_pharmacy" ? (
+        // Sent: the header pill + "Sent to <pharmacy>" card say it once. The
+        // delivery card carries the pharmacy action; legacy rows without a
+        // delivery record keep the action here.
+        !referral.delivery ? <div className="mb-5"><DeliveryIssueReporter referralId={id!} onReported={loadData} /></div> : null
+      ) : referral.status === "approved_to_send" && referral.pharmacy_name ? (
         <Alert variant="success" className="mb-5">
           <CheckCircle width={18} height={18} strokeWidth={1.75} />
           <AlertDescription>
-            <p className="font-semibold text-foreground mb-1">
-              {referral.status === "sent_to_pharmacy" ? "Referral Sent" : "Referral Approved & Sending"}
-            </p>
-            <p className="text-sm text-muted-foreground mb-2">
-              {referral.status === "sent_to_pharmacy" ? "This referral has been sent to the pharmacy." : "This referral is approved and on its way to the pharmacy."}
-            </p>
+            <p className="font-semibold text-foreground mb-1">Referral Approved &amp; Sending</p>
+            <p className="text-sm text-muted-foreground mb-2">This referral is approved and on its way to the pharmacy.</p>
             <div className="flex flex-wrap gap-6 text-sm">
               <div><p className="text-xs text-muted-foreground">Pharmacy</p><p className="font-medium text-foreground">{referral.pharmacy_name}</p></div>
               {[referral.pharmacy_city, referral.pharmacy_state].filter(Boolean).join(", ") && (
@@ -485,9 +486,6 @@ export default function ReferralDetail() {
                 <div><p className="text-xs text-muted-foreground">Contact</p><p className="font-medium text-foreground">{referral.pharmacy_phone || referral.pharmacy_email}</p></div>
               )}
             </div>
-            {referral.status === "sent_to_pharmacy" && (
-              <DeliveryIssueReporter referralId={id!} onReported={loadData} />
-            )}
           </AlertDescription>
         </Alert>
       ) : null}
@@ -526,6 +524,7 @@ export default function ReferralDetail() {
                 delivery={referral.delivery}
                 onPreview={(docId) => { selectDeliveryDoc(docId); setTab("documents"); }}
                 onDownload={downloadDeliveryDoc}
+                footer={referral.status === "sent_to_pharmacy" ? <DeliveryIssueReporter referralId={id!} onReported={loadData} /> : undefined}
               />
             </div>
           )}
@@ -536,7 +535,9 @@ export default function ReferralDetail() {
               <InfoCardDL icon={<Stethoscope width={16} height={16} strokeWidth={1.75} />} title="Provider Information" obj={provider} fields={PROVIDER_FIELDS} section="provider" flagCount={flagCount("provider")} isFlagged={isFlagged} />
             </div>
             <div className="flex flex-col gap-4">
-              <StatusCard status={referral.status} desc={statusDescriptions[referral.status] || "In progress."} />
+              {referral.status !== "sent_to_pharmacy" && (
+                <StatusCard status={referral.status} desc={statusDescriptions[referral.status] || "In progress."} />
+              )}
               <InsurancePA referral={referral} insurance={insurance} priorAuth={priorAuth} reloadOnUpdate={loadData} referralId={id!} isFlagged={isFlagged} />
             </div>
           </div>
@@ -854,8 +855,8 @@ function DocumentPreviewPane({ doc, documents, referralId, onClose, animate, fet
    see _clinic_delivery_for_referral, app/routes/referrals.py). Shared between
    the Overview tab (top card) and the Documents tab ("Sent to pharmacy"
    section) — 2026-09-24, Alex. ── */
-function DeliverySentCard({ delivery, onPreview, onDownload }: {
-  delivery: any; onPreview: (docId: string) => void; onDownload: (docId: string) => void;
+function DeliverySentCard({ delivery, onPreview, onDownload, footer }: {
+  delivery: any; onPreview: (docId: string) => void; onDownload: (docId: string) => void; footer?: React.ReactNode;
 }) {
   if (!delivery) return null;
   const viaLabel = (delivery.via || []).join(" and ");
@@ -892,6 +893,7 @@ function DeliverySentCard({ delivery, onPreview, onDownload }: {
       {delivery.legacy && (
         <p className="text-xs text-muted-foreground mt-2.5 italic">Earlier deliveries only list the referral packet.</p>
       )}
+      {footer && <div className="mt-3 pt-3 border-t border-border flex justify-end [&>div]:mt-0">{footer}</div>}
     </div>
   );
 }

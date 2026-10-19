@@ -16,7 +16,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Progress } from "@/components/ui/progress";
 import { Combobox } from "@/components/ui/combobox";
 import { DatePicker } from "@/components/ui/date-picker";
 import { cn } from "@/lib/utils";
@@ -408,7 +407,6 @@ export default function CreateReferral() {
   const canProceedStep3 = !!selectedPharmacyId;
   const selectedPharmacy = useMemo(() => pharmacies.find((p: any) => p.id === selectedPharmacyId) || null, [pharmacies, selectedPharmacyId]);
 
-  const progress = Math.round(((currentStep + 1) / STEPS.length) * 100);
 
   const goBack = () => {
     if (currentStep === 0) { navigate("/clinic/referrals"); return; }
@@ -462,21 +460,13 @@ export default function CreateReferral() {
     <PageContainer fade={false}>
       {/* Bar A — header */}
       <div>
-        <h1 className="text-2xl font-semibold text-foreground">New Referral</h1>
-        <p className="text-sm text-muted-foreground mt-1">Quick 4-step process to submit a referral</p>
+        <h1 className="text-2xl font-semibold font-editorial text-foreground">New Referral</h1>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6 mt-5">
         <div>
-          {/* Bar B — progress + segmented stepper */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-sm font-medium text-foreground">Step {currentStep + 1} of {STEPS.length}: {STEPS[currentStep].label}</span>
-              <span className="text-sm text-muted-foreground">{progress}%</span>
-            </div>
-            <Progress value={progress} className="h-1.5" />
-          </div>
-          <div className="flex items-stretch gap-1 mt-4" data-tour="wizard-steps">
+          {/* Bar B — segmented stepper */}
+          <div className="flex items-stretch gap-1" data-tour="wizard-steps">
             {STEPS.map((s, i) => {
               const done = i < currentStep, current = i === currentStep;
               return (
