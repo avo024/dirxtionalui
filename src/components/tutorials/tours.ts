@@ -14,6 +14,7 @@
  *   - clinic-nav, nav-dashboard, nav-patients, nav-new-referral, nav-referrals  (ClinicSidebar)
  *   - dashboard-stats                                                            (ClinicDashboard)
  *   - help-button                                                                (HelpButton)
+ *   - user-menu                                                                  (UserMenu)
  *   - wizard-steps, wizard-body, wizard-next                                     (CreateReferral)
  *   - referrals-filters, referrals-table                                         (ReferralsList)
  *   - add-patient                                                                (PatientsList)
@@ -82,6 +83,14 @@ export const TOURS: Record<string, TourDef> = {
           "My Referrals lists every referral you've submitted, with its live status and PA status.",
         side: "right",
         align: "center",
+      },
+      {
+        element: '[data-tour="user-menu"]',
+        title: "Your email notifications",
+        description:
+          "Choose which emails you get under your name → Profile. Everything is off by default except invites.",
+        side: "bottom",
+        align: "end",
       },
       {
         element: '[data-tour="help-button"]',

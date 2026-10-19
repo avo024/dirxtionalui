@@ -107,16 +107,37 @@ function pageWindow(total: number, cur: number): (number | "…")[] {
   return out;
 }
 
-/** Overdue first, then due soonest, then oldest last-activity — flow-script §2. */
-function sortRows(rows: QueueRowData[]): QueueRowData[] {
+type SortDir = "oldest" | "newest";
+const SORT_STORAGE_KEY = "admin.queue.groupSort";
+
+function readSortPrefs(): Record<string, SortDir> {
+  try {
+    const raw = localStorage.getItem(SORT_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+const createdMs = (row: QueueRowData) => {
+  const t = row.raw.created_at || row.raw.updated_at;
+  return t ? new Date(t).getTime() : 0;
+};
+
+/**
+ * Waiting on us: overdue rows first, then interrupts, then the rest — each
+ * band ordered by the referral's age (created_at, falling back to updated_at):
+ * oldest first by default (Alex, 2026-10-19), newest first when the group's
+ * toggle is flipped.
+ */
+function sortRows(rows: QueueRowData[], dir: SortDir = "oldest"): QueueRowData[] {
+  const sign = dir === "oldest" ? 1 : -1;
   return [...rows].sort((a, b) => {
     if (a.next.overdue !== b.next.overdue) return a.next.overdue ? -1 : 1;
-    const ad = a.next.dueAt ? a.next.dueAt.getTime() : Infinity;
-    const bd = b.next.dueAt ? b.next.dueAt.getTime() : Infinity;
-    if (ad !== bd) return ad - bd;
-    const au = a.raw.updated_at ? new Date(a.raw.updated_at).getTime() : 0;
-    const bu = b.raw.updated_at ? new Date(b.raw.updated_at).getTime() : 0;
-    return au - bu;
+    const ai = !!a.next.interrupt, bi = !!b.next.interrupt;
+    if (ai !== bi) return ai ? -1 : 1;
+    return sign * (createdMs(a) - createdMs(b));
   });
 }
 
@@ -182,18 +203,38 @@ function RowMenu({ id, archived, onArchive, onUnarchive }: { id: string; archive
   );
 }
 
-function GroupHeader({ label, count, overdueCount, expanded, onToggle }: { label: string; count: number; overdueCount: number; expanded: boolean; onToggle: () => void }) {
+function GroupHeader({
+  label, count, overdueCount, expanded, onToggle, sortDir, onToggleSort,
+}: {
+  label: string; count: number; overdueCount: number; expanded: boolean; onToggle: () => void;
+  /** Present only where the group's order can be flipped (Waiting on us). */
+  sortDir?: SortDir; onToggleSort?: () => void;
+}) {
   return (
-    <button
-      type="button"
-      onClick={onToggle}
-      className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm font-semibold text-foreground bg-muted/40 border-b border-border hover:bg-muted/60"
-    >
-      <Icon name="chevron-down" size={14} className={expanded ? "" : "-rotate-90"} />
-      <span>{label}</span>
-      <span className="inline-flex items-center rounded-full bg-muted px-1.5 text-[11px] font-bold text-muted-foreground">{count}</span>
-      {overdueCount > 0 && <span className="text-xs font-semibold text-destructive">{overdueCount} overdue</span>}
-    </button>
+    <div className="flex w-full items-center bg-muted/40 border-b border-border hover:bg-muted/60">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex flex-1 items-center gap-2 px-4 py-2 text-left text-sm font-semibold text-foreground"
+      >
+        <Icon name="chevron-down" size={14} className={expanded ? "" : "-rotate-90"} />
+        <span>{label}</span>
+        <span className="inline-flex items-center rounded-full bg-muted px-1.5 text-[11px] font-bold text-muted-foreground">{count}</span>
+        {overdueCount > 0 && <span className="text-xs font-semibold text-destructive">{overdueCount} overdue</span>}
+      </button>
+      {sortDir && onToggleSort && (
+        <button
+          type="button"
+          onClick={onToggleSort}
+          title={sortDir === "oldest" ? "Oldest first — click for newest first" : "Newest first — click for oldest first"}
+          aria-label={sortDir === "oldest" ? "Sorted oldest first. Switch to newest first" : "Sorted newest first. Switch to oldest first"}
+          className="mr-3 inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+        >
+          <Icon name={sortDir === "oldest" ? "chevron-up" : "chevron-down"} size={14} />
+          {sortDir === "oldest" ? "Oldest first" : "Newest first"}
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -263,6 +304,19 @@ export default function AdminReferralsList() {
   });
   const [groupBy, setGroupBy] = useState<GroupBy>("stage"); // Stage is the default (Alex, 2026-09-24): the verb is already the left column
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  // Per-group order for Waiting on us (oldest first unless flipped), remembered
+  // in localStorage per "<groupBy>:<group key>".
+  const [sortPrefs, setSortPrefs] = useState<Record<string, SortDir>>(readSortPrefs);
+  const sortKeyFor = (groupKeyLabel: string) => `${groupBy}:${groupKeyLabel}`;
+  const sortDirFor = (groupKeyLabel: string): SortDir => sortPrefs[sortKeyFor(groupKeyLabel)] ?? "oldest";
+  const toggleSort = (groupKeyLabel: string) => {
+    const k = sortKeyFor(groupKeyLabel);
+    setSortPrefs((prev) => {
+      const next: Record<string, SortDir> = { ...prev, [k]: (prev[k] ?? "oldest") === "oldest" ? "newest" : "oldest" };
+      try { localStorage.setItem(SORT_STORAGE_KEY, JSON.stringify(next)); } catch { /* unavailable — order just won't persist */ }
+      return next;
+    });
+  };
   // Morning-brief urgency filter (work tabs only) — set by clicking a
   // brief-strip number, or via the "Any urgency" select.
   const [urgencyFilter, setUrgencyFilter] = useState<UrgencyFilter>("any");
@@ -379,9 +433,9 @@ export default function AdminReferralsList() {
       if (!map.has(k)) map.set(k, []);
       map.get(k)!.push(r);
     }
-    const groups: Group[] = [...map.entries()].map(([k, rows]) => ({ key: k, rows: sortRows(rows) }));
+    const groups: Group[] = [...map.entries()].map(([k, rows]) => ({ key: k, rows: sortRows(rows, sortPrefs[`${groupBy}:${k}`] ?? "oldest") }));
     return groupBy === "stage" ? orderStageGroups(groups) : orderActionGroups(groups);
-  }, [filteredUsRows, groupBy]);
+  }, [filteredUsRows, groupBy, sortPrefs]);
 
   const usFlat: QueueRowData[] = useMemo(() => sortRows(filteredUsRows), [filteredUsRows]);
 
@@ -564,7 +618,7 @@ export default function AdminReferralsList() {
 
   const footerHint =
     tab === "us"
-      ? "Interrupts first, then actions with overdue rows, then the rest by due. Overdue rows first inside each group."
+      ? "Interrupts first, then actions with overdue rows. Inside each group: overdue and interrupts first, then oldest referral first (flip it per group)."
       : tab === "others"
         ? "Grouped by who has the ball. Rows move to Waiting on us when their clock expires."
         : "Newest first · month-scoped.";
@@ -741,7 +795,7 @@ export default function AdminReferralsList() {
               const overdueCount = g.rows.filter((r) => r.next.overdue).length;
               return (
                 <QueueList key={g.key}>
-                  <GroupHeader label={g.key} count={g.rows.length} overdueCount={overdueCount} expanded={!isCollapsed} onToggle={() => toggleGroup(g.key)} />
+                  <GroupHeader label={g.key} count={g.rows.length} overdueCount={overdueCount} expanded={!isCollapsed} onToggle={() => toggleGroup(g.key)} sortDir={sortDirFor(g.key)} onToggleSort={() => toggleSort(g.key)} />
                   {!isCollapsed && g.rows.map((r) => renderRowWithMenu(r, "work"))}
                 </QueueList>
               );

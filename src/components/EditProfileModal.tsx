@@ -13,7 +13,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { getMyClinic, updateMyProfile } from "@/lib/api";
+import { Switch } from "@/components/ui/switch";
+import { getMyClinic, updateMyProfile, type EmailPrefs } from "@/lib/api";
 import { useProfile, PROFILE_QUERY_KEY } from "@/hooks/useProfile";
 import { useToast } from "@/hooks/use-toast";
 
@@ -37,6 +38,22 @@ interface FormErrors {
 
 const CLINIC_QUERY_KEY = ["clinic", "me"] as const;
 
+const NO_PREFS: EmailPrefs = {
+  referral_updates: false,
+  requests: false,
+  appeals: false,
+  notes_on_sent: false,
+  support: false,
+};
+
+const PREF_ROWS: { key: keyof EmailPrefs; label: string }[] = [
+  { key: "referral_updates", label: "Referral approved, needs attention, or delivered" },
+  { key: "requests", label: "Requests and signatures from Dirxctional" },
+  { key: "appeals", label: "Appeal decisions" },
+  { key: "notes_on_sent", label: "Notes on sent referrals" },
+  { key: "support", label: "Support request resolved" },
+];
+
 export function EditProfileModal({ open, onOpenChange }: EditProfileModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -56,6 +73,7 @@ export function EditProfileModal({ open, onOpenChange }: EditProfileModalProps) 
     npi: "",
   });
   const [errors, setErrors] = useState<FormErrors>({});
+  const [prefs, setPrefs] = useState<EmailPrefs>(NO_PREFS);
 
   // Hydrate the form from the latest profile each time the modal opens.
   useEffect(() => {
@@ -66,6 +84,7 @@ export function EditProfileModal({ open, onOpenChange }: EditProfileModalProps) 
       phone: profile?.phone ?? "",
       npi: profile?.npi ?? "",
     });
+    setPrefs({ ...NO_PREFS, ...(profile?.email_prefs ?? {}) });
     setErrors({});
   }, [open, profile]);
 
@@ -102,6 +121,7 @@ export function EditProfileModal({ open, onOpenChange }: EditProfileModalProps) 
       last_name: form.last_name.trim(),
       phone: form.phone.trim(),
       npi: form.npi.trim() || undefined,
+      email_prefs: prefs,
     });
   };
 
@@ -191,6 +211,32 @@ export function EditProfileModal({ open, onOpenChange }: EditProfileModalProps) 
                 placeholder="Leave blank if not a prescriber"
               />
             </div>
+          </section>
+
+          <Separator />
+
+          {/* Email notifications (per user, default off) */}
+          <section className="space-y-3" data-testid="email-prefs">
+            <div>
+              <h3 className="text-sm font-semibold text-foreground">Email notifications</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Choose which emails you get. Invites and sign-in emails are always sent.
+              </p>
+            </div>
+            <ul className="divide-y divide-border rounded-lg border border-border">
+              {PREF_ROWS.map(({ key, label }) => (
+                <li key={key} className="flex items-center justify-between gap-3 px-3 py-2.5">
+                  <Label htmlFor={`pref_${key}`} className="text-sm font-normal text-foreground cursor-pointer">
+                    {label}
+                  </Label>
+                  <Switch
+                    id={`pref_${key}`}
+                    checked={prefs[key]}
+                    onCheckedChange={(v) => setPrefs((p) => ({ ...p, [key]: v }))}
+                  />
+                </li>
+              ))}
+            </ul>
           </section>
 
           <Separator />

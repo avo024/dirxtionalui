@@ -65,7 +65,7 @@ export function UserMenu() {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="gap-2 h-9 px-2">
+          <Button variant="ghost" className="gap-2 h-9 px-2" data-tour="user-menu">
             <Avatar className="h-7 w-7">
               {user.picture && <AvatarImage src={user.picture} alt={displayLabel} />}
               <AvatarFallback className="text-xs">{initials}</AvatarFallback>

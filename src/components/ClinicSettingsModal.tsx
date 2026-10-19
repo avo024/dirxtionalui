@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Combobox } from "@/components/ui/combobox";
 import { getMyClinic, updateMyClinic, pharmacyApi, type MyClinic } from "@/lib/api";
 import { useProfile } from "@/hooks/useProfile";
@@ -25,6 +26,7 @@ export function ClinicSettingsModal({
 }) {
   const qc = useQueryClient();
   const [form, setForm] = useState({ name: "", phone: "", fax: "", address: "", default_pharmacy_id: "" });
+  const [mainEmail, setMainEmail] = useState(false);
   const [forbidden, setForbidden] = useState<string | null>(null);
 
   const { data: clinic, isLoading: loadingClinic } = useQuery({
@@ -52,6 +54,7 @@ export function ClinicSettingsModal({
         address: clinic.address ?? "",
         default_pharmacy_id: clinic.default_pharmacy_id ?? "",
       });
+      setMainEmail(!!clinic.main_email_notifications);
     }
   }, [clinic]);
 
@@ -69,6 +72,7 @@ export function ClinicSettingsModal({
         fax: form.fax.trim() || null,
         address: form.address.trim() || null,
         default_pharmacy_id: form.default_pharmacy_id || null,
+        main_email_notifications: mainEmail,
       }),
     onSuccess: (updated) => {
       toast({ title: "Clinic settings saved" });
@@ -127,6 +131,16 @@ export function ClinicSettingsModal({
                 disabled={readOnly}
               />
               <p className="text-xs text-muted-foreground">New referrals default to this pharmacy — you can still change it per referral.</p>
+            </div>
+
+            <div className="flex items-start justify-between gap-3 rounded-lg border border-border px-3 py-2.5">
+              <div>
+                <Label htmlFor="cs-main-email" className="text-sm font-normal text-foreground cursor-pointer">
+                  Also send action-needed emails to the clinic's main inbox
+                </Label>
+                {clinic?.email && <p className="text-xs text-muted-foreground mt-0.5">{clinic.email}</p>}
+              </div>
+              <Switch id="cs-main-email" checked={mainEmail} onCheckedChange={setMainEmail} disabled={readOnly} className="mt-0.5" />
             </div>
 
             <div className="grid grid-cols-2 gap-3 pt-3 border-t border-border">
