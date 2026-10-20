@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { useMemo } from "react";
-import { Download, File as FileIcon, Pin, X, ZoomIn } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { formatDateShort } from "@/lib/dateUtils";
@@ -133,7 +133,7 @@ export function DocumentsSheet({
               pinned ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted",
             )}
           >
-            <Pin width={16} height={16} strokeWidth={1.75} aria-hidden="true" />
+            <Icon name="pin" />
           </button>
           {!pinned && (
             <button
@@ -142,7 +142,7 @@ export function DocumentsSheet({
               onClick={onClose}
               className="rounded-md p-1.5 text-muted-foreground hover:bg-muted"
             >
-              <X width={16} height={16} strokeWidth={1.75} aria-hidden="true" />
+              <Icon name="close" />
             </button>
           )}
         </div>
@@ -166,7 +166,7 @@ export function DocumentsSheet({
                       index === active ? "bg-primary/10 font-medium text-primary" : "text-foreground hover:bg-accent",
                     )}
                   >
-                    <FileIcon width={14} height={14} strokeWidth={1.75} className="shrink-0 text-muted-foreground" aria-hidden="true" />
+                    <Icon name="document" size={14} className="shrink-0 text-muted-foreground" />
                     <span className="min-w-0 flex-1 truncate">{file.name}</span>
                     {file.uploadedAt && (
                       <span className="shrink-0 text-[10px] text-muted-foreground">{formatDateShort(file.uploadedAt)}</span>
@@ -201,7 +201,7 @@ export function DocumentsSheet({
         {children ?? (
           <div className="flex h-full min-h-[240px] items-center justify-center rounded-md border border-dashed border-stone-300 bg-white text-muted-foreground">
             <div className="flex flex-col items-center gap-2 text-sm">
-              <FileIcon width={20} height={20} strokeWidth={1.75} aria-hidden="true" />
+              <Icon name="document" size={20} />
               No document selected
             </div>
           </div>
@@ -210,10 +210,10 @@ export function DocumentsSheet({
 
       <div className="flex items-center gap-2 border-t border-border px-4 py-2.5">
         <button type="button" aria-label="Zoom in" className="rounded-md p-1.5 text-muted-foreground hover:bg-muted">
-          <ZoomIn width={16} height={16} strokeWidth={1.75} aria-hidden="true" />
+          <Icon name="zoom-in" />
         </button>
         <button type="button" aria-label="Download" className="rounded-md p-1.5 text-muted-foreground hover:bg-muted">
-          <Download width={16} height={16} strokeWidth={1.75} aria-hidden="true" />
+          <Icon name="download" />
         </button>
         {typeof page === "number" && typeof pages === "number" && (
           <span className="ml-auto font-mono text-xs tabular-nums text-muted-foreground">

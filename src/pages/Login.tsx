@@ -1,5 +1,5 @@
 import { Link, Navigate } from "react-router-dom";
-import { Loader2, LogIn } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { hostedUiSignIn } from "@/lib/cognito";
@@ -11,7 +11,7 @@ export default function Login() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Icon name="spinner" size={24} className="animate-spin text-primary" />
       </div>
     );
   }
@@ -45,7 +45,7 @@ export default function Login() {
               void hostedUiSignIn();
             }}
           >
-            <LogIn className="h-4 w-4 mr-2" />
+            <Icon name="sign-in" className="mr-2" />
             Log In
           </Button>
         </div>

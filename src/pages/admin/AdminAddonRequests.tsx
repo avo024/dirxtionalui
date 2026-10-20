@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
-import { CheckCircle2, Inbox, Loader2, ThumbsDown, ThumbsUp } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { toast } from "sonner";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -121,7 +121,7 @@ export default function AdminAddonRequests() {
 
       {isLoading && (
         <div className="flex items-center justify-center py-16">
-          <Loader2 width={20} height={20} strokeWidth={1.75} className="animate-spin text-primary" />
+          <Icon name="spinner" size={20} className="animate-spin text-primary" />
         </div>
       )}
 
@@ -138,14 +138,14 @@ export default function AdminAddonRequests() {
           <CardContent className="py-16 text-center">
             {tab === "pending" ? (
               <>
-                <CheckCircle2 width={20} height={20} strokeWidth={1.75} className="mx-auto text-success mb-3" />
+                <Icon name="check-circle" size={20} className="mx-auto text-success mb-3" />
                 <p className="text-muted-foreground">
                   No pending requests right now.
                 </p>
               </>
             ) : (
               <>
-                <Inbox width={20} height={20} strokeWidth={1.75} className="mx-auto text-muted-foreground mb-3" />
+                <Icon name="referrals" size={20} className="mx-auto text-muted-foreground mb-3" />
                 <p className="text-muted-foreground">
                   Nothing matches this filter.
                 </p>
@@ -214,7 +214,7 @@ export default function AdminAddonRequests() {
                         setAdminNotes("");
                       }}
                     >
-                      <ThumbsUp width={14} height={14} strokeWidth={1.75} /> Approve
+                      <Icon name="thumbs-up" size={14} /> Approve
                     </Button>
                     <Button
                       size="sm"
@@ -224,7 +224,7 @@ export default function AdminAddonRequests() {
                         setAdminNotes("");
                       }}
                     >
-                      <ThumbsDown width={14} height={14} strokeWidth={1.75} /> Deny
+                      <Icon name="thumbs-down" size={14} /> Deny
                     </Button>
                   </div>
                 ) : (
@@ -301,7 +301,7 @@ export default function AdminAddonRequests() {
               disabled={decideMutation.isPending}
             >
               {decideMutation.isPending && (
-                <Loader2 width={14} height={14} strokeWidth={1.75} className="animate-spin" />
+                <Icon name="spinner" size={14} className="animate-spin" />
               )}
               Approve & activate
             </Button>
@@ -353,7 +353,7 @@ export default function AdminAddonRequests() {
               disabled={decideMutation.isPending || !adminNotes.trim()}
             >
               {decideMutation.isPending && (
-                <Loader2 width={14} height={14} strokeWidth={1.75} className="animate-spin" />
+                <Icon name="spinner" size={14} className="animate-spin" />
               )}
               Deny request
             </Button>

@@ -16,7 +16,7 @@ import { adminApi, type AdminClinic } from "@/lib/api";
 import { CLINIC_ROLES, DEFAULT_CLINIC_ROLE, type ClinicRoleValue } from "@/lib/roles";
 import { useClinicHasOfficeManager } from "@/hooks/useClinicHasOfficeManager";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 
 interface NewInviteModalProps {
   open: boolean;
@@ -174,7 +174,7 @@ export function NewInviteModal({ open, onOpenChange }: NewInviteModalProps) {
               Cancel
             </Button>
             <Button type="submit" disabled={createMutation.isPending}>
-              {createMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {createMutation.isPending && <Icon name="spinner" className="mr-2 animate-spin" />}
               {showSendAnywayWarning ? "Send anyway" : "Send Invite"}
             </Button>
           </DialogFooter>

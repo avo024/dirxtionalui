@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { ZoomIn, ZoomOut, Maximize2, Download, RefreshCw, FileText, ImageIcon } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -110,7 +110,7 @@ export function DocumentViewer({ documents, className, fetchUrl: fetchUrlProp, i
     return (
       <div className={cn("flex items-center justify-center h-full", className)}>
         <div className="text-center p-8">
-          <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+          <Icon name="document" className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
           <p className="text-sm font-medium text-foreground">No documents uploaded</p>
           <p className="text-xs text-muted-foreground mt-1">No documents uploaded for this referral</p>
         </div>
@@ -149,7 +149,7 @@ export function DocumentViewer({ documents, className, fetchUrl: fetchUrlProp, i
       {/* Toolbar */}
       <div className="flex items-center justify-between border-b border-border px-3 py-2 bg-card">
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
-          {isImage ? <ImageIcon className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />}
+          {isImage ? <Icon name="image" size={14} /> : <Icon name="document" size={14} />}
           <span>{activeDoc?.original_filename}</span>
         </div>
         <div className="flex items-center gap-1">
@@ -162,7 +162,7 @@ export function DocumentViewer({ documents, className, fetchUrl: fetchUrlProp, i
                 aria-label="Zoom out"
                 onClick={() => setZoom(Math.max(25, zoom - 25))}
               >
-                <ZoomOut className="h-4 w-4" />
+                <Icon name="zoom-out" />
               </Button>
               <span className="text-xs text-muted-foreground w-10 text-center">{zoom}%</span>
               <Button
@@ -172,7 +172,7 @@ export function DocumentViewer({ documents, className, fetchUrl: fetchUrlProp, i
                 aria-label="Zoom in"
                 onClick={() => setZoom(Math.min(300, zoom + 25))}
               >
-                <ZoomIn className="h-4 w-4" />
+                <Icon name="zoom-in" />
               </Button>
               <Button
                 variant="ghost"
@@ -183,13 +183,13 @@ export function DocumentViewer({ documents, className, fetchUrl: fetchUrlProp, i
                 disabled={zoom === 100}
                 onClick={() => setZoom(100)}
               >
-                <Maximize2 className="h-4 w-4" />
+                <Icon name="expand" />
               </Button>
             </>
           )}
           {activeUrl && (
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => window.open(activeUrl, "_blank")}>
-              <Download className="h-4 w-4" />
+              <Icon name="download" />
             </Button>
           )}
         </div>
@@ -208,7 +208,7 @@ export function DocumentViewer({ documents, className, fetchUrl: fetchUrlProp, i
           <div className="text-center p-8">
             <p className="text-sm text-destructive mb-2">Failed to load document</p>
             <Button variant="outline" size="sm" onClick={() => fetchUrl(activeDocId)}>
-              <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+              <Icon name="refresh" size={14} className="mr-1.5" />
               Retry
             </Button>
           </div>
@@ -238,11 +238,11 @@ export function DocumentViewer({ documents, className, fetchUrl: fetchUrlProp, i
 
         {activeUrl && !loadingUrl && !isPdf && !isImage && (
           <div className="text-center p-8">
-            <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+            <Icon name="document" className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
             <p className="text-sm text-foreground">{activeDoc?.original_filename}</p>
             <p className="text-xs text-muted-foreground mt-1">Preview not available for this file type</p>
             <Button variant="outline" size="sm" className="mt-3" onClick={() => window.open(activeUrl, "_blank")}>
-              <Download className="h-3.5 w-3.5 mr-1.5" />
+              <Icon name="download" size={14} className="mr-1.5" />
               Download
             </Button>
           </div>
@@ -254,7 +254,7 @@ export function DocumentViewer({ documents, className, fetchUrl: fetchUrlProp, i
             <div className="text-center">
               <p className="text-sm text-muted-foreground mb-2">Document URL expired</p>
               <Button variant="outline" size="sm" onClick={() => fetchUrl(activeDocId)}>
-                <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                <Icon name="refresh" size={14} className="mr-1.5" />
                 Refresh
               </Button>
             </div>

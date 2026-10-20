@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Plus, Pencil, Building2, TriangleAlert, RefreshCw } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { ClinicFormModal } from "@/components/ClinicFormModal";
 import { getInitials } from "@/components/CreatedByAvatar";
 import { Button } from "@/components/ui/button";
@@ -42,7 +42,7 @@ export default function ClinicsList() {
           <p className="text-sm text-muted-foreground mt-1">Partner clinics that send referrals into Dirxctional</p>
         </div>
         <Button onClick={() => setCreateOpen(true)}>
-          <Plus width={16} height={16} strokeWidth={1.75} />Add Clinic
+          <Icon name="add" />Add Clinic
         </Button>
       </div>
 
@@ -63,20 +63,20 @@ export default function ClinicsList() {
       {/* Error */}
       {isError && (
         <div className="flex flex-col items-center gap-2 py-16 text-center">
-          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10 text-destructive"><TriangleAlert width={24} height={24} strokeWidth={1.75} /></span>
+          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10 text-destructive"><Icon name="alert-triangle" size={24} /></span>
           <h3 className="text-base font-semibold text-foreground">Couldn't load clinics</h3>
           <p className="text-sm text-muted-foreground">Something went wrong fetching the clinic directory.</p>
-          <Button size="sm" onClick={() => refetch()}><RefreshCw width={15} height={15} strokeWidth={1.75} />Retry</Button>
+          <Button size="sm" onClick={() => refetch()}><Icon name="refresh" />Retry</Button>
         </div>
       )}
 
       {/* Empty */}
       {!isLoading && !isError && items.length === 0 && (
         <div className="flex flex-col items-center gap-2 py-16 text-center">
-          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-muted text-muted-foreground"><Building2 width={24} height={24} strokeWidth={1.75} /></span>
+          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-muted text-muted-foreground"><Icon name="clinic" size={24} /></span>
           <h3 className="text-base font-semibold text-foreground">No clinics yet</h3>
           <p className="text-sm text-muted-foreground">Add your first partner clinic to start receiving referrals.</p>
-          <Button size="sm" onClick={() => setCreateOpen(true)}><Plus width={15} height={15} strokeWidth={1.75} />Add Clinic</Button>
+          <Button size="sm" onClick={() => setCreateOpen(true)}><Icon name="add" />Add Clinic</Button>
         </div>
       )}
 
@@ -112,7 +112,7 @@ export default function ClinicsList() {
                       aria-label="Edit clinic"
                       onClick={() => setEditing(c)}
                     >
-                      <Pencil width={15} height={15} strokeWidth={1.75} />
+                      <Icon name="edit" />
                     </Button>
                   </TableCell>
                 </TableRow>

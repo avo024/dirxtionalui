@@ -1,9 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import {
-  ArrowLeft, Loader2, Check, RotateCcw,
-  LifeBuoy, MessageSquareHeart, AlertTriangle, UserCheck,
-} from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { adminApi, type SupportCaseSummary, type SupportMessage } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { getRelativeTime, formatDateTime } from "@/lib/dateUtils";
@@ -69,7 +66,7 @@ export default function AdminSupportDetail() {
   if (loading) {
     return (
       <PageContainer fade={false} className="flex justify-center py-16">
-        <Loader2 width={26} height={26} strokeWidth={1.75} className="animate-spin text-primary" />
+        <Icon name="spinner" size={24} className="animate-spin text-primary" />
       </PageContainer>
     );
   }
@@ -93,7 +90,7 @@ export default function AdminSupportDetail() {
     <PageContainer>
       <div className="flex items-start gap-3 mb-4">
         <Button variant="ghost" size="icon" className="mt-0.5" onClick={() => navigate("/admin/support")} title="Back to cases">
-          <ArrowLeft width={17} height={17} strokeWidth={1.75} />
+          <Icon name="back" />
         </Button>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
@@ -109,7 +106,7 @@ export default function AdminSupportDetail() {
               c.category === "delivery_issue" ? "bg-destructive/10 text-destructive"
                 : c.category === "feedback" ? "bg-teal-600/10 text-teal-700" : "bg-primary/10 text-primary",
             )}>
-              {c.category === "delivery_issue" ? <AlertTriangle width={12} height={12} strokeWidth={1.75} /> : c.category === "feedback" ? <MessageSquareHeart width={12} height={12} strokeWidth={1.75} /> : <LifeBuoy width={12} height={12} strokeWidth={1.75} />}
+              {c.category === "delivery_issue" ? <Icon name="alert-triangle" size={14} /> : c.category === "feedback" ? <Icon name="message-heart" size={14} /> : <Icon name="support" size={14} />}
               {c.category === "delivery_issue" ? "Delivery issue" : c.category === "feedback" ? "Feedback" : "Support"}
             </span>
             <span>·</span>
@@ -135,7 +132,7 @@ export default function AdminSupportDetail() {
               try { await adminApi.claimSupportCase(caseId!); const full = await adminApi.getSupportCase(caseId!); setData(full); }
               catch (e: any) { toast({ title: "Couldn't claim", description: e.message, variant: "destructive" }); }
               finally { setBusy(false); }
-            }}><UserCheck width={14} height={14} strokeWidth={1.75} />Claim</Button>
+            }}><Icon name="user-check" size={14} />Claim</Button>
           ) : (
             <Button variant="outline" size="sm" disabled={busy} title="Release your claim so a teammate can take it"
               onClick={async () => {
@@ -143,18 +140,18 @@ export default function AdminSupportDetail() {
                 try { const u = await adminApi.releaseSupportCase(caseId!); setData((d) => d ? { ...d, case: u } : d); }
                 catch (e: any) { toast({ title: "Couldn't release", description: e.message, variant: "destructive" }); }
                 finally { setBusy(false); }
-              }}><UserCheck width={14} height={14} strokeWidth={1.75} />Release</Button>
+              }}><Icon name="user-check" size={14} />Release</Button>
           )}
           {/* Claim moves open -> in_progress automatically, so there's no
               'Mark In progress' button — claimed cases only need Resolve. */}
           {!c.assigned_admin_id ? (
             <Button variant="outline" size="sm" disabled title="Claim this case first" className="opacity-45">
-              <Check width={14} height={14} strokeWidth={1.75} />Mark Resolved
+              <Icon name="check" size={14} />Mark Resolved
             </Button>
           ) : resolved ? (
-            <Button variant="outline" size="sm" disabled={busy} onClick={() => setStatus("open")}><RotateCcw width={14} height={14} strokeWidth={1.75} />Reopen</Button>
+            <Button variant="outline" size="sm" disabled={busy} onClick={() => setStatus("open")}><Icon name="undo" size={14} />Reopen</Button>
           ) : (
-            <Button size="sm" disabled={busy} onClick={() => setStatus("resolved")}><Check width={14} height={14} strokeWidth={1.75} />Mark Resolved</Button>
+            <Button size="sm" disabled={busy} onClick={() => setStatus("resolved")}><Icon name="check" size={14} />Mark Resolved</Button>
           )}
         </div>
       </div>

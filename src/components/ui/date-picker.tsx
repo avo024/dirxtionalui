@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { format, isValid, parseISO } from "date-fns";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -80,7 +80,7 @@ export function DatePicker({
           aria-invalid={ariaInvalid}
           className={cn("w-full justify-start text-left font-normal h-10", !date && "text-muted-foreground", className)}
         >
-          <CalendarIcon className="mr-2 h-4 w-4 shrink-0 opacity-70" />
+          <Icon name="calendar" className="mr-2 shrink-0 opacity-70" />
           <span className="truncate">{date ? format(date, "MMM d, yyyy") : placeholder}</span>
         </Button>
       </PopoverTrigger>

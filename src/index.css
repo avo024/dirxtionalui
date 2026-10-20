@@ -92,6 +92,18 @@
     --color-stone-300: #D6D3D1;
     --color-stone-400: #A8A29E;
     --color-stone-500: #78716C;
+    --color-stone-600: #57534E;
+    --color-stone-700: #44403C;
+    --color-teal-400: #2DD4BF;
+    --color-teal-300: #5EEAD4;
+
+    /* Status tokens v3 — one hue family per holder (who holds the referral).
+       ink = text/glyph · tint = soft chip ground · line = outline border · fill = loud (clinic only). */
+    --st-clinic-ink:#B13F0E;--st-clinic-tint:#FFF3EA;--st-clinic-line:#F3C3A2;--st-clinic-fill:#C2410C;
+    --st-dx-ink:#1B2B5B;--st-dx-tint:#EDF0F7;--st-dx-line:#C3CBE0;
+    --st-payer-ink:#6A3D6C;--st-payer-tint:#F6EEF5;--st-payer-line:#DCC4DA;
+    --st-pharm-ink:#0F766E;--st-pharm-tint:#ECFBF8;--st-pharm-line:#A7E3DA;
+    --st-done-ink:#78716C;--st-done-tint:#F5F5F4;--st-done-line:#E7E5E4;
     --color-success: #16A34A;
     --color-warning: #F59E0B;
     --color-error: #DC2626;

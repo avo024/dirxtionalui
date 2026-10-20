@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, ChevronsUpDown, X } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -109,10 +109,10 @@ export function Combobox({
                 }}
                 onKeyDown={(e) => e.stopPropagation()}
               >
-                <X className="h-3.5 w-3.5" />
+                <Icon name="close" size={14} />
               </span>
             )}
-            <ChevronsUpDown className="h-4 w-4 opacity-50" />
+            <Icon name="chevrons-updown" className="opacity-50" />
           </span>
         </Button>
       </PopoverTrigger>
@@ -143,7 +143,7 @@ export function Combobox({
                     setOpen(false);
                   }}
                 >
-                  <Check className={cn("mr-2 h-4 w-4 shrink-0 self-start mt-0.5", opt.value === value ? "opacity-100" : "opacity-0")} />
+                  <Icon name="check" className={cn("mr-2 h-4 w-4 shrink-0 self-start mt-0.5", opt.value === value ? "opacity-100" : "opacity-0")} />
                   {opt.hint && opt.hint.length > 24 ? (
                     // Long hints (e.g. role descriptions) stack under the label and wrap
                     // instead of being cut off by the popover edge.

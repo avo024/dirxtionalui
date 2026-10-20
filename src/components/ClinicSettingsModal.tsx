@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Building2 } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Combobox } from "@/components/ui/combobox";
 import { getMyClinic, updateMyClinic, pharmacyApi, type MyClinic } from "@/lib/api";
 import { useProfile } from "@/hooks/useProfile";
@@ -25,6 +26,7 @@ export function ClinicSettingsModal({
 }) {
   const qc = useQueryClient();
   const [form, setForm] = useState({ name: "", phone: "", fax: "", address: "", default_pharmacy_id: "" });
+  const [mainEmail, setMainEmail] = useState(false);
   const [forbidden, setForbidden] = useState<string | null>(null);
 
   const { data: clinic, isLoading: loadingClinic } = useQuery({
@@ -52,6 +54,7 @@ export function ClinicSettingsModal({
         address: clinic.address ?? "",
         default_pharmacy_id: clinic.default_pharmacy_id ?? "",
       });
+      setMainEmail(!!clinic.main_email_notifications);
     }
   }, [clinic]);
 
@@ -69,6 +72,7 @@ export function ClinicSettingsModal({
         fax: form.fax.trim() || null,
         address: form.address.trim() || null,
         default_pharmacy_id: form.default_pharmacy_id || null,
+        main_email_notifications: mainEmail,
       }),
     onSuccess: (updated) => {
       toast({ title: "Clinic settings saved" });
@@ -93,11 +97,11 @@ export function ClinicSettingsModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><Building2 className="h-5 w-5 text-primary" />Clinic Settings</DialogTitle>
+          <DialogTitle className="flex items-center gap-2"><Icon name="clinic" size={20} className="text-primary" />Clinic Settings</DialogTitle>
         </DialogHeader>
 
         {loadingClinic ? (
-          <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+          <div className="flex justify-center py-12"><Icon name="spinner" size={24} className="animate-spin text-muted-foreground" /></div>
         ) : (
           <div className="space-y-4">
             {readOnly && (
@@ -129,6 +133,16 @@ export function ClinicSettingsModal({
               <p className="text-xs text-muted-foreground">New referrals default to this pharmacy — you can still change it per referral.</p>
             </div>
 
+            <div className="flex items-start justify-between gap-3 rounded-lg border border-border px-3 py-2.5">
+              <div>
+                <Label htmlFor="cs-main-email" className="text-sm font-normal text-foreground cursor-pointer">
+                  Also send action-needed emails to the clinic's main inbox
+                </Label>
+                {clinic?.email && <p className="text-xs text-muted-foreground mt-0.5">{clinic.email}</p>}
+              </div>
+              <Switch id="cs-main-email" checked={mainEmail} onCheckedChange={setMainEmail} disabled={readOnly} className="mt-0.5" />
+            </div>
+
             <div className="grid grid-cols-2 gap-3 pt-3 border-t border-border">
               <div><p className="text-xs text-muted-foreground">Specialty</p><p className="text-sm capitalize text-foreground">{clinic?.specialty || "—"}</p></div>
               <div><p className="text-xs text-muted-foreground">NPI</p><p className="text-sm font-mono text-foreground">{clinic?.npi || "—"}</p></div>
@@ -143,7 +157,7 @@ export function ClinicSettingsModal({
           </Button>
           {!readOnly && (
             <Button onClick={() => mut.mutate()} disabled={mut.isPending || loadingClinic || !form.name.trim()}>
-              {mut.isPending && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}Save Settings
+              {mut.isPending && <Icon name="spinner" className="animate-spin mr-1.5" />}Save Settings
             </Button>
           )}
         </div>

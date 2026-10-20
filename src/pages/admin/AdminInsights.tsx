@@ -1,11 +1,43 @@
 import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "react-router-dom";
-import { Loader2, Inbox, BarChart3 } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { adminApi } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
-import { format, subDays } from "date-fns";
+import { format, subDays, subMonths } from "date-fns";
 import { PageContainer } from "@/components/patterns/PageContainer";
+import { Combobox } from "@/components/ui/combobox";
+
+const MONTH_KEY = "admin.insights.month";
+const CURRENT = "current";
+const ALL = "all";
+
+const monthValue = (d: Date) => format(d, "yyyy-MM");
+/** "2026-10" -> "October 2026" (local time; no UTC shift). */
+const monthLabel = (ym: string) => {
+  const [y, m] = ym.split("-").map(Number);
+  return format(new Date(y, (m || 1) - 1, 1), "MMMM yyyy");
+};
+
+/** This month, the previous 11, and All time. */
+function monthOptions() {
+  const now = new Date();
+  const opts = [{ value: CURRENT, label: "This month" }];
+  for (let i = 1; i <= 11; i++) {
+    const d = subMonths(now, i);
+    opts.push({ value: monthValue(d), label: monthLabel(monthValue(d)) });
+  }
+  opts.push({ value: ALL, label: "All time" });
+  return opts;
+}
+
+function readStoredMonth(valid: string[]): string {
+  try {
+    const v = localStorage.getItem(MONTH_KEY);
+    if (v && valid.includes(v)) return v;
+  } catch { /* localStorage unavailable — default */ }
+  return CURRENT;
+}
 
 /**
  * Insights — the analytical view, separated from the operational dashboard.
@@ -14,20 +46,48 @@ import { PageContainer } from "@/components/patterns/PageContainer";
  * that gets gated — workers never needed clinic volumes and trend lines.
  */
 export default function AdminInsights() {
-  const [referrals, setReferrals] = useState<any[]>([]);
+  // allReferrals feeds the widgets that carry their own range (today tiles,
+  // last 30 days, the 30-day line); referrals is the month-scoped set.
+  const [allReferrals, setAllReferrals] = useState<any[]>([]);
+  const [counts, setCounts] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const location = useLocation();
 
+  const options = useMemo(monthOptions, []);
+  const [choice, setChoice] = useState<string>(() => readStoredMonth(options.map((o) => o.value)));
+  const resolvedMonth = choice === CURRENT ? monthValue(new Date()) : choice; // YYYY-MM | "all"
+
+  const onChoice = (v: string) => {
+    setChoice(v);
+    try { localStorage.setItem(MONTH_KEY, v); } catch { /* ignore */ }
+  };
+
   useEffect(() => {
     adminApi.getReferrals()
-      .then((response) => setReferrals(response.items || []))
+      .then((response) => setAllReferrals(response.items || []))
       .catch((err: any) => toast({ title: "Error", description: err.message || "Failed to load referrals", variant: "destructive" }))
       .finally(() => setLoading(false));
   }, [location.key]);
 
+  useEffect(() => {
+    let live = true;
+    setCounts(null);
+    adminApi.getReferralCounts(resolvedMonth).then((c) => { if (live) setCounts(c); }).catch(() => {});
+    return () => { live = false; };
+  }, [resolvedMonth, location.key]);
+
+  // The selected month's referrals, by created_at — the same window the
+  // counts endpoint uses (the list endpoint's ?month= is last-activity, not
+  // creation, so it is not used here). "All time" is the full list.
+  const referrals = useMemo(
+    () => (resolvedMonth === ALL ? allReferrals : allReferrals.filter((r) => r.created_at && monthValue(new Date(r.created_at)) === resolvedMonth)),
+    [allReferrals, resolvedMonth],
+  );
+  const period = resolvedMonth === ALL ? "All time" : monthLabel(resolvedMonth);
+
   const stats = useMemo(() => {
     const now = Date.now();
-    const days30 = referrals.filter((r) => r.created_at && now - new Date(r.created_at).getTime() < 30 * 86400000);
+    const days30 = allReferrals.filter((r) => r.created_at && now - new Date(r.created_at).getTime() < 30 * 86400000);
     const decided = referrals.filter((r) => ["approved_to_send", "sent_to_pharmacy", "rejected"].includes(r.status));
     const approvedish = decided.filter((r) => r.status !== "rejected").length;
     const paRequired = referrals.filter((r) => r.pa_required && !r.is_bridge_program);
@@ -37,7 +97,7 @@ export default function AdminInsights() {
     // Today counts — moved here from the retired operational dashboard
     // (phase 6b); same referrals call, filtered by updated_at === today.
     const today = new Date().toDateString();
-    const countToday = (status: string) => referrals.filter((r) => r.status === status && r.updated_at && new Date(r.updated_at).toDateString() === today).length;
+    const countToday = (status: string) => allReferrals.filter((r) => r.status === status && r.updated_at && new Date(r.updated_at).toDateString() === today).length;
     return {
       approvedToday: countToday("approved_to_send"),
       sentToday: countToday("sent_to_pharmacy"),
@@ -54,7 +114,7 @@ export default function AdminInsights() {
       bridge: referrals.filter((r) => r.is_bridge_program).length,
       clinics: Object.entries(byClinic).sort((a, b) => b[1] - a[1]).slice(0, 6),
     };
-  }, [referrals]);
+  }, [referrals, allReferrals]);
 
   const pieData = useMemo(() => [
     { name: "Needs Review", value: referrals.filter((r) => r.status === "ready_for_review").length, color: "#9A4A1E" },
@@ -69,18 +129,23 @@ export default function AdminInsights() {
     const days: { date: string; referrals: number }[] = [];
     for (let i = 29; i >= 0; i--) {
       const day = subDays(new Date(), i);
-      days.push({ date: format(day, "MMM d"), referrals: referrals.filter((r) => r.created_at && new Date(r.created_at).toDateString() === day.toDateString()).length });
+      days.push({ date: format(day, "MMM d"), referrals: allReferrals.filter((r) => r.created_at && new Date(r.created_at).toDateString() === day.toDateString()).length });
     }
     return days;
-  }, [referrals]);
+  }, [allReferrals]);
 
   if (loading) {
     return (
       <PageContainer fade={false} className="flex justify-center py-16">
-        <Loader2 width={26} height={26} strokeWidth={1.75} className="animate-spin text-primary" />
+        <Icon name="spinner" size={24} className="animate-spin text-primary" />
       </PageContainer>
     );
   }
+
+  // Resolved month + count come from the counts call; fall back to local figures.
+  const shownMonth = counts?.month && counts.month !== ALL ? monthLabel(counts.month) : counts?.month === ALL ? "All time" : period;
+  const shownTotal = typeof counts?.all === "number" ? counts.all : stats.total;
+  const headerLine = `${shownMonth} · ${shownTotal} referral${shownTotal === 1 ? "" : "s"}`;
 
   const Tile = ({ label, value, sub }: { label: string; value: string | number; sub?: string }) => (
     <div className="bg-card border border-border rounded-lg p-3.5">
@@ -92,9 +157,21 @@ export default function AdminInsights() {
 
   return (
     <PageContainer>
-      <div className="mb-5">
-        <h1 className="text-2xl font-semibold text-foreground">Insights</h1>
-        <p className="text-sm text-muted-foreground mt-1">Pipeline analytics — volumes, ratios, and trends across all clinics</p>
+      <div className="mb-5 flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">Insights</h1>
+          <p className="text-sm font-medium text-foreground mt-1" data-testid="insights-period">{headerLine}</p>
+          <p className="text-sm text-muted-foreground">Pipeline analytics — volumes, ratios, and trends across all clinics</p>
+        </div>
+        <Combobox
+          size="sm"
+          className="w-48"
+          searchable={false}
+          align="end"
+          options={options}
+          value={choice}
+          onValueChange={onChoice}
+        />
       </div>
 
       {/* Today, at a glance — moved from the retired operational dashboard */}
@@ -115,9 +192,9 @@ export default function AdminInsights() {
 
       {/* Headline tiles */}
       <div className="grid gap-3 mb-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))" }}>
-        <Tile label="Total referrals" value={stats.total} sub="all time" />
+        <Tile label="Total referrals" value={stats.total} sub={period.toLowerCase()} />
         <Tile label="Last 30 days" value={stats.last30} sub={`~${stats.avgPerDay}/day`} />
-        <Tile label="Sent to pharmacy" value={stats.sent} sub="all time" />
+        <Tile label="Sent to pharmacy" value={stats.sent} sub={period.toLowerCase()} />
         <Tile label="Approval rate" value={stats.approvalRate === null ? "—" : `${stats.approvalRate}%`} sub="of decided referrals" />
         <Tile label="Bridge program" value={stats.bridge} sub="manufacturer-funded" />
       </div>
@@ -135,7 +212,7 @@ export default function AdminInsights() {
         <div className="bg-card border border-border rounded-lg">
           <div className="px-[var(--density-card-pad)] pt-[var(--density-card-pad)]">
             <h3 className="text-sm font-semibold text-foreground">Referrals by Status</h3>
-            <p className="text-xs text-muted-foreground">All-time distribution</p>
+            <p className="text-xs text-muted-foreground">{period}</p>
           </div>
           <div className="p-[var(--density-card-pad)]">
             {pieData.length ? (
@@ -149,7 +226,7 @@ export default function AdminInsights() {
               </ResponsiveContainer>
             ) : (
               <div className="flex flex-col items-center justify-center gap-2 h-[250px] text-sm text-muted-foreground">
-                <Inbox width={26} height={26} strokeWidth={1.75} />No referrals yet
+                <Icon name="referrals" size={24} />No referrals yet
               </div>
             )}
           </div>
@@ -178,14 +255,14 @@ export default function AdminInsights() {
       <div className="bg-card border border-border rounded-lg mt-4">
         <div className="px-[var(--density-card-pad)] pt-[var(--density-card-pad)]">
           <h3 className="text-sm font-semibold text-foreground">Volume by Clinic</h3>
-          <p className="text-xs text-muted-foreground">All-time referral count</p>
+          <p className="text-xs text-muted-foreground">{period} referral count</p>
         </div>
         <div className="px-[var(--density-card-pad)] pb-[var(--density-card-pad)] pt-1.5">
           {stats.clinics.length === 0 ? (
             <p className="text-sm text-muted-foreground">No clinics yet.</p>
           ) : stats.clinics.map(([name, count]) => (
             <div key={name} className="flex items-center gap-2.5 py-1.5">
-              <BarChart3 width={14} height={14} strokeWidth={1.75} className="text-primary shrink-0" />
+              <Icon name="chart" size={14} className="text-primary shrink-0" />
               <span className="text-sm text-foreground flex-1">{name}</span>
               <span className="text-sm font-semibold text-foreground">{count}</span>
             </div>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LogOut, UserCog } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -65,7 +65,7 @@ export function UserMenu() {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="gap-2 h-9 px-2">
+          <Button variant="ghost" className="gap-2 h-9 px-2" data-tour="user-menu">
             <Avatar className="h-7 w-7">
               {user.picture && <AvatarImage src={user.picture} alt={displayLabel} />}
               <AvatarFallback className="text-xs">{initials}</AvatarFallback>
@@ -96,7 +96,7 @@ export function UserMenu() {
                 onClick={() => setEditProfileOpen(true)}
                 className="cursor-pointer"
               >
-                <UserCog className="h-4 w-4 mr-2" />
+                <Icon name="user-cog" className="mr-2" />
                 Edit Profile
               </DropdownMenuItem>
               <DropdownMenuSeparator />
@@ -106,7 +106,7 @@ export function UserMenu() {
             onClick={() => logout()}
             className="cursor-pointer"
           >
-            <LogOut className="h-4 w-4 mr-2" />
+            <Icon name="sign-out" className="mr-2" />
             Sign Out
           </DropdownMenuItem>
         </DropdownMenuContent>

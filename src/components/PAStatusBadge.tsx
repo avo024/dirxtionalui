@@ -1,17 +1,16 @@
-import { Shield, AlertTriangle, XCircle } from "lucide-react";
+import { HolderMark, type Holder } from "@/components/StatusBadge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
 import { parseLocalDate } from "@/lib/dateUtils";
 
-const paConfig: Record<string, { label: string; className: string; icon: React.ElementType }> = {
-  active: { label: "PA Active", className: "bg-success/10 text-success", icon: Shield },
-  expiring: { label: "PA Expiring Soon", className: "bg-warning/10 text-warning", icon: AlertTriangle },
-  expired: { label: "PA Expired", className: "bg-destructive/10 text-destructive", icon: XCircle },
-  none: { label: "No PA", className: "bg-muted text-muted-foreground", icon: Shield },
-  approved: { label: "PA Active", className: "bg-success/10 text-success", icon: Shield },
-  pending: { label: "PA Pending", className: "bg-warning/10 text-warning", icon: AlertTriangle },
-  denied: { label: "PA Denied", className: "bg-destructive/10 text-destructive", icon: XCircle },
-  appeal: { label: "PA In Appeal", className: "bg-destructive/10 text-destructive", icon: AlertTriangle },
+const paConfig: Record<string, { label: string; h: Holder }> = {
+  active: { label: "PA Active", h: "dx" },
+  expiring: { label: "PA Expiring Soon", h: "clinic" },
+  expired: { label: "PA Expired", h: "clinic" },
+  none: { label: "No PA", h: "done" },
+  approved: { label: "PA Active", h: "dx" },
+  pending: { label: "PA Pending", h: "dx" },
+  denied: { label: "PA Denied", h: "dx" },
+  appeal: { label: "PA In Appeal", h: "payer" },
 };
 
 interface PAStatusBadgeProps {
@@ -24,15 +23,8 @@ export function PAStatusBadge({ status, expirationDate, className }: PAStatusBad
   const config = paConfig[status];
 
   if (!config) {
-    return (
-      <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium bg-muted text-muted-foreground", className)}>
-        <Shield className="h-3 w-3" />
-        {status || "No PA"}
-      </span>
-    );
+    return <HolderMark h="done" label={status || "No PA"} className={className} />;
   }
-
-  const Icon = config.icon;
 
   const tooltipText = expirationDate
     ? `${config.label} — Expires: ${parseLocalDate(expirationDate).toLocaleDateString()}`
@@ -41,15 +33,8 @@ export function PAStatusBadge({ status, expirationDate, className }: PAStatusBad
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span
-          className={cn(
-            "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium",
-            config.className,
-            className
-          )}
-        >
-          <Icon className="h-3 w-3" />
-          {config.label}
+        <span className="inline-flex">
+          <HolderMark h={config.h} label={config.label} className={className} />
         </span>
       </TooltipTrigger>
       <TooltipContent>{tooltipText}</TooltipContent>

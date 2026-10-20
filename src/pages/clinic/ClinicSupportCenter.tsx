@@ -1,9 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import {
-  BookOpen, GraduationCap, Plus, ExternalLink, Loader2, ChevronsUpDown, Check, FileText, ShieldCheck,
-  LifeBuoy, MessageSquareHeart,
-} from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { supportApi, type SupportCaseSummary } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -12,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { MessageThread } from "@/components/patterns/MessageThread";
+import { EmptyState } from "@/components/patterns/EmptyState";
 import { formatDateShort, getRelativeTime } from "@/lib/dateUtils";
 import { toast } from "@/hooks/use-toast";
 import { SupportStatusBadge } from "@/components/SupportStatusBadge";
@@ -22,8 +20,8 @@ import { cn } from "@/lib/utils";
 import { PageContainer } from "@/components/patterns/PageContainer";
 
 const CAT_OPTIONS = [
-  { value: "support", label: "Support", Icon: LifeBuoy, sub: "Something isn't working or you need a hand." },
-  { value: "feedback", label: "Feedback", Icon: MessageSquareHeart, sub: "An idea or thought to make Dirxctional better." },
+  { value: "support", label: "Support", Icon: "support", sub: "Something isn't working or you need a hand." },
+  { value: "feedback", label: "Feedback", Icon: "message-heart", sub: "An idea or thought to make Dirxctional better." },
 ];
 
 const REF_STATUS_LABEL: Record<string, string> = {
@@ -72,15 +70,15 @@ export default function ClinicSupportCenter() {
 
       <section data-tour="support-cards" className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
         <a href="/manual.pdf" target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 rounded-lg border border-border bg-card p-4 no-underline hover:bg-accent transition-colors">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><BookOpen width={20} height={20} strokeWidth={1.75} /></span>
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Icon name="book-open" size={20} /></span>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-foreground">User Guide</p>
             <p className="text-xs text-muted-foreground mt-0.5">Step-by-step articles on submitting referrals, tracking prior authorizations, and managing your clinic.</p>
           </div>
-          <ExternalLink width={16} height={16} strokeWidth={1.75} className="text-muted-foreground shrink-0" />
+          <Icon name="external-link" className="text-muted-foreground shrink-0" />
         </a>
         <button type="button" className="flex items-start gap-3 rounded-lg border border-border bg-card p-4 text-left hover:bg-accent transition-colors" onClick={() => setTutorialsOpen(true)}>
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><GraduationCap width={20} height={20} strokeWidth={1.75} /></span>
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Icon name="graduation-cap" size={20} /></span>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-foreground">Tutorials</p>
             <p className="text-xs text-muted-foreground mt-0.5">Replay any interactive walkthrough — submitting a referral, tracking a PA, and more.</p>
@@ -90,16 +88,16 @@ export default function ClinicSupportCenter() {
 
       <div className="flex items-center justify-between mb-2.5">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">My requests</h2>
-        <Button data-tour="support-new-request" onClick={() => setNewOpen(true)}><Plus width={16} height={16} strokeWidth={1.75} />New request</Button>
+        <Button data-tour="support-new-request" onClick={() => setNewOpen(true)}><Icon name="add" />New request</Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-[320px_1fr] gap-4 items-start">
         {/* Case list */}
         <div data-tour="support-requests" className="rounded-lg border border-border bg-card overflow-hidden">
           {loading ? (
-            <div className="flex justify-center py-10"><Loader2 width={22} height={22} className="animate-spin text-primary" /></div>
+            <div className="flex justify-center py-10"><Icon name="spinner" size={24} className="animate-spin text-primary" /></div>
           ) : cases.length === 0 ? (
-            <div className="p-5 text-center text-sm text-muted-foreground">No requests yet. Click <b>New request</b> to ask us anything.</div>
+            <EmptyState art="support" size="sm" title="No requests yet" text="Click New request to ask us anything." />
           ) : (
             <div className="flex flex-col">
               {cases.map((c) => (
@@ -182,7 +180,7 @@ function CaseView({ caseId }: { caseId: string }) {
     } finally { setSending(false); }
   };
 
-  if (loading) return <div className="flex justify-center py-16"><Loader2 width={26} height={26} className="animate-spin text-primary" /></div>;
+  if (loading) return <div className="flex justify-center py-16"><Icon name="spinner" size={24} className="animate-spin text-primary" /></div>;
   if (!data) return <div className="p-8 text-sm text-muted-foreground">Request not found.</div>;
 
   const c = data.case;
@@ -221,6 +219,8 @@ function CaseView({ caseId }: { caseId: string }) {
         onChange={setDraft}
         onSend={send}
         placeholder="Write a reply…"
+        emptyArt="support"
+        emptyTitle="No messages yet"
         hint="Sent to your Dirxctional team"
       />
       {sending && <span className="text-xs text-muted-foreground">Sending…</span>}
@@ -273,7 +273,6 @@ function NewRequestDialog({ open, onOpenChange, onCreated }: { open: boolean; on
             <Label className="text-xs">What's this about?</Label>
             <div className="flex gap-2 mt-1.5">
               {CAT_OPTIONS.map((o) => {
-                const Icon = o.Icon;
                 return (
                   <button
                     key={o.value}
@@ -284,7 +283,7 @@ function NewRequestDialog({ open, onOpenChange, onCreated }: { open: boolean; on
                       category === o.value ? "border-primary bg-primary/8 text-primary" : "border-border text-muted-foreground hover:bg-muted",
                     )}
                   >
-                    <Icon width={15} height={15} strokeWidth={1.75} />{o.label}
+                    <Icon name={o.Icon} size={16} />{o.label}
                   </button>
                 );
               })}
@@ -305,7 +304,7 @@ function NewRequestDialog({ open, onOpenChange, onCreated }: { open: boolean; on
           </div>
 
           <div className={cn("flex items-start gap-2.5 rounded-lg border p-3", referralId ? "border-primary/20 bg-primary/5" : "border-border bg-muted/40")}>
-            <ShieldCheck width={16} height={16} strokeWidth={1.75} className={cn("shrink-0 mt-0.5", referralId ? "text-primary" : "text-muted-foreground")} />
+            <Icon name="prior-auth" className={cn("shrink-0 mt-0.5", referralId ? "text-primary" : "text-muted-foreground")} />
             {referralId ? (
               <div>
                 <p className="text-xs font-semibold text-primary">Patient details are OK here</p>
@@ -328,7 +327,7 @@ function NewRequestDialog({ open, onOpenChange, onCreated }: { open: boolean; on
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={submit} disabled={!message.trim() || sending}>
-            {sending ? <Loader2 width={15} height={15} className="animate-spin" /> : null}Send request
+            {sending ? <Icon name="spinner" className="animate-spin" /> : null}Send request
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -354,14 +353,14 @@ function ReferralCombobox({ referrals, value, onChange }: { referrals: any[]; va
           <span className="flex items-center gap-2 min-w-0">
             {selected ? (
               <>
-                <FileText width={14} height={14} strokeWidth={1.75} className="text-primary shrink-0" />
+                <Icon name="document" size={14} className="text-primary shrink-0" />
                 <span className="truncate">{selected.patient_name || "Referral"} — #{(selected.id || "").slice(0, 8)}</span>
               </>
             ) : (
               <span className="text-muted-foreground">No — general question</span>
             )}
           </span>
-          <ChevronsUpDown width={14} height={14} strokeWidth={1.75} className="opacity-50 shrink-0" />
+          <Icon name="chevrons-updown" size={14} className="opacity-50 shrink-0" />
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
@@ -371,7 +370,7 @@ function ReferralCombobox({ referrals, value, onChange }: { referrals: any[]; va
             <CommandEmpty>No referral found.</CommandEmpty>
             <CommandGroup>
               <CommandItem value="__none__ general question" onSelect={() => { onChange(""); setOpen(false); }}>
-                <Check width={14} height={14} className={value === "" ? "opacity-100" : "opacity-0"} />
+                <Icon name="check" size={14} className={value === "" ? "opacity-100" : "opacity-0"} />
                 <span className="ml-1.5 text-muted-foreground">No — general question</span>
               </CommandItem>
               {sorted.map((r) => (
@@ -380,7 +379,7 @@ function ReferralCombobox({ referrals, value, onChange }: { referrals: any[]; va
                   value={`${r.patient_name || ""} ${(r.id || "").slice(0, 8)} ${r.drug_requested || ""}`}
                   onSelect={() => { onChange(r.id); setOpen(false); }}
                 >
-                  <Check width={14} height={14} className={value === r.id ? "opacity-100" : "opacity-0"} />
+                  <Icon name="check" size={14} className={value === r.id ? "opacity-100" : "opacity-0"} />
                   <span className="ml-1.5 min-w-0 flex-1">
                     <span className="flex items-center gap-2">
                       <span className="font-semibold truncate">{r.patient_name || "Referral"}</span>

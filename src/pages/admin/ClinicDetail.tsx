@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  ArrowLeft, Pencil, Mail, Copy, Trash2, MailPlus, Clock, TriangleAlert, Users,
-} from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { ClinicFormModal } from "@/components/ClinicFormModal";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { getInitials } from "@/components/CreatedByAvatar";
@@ -70,7 +68,7 @@ function TeamMembersPanel({ clinic }: { clinic: AdminClinic }) {
   return (
     <div className="bg-card border border-border rounded-lg p-[var(--density-card-pad)]">
       <div className="flex items-center gap-2 mb-3">
-        <Users width={16} height={16} strokeWidth={1.75} className="text-muted-foreground" />
+        <Icon name="patients" className="text-muted-foreground" />
         <h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">Team</h3>
         <span className="text-xs text-muted-foreground">{members.length} member{members.length === 1 ? "" : "s"}</span>
       </div>
@@ -87,7 +85,7 @@ function TeamMembersPanel({ clinic }: { clinic: AdminClinic }) {
         </div>
       ) : members.length === 0 ? (
         <div className="flex items-center gap-2 rounded-md border border-dashed border-border px-3 py-4 text-sm text-muted-foreground">
-          <Users width={18} height={18} strokeWidth={1.75} />
+          <Icon name="patients" size={20} />
           No team members yet — send an invite below.
         </div>
       ) : (
@@ -210,7 +208,7 @@ function TeamInvitesPanel({ clinic }: { clinic: AdminClinic }) {
       <div className="flex flex-col gap-2 mb-4">
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
-            <Mail width={16} height={16} strokeWidth={1.75} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+            <Icon name="mail" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="email"
               placeholder="teammate@clinic.org"
@@ -233,7 +231,7 @@ function TeamInvitesPanel({ clinic }: { clinic: AdminClinic }) {
             searchable={false}
           />
           <Button onClick={submit} disabled={createMut.isPending}>
-            <MailPlus width={15} height={15} strokeWidth={1.75} />
+            <Icon name="mail-plus" />
             {showSendAnywayWarning ? "Send anyway" : "Invite member"}
           </Button>
         </div>
@@ -257,7 +255,7 @@ function TeamInvitesPanel({ clinic }: { clinic: AdminClinic }) {
         <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Pending invites</div>
         {invites.length === 0 ? (
           <div className="flex items-center gap-2 rounded-md border border-dashed border-border px-3 py-4 text-sm text-muted-foreground">
-            <MailPlus width={18} height={18} strokeWidth={1.75} />
+            <Icon name="mail-plus" size={20} />
             No pending invites — invite a teammate above.
           </div>
         ) : (
@@ -280,15 +278,15 @@ function TeamInvitesPanel({ clinic }: { clinic: AdminClinic }) {
                       <TableCell className="text-muted-foreground">{formatDateForTable(iv.created_at)}</TableCell>
                       <TableCell>
                         <span className={`inline-flex items-center gap-1 ${soon ? "text-warning font-medium" : "text-muted-foreground"}`}>
-                          {soon && <Clock width={12} height={12} strokeWidth={1.75} />}
+                          {soon && <Icon name="clock" size={14} />}
                           {formatDateForTable(iv.expires_at)}
                         </span>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Copy link" aria-label="Copy invite link" onClick={() => copyLink(iv.token)}><Copy width={15} height={15} strokeWidth={1.75} /></Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Resend email" aria-label="Resend email" disabled={resendMut.isPending} onClick={() => resendMut.mutate(iv.token)}><Mail width={15} height={15} strokeWidth={1.75} /></Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" title="Revoke" aria-label="Revoke invite" onClick={() => setRevokeTarget(iv)}><Trash2 width={15} height={15} strokeWidth={1.75} /></Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Copy link" aria-label="Copy invite link" onClick={() => copyLink(iv.token)}><Icon name="copy" /></Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Resend email" aria-label="Resend email" disabled={resendMut.isPending} onClick={() => resendMut.mutate(iv.token)}><Icon name="mail" /></Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" title="Revoke" aria-label="Revoke invite" onClick={() => setRevokeTarget(iv)}><Icon name="delete" /></Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -339,7 +337,7 @@ export default function ClinicDetail() {
     return (
       <PageContainer>
         <div className="flex flex-col items-center gap-2 py-16 text-center">
-          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10 text-destructive"><TriangleAlert width={24} height={24} strokeWidth={1.75} /></span>
+          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10 text-destructive"><Icon name="alert-triangle" size={24} /></span>
           <h3 className="text-base font-semibold text-foreground">Clinic not found</h3>
           <p className="text-sm text-muted-foreground">We couldn't load this clinic.</p>
           <Button size="sm" onClick={() => navigate("/admin/clinics")}>Back to clinics</Button>
@@ -360,7 +358,7 @@ export default function ClinicDetail() {
   return (
     <PageContainer>
       <Button variant="ghost" size="sm" className="mb-3 -ml-2 text-muted-foreground" onClick={() => navigate("/admin/clinics")}>
-        <ArrowLeft width={16} height={16} strokeWidth={1.75} />All clinics
+        <Icon name="back" />All clinics
       </Button>
 
       <div className="flex items-center gap-3 mb-6">
@@ -370,7 +368,7 @@ export default function ClinicDetail() {
           <p className="text-sm text-muted-foreground">{[clinic.specialty, clinic.email].filter(Boolean).join(" · ") || "—"}</p>
         </div>
         <Button variant="outline" onClick={() => setEditing(clinic)}>
-          <Pencil width={15} height={15} strokeWidth={1.75} />Edit
+          <Icon name="edit" />Edit
         </Button>
       </div>
 

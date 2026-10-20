@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Loader2, Inbox, Send, FileText, ExternalLink, CheckCheck, Link2 } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import {
   adminApi,
   type AdminFaxInbound,
@@ -77,6 +77,9 @@ export default function FaxCenter() {
   const [inbound, setInbound] = useState<AdminFaxInbound[]>([]);
   const [outbound, setOutbound] = useState<AdminFaxOutbound[]>([]);
   const [inboundNewCount, setInboundNewCount] = useState(0);
+  const [ourNumber, setOurNumber] = useState<string | null>(null);
+  const [ourNumberDisplay, setOurNumberDisplay] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const [reviewingId, setReviewingId] = useState<string | null>(null);
   const [linkingId, setLinkingId] = useState<string | null>(null);
   const [linkDrafts, setLinkDrafts] = useState<Record<string, string>>({});
@@ -88,6 +91,8 @@ export default function FaxCenter() {
         setInbound(res.inbound || []);
         setOutbound(res.outbound || []);
         setInboundNewCount(res.inbound_new_count || 0);
+        setOurNumber(res.our_number ?? null);
+        setOurNumberDisplay(res.our_number_display ?? null);
       })
       .catch((e: any) => toast({ title: "Error", description: e.message || "Failed to load fax traffic", variant: "destructive" }))
       .finally(() => setLoading(false));
@@ -142,12 +147,45 @@ export default function FaxCenter() {
     }
   };
 
+  const handleCopyNumber = async () => {
+    if (!ourNumber) return;
+    try {
+      await navigator.clipboard.writeText(ourNumber);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      toast({ title: "Couldn't copy", description: "Select the number and copy it manually.", variant: "destructive" });
+    }
+  };
+
   return (
     <PageContainer>
       <div className="mb-5">
         <h1 className="text-2xl font-semibold text-foreground">Fax Center</h1>
         <p className="text-sm text-muted-foreground mt-1">All inbound and outbound fax traffic across referrals, appeals, and enrollments</p>
       </div>
+
+      {!loading && (
+        <div className="mb-4 flex items-center justify-between gap-4 flex-wrap rounded-lg border border-border bg-card px-4 py-3" data-testid="our-fax-number">
+          <div className="min-w-0">
+            <span className="font-mono text-xs text-muted-foreground">Our fax number</span>
+            {ourNumber ? (
+              <>
+                <div className="text-2xl font-semibold text-foreground tabular-nums mt-0.5">{ourNumberDisplay || ourNumber}</div>
+                <p className="text-xs text-muted-foreground mt-0.5">Give this to clinics and pharmacies that need to fax us.</p>
+              </>
+            ) : (
+              <div className="text-sm text-muted-foreground mt-1">Not configured</div>
+            )}
+          </div>
+          {ourNumber && (
+            <Button size="sm" variant="outline" onClick={handleCopyNumber}>
+              <Icon name={copied ? "check" : "copy"} size={14} />
+              {copied ? "Copied" : "Copy"}
+            </Button>
+          )}
+        </div>
+      )}
 
       <div className="mb-4">
         <FilterToolbar
@@ -162,7 +200,7 @@ export default function FaxCenter() {
 
       {loading ? (
         <div className="flex justify-center py-16">
-          <Loader2 width={26} height={26} strokeWidth={1.75} className="animate-spin text-primary" />
+          <Icon name="spinner" size={24} className="animate-spin text-primary" />
         </div>
       ) : tab === "inbound" ? (
         inbound.length > 0 ? (
@@ -198,7 +236,7 @@ export default function FaxCenter() {
                       <div className="flex items-center justify-end gap-2 flex-wrap">
                         {row.has_pdf && (
                           <Button size="sm" variant="outline" onClick={() => handleViewPDF(row)}>
-                            <FileText width={13} height={13} strokeWidth={1.75} /> View PDF
+                            <Icon name="document" size={14} /> View PDF
                           </Button>
                         )}
                         {row.status === "new" && (
@@ -208,7 +246,7 @@ export default function FaxCenter() {
                             disabled={reviewingId === row.id}
                             onClick={() => handleMarkReviewed(row)}
                           >
-                            {reviewingId === row.id ? <Loader2 width={13} height={13} strokeWidth={1.75} className="animate-spin" /> : <CheckCheck width={13} height={13} strokeWidth={1.75} />}
+                            {reviewingId === row.id ? <Icon name="spinner" size={14} className="animate-spin" /> : <Icon name="check-double" size={14} />}
                             Mark reviewed
                           </Button>
                         )}
@@ -226,7 +264,7 @@ export default function FaxCenter() {
                               disabled={linkingId === row.id || !(linkDrafts[row.id] || "").trim()}
                               onClick={() => handleLink(row)}
                             >
-                              {linkingId === row.id ? <Loader2 width={13} height={13} strokeWidth={1.75} className="animate-spin" /> : <Link2 width={13} height={13} strokeWidth={1.75} />}
+                              {linkingId === row.id ? <Icon name="spinner" size={14} className="animate-spin" /> : <Icon name="link" size={14} />}
                             </Button>
                           </span>
                         )}
@@ -239,7 +277,7 @@ export default function FaxCenter() {
           </div>
         ) : (
           <div className="flex flex-col items-center gap-2 py-16 text-center">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground"><Inbox width={20} height={20} strokeWidth={1.75} /></span>
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground"><Icon name="referrals" size={20} /></span>
             <p className="text-sm font-semibold text-foreground">No inbound faxes yet</p>
             <p className="text-sm text-muted-foreground">They'll appear here as they arrive.</p>
           </div>
@@ -263,7 +301,7 @@ export default function FaxCenter() {
                   <TableCell>
                     {row.referral_id ? (
                       <Link to={`/admin/referrals/${row.referral_id}`} className="inline-flex items-center gap-1 text-primary font-medium hover:underline">
-                        {row.counterparty} <ExternalLink width={12} height={12} strokeWidth={1.75} />
+                        {row.counterparty} <Icon name="external-link" size={14} />
                       </Link>
                     ) : (
                       row.counterparty
@@ -279,7 +317,7 @@ export default function FaxCenter() {
         </div>
       ) : (
         <div className="flex flex-col items-center gap-2 py-16 text-center">
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground"><Send width={20} height={20} strokeWidth={1.75} /></span>
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground"><Icon name="send" size={20} /></span>
           <p className="text-sm font-semibold text-foreground">No outbound faxes sent yet</p>
           <p className="text-sm text-muted-foreground">Referral, appeal, and enrollment faxes will show up here as they're sent.</p>
         </div>

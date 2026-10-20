@@ -1,18 +1,18 @@
-import { cn } from "@/lib/utils";
+import { HolderMark, type Holder } from "@/components/StatusBadge";
 
-const paStatusConfig: Record<string, { label: string; className: string }> = {
-  pending: { label: "PA Pending", className: "bg-muted text-muted-foreground" },
-  processing: { label: "PA In Progress", className: "bg-blue-500/10 text-blue-600" },
-  submitted: { label: "PA Submitted", className: "bg-warning/10 text-warning" },
-  approved: { label: "PA Approved", className: "bg-status-approved-bg text-status-approved-fg" },
-  denied: { label: "PA Denied", className: "bg-destructive/10 text-destructive" },
-  appeal: { label: "PA In Appeal", className: "bg-destructive/10 text-destructive" },
+const paStatusConfig: Record<string, { label: string; h: Holder }> = {
+  pending: { label: "PA Pending", h: "dx" },
+  processing: { label: "PA In Progress", h: "dx" },
+  submitted: { label: "PA Submitted", h: "payer" },
+  approved: { label: "PA Approved", h: "dx" },
+  denied: { label: "PA Denied", h: "dx" },
+  appeal: { label: "PA In Appeal", h: "payer" },
 };
 
 interface ClinicPABadgeProps {
   status: string | null | undefined;
   /** referral.appeal_outcome — refines a denied PA's label ("PA Level 2" /
-   *  "PA Denied — Final") so the pill tells the real situation at a glance. */
+   *  "PA Denied — Final") so the badge tells the real situation at a glance. */
   appealOutcome?: string | null;
   className?: string;
 }
@@ -21,21 +21,10 @@ export function ClinicPABadge({ status, appealOutcome, className }: ClinicPABadg
   if (!status) return null;
   let config = paStatusConfig[status];
   if (status === "denied" && appealOutcome === "level2") {
-    config = { label: "PA Level 2", className: "bg-muted text-muted-foreground" };
+    config = { label: "PA Level 2", h: "payer" };
   } else if (status === "denied" && appealOutcome === "final") {
-    config = { label: "PA Final", className: "bg-destructive/10 text-destructive" };
+    config = { label: "PA Final", h: "done" };
   }
   if (!config) return null;
-
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap",
-        config.className,
-        className
-      )}
-    >
-      {config.label}
-    </span>
-  );
+  return <HolderMark h={config.h} label={config.label} className={className} />;
 }

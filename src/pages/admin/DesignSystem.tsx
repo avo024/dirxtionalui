@@ -1,5 +1,4 @@
 import { useState, type ReactNode } from "react";
-import { AlertTriangle, CheckCircle2, RotateCcw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +15,7 @@ import { StageChip } from "@/components/StageChip";
 import { ClinicPABadge } from "@/components/ClinicPABadge";
 import { Icon } from "@/components/ui/icon";
 import { ICONS } from "@/lib/icons";
+import { ICON_CONCEPTS } from "@/lib/icon-aliases";
 import type { ReferralStatus } from "@/data/mockData";
 
 import { DefinitionList } from "@/components/patterns/DefinitionList";
@@ -78,7 +78,7 @@ const allStatuses: ReferralStatus[] = [
   "closed",
 ];
 
-const ICON_CONCEPTS = Object.keys(ICONS) as Array<keyof typeof ICONS>;
+const ICON_KEYS = Object.keys(ICONS) as Array<keyof typeof ICONS>;
 
 /**
  * Internal reference page rendering every Phase 1 design-system primitive
@@ -222,7 +222,7 @@ export default function DesignSystem() {
           <Button size="default">Default</Button>
           <Button size="lg">Large</Button>
           <Button size="icon" aria-label="Icon button">
-            <Icon name="Send" size={16} />
+            <Icon name="send" size={16} />
           </Button>
         </div>
       </Section>
@@ -306,7 +306,7 @@ export default function DesignSystem() {
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4">
           <DefinitionList
             title="Patient"
-            icon={<Icon name="User" size={16} />}
+            icon={<Icon name="patient" size={16} />}
             flagged={1}
             rows={[
               { label: "Name", value: "Amanda Foster", confidence: 0.97 },
@@ -319,7 +319,7 @@ export default function DesignSystem() {
           <DefinitionList
             title="Quick facts"
             density="rail"
-            icon={<Icon name="Pill" size={16} />}
+            icon={<Icon name="medication" size={16} />}
             rows={[
               { label: "Drug", value: "Tremfya" },
               { label: "Clinic", value: "Sagebrush Derm" },
@@ -347,7 +347,7 @@ export default function DesignSystem() {
             { options: ["All clinics", "Sagebrush Derm", "Piney Woods Family Med"], value: "All clinics", width: "200px" },
             { options: ["This month", "Last 90 days", "All time"], value: "This month", width: "160px" },
           ]}
-          trailing={<Button size="sm"><Icon name="ClipboardList" size={16} />New referral</Button>}
+          trailing={<Button size="sm"><Icon name="clipboard-list" size={16} />New referral</Button>}
         />
       </Section>
 
@@ -493,7 +493,7 @@ export default function DesignSystem() {
             docCount={2}
             badge={
               <span className="inline-flex items-center gap-1 rounded-full bg-warning/15 text-[#B45309] px-2 py-0.5 text-[11px] font-medium">
-                <AlertTriangle width={12} height={12} strokeWidth={1.75} />
+                <Icon name="alert-triangle" size={14} />
                 Fix delivery issue
               </span>
             }
@@ -538,7 +538,7 @@ export default function DesignSystem() {
         </div>
         <div>
           <Button variant="outline" size="sm" onClick={() => setDocsOpen(true)}>
-            <Icon name="File" size={16} />
+            <Icon name="document" size={16} />
             Open floating Documents sheet
           </Button>
           <DocumentsSheet
@@ -558,8 +558,8 @@ export default function DesignSystem() {
           <ActionBar
             status="Extraction complete · 3 fields need review"
             request={{ openCount: 0, onClick: () => {} }}
-            secondary={{ label: "Reject", onClick: () => {}, icon: <Icon name="XCircle" size={16} /> }}
-            primary={{ label: "Approve", onClick: () => {}, icon: <CheckCircle2 width={16} height={16} strokeWidth={1.75} />, variant: "success" }}
+            secondary={{ label: "Reject", onClick: () => {}, icon: <Icon name="x-circle" size={16} /> }}
+            primary={{ label: "Approve", onClick: () => {}, icon: <Icon name="check-circle" />, variant: "success" }}
           />
           <ActionBar
             status="Waiting on Humana"
@@ -570,15 +570,15 @@ export default function DesignSystem() {
           <ActionBar
             status="Waiting on payer · due Thu 9:41 AM"
             tone="warning"
-            icon={<AlertTriangle width={16} height={16} strokeWidth={1.75} />}
+            icon={<Icon name="alert-triangle" />}
             next={{ onClick: () => {} }}
           />
           <ActionBar
             status="Referral was returned undeliverable"
             tone="destructive"
-            icon={<AlertTriangle width={16} height={16} strokeWidth={1.75} />}
+            icon={<Icon name="alert-triangle" />}
             request={{ openCount: 0, onClick: () => {} }}
-            primary={{ label: "Reset for resend", onClick: () => {}, icon: <RotateCcw width={16} height={16} strokeWidth={1.75} /> }}
+            primary={{ label: "Reset for resend", onClick: () => {}, icon: <Icon name="undo" /> }}
           />
         </div>
       </Section>
@@ -633,32 +633,31 @@ export default function DesignSystem() {
       </Section>
 
       {/* ── Icon vocabulary ─────────────────────────────────────────── */}
-      <Section title="Icon vocabulary" description="All 33 concepts from src/lib/icons.ts, and the three size steps.">
+      <Section title="Icon vocabulary" description={`Domain concepts from src/lib/icons.ts (${ICON_KEYS.length}), the full Dirxctional glyph set (${ICON_CONCEPTS.length}, src/assets/icons.svg), and the four size steps.`}>
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
-          {ICON_CONCEPTS.map((concept) => {
-            const LucideIcon = ICONS[concept];
-            return (
-              <div key={concept} className="flex flex-col items-center gap-1.5 rounded-lg border border-border p-3 text-center">
-                <LucideIcon width={20} height={20} strokeWidth={1.75} className="text-foreground" aria-hidden="true" />
-                <span className="text-xs font-medium text-foreground">{concept}</span>
-                <span className="text-[10px] text-muted-foreground">{LucideIcon.displayName}</span>
-              </div>
-            );
-          })}
+          {ICON_KEYS.map((concept) => (
+            <div key={concept} className="flex flex-col items-center gap-1.5 rounded-lg border border-border p-3 text-center">
+              <Icon name={ICONS[concept]} size={20} className="text-foreground" />
+              <span className="text-xs font-medium text-foreground">{concept}</span>
+              <span className="text-[10px] text-muted-foreground">{ICONS[concept]}</span>
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-3 sm:grid-cols-6 lg:grid-cols-10 gap-2">
+          {ICON_CONCEPTS.map((id) => (
+            <div key={id} className="flex flex-col items-center gap-1 rounded-md border border-border p-2 text-center">
+              <Icon name={id} size={20} className="text-foreground" />
+              <span className="text-[10px] text-muted-foreground break-all">{id}</span>
+            </div>
+          ))}
         </div>
         <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">14</span>
-            <Icon name="FileText" size={14} />
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">16</span>
-            <Icon name="FileText" size={16} />
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">20</span>
-            <Icon name="FileText" size={20} />
-          </div>
+          {([14, 16, 20, 24] as const).map((px) => (
+            <div key={px} className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">{px}</span>
+              <Icon name="document" size={px} />
+            </div>
+          ))}
         </div>
       </Section>
 

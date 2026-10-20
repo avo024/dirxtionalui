@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Check, X } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { signUp, signIn } from "@/lib/cognito";
 import { toast } from "@/hooks/use-toast";
 import { AsYouType, parsePhoneNumberFromString } from "libphonenumber-js";
@@ -238,7 +238,7 @@ export default function AcceptInvite() {
 
             {state === "loading" && (
               <div className="flex flex-col items-center gap-3 py-8">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <Icon name="spinner" size={24} className="animate-spin text-primary" />
                 <p className="text-sm text-muted-foreground">Validating invite…</p>
               </div>
             )}
@@ -445,7 +445,7 @@ export default function AcceptInvite() {
                 >
                   {submitting ? (
                     <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      <Icon name="spinner" className="mr-2 animate-spin" />
                       Creating account…
                     </>
                   ) : (
@@ -520,9 +520,9 @@ function PolicyItem({ ok, label }: { ok: boolean; label: string }) {
   return (
     <li className={`flex items-center gap-1.5 ${ok ? "text-foreground" : "text-muted-foreground"}`}>
       {ok ? (
-        <Check className="h-3.5 w-3.5 text-primary" />
+        <Icon name="check" size={14} className="text-primary" />
       ) : (
-        <X className="h-3.5 w-3.5" />
+        <Icon name="close" size={14} />
       )}
       <span>{label}</span>
     </li>

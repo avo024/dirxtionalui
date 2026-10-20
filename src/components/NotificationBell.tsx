@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Bell, MessageSquare, AlertTriangle, ClipboardCheck } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { getRelativeTime } from "@/lib/dateUtils";
 
 /**
@@ -12,10 +12,10 @@ import { getRelativeTime } from "@/lib/dateUtils";
  * Clicking an item deep-links to the referral (notes → ?tab=notes).
  */
 type Kind = "note" | "rejected" | "review";
-const META: Record<Kind, { icon: any; color: string; label: string }> = {
-  note: { icon: MessageSquare, color: "var(--color-teal)", label: "New note" },
-  rejected: { icon: AlertTriangle, color: "var(--color-error)", label: "Needs attention" },
-  review: { icon: ClipboardCheck, color: "var(--color-navy)", label: "Ready for review" },
+const META: Record<Kind, { icon: string; color: string; label: string }> = {
+  note: { icon: "message", color: "var(--color-teal)", label: "New note" },
+  rejected: { icon: "alert-triangle", color: "var(--color-error)", label: "Needs attention" },
+  review: { icon: "clipboard-check", color: "var(--color-navy)", label: "Ready for review" },
 };
 const MAX_LIST = 10;
 
@@ -77,7 +77,7 @@ export function NotificationBell({
           display: "inline-flex", alignItems: "center", justifyContent: "center",
         }}
       >
-        <Bell size={18} />
+        <Icon name="bell" size={20} />
         {count > 0 && (
           <span style={{
             position: "absolute", top: -5, right: -5, minWidth: 18, height: 18, padding: "0 5px",
@@ -105,7 +105,6 @@ export function NotificationBell({
             <>
               {shown.map((it) => {
                 const m = META[it.kind];
-                const Icon = m.icon;
                 return (
                   <Link
                     key={it.key}
@@ -113,7 +112,7 @@ export function NotificationBell({
                     onClick={() => setOpen(false)}
                     style={{ display: "flex", gap: 11, padding: "11px 14px", borderTop: "1px solid var(--border-default)", textDecoration: "none", alignItems: "flex-start" }}
                   >
-                    <span style={{ color: m.color, display: "inline-flex", marginTop: 1, flexShrink: 0 }}><Icon size={16} /></span>
+                    <span style={{ color: m.color, display: "inline-flex", marginTop: 1, flexShrink: 0 }}><Icon name={m.icon} /></span>
                     <span style={{ minWidth: 0, flex: 1 }}>
                       <span style={{ display: "block", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--text-primary)" }}>{it.patient}</span>
                       <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)", marginTop: 1 }}>

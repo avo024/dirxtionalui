@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, Plus, User, Shield, FileText, Pill, ClipboardList, Loader2, Pencil, Save, X, Eye } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { underlineTabsListClass, underlineTabsTriggerClass } from "@/components/patterns/underlineTabs";
 import { DefinitionList } from "@/components/patterns/DefinitionList";
@@ -133,7 +133,7 @@ export default function PatientDetail() {
   };
   const setField = (k: string, v: string) => setDraft((d: any) => ({ ...d, [k]: v }));
 
-  if (loading) return <PageContainer fade={false} style={{ display: "flex", justifyContent: "center", padding: 80 }}><Loader2 width={26} height={26} className="animate-spin text-primary" /></PageContainer>;
+  if (loading) return <PageContainer fade={false} style={{ display: "flex", justifyContent: "center", padding: 80 }}><Icon name="spinner" size={24} className="animate-spin text-primary" /></PageContainer>;
   if (error || !patient) return (
     <PageContainer fade={false} className="text-center py-20">
       <p className="text-muted-foreground">{error || "Patient not found"}</p>
@@ -147,7 +147,7 @@ export default function PatientDetail() {
   return (
     <PageContainer>
       <button className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-4" onClick={() => navigate("/clinic/patients")}>
-        <ArrowLeft width={15} height={15} strokeWidth={1.75} />Back to Patients
+        <Icon name="back" />Back to Patients
       </button>
 
       {/* Header */}
@@ -158,8 +158,8 @@ export default function PatientDetail() {
           <IdChip id={patient.id} />
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={beginEdit}><Pencil width={16} height={16} strokeWidth={1.75} />Edit patient</Button>
-          <Button onClick={() => navigate(`/clinic/referrals/new?patientId=${patient.id}`)}><Plus width={16} height={16} strokeWidth={1.75} />New Referral for {firstName}</Button>
+          <Button variant="outline" onClick={beginEdit}><Icon name="edit" />Edit patient</Button>
+          <Button onClick={() => navigate(`/clinic/referrals/new?patientId=${patient.id}`)}><Icon name="add" />New Referral for {firstName}</Button>
         </div>
       </div>
 
@@ -174,7 +174,7 @@ export default function PatientDetail() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <DefinitionList
               title="Personal information"
-              icon={<User width={16} height={16} strokeWidth={1.75} />}
+              icon={<Icon name="patient" />}
               rows={[
                 { label: "Full name", value: patient.full_name },
                 { label: "Date of birth", value: patient.dob ? `${formatDateShort(patient.dob)} (Age ${getAge(patient.dob)})` : undefined },
@@ -185,7 +185,7 @@ export default function PatientDetail() {
             />
             <DefinitionList
               title="Contact"
-              icon={<FileText width={16} height={16} strokeWidth={1.75} />}
+              icon={<Icon name="document" />}
               rows={[
                 { label: "Phone", value: patient.phone_primary, copy: true },
                 { label: "Alternate phone", value: patient.phone_alternate },
@@ -195,7 +195,7 @@ export default function PatientDetail() {
             />
             <DefinitionList
               title="Medical"
-              icon={<Pill width={16} height={16} strokeWidth={1.75} />}
+              icon={<Icon name="medication" />}
               rows={[
                 { label: "Allergies", value: patient.allergies },
                 { label: "Insurance type", value: patient.insurance_type },
@@ -204,7 +204,7 @@ export default function PatientDetail() {
             />
             <DefinitionList
               title="Guardian / authorized representative"
-              icon={<Shield width={16} height={16} strokeWidth={1.75} />}
+              icon={<Icon name="shield" />}
               rows={[
                 { label: "Name", value: patient.authorized_representative },
                 { label: "Phone", value: patient.authorized_representative_phone },
@@ -216,7 +216,7 @@ export default function PatientDetail() {
         <TabsContent value="referrals" className="pt-5">
           <div className="flex justify-end mb-3">
             <Button variant="outline" size="sm" onClick={() => navigate(`/clinic/referrals/new?patientId=${patient.id}`)}>
-              <Plus width={14} height={14} strokeWidth={1.75} />New referral for this patient
+              <Icon name="add" size={14} />New referral for this patient
             </Button>
           </div>
           {referrals.length > 0 ? (
@@ -243,23 +243,23 @@ export default function PatientDetail() {
             </div>
           ) : (
             <div className="flex flex-col items-center gap-2 py-16 text-center">
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-muted-foreground"><FileText width={20} height={20} strokeWidth={1.75} /></span>
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-muted-foreground"><Icon name="document" size={20} /></span>
               <p className="text-sm font-semibold text-foreground">No referrals for this patient</p>
               <p className="text-sm text-muted-foreground">Create a referral to get started</p>
-              <Button onClick={() => navigate(`/clinic/referrals/new?patientId=${patient.id}`)}><Plus width={16} height={16} strokeWidth={1.75} />Create Referral</Button>
+              <Button onClick={() => navigate(`/clinic/referrals/new?patientId=${patient.id}`)}><Icon name="add" />Create Referral</Button>
             </div>
           )}
         </TabsContent>
 
         <TabsContent value="pa" className="pt-5">
           {medsLoading ? (
-            <div className="flex items-center justify-center gap-2 py-16"><Loader2 width={22} height={22} className="animate-spin text-primary" /><span className="text-sm text-muted-foreground">Loading medications…</span></div>
+            <div className="flex items-center justify-center gap-2 py-16"><Icon name="spinner" size={24} className="animate-spin text-primary" /><span className="text-sm text-muted-foreground">Loading medications…</span></div>
           ) : sortedMedications.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-16 text-center">
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-muted-foreground"><ClipboardList width={20} height={20} strokeWidth={1.75} /></span>
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-muted-foreground"><Icon name="clipboard-list" size={20} /></span>
               <p className="text-sm font-semibold text-foreground">No medications on record</p>
               <p className="text-sm text-muted-foreground">No active prescriptions for this patient yet</p>
-              <Button onClick={() => navigate(`/clinic/referrals/new?patientId=${patient.id}`)}><Plus width={16} height={16} strokeWidth={1.75} />Create First Referral</Button>
+              <Button onClick={() => navigate(`/clinic/referrals/new?patientId=${patient.id}`)}><Icon name="add" />Create First Referral</Button>
             </div>
           ) : (
             <div className="rounded-lg border border-border bg-card overflow-hidden">
@@ -282,7 +282,7 @@ export default function PatientDetail() {
                       >
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Pill width={14} height={14} strokeWidth={1.75} /></span>
+                            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Icon name="medication" size={14} /></span>
                             <div className="flex flex-col">
                               <span className="font-semibold text-foreground">{d.drug_name}</span>
                               <span className="text-xs text-muted-foreground">{d.dosage} · {d.frequency || "—"}</span>
@@ -297,7 +297,7 @@ export default function PatientDetail() {
                             <span className="text-muted-foreground text-xs">No referral linked</span>
                           ) : (
                             <Button size="sm" variant="outline" onClick={() => navigate(`/clinic/referrals/${d.last_referral_id}`)}>
-                              <Eye width={13} height={13} strokeWidth={1.75} />View
+                              <Icon name="eye" size={14} />View
                             </Button>
                           )}
                         </TableCell>
@@ -318,7 +318,7 @@ export default function PatientDetail() {
           <div className="fixed right-0 top-0 z-50 h-full w-full max-w-[480px] bg-card border-l border-border flex flex-col">
             <div className="flex items-center justify-between px-5 py-4 border-b border-border">
               <h3 className="text-base font-semibold">Edit Patient</h3>
-              <button className="text-muted-foreground hover:text-foreground" onClick={cancelEdit} aria-label="Close"><X width={18} height={18} strokeWidth={1.75} /></button>
+              <button className="text-muted-foreground hover:text-foreground" onClick={cancelEdit} aria-label="Close"><Icon name="close" size={20} /></button>
             </div>
             <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-5">
               <div className="grid grid-cols-2 gap-3">
@@ -346,7 +346,7 @@ export default function PatientDetail() {
             </div>
             <div className="flex justify-end gap-2 px-5 py-4 border-t border-border">
               <Button variant="outline" onClick={cancelEdit} disabled={saving}>Cancel</Button>
-              <Button onClick={saveEdits} disabled={saving}>{saving ? <Loader2 width={14} height={14} className="animate-spin" /> : <Save width={14} height={14} strokeWidth={1.75} />}Save</Button>
+              <Button onClick={saveEdits} disabled={saving}>{saving ? <Icon name="spinner" size={14} className="animate-spin" /> : <Icon name="save" size={14} />}Save</Button>
             </div>
           </div>
         </>

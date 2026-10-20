@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { AlertTriangle, ArrowRight, ArrowUpRight, EyeOff, RotateCcw } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { getRelativeTime } from "@/lib/dateUtils";
 import { renderFieldValue } from "@/lib/aiQualityFormat";
 import type { AIQualityCorrection } from "@/lib/aiQualityApi";
@@ -40,7 +40,7 @@ export function CorrectionRow({ correction: c, dismissable, onDismiss, onRestore
           ) : (
             <>
               <span className="line-through">{renderFieldValue(c.model_value)}</span>
-              <ArrowRight width={14} height={14} strokeWidth={1.75} className="shrink-0" />
+              <Icon name="forward" size={14} className="shrink-0" />
               <span className="font-semibold text-foreground">{renderFieldValue(c.final_value)}</span>
             </>
           )}
@@ -53,7 +53,7 @@ export function CorrectionRow({ correction: c, dismissable, onDismiss, onRestore
           )}
           {high && (
             <span className="inline-flex items-center gap-1 rounded-full bg-warning/15 text-[#92610B] px-1.5 py-0.5 text-[10px] font-bold">
-              <AlertTriangle width={10} height={10} strokeWidth={1.75} />high
+              <Icon name="alert-triangle" size={14} />high
             </span>
           )}
           conf {conf}{c.prompt_version ? ` · ${c.prompt_version}` : ""}
@@ -67,7 +67,7 @@ export function CorrectionRow({ correction: c, dismissable, onDismiss, onRestore
                 disabled={busy}
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); onRestore?.(c.id!); }}
               >
-                <RotateCcw width={12} height={12} strokeWidth={1.75} />Undo
+                <Icon name="undo" size={14} />Undo
               </button>
             ) : (
               <button
@@ -77,11 +77,11 @@ export function CorrectionRow({ correction: c, dismissable, onDismiss, onRestore
                 disabled={busy}
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDismiss?.(c.id!); }}
               >
-                <EyeOff width={12} height={12} strokeWidth={1.75} />Ignore
+                <Icon name="eye-off" size={14} />Ignore
               </button>
             )
           )}
-          <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">View referral<ArrowUpRight width={12} height={12} strokeWidth={1.75} /></span>
+          <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">View referral<Icon name="arrow-up-right" size={14} /></span>
         </span>
       </span>
     </Link>

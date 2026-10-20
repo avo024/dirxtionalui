@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { AlertTriangle, MoreHorizontal, User, Zap } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 import { StageChip } from "@/components/StageChip";
 import { initials, urgencyEdgeClass } from "./_shared";
@@ -89,7 +89,7 @@ export function QueueRow({
               overdue ? "text-destructive font-semibold" : "text-muted-foreground",
             )}
           >
-            {overdue && <AlertTriangle width={14} height={14} strokeWidth={1.75} aria-hidden="true" />}
+            {overdue && <Icon name="alert-triangle" size={14} />}
             {due}
           </span>
         )}
@@ -116,7 +116,7 @@ export function QueueRow({
           <span className="truncate">{drug}</span>
           {bridge && (
             <span className="inline-flex items-center gap-0.5 shrink-0 rounded-full bg-teal-50 text-teal-700 px-1.5 py-0.5 text-[10px] font-medium">
-              <Zap width={10} height={10} strokeWidth={1.75} aria-hidden="true" />
+              <Icon name="bolt" size={14} />
               Bridge
             </span>
           )}
@@ -171,7 +171,7 @@ export function QueueRow({
               onClick={() => onMore?.()}
               className="rounded-md p-1 text-muted-foreground hover:bg-muted"
             >
-              <MoreHorizontal width={16} height={16} strokeWidth={1.75} aria-hidden="true" />
+              <Icon name="menu-more" />
             </button>
           )}
         </div>
@@ -184,7 +184,7 @@ export function QueueRow({
           </span>
         ) : (
           <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-dashed border-border text-muted-foreground">
-            <User width={14} height={14} strokeWidth={1.75} aria-hidden="true" />
+            <Icon name="patient" size={14} />
           </span>
         )}
       </div>

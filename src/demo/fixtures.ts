@@ -55,6 +55,7 @@ export const clinic = () => ({
   npi: "1000000001",
   default_pharmacy_id: PHARMACY_ID,
   default_pharmacy_name: "Summit Specialty Pharmacy",
+  main_email_notifications: false,
 });
 
 export const profile = () => ({
@@ -67,6 +68,7 @@ export const profile = () => ({
   clinic_id: CLINIC_ID,
   role: "office_manager",
   can_edit_clinic_settings: true,
+  email_prefs: { referral_updates: false, requests: false, appeals: false, notes_on_sent: false, support: false },
 });
 
 export const pharmacy = () => ({

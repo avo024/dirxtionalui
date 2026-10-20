@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import {
   Dialog,
   DialogContent,
@@ -379,7 +379,7 @@ export function NewPatientModal({ open, onOpenChange, onCreated }: NewPatientMod
               Cancel
             </Button>
             <Button type="submit" disabled={submitting} title={!isValid ? "Complete required fields" : undefined}>
-              {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {submitting && <Icon name="spinner" className="mr-2 animate-spin" />}
               Create Patient
             </Button>
           </DialogFooter>

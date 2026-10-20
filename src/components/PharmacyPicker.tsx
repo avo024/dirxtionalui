@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Check, ChevronsUpDown, Phone, Printer } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -75,7 +75,7 @@ export function PharmacyPicker({ pharmacies, selectedId, defaultId, onSelect }: 
                   <Badge variant="secondary" className="text-[10px] shrink-0">Default</Badge>
                 )}
               </span>
-              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              <Icon name="chevrons-updown" className="ml-2 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
@@ -94,12 +94,10 @@ export function PharmacyPicker({ pharmacies, selectedId, defaultId, onSelect }: 
                       }}
                       className="flex items-center gap-2"
                     >
-                      <Check
-                        className={cn(
+                      <Icon name="check" className={cn(
                           "h-4 w-4 shrink-0",
                           selectedId === p.id ? "opacity-100" : "opacity-0",
-                        )}
-                      />
+                        )} />
                       <span className="font-medium truncate">{p.name}</span>
                     </CommandItem>
                   ))}
@@ -117,13 +115,13 @@ export function PharmacyPicker({ pharmacies, selectedId, defaultId, onSelect }: 
           <div className="mt-2 space-y-1 text-sm">
             {selected.fax && (
               <div className="flex items-center gap-2 text-foreground">
-                <Printer className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <Icon name="print" size={14} className="text-muted-foreground shrink-0" />
                 <span>Fax: {selected.fax}</span>
               </div>
             )}
             {selected.phone && (
               <div className="flex items-center gap-2 text-foreground">
-                <Phone className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <Icon name="phone" size={14} className="text-muted-foreground shrink-0" />
                 <span>Phone: {selected.phone}</span>
               </div>
             )}

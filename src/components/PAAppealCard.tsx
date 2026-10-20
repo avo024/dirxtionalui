@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle, Scale, CheckCircle2 } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -39,7 +39,7 @@ export function PAAppealCard({ referral, referralId, onChanged, hideActions }: {
       <Card className="bg-muted-foreground/5 p-[var(--density-card-pad)]">
         <div className="flex items-center gap-2.5">
           <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary">
-            <Scale width={15} height={15} strokeWidth={1.75} />
+            <Icon name="appeal" />
           </span>
           <h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">PA Appeal</h3>
           <span className="ml-auto inline-flex items-center rounded-full bg-muted-foreground/12 px-2.5 py-1 text-[11px] font-bold text-muted-foreground">
@@ -90,13 +90,13 @@ export function PAAppealCard({ referral, referralId, onChanged, hideActions }: {
     <Card className={cn("p-[var(--density-card-pad)]", paStatus === "appeal" && "border-destructive/45")}>
       <div className="flex items-center gap-2.5">
         <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary">
-          <Scale width={15} height={15} strokeWidth={1.75} />
+          <Icon name="appeal" />
         </span>
         <h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">PA Appeal</h3>
         {paStatus === "appeal" && (
           <span className="ml-auto inline-flex items-center gap-1.5">
             <span className="inline-flex items-center gap-1 rounded-full bg-destructive/14 px-2.5 py-1 text-[11px] font-bold text-destructive">
-              <AlertTriangle width={11} height={11} />URGENT
+              <Icon name="alert-triangle" size={14} />URGENT
             </span>
             {overdue ? (
               <span className="rounded-full bg-destructive/14 px-2.5 py-1 text-[11px] font-bold text-destructive">
@@ -119,7 +119,7 @@ export function PAAppealCard({ referral, referralId, onChanged, hideActions }: {
           </p>
           {!hideActions && (
             <Button size="sm" disabled={busy} onClick={() => setConfirm("start")}>
-              <Scale width={14} height={14} strokeWidth={1.75} />Start appeal
+              <Icon name="appeal" size={14} />Start appeal
             </Button>
           )}
         </>
@@ -133,7 +133,7 @@ export function PAAppealCard({ referral, referralId, onChanged, hideActions }: {
           {!hideActions && (
             <div className="flex flex-wrap gap-2">
               <Button size="sm" className="bg-success text-success-foreground hover:bg-success/90" disabled={busy} onClick={() => setConfirm("won")}>
-                <CheckCircle2 width={14} height={14} strokeWidth={1.75} />Appeal won
+                <Icon name="check-circle" size={14} />Appeal won
               </Button>
               <Button size="sm" variant="outline" disabled={busy} onClick={() => setConfirm("level2")}>
                 Lost — hand off (Level 2)

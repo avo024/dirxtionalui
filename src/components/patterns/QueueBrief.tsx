@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 
 const STORAGE_KEY = "queue.brief.expanded";
@@ -103,9 +103,9 @@ export function QueueBrief({
         >
           Details
           {expanded ? (
-            <ChevronUp width={14} height={14} strokeWidth={1.75} aria-hidden="true" />
+            <Icon name="chevron-up" size={14} />
           ) : (
-            <ChevronDown width={14} height={14} strokeWidth={1.75} aria-hidden="true" />
+            <Icon name="chevron-down" size={14} />
           )}
         </button>
       </div>

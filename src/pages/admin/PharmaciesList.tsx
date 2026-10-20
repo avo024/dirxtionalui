@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Power, Store, TriangleAlert, RefreshCw } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { PharmacyFormModal } from "@/components/PharmacyFormModal";
 import { getInitials } from "@/components/CreatedByAvatar";
@@ -75,7 +75,7 @@ export default function PharmaciesList() {
           <p className="text-sm text-muted-foreground mt-1">Specialty pharmacy partners that receive approved referrals</p>
         </div>
         <Button onClick={() => setCreateOpen(true)}>
-          <Plus width={16} height={16} strokeWidth={1.75} />Add Pharmacy
+          <Icon name="add" />Add Pharmacy
         </Button>
       </div>
 
@@ -96,20 +96,20 @@ export default function PharmaciesList() {
       {/* Error */}
       {isError && (
         <div className="flex flex-col items-center gap-2 py-16 text-center">
-          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10 text-destructive"><TriangleAlert width={24} height={24} strokeWidth={1.75} /></span>
+          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10 text-destructive"><Icon name="alert-triangle" size={24} /></span>
           <h3 className="text-base font-semibold text-foreground">Couldn't load pharmacies</h3>
           <p className="text-sm text-muted-foreground">Something went wrong fetching the pharmacy directory.</p>
-          <Button size="sm" onClick={() => refetch()}><RefreshCw width={15} height={15} strokeWidth={1.75} />Retry</Button>
+          <Button size="sm" onClick={() => refetch()}><Icon name="refresh" />Retry</Button>
         </div>
       )}
 
       {/* Empty */}
       {!isLoading && !isError && items.length === 0 && (
         <div className="flex flex-col items-center gap-2 py-16 text-center">
-          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-muted text-muted-foreground"><Store width={24} height={24} strokeWidth={1.75} /></span>
+          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-muted text-muted-foreground"><Icon name="pharmacy" size={24} /></span>
           <h3 className="text-base font-semibold text-foreground">No pharmacies yet</h3>
           <p className="text-sm text-muted-foreground">Add your first pharmacy to route approved referrals.</p>
-          <Button size="sm" onClick={() => setCreateOpen(true)}><Plus width={15} height={15} strokeWidth={1.75} />Add Pharmacy</Button>
+          <Button size="sm" onClick={() => setCreateOpen(true)}><Icon name="add" />Add Pharmacy</Button>
         </div>
       )}
 
@@ -160,7 +160,7 @@ export default function PharmaciesList() {
                           aria-label="Edit pharmacy"
                           onClick={() => setEditing(p)}
                         >
-                          <Pencil width={15} height={15} strokeWidth={1.75} />
+                          <Icon name="edit" />
                         </Button>
                         <Button
                           variant="ghost"
@@ -171,7 +171,7 @@ export default function PharmaciesList() {
                           disabled={!p.is_active}
                           onClick={() => setDeactivating(p)}
                         >
-                          <Power width={15} height={15} strokeWidth={1.75} />
+                          <Icon name="power" />
                         </Button>
                       </div>
                     </TableCell>

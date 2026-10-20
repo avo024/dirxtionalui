@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { Loader2, AlertTriangle, ExternalLink, RefreshCw, Pencil } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { adminApi } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { useAdminProfile } from "@/hooks/useAdminProfile";
@@ -32,6 +32,7 @@ import { DeliveryConfirmModal } from "@/components/DeliveryConfirmModal";
 import { AdminRejectModal, FLAGGABLE_FIELDS, type RejectPayload } from "@/components/AdminRejectModal";
 import { DocumentViewer } from "@/components/DocumentViewer";
 import { PAAppealCard } from "@/components/PAAppealCard";
+import { PriorPaCard } from "@/components/admin/PriorPaCard";
 import { AppealPacketCard, type AppealPacketActions } from "@/components/AppealPacketCard";
 import { EnrollmentCard, type EnrollmentActions } from "@/components/EnrollmentCard";
 import { ReferralTasksCard } from "@/components/ReferralTasksCard";
@@ -406,6 +407,20 @@ export default function AdminReferralWorkstation() {
       ];
     }
 
+    const priorLetterId = referral?.prior_pa?.letter_document_id;
+    if (priorLetterId && activeDocId === priorLetterId) {
+      return [
+        ...documents,
+        {
+          id: priorLetterId,
+          original_filename: "PA approval letter.pdf",
+          file_type: "application/pdf",
+          doc_type: "pa_approval_letter",
+          uploaded_at: referral?.prior_pa?.approved_at || "",
+        },
+      ];
+    }
+
     const delivered = (referral?.last_delivery?.documents || []).find((d: any) => d?.id === activeDocId);
     if (delivered) {
       return [
@@ -421,7 +436,7 @@ export default function AdminReferralWorkstation() {
     }
 
     return documents;
-  }, [documents, paLetterInfo, activeDocId, referral?.last_delivery]);
+  }, [documents, paLetterInfo, activeDocId, referral?.last_delivery, referral?.prior_pa]);
 
   // ── PA dialogs ────────────────────────────────────────────────────
   const [filedOpen, setFiledOpen] = useState(false);
@@ -472,6 +487,17 @@ export default function AdminReferralWorkstation() {
   };
 
   // ── Action handlers ───────────────────────────────────────────────
+  const handleSetPaRequired = async (value: boolean) => {
+    if (!id) return;
+    try {
+      await adminApi.updateReferral(id, { pa_required: value });
+      toast({ title: "PA path updated" });
+      await reload();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+  };
+
   const handleApprove = async () => {
     if (!id) return;
     try {
@@ -779,7 +805,7 @@ export default function AdminReferralWorkstation() {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-3" />
+          <Icon name="spinner" size={24} className="animate-spin text-primary mx-auto mb-3" />
           <p className="text-muted-foreground">Loading referral...</p>
         </div>
       </div>
@@ -1237,10 +1263,34 @@ export default function AdminReferralWorkstation() {
           ["Frequency", clinical.dose_frequency || clinical.frequency, { editField: ["clinical", "dose_frequency"], editValue: clinical.dose_frequency || clinical.frequency }],
           ["Quantity", clinical.quantity, { editField: ["clinical", "quantity"] }],
           ["Route", clinical.route || clinical.administration],
-          ["PA path", referral.is_bridge_program ? "Bridge — no PA" : referral.pa_required ? `PA required${referral.pa_required_reason ? `: ${referral.pa_required_reason}` : ""}` : "No PA required"],
+          ["PA path", (
+            <span className="inline-flex flex-wrap items-baseline gap-x-2">
+              <span>{referral.is_bridge_program ? "Bridge — no PA" : referral.pa_required ? `PA required${referral.pa_required_reason ? `: ${referral.pa_required_reason}` : ""}` : "No PA required"}</span>
+              {referral.status === "ready_for_review" && !referral.is_bridge_program && (
+                !referral.pa_required ? (
+                  <Button type="button" variant="link" className="h-auto p-0 text-[12px]" onClick={() => handleSetPaRequired(true)}>
+                    Needs a PA anyway
+                  </Button>
+                ) : String(referral.pa_required_reason || "").startsWith("Marked by") ? (
+                  <Button type="button" variant="link" className="h-auto p-0 text-[12px]" onClick={() => handleSetPaRequired(false)}>
+                    Clear — no PA needed
+                  </Button>
+                ) : null
+              )}
+            </span>
+          )],
         ])}
       />
     );
+    const priorPaCard = referral.prior_pa ? (
+      <PriorPaCard
+        key="prior_pa"
+        priorPa={referral.prior_pa}
+        paRequired={!!referral.pa_required}
+        onViewReferral={(rid) => navigate(`/admin/referrals/${rid}`)}
+        onViewLetter={openDeliveredDocPreview}
+      />
+    ) : null;
     const clinicalCard = (
       <DefinitionList
         key="clinical"
@@ -1275,6 +1325,7 @@ export default function AdminReferralWorkstation() {
         cards.push(medicationCard);
         break;
       case "review": {
+        if (priorPaCard) cards.push(priorPaCard);
         cards.push(medicationCard, clinicalCard, patientCard, prescriberCard);
 
         // Insurance card always shows on review — Alex 2026-09-23: the Stedi
@@ -1325,7 +1376,7 @@ export default function AdminReferralWorkstation() {
                   title="Re-run the insurance check"
                   className="h-7 gap-1.5 px-2.5 text-xs"
                 >
-                  <RefreshCw width={12} height={12} className={insuranceRechecking ? "animate-spin" : undefined} />
+                  <Icon name="refresh" size={14} className={insuranceRechecking ? "animate-spin" : undefined} />
                   Re-check
                 </Button>
                 <Button
@@ -1336,7 +1387,7 @@ export default function AdminReferralWorkstation() {
                   title="Edit insurance in All Fields"
                   className="h-7 gap-1.5 px-2.5 text-xs"
                 >
-                  <Pencil width={12} height={12} />
+                  <Icon name="edit" size={14} />
                   Edit
                 </Button>
               </div>
@@ -1430,7 +1481,7 @@ export default function AdminReferralWorkstation() {
             action={
               <Button variant="outline" size="sm" asChild>
                 <a href="https://www.covermymeds.com" target="_blank" rel="noreferrer">
-                  <ExternalLink width={14} height={14} strokeWidth={1.75} />
+                  <Icon name="external-link" size={14} />
                   Open CoverMyMeds
                 </a>
               </Button>
@@ -1769,7 +1820,7 @@ export default function AdminReferralWorkstation() {
         {next.interrupt && (
           <div className="px-[26px] pt-3">
             <Alert variant="destructive" className="border-warning/40 bg-warning/10 text-foreground">
-              <AlertTriangle className="h-4 w-4" />
+              <Icon name="alert-triangle" />
               <AlertTitle>{next.interrupt.verb}</AlertTitle>
               <AlertDescription>{interruptExplain}</AlertDescription>
             </Alert>

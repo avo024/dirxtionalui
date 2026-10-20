@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
-import { Loader2, Sparkles, Clock, Check } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { toast } from "sonner";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -69,7 +69,7 @@ export default function Services() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <Loader2 width={26} height={26} strokeWidth={1.75} className="animate-spin text-primary" />
+        <Icon name="spinner" size={24} className="animate-spin text-primary" />
       </div>
     );
   }
@@ -113,7 +113,7 @@ export default function Services() {
         <CardContent>
           <div className="flex items-start gap-4">
             <div className="h-12 w-12 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-              <Sparkles width={20} height={20} strokeWidth={1.75} />
+              <Icon name="sparkles" size={20} />
             </div>
             <div className="space-y-1">
               <p className="text-sm font-medium">Plan</p>
@@ -173,7 +173,7 @@ export default function Services() {
                     )}
                   </div>
                   <Badge className="bg-success/15 text-success hover:bg-success/15 border-transparent">
-                    <Check width={12} height={12} strokeWidth={1.75} /> Active
+                    <Icon name="check" size={14} /> Active
                   </Badge>
                 </div>
               </div>
@@ -220,7 +220,7 @@ export default function Services() {
                     </p>
                     {addon.state === "requested" ? (
                       <Badge className="bg-warning/15 text-[#92610B] hover:bg-warning/15 border-transparent">
-                        <Clock width={12} height={12} strokeWidth={1.75} /> Requested
+                        <Icon name="clock" size={14} /> Requested
                       </Badge>
                     ) : (
                       <Button
@@ -335,7 +335,7 @@ export default function Services() {
               disabled={requestMutation.isPending}
             >
               {requestMutation.isPending && (
-                <Loader2 width={14} height={14} strokeWidth={1.75} className="animate-spin" />
+                <Icon name="spinner" size={14} className="animate-spin" />
               )}
               Submit request
             </Button>

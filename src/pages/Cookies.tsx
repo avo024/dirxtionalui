@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ArrowLeft } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import logo from "@/assets/logo.png";
 import { COOKIE_POLICY_MD } from "@/content/cookiePolicy";
 
@@ -17,7 +17,7 @@ export default function Cookies() {
             to="/"
             className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <Icon name="back" />
             Back to home
           </Link>
         </div>

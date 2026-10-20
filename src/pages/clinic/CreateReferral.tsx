@@ -1,10 +1,7 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import {
-  ArrowLeft, ArrowRight, Check, Upload, UserPlus, Users, FileText, Pill,
-  Stethoscope, Shield, CheckCircle, Loader2, AlertTriangle, Search, X, Sparkles,
-  Pencil, ClipboardList, FileCheck,
-} from "lucide-react";
+import { Icon } from "@/components/ui/icon";
+import { Stepper } from "@/components/patterns/Stepper";
 import { clinicApi, pharmacyApi, getMyClinic } from "@/lib/api";
 import { mapManualFormToBackend } from "@/lib/dataMapper";
 import { formatDateShort } from "@/lib/dateUtils";
@@ -124,14 +121,14 @@ function RwField({ label, required, helper, children }: { label: string; require
     </div>
   );
 }
-function NoticeStrip({ icon: Icon, tone, children }: { icon: any; tone?: "teal" | "warn"; children: React.ReactNode }) {
+function NoticeStrip({ icon, tone, children }: { icon: string; tone?: "teal" | "warn"; children: React.ReactNode }) {
   return (
     <div className={cn(
       "flex items-start gap-2.5 rounded-lg border px-3.5 py-3",
       tone === "teal" ? "border-teal-600/25 bg-teal-600/5" : tone === "warn" ? "border-warning/30 bg-warning/8" : "border-border bg-muted/40",
     )}>
       <span className={cn("shrink-0 mt-0.5", tone === "teal" ? "text-teal-700" : tone === "warn" ? "text-warning" : "text-muted-foreground")}>
-        <Icon width={18} height={18} strokeWidth={1.75} />
+        <Icon name={icon} size={20} />
       </span>
       <p className="text-sm text-foreground m-0">{children}</p>
     </div>
@@ -427,7 +424,7 @@ export default function CreateReferral() {
     return (
       <PageContainer fade={false}>
         <div className="animate-in fade-in slide-in-from-bottom-1 duration-300 flex flex-col items-center gap-3 text-center py-10 max-w-lg mx-auto">
-          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-success/15 text-success"><CheckCircle width={34} height={34} strokeWidth={1.75} /></span>
+          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-success/15 text-success"><Icon name="check-circle" size={24} /></span>
           <h1 className="text-2xl font-semibold text-foreground">We'll Take It From Here!</h1>
           <p className="text-sm text-muted-foreground">Referral submitted successfully! Our AI is extracting the details now and our team will review within the hour.</p>
           <div className="font-mono text-sm font-semibold rounded-md bg-muted px-3 py-1.5 text-foreground">REF-{String(Math.floor(Math.random() * 900000) + 100000)}</div>
@@ -449,59 +446,29 @@ export default function CreateReferral() {
   const insuranceSummary = insuranceChoice === "bridge" ? "Bridge program"
     : insuranceChoice === "has" ? (manualData.primaryInsuranceName || "Standard insurance") : null;
   const summaryRows = [
-    { icon: Users, k: "Patient", v: selectedPatient ? getPatientName(selectedPatient) : null },
-    { icon: Upload, k: "Method", v: referralMethod === "upload" ? "Upload documents" : referralMethod === "manual" ? "Manual entry" : null },
-    { icon: FileText, k: "Documents", v: uploadedFiles.length ? `${uploadedFiles.length} file${uploadedFiles.length > 1 ? "s" : ""}` : (referralMethod === "manual" ? "Manual entry" : null) },
-    { icon: Shield, k: "Insurance", v: insuranceSummary },
-    { icon: Pill, k: "Pharmacy", v: selectedPharmacy?.name || null },
+    { icon: "patients", k: "Patient", v: selectedPatient ? getPatientName(selectedPatient) : null },
+    { icon: "upload", k: "Method", v: referralMethod === "upload" ? "Upload documents" : referralMethod === "manual" ? "Manual entry" : null },
+    { icon: "document", k: "Documents", v: uploadedFiles.length ? `${uploadedFiles.length} file${uploadedFiles.length > 1 ? "s" : ""}` : (referralMethod === "manual" ? "Manual entry" : null) },
+    { icon: "shield", k: "Insurance", v: insuranceSummary },
+    { icon: "medication", k: "Pharmacy", v: selectedPharmacy?.name || null },
   ];
 
   return (
     <PageContainer fade={false}>
       {/* Bar A — header */}
       <div>
-        <h1 className="text-2xl font-semibold font-editorial text-foreground">New Referral</h1>
+        <h1 className="ty-title">New Referral</h1>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6 mt-5">
         <div>
-          {/* Bar B — segmented stepper */}
-          <div className="flex items-stretch gap-1" data-tour="wizard-steps">
-            {STEPS.map((s, i) => {
-              const done = i < currentStep, current = i === currentStep;
-              return (
-                <button
-                  key={s.key}
-                  type="button"
-                  className={cn(
-                    "flex-1 flex flex-col gap-1.5 rounded-md px-2.5 py-2 text-left transition-colors",
-                    current ? "bg-primary/8" : "hover:bg-muted",
-                    !done && !current && "cursor-not-allowed opacity-60",
-                  )}
-                  onClick={() => done && setCurrentStep(i)}
-                  disabled={!done && !current}
-                >
-                  <span className="flex items-center gap-1.5">
-                    <span className={cn(
-                      "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold",
-                      done ? "bg-success text-success-foreground" : current ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
-                    )}>
-                      {done ? <Check width={12} height={12} strokeWidth={2} /> : `0${i + 1}`}
-                    </span>
-                    <span className={cn("text-xs font-semibold", current || done ? "text-foreground" : "text-muted-foreground")}>{s.label}</span>
-                  </span>
-                  <span className="h-1 rounded-full bg-muted overflow-hidden">
-                    {(done || current) && <span className="block h-full bg-primary" style={{ width: current ? "40%" : "100%" }} />}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+          {/* Bar B — stepper */}
+          <div className="mb-4"><Stepper data-tour="wizard-steps" steps={STEPS.map((x) => x.label)} current={currentStep} onStep={setCurrentStep} /></div>
 
           {/* Bar C — sticky patient banner */}
           {selectedPatient && currentStep > 0 && (
             <div className="sticky top-0 z-10 flex items-center gap-2.5 rounded-lg border border-border bg-card px-3.5 py-2.5 mt-4">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"><Users width={17} height={17} strokeWidth={1.75} /></span>
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"><Icon name="patients" /></span>
               <div>
                 <div className="text-sm font-semibold text-foreground">{getPatientName(selectedPatient)}</div>
                 <div className="text-xs text-muted-foreground">DOB: {formatDateShort(selectedPatient.dob || "")} · {getPatientPhone(selectedPatient)}</div>
@@ -525,21 +492,19 @@ export default function CreateReferral() {
             {currentStep === 1 && referralMethod === "upload" && (
               <div className="animate-in fade-in slide-in-from-bottom-1 duration-300 flex flex-col gap-5">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-primary">Step 2 of 4</p>
                   <h2 className="text-lg font-semibold text-foreground mt-1">Upload Documents</h2>
                   <p className="text-sm text-muted-foreground mt-0.5">Upload all relevant documents for this referral</p>
                 </div>
                 <SmartDropzone files={uploadedFiles} onFiles={(fl: File[]) => fl.forEach(handleRealFileUpload)} removeFile={removeFile} setTag={setFileTag} isPacket={isPacket} setPacket={setIsPacket} />
                 <BridgeBlock choice={insuranceChoice} onChange={setInsuranceChoice} showErrors={showSubmitErrors} />
-                <NoticeStrip icon={Sparkles} tone="teal">Our AI will automatically extract patient info, provider details, drug information, and more from your documents.</NoticeStrip>
-                <NoticeStrip icon={CheckCircle}>Our team will handle the PA and process</NoticeStrip>
+                <NoticeStrip icon="sparkles" tone="teal">Our AI will automatically extract patient info, provider details, drug information, and more from your documents.</NoticeStrip>
+                <NoticeStrip icon="check-circle">Our team will handle the PA and process</NoticeStrip>
               </div>
             )}
 
             {currentStep === 1 && referralMethod === "manual" && (
               <div className="animate-in fade-in slide-in-from-bottom-1 duration-300 flex flex-col gap-5">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-primary">Step 2 of 4</p>
                   <h2 className="text-lg font-semibold text-foreground mt-1">Enter Referral Information</h2>
                   <p className="text-sm text-muted-foreground mt-0.5">Fill in the details below</p>
                 </div>
@@ -548,7 +513,7 @@ export default function CreateReferral() {
                   choice={insuranceChoice} setChoice={(c: "has" | "bridge") => { setInsuranceChoice(c); setManualData((d) => ({ ...d, hasInsurance: c === "has" })); }}
                   showErrors={showSubmitErrors}
                 />
-                <NoticeStrip icon={CheckCircle}>Our team will handle the PA and process</NoticeStrip>
+                <NoticeStrip icon="check-circle">Our team will handle the PA and process</NoticeStrip>
               </div>
             )}
 
@@ -572,13 +537,13 @@ export default function CreateReferral() {
 
           {/* Bar D — footer */}
           <div className="flex items-center justify-between mt-4" data-tour="wizard-next">
-            <Button variant="outline" onClick={goBack}><ArrowLeft width={15} height={15} strokeWidth={1.75} />{currentStep === 0 ? "Cancel" : "Back"}</Button>
-            {currentStep === 0 && <Button onClick={goNext} disabled={!canProceedStep1}>Next: Referral Method<ArrowRight width={15} height={15} strokeWidth={1.75} /></Button>}
-            {currentStep === 1 && referralMethod && <Button onClick={goNext} disabled={!canProceedStep2}>Next: Choose Pharmacy<ArrowRight width={15} height={15} strokeWidth={1.75} /></Button>}
-            {currentStep === 2 && <Button onClick={goNext} disabled={!canProceedStep3}>Continue to Review<ArrowRight width={15} height={15} strokeWidth={1.75} /></Button>}
+            <Button variant="outline" onClick={goBack}><Icon name="back" />{currentStep === 0 ? "Cancel" : "Back"}</Button>
+            {currentStep === 0 && <Button onClick={goNext} disabled={!canProceedStep1}>Next: Referral Method<Icon name="forward" /></Button>}
+            {currentStep === 1 && referralMethod && <Button onClick={goNext} disabled={!canProceedStep2}>Next: Choose Pharmacy<Icon name="forward" /></Button>}
+            {currentStep === 2 && <Button onClick={goNext} disabled={!canProceedStep3}>Continue to Review<Icon name="forward" /></Button>}
             {currentStep === 3 && (
               <Button className="bg-success text-success-foreground hover:bg-success/90" onClick={handleSubmit} disabled={!confirmAccuracy || submitting}>
-                {submitting ? <><Loader2 width={15} height={15} strokeWidth={1.75} className="animate-spin" />Submitting…</> : <><Check width={15} height={15} strokeWidth={1.75} />Submit Referral</>}
+                {submitting ? <><Icon name="spinner" className="animate-spin" />Submitting…</> : <><Icon name="check" />Submit Referral</>}
               </Button>
             )}
           </div>
@@ -589,7 +554,7 @@ export default function CreateReferral() {
           <div className="bg-card border border-border rounded-lg overflow-hidden sticky top-4">
             <div className="flex items-center justify-between px-4 py-3 border-b border-border">
               <h3 className="text-sm font-semibold text-foreground">Referral summary</h3>
-              <ClipboardList width={16} height={16} strokeWidth={1.75} className="text-muted-foreground" />
+              <Icon name="clipboard-list" className="text-muted-foreground" />
             </div>
             <div className="p-2">
               {summaryRows.map((r) => (
@@ -598,7 +563,7 @@ export default function CreateReferral() {
                     "flex h-6 w-6 shrink-0 items-center justify-center rounded-full",
                     r.v ? "bg-success/15 text-success" : "bg-muted text-muted-foreground",
                   )}>
-                    {r.v ? <Check width={14} height={14} strokeWidth={1.75} /> : <r.icon width={14} height={14} strokeWidth={1.75} />}
+                    {r.v ? <Icon name="check" size={14} /> : <Icon name={r.icon} size={14} />}
                   </span>
                   <div className="min-w-0">
                     <div className="text-xs text-muted-foreground">{r.k}</div>
@@ -625,16 +590,15 @@ function Step1Patient({ search, setSearch, results, selected, onSelect, onClear,
   return (
     <div className="animate-in fade-in slide-in-from-bottom-1 duration-300">
       <div className="mb-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-primary">Step 1 of 4</p>
         <h2 className="text-lg font-semibold text-foreground mt-1">Select Patient</h2>
         <p className="text-sm text-muted-foreground mt-0.5">Search for an existing patient or add a new one</p>
       </div>
       <div className="flex items-center gap-2.5 mb-3">
         <div className="relative flex-1">
-          <Search width={16} height={16} strokeWidth={1.75} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input className="pl-9" placeholder="Search by name, DOB, or phone..." value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <Button variant="outline" onClick={onAddNew}><UserPlus width={15} height={15} strokeWidth={1.75} />Add New Patient</Button>
+        <Button variant="outline" onClick={onAddNew}><Icon name="user-plus" />Add New Patient</Button>
       </div>
 
       {results.length > 0 && (
@@ -652,14 +616,14 @@ function Step1Patient({ search, setSearch, results, selected, onSelect, onClear,
         <div className="flex flex-col gap-2 rounded-lg border border-primary/25 bg-primary/5 p-3.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"><Users width={17} height={17} strokeWidth={1.75} /></span>
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"><Icon name="patients" /></span>
               <span className="text-sm font-semibold text-foreground">{getName(selected)}</span>
             </div>
-            <button type="button" className="text-muted-foreground hover:text-foreground" onClick={onClear} aria-label="Clear selected patient"><X width={16} height={16} strokeWidth={1.75} /></button>
+            <button type="button" className="text-muted-foreground hover:text-foreground" onClick={onClear} aria-label="Clear selected patient"><Icon name="close" /></button>
           </div>
           <div className="text-xs text-muted-foreground">DOB: {formatDateShort(selected.dob || "")} · Phone: {getPhone(selected)}</div>
           <div className="flex items-center gap-1.5">
-            <Pill width={13} height={13} strokeWidth={1.75} className="text-muted-foreground" />
+            <Icon name="medication" size={14} className="text-muted-foreground" />
             <span className="text-xs text-muted-foreground">Last drug: {selected.last_drug || "—"} {selected.last_dosage || ""}</span>
           </div>
           <PAStatusBadge status={(selected.pa_status as any) || "none"} expirationDate={selected.pa_expiration_date} />
@@ -668,7 +632,7 @@ function Step1Patient({ search, setSearch, results, selected, onSelect, onClear,
 
       {!selected && !search && (
         <div className="flex flex-col items-center gap-2 py-10 text-center">
-          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-muted text-muted-foreground"><Users width={28} height={28} strokeWidth={1.75} /></span>
+          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-muted text-muted-foreground"><Icon name="patients" size={24} /></span>
           <p className="text-sm text-muted-foreground m-0">Search above or add a new patient to continue</p>
         </div>
       )}
@@ -681,13 +645,12 @@ function MethodFork({ onPick }: { onPick: (m: "upload" | "manual") => void }) {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-1 duration-300">
       <div className="mb-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-primary">Step 2 of 4</p>
         <h2 className="text-lg font-semibold text-foreground mt-1">How would you like to create this referral?</h2>
         <p className="text-sm text-muted-foreground mt-0.5">Choose your preferred method</p>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <button type="button" className="flex flex-col items-start gap-2 rounded-lg border border-border p-5 text-left hover:border-primary/40 hover:bg-primary/5 transition-colors" onClick={() => onPick("upload")}>
-          <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary"><Upload width={22} height={22} strokeWidth={1.75} /></span>
+          <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary"><Icon name="upload" size={24} /></span>
           <div className="flex items-center gap-2">
             <h3 className="text-base font-semibold text-foreground">Upload Documents</h3>
             <span className="inline-flex items-center rounded-full bg-success/15 text-success px-2 py-0.5 text-[10px] font-bold">Recommended</span>
@@ -696,13 +659,13 @@ function MethodFork({ onPick }: { onPick: (m: "upload" | "manual") => void }) {
           <ul className="flex flex-col gap-1.5 mt-1">
             {["Faster (AI does the work)", "More accurate", "Less typing"].map((c) => (
               <li key={c} className="flex items-center gap-1.5 text-sm text-foreground">
-                <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-success/15 text-success"><Check width={11} height={11} strokeWidth={2} /></span>{c}
+                <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-success/15 text-success"><Icon name="check" size={14} strokeWidth={2} /></span>{c}
               </li>
             ))}
           </ul>
         </button>
         <button type="button" className="flex flex-col items-start gap-2 rounded-lg border border-border p-5 text-left hover:border-primary/40 hover:bg-muted/40 transition-colors" onClick={() => onPick("manual")}>
-          <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-muted text-foreground"><Pencil width={22} height={22} strokeWidth={1.75} /></span>
+          <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-muted text-foreground"><Icon name="edit" size={24} /></span>
           <h3 className="text-base font-semibold text-foreground">Manual Entry</h3>
           <p className="text-sm text-muted-foreground">Type in the information yourself</p>
           <p className="text-sm text-muted-foreground italic">Use this if you don't have documents ready</p>
@@ -729,7 +692,7 @@ function SmartDropzone({ files, onFiles, removeFile, setTag, isPacket, setPacket
         onDragOver={(e) => { e.preventDefault(); setDrag(true); }} onDragLeave={() => setDrag(false)}
         onDrop={(e) => { e.preventDefault(); setDrag(false); if (e.dataTransfer.files.length) onFiles(Array.from(e.dataTransfer.files)); }}
       >
-        <span className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-primary"><Upload width={22} height={22} strokeWidth={1.75} /></span>
+        <span className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-primary"><Icon name="upload" size={24} /></span>
         <div className="text-sm font-semibold text-foreground">Choose files or drag &amp; drop</div>
         <div className="text-xs text-muted-foreground max-w-sm">Referral form, insurance cards, chart notes, labs — drop them all here. PDF, JPG, PNG.</div>
       </div>
@@ -745,7 +708,7 @@ function SmartDropzone({ files, onFiles, removeFile, setTag, isPacket, setPacket
           "flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded border mt-0.5",
           isPacket ? "bg-primary border-primary text-primary-foreground" : "border-input",
         )}>
-          {isPacket && <Check width={12} height={12} strokeWidth={2} />}
+          {isPacket && <Icon name="check" size={14} strokeWidth={2} />}
         </span>
         <div>
           <div className="text-sm font-semibold text-foreground">This is one combined packet</div>
@@ -757,7 +720,7 @@ function SmartDropzone({ files, onFiles, removeFile, setTag, isPacket, setPacket
         <div className="flex flex-col gap-2 mt-3">
           {files.map((f: UploadedFile) => (
             <div className="flex items-center gap-2.5 rounded-md border border-border px-3 py-2" key={f.id}>
-              <span className="text-success shrink-0"><FileCheck width={17} height={17} strokeWidth={1.75} /></span>
+              <span className="text-success shrink-0"><Icon name="file-check" /></span>
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-medium text-foreground truncate">{f.name}</div>
                 <div className="text-xs text-muted-foreground">{f.size}</div>
@@ -771,7 +734,7 @@ function SmartDropzone({ files, onFiles, removeFile, setTag, isPacket, setPacket
                   options={FILE_TYPE_TAGS}
                 />
               )}
-              <button type="button" className="text-muted-foreground hover:text-foreground shrink-0" onClick={() => removeFile(f.id)} aria-label="Remove file"><X width={16} height={16} strokeWidth={1.75} /></button>
+              <button type="button" className="text-muted-foreground hover:text-foreground shrink-0" onClick={() => removeFile(f.id)} aria-label="Remove file"><Icon name="close" /></button>
             </div>
           ))}
         </div>
@@ -786,7 +749,7 @@ function BridgeBlock({ choice, onChange, showErrors }: { choice: "has" | "bridge
   return (
     <div className="rounded-lg border border-border p-4">
       <div className="flex items-center gap-2 mb-1.5">
-        <Shield width={16} height={16} strokeWidth={1.75} className="text-primary" />
+        <Icon name="shield" className="text-primary" />
         <h3 className="text-sm font-semibold text-foreground">Bridge program? <span className="text-destructive">*</span></h3>
       </div>
       <p className="text-sm text-muted-foreground mb-3">Is this referral being routed through a manufacturer-funded bridge program (e.g., Dupixent MyWay, Humira Complete)?</p>
@@ -824,15 +787,15 @@ function BridgeBlock({ choice, onChange, showErrors }: { choice: "has" | "bridge
 /* ── Manual single-scroll ── */
 function ManualScroll({ data, setField, choice, setChoice, showErrors }: any) {
   const sections = [
-    { key: "clinical", title: "Medication / Medical Information", icon: Pill, fields: CLINICAL_FIELDS },
-    { key: "provider", title: "Prescriber Information", icon: Stethoscope, fields: PROVIDER_FIELDS },
+    { key: "clinical", title: "Medication / Medical Information", icon: "medication", fields: CLINICAL_FIELDS },
+    { key: "provider", title: "Prescriber Information", icon: "prescriber", fields: PROVIDER_FIELDS },
   ];
   return (
     <div className="flex flex-col gap-6">
       {sections.map((s) => (
         <div key={s.key}>
           <div className="flex items-center gap-2 mb-3">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><s.icon width={16} height={16} strokeWidth={1.75} /></span>
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Icon name={s.icon} /></span>
             <h3 className="text-sm font-semibold text-foreground">{s.title}</h3>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -842,7 +805,7 @@ function ManualScroll({ data, setField, choice, setChoice, showErrors }: any) {
       ))}
       <div>
         <div className="flex items-center gap-2 mb-3">
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Shield width={16} height={16} strokeWidth={1.75} /></span>
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Icon name="shield" /></span>
           <h3 className="text-sm font-semibold text-foreground">Insurance Information<span className="text-destructive ml-0.5">*</span></h3>
         </div>
         <div className="flex flex-col gap-4">
@@ -864,17 +827,16 @@ function Step3Pharmacy({ loading, pharmacies, selectedId, defaultId, onSelect, s
   return (
     <div className="animate-in fade-in slide-in-from-bottom-1 duration-300 flex flex-col gap-4">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-primary">Step 3 of 4</p>
         <h2 className="text-lg font-semibold text-foreground mt-1">Select pharmacy for this referral</h2>
         <p className="text-sm text-muted-foreground mt-0.5">Defaults to your clinic's preferred pharmacy. Change if this referral needs a different one.</p>
       </div>
 
       {!loading && !defaultId && (
-        <NoticeStrip icon={AlertTriangle} tone="warn">Your clinic doesn't have a default pharmacy set. Pick one for this referral.</NoticeStrip>
+        <NoticeStrip icon="alert-triangle" tone="warn">Your clinic doesn't have a default pharmacy set. Pick one for this referral.</NoticeStrip>
       )}
 
       {loading ? (
-        <div className="flex justify-center py-12"><Loader2 width={26} height={26} strokeWidth={1.75} className="animate-spin text-muted-foreground" /></div>
+        <div className="flex justify-center py-12"><Icon name="spinner" size={24} className="animate-spin text-muted-foreground" /></div>
       ) : pharmacies.length === 0 ? (
         <div className="flex flex-col items-center gap-2 py-10 text-center"><p className="text-sm text-muted-foreground m-0">No pharmacies available for your clinic. Contact Dirxctional support.</p></div>
       ) : (
@@ -890,7 +852,7 @@ function Step3Pharmacy({ loading, pharmacies, selectedId, defaultId, onSelect, s
           {selected && (
             <div className="rounded-lg border border-border p-4">
               <div className="flex items-center gap-2 mb-1.5">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Pill width={15} height={15} strokeWidth={1.75} /></span>
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Icon name="medication" /></span>
                 <h3 className="text-sm font-semibold text-foreground">{selected.name}</h3>
                 {defaultId && selectedId === defaultId && (
                   <span className="ml-auto inline-flex items-center rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[11px] font-semibold">Default</span>
@@ -910,11 +872,11 @@ function Step3Pharmacy({ loading, pharmacies, selectedId, defaultId, onSelect, s
 }
 
 /* ── Step 4 — review ── */
-function ReviewCard({ icon: Icon, title, action, children }: any) {
+function ReviewCard({ icon, title, action, children }: any) {
   return (
     <div className="rounded-lg border border-border p-4">
       <div className="flex items-center gap-2 mb-2.5">
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Icon width={15} height={15} strokeWidth={1.75} /></span>
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Icon name={icon} /></span>
         <h3 className="text-sm font-semibold text-foreground">{title}</h3>
         {action && <span className="ml-auto">{action}</span>}
       </div>
@@ -934,24 +896,23 @@ function Step4Review({ patient, getName, pharmacy, isDefault, method, choice, fi
   return (
     <div className="animate-in fade-in slide-in-from-bottom-1 duration-300 flex flex-col gap-4">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-primary">Step 4 of 4</p>
         <h2 className="text-lg font-semibold text-foreground mt-1">Submit Referral</h2>
         <p className="text-sm text-muted-foreground mt-0.5">Confirm and submit your referral for processing</p>
       </div>
 
-      <ReviewCard icon={Users} title="Patient Information">
+      <ReviewCard icon="patients" title="Patient Information">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <ReviewField label="Name" value={patient ? getName(patient) : "—"} />
           <ReviewField label="DOB" value={patient?.dob ? formatDateShort(patient.dob) : "—"} />
         </div>
       </ReviewCard>
 
-      <ReviewCard icon={Pill} title="Pharmacy" action={isDefault ? <span className="inline-flex items-center rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[11px] font-semibold">Default</span> : null}>
+      <ReviewCard icon="medication" title="Pharmacy" action={isDefault ? <span className="inline-flex items-center rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[11px] font-semibold">Default</span> : null}>
         <div className="text-sm font-medium text-foreground">{pharmacy?.name || "—"}</div>
         {pharmacy && <div className="text-xs text-muted-foreground mt-0.5">{[pharmacy.city, pharmacy.state].filter(Boolean).join(", ")}</div>}
       </ReviewCard>
 
-      <ReviewCard icon={Shield} title="Insurance">
+      <ReviewCard icon="shield" title="Insurance">
         {choice === "bridge" ? (
           <div className="text-sm text-foreground">Bridge program — manufacturer-funded</div>
         ) : method === "upload" ? (
@@ -965,11 +926,11 @@ function Step4Review({ patient, getName, pharmacy, isDefault, method, choice, fi
       </ReviewCard>
 
       {files.length > 0 && (
-        <ReviewCard icon={FileText} title="Documents Uploaded">
+        <ReviewCard icon="document" title="Documents Uploaded">
           <div className="flex flex-col gap-1.5">
             {files.map((f: UploadedFile) => (
               <div key={f.id} className="flex items-center gap-2 text-sm">
-                <span className="text-success shrink-0"><CheckCircle width={15} height={15} strokeWidth={1.75} /></span>
+                <span className="text-success shrink-0"><Icon name="check-circle" /></span>
                 <span className="text-foreground">{f.name}</span>
                 <span className="text-muted-foreground">({f.size})</span>
               </div>
@@ -978,15 +939,15 @@ function Step4Review({ patient, getName, pharmacy, isDefault, method, choice, fi
         </ReviewCard>
       )}
 
-      <NoticeStrip icon={Sparkles} tone="teal">Our AI will automatically extract patient info, provider details, drug information, and more from your documents.</NoticeStrip>
-      <NoticeStrip icon={Shield}>Our team will handle the prior authorization process.</NoticeStrip>
+      <NoticeStrip icon="sparkles" tone="teal">Our AI will automatically extract patient info, provider details, drug information, and more from your documents.</NoticeStrip>
+      <NoticeStrip icon="shield">Our team will handle the prior authorization process.</NoticeStrip>
 
       <label className="flex items-start gap-2.5 rounded-lg border border-border bg-muted/30 p-3.5 cursor-pointer" onClick={(e) => { e.preventDefault(); setConfirm(!confirm); }}>
         <span className={cn(
           "flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded border mt-0.5",
           confirm ? "bg-primary border-primary text-primary-foreground" : "border-input",
         )}>
-          {confirm && <Check width={12} height={12} strokeWidth={2} />}
+          {confirm && <Icon name="check" size={14} strokeWidth={2} />}
         </span>
         <span className="text-sm text-foreground">I confirm all information is accurate and complete.</span>
       </label>

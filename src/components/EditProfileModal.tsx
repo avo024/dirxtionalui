@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import {
   Dialog,
   DialogContent,
@@ -13,7 +13,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { getMyClinic, updateMyProfile } from "@/lib/api";
+import { Switch } from "@/components/ui/switch";
+import { getMyClinic, updateMyProfile, type EmailPrefs } from "@/lib/api";
 import { useProfile, PROFILE_QUERY_KEY } from "@/hooks/useProfile";
 import { useToast } from "@/hooks/use-toast";
 
@@ -37,6 +38,22 @@ interface FormErrors {
 
 const CLINIC_QUERY_KEY = ["clinic", "me"] as const;
 
+const NO_PREFS: EmailPrefs = {
+  referral_updates: false,
+  requests: false,
+  appeals: false,
+  notes_on_sent: false,
+  support: false,
+};
+
+const PREF_ROWS: { key: keyof EmailPrefs; label: string }[] = [
+  { key: "referral_updates", label: "Referral approved, needs attention, or delivered" },
+  { key: "requests", label: "Requests and signatures from Dirxctional" },
+  { key: "appeals", label: "Appeal decisions" },
+  { key: "notes_on_sent", label: "Notes on sent referrals" },
+  { key: "support", label: "Support request resolved" },
+];
+
 export function EditProfileModal({ open, onOpenChange }: EditProfileModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -56,6 +73,7 @@ export function EditProfileModal({ open, onOpenChange }: EditProfileModalProps) 
     npi: "",
   });
   const [errors, setErrors] = useState<FormErrors>({});
+  const [prefs, setPrefs] = useState<EmailPrefs>(NO_PREFS);
 
   // Hydrate the form from the latest profile each time the modal opens.
   useEffect(() => {
@@ -66,6 +84,7 @@ export function EditProfileModal({ open, onOpenChange }: EditProfileModalProps) 
       phone: profile?.phone ?? "",
       npi: profile?.npi ?? "",
     });
+    setPrefs({ ...NO_PREFS, ...(profile?.email_prefs ?? {}) });
     setErrors({});
   }, [open, profile]);
 
@@ -102,6 +121,7 @@ export function EditProfileModal({ open, onOpenChange }: EditProfileModalProps) 
       last_name: form.last_name.trim(),
       phone: form.phone.trim(),
       npi: form.npi.trim() || undefined,
+      email_prefs: prefs,
     });
   };
 
@@ -195,6 +215,32 @@ export function EditProfileModal({ open, onOpenChange }: EditProfileModalProps) 
 
           <Separator />
 
+          {/* Email notifications (per user, default off) */}
+          <section className="space-y-3" data-testid="email-prefs">
+            <div>
+              <h3 className="text-sm font-semibold text-foreground">Email notifications</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Choose which emails you get. Invites and sign-in emails are always sent.
+              </p>
+            </div>
+            <ul className="divide-y divide-border rounded-lg border border-border">
+              {PREF_ROWS.map(({ key, label }) => (
+                <li key={key} className="flex items-center justify-between gap-3 px-3 py-2.5">
+                  <Label htmlFor={`pref_${key}`} className="text-sm font-normal text-foreground cursor-pointer">
+                    {label}
+                  </Label>
+                  <Switch
+                    id={`pref_${key}`}
+                    checked={prefs[key]}
+                    onCheckedChange={(v) => setPrefs((p) => ({ ...p, [key]: v }))}
+                  />
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <Separator />
+
           {/* Clinic Information (read-only) */}
           <section className="space-y-3">
             <div>
@@ -213,7 +259,7 @@ export function EditProfileModal({ open, onOpenChange }: EditProfileModalProps) 
 
             {clinicLoading ? (
               <div className="flex items-center justify-center py-4">
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                <Icon name="spinner" className="animate-spin text-muted-foreground" />
               </div>
             ) : (
               <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3 rounded-lg border border-border bg-muted/30 p-3">
@@ -236,7 +282,7 @@ export function EditProfileModal({ open, onOpenChange }: EditProfileModalProps) 
               Cancel
             </Button>
             <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {mutation.isPending && <Icon name="spinner" className="mr-2 animate-spin" />}
               Save Changes
             </Button>
           </DialogFooter>

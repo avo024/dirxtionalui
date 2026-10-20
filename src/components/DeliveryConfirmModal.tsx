@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Check, ChevronsUpDown, FileText, AlertTriangle, ChevronDown, Loader2, Image, Eye, EyeOff } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -45,7 +45,7 @@ function QuickPreviewToggle({ active, onClick }: { active: boolean; onClick: () 
         active && "bg-muted text-foreground",
       )}
     >
-      {active ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+      {active ? <Icon name="eye-off" size={14} /> : <Icon name="eye" size={14} />}
     </button>
   );
 }
@@ -245,7 +245,7 @@ export function DeliveryConfirmModal({
                 <p className="font-semibold text-foreground">{currentPharmacy.name}</p>
                 {reassigned && (
                   <span className="flex items-center gap-1 text-xs text-success">
-                    <Check className="h-3 w-3" /> Pharmacy updated
+                    <Icon name="check" size={14} /> Pharmacy updated
                   </span>
                 )}
               </div>
@@ -261,7 +261,7 @@ export function DeliveryConfirmModal({
             </div>
           ) : (
             <div className="flex items-center gap-2 rounded-md bg-warning/10 border border-warning/30 px-3 py-3">
-              <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
+              <Icon name="alert-triangle" className="text-warning shrink-0" />
               <span className="text-sm text-warning">No pharmacy assigned — select one below</span>
             </div>
           )}
@@ -282,14 +282,14 @@ export function DeliveryConfirmModal({
           }}>
             <CollapsibleTrigger asChild>
               <Button variant="ghost" size="sm" className="text-primary px-0 h-auto font-normal">
-                <ChevronDown className={cn("h-4 w-4 mr-1 transition-transform", changeOpen && "rotate-180")} />
+                <Icon name="chevron-down" className={cn("h-4 w-4 mr-1 transition-transform", changeOpen && "rotate-180")} />
                 Change pharmacy
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent className="pt-2">
               {loadingPharmacies ? (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Loading pharmacies...
+                  <Icon name="spinner" className="animate-spin" /> Loading pharmacies...
                 </div>
               ) : (
                 // Not a plain Combobox: each row needs per-item warning-colored
@@ -311,7 +311,7 @@ export function DeliveryConfirmModal({
                           ? "Reassigning..."
                           : pharmacies.find((p) => p.id === selectedPharmacyId)?.name || "Select a pharmacy"}
                       </span>
-                      <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+                      <Icon name="chevrons-updown" className="shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent align="start" className="w-[--radix-popover-trigger-width] p-0">
@@ -332,7 +332,7 @@ export function DeliveryConfirmModal({
                                   handleReassign(p.id);
                                 }}
                               >
-                                <Check className={cn("mr-2 h-4 w-4 shrink-0", p.id === selectedPharmacyId ? "opacity-100" : "opacity-0")} />
+                                <Icon name="check" className={cn("mr-2 h-4 w-4 shrink-0", p.id === selectedPharmacyId ? "opacity-100" : "opacity-0")} />
                                 <span className="flex items-center gap-2 min-w-0">
                                   <span className="truncate">{p.name}</span>
                                   {realNumber(p.fax) ? (
@@ -364,8 +364,8 @@ export function DeliveryConfirmModal({
 
             {/* Always included — Referral PDF */}
             <div className="flex items-center gap-2 text-sm">
-              <Check className="h-4 w-4 text-success shrink-0" />
-              <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <Icon name="check" className="text-success shrink-0" />
+              <Icon name="document" size={14} className="text-muted-foreground shrink-0" />
               <span className="flex-1">Referral PDF</span>
               <QuickPreviewToggle
                 active={previewRowId === REFERRAL_PDF_PREVIEW_ID}
@@ -379,8 +379,8 @@ export function DeliveryConfirmModal({
             {/* Always included — PA Letter (if exists) */}
             {hasPALetter && (
               <div className="flex items-center gap-2 text-sm">
-                <Check className="h-4 w-4 text-success shrink-0" />
-                <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <Icon name="check" className="text-success shrink-0" />
+                <Icon name="document" size={14} className="text-muted-foreground shrink-0" />
                 <span className="flex-1">PA Approval Letter</span>
                 {paLetterPreviewDoc && (
                   <QuickPreviewToggle
@@ -397,8 +397,8 @@ export function DeliveryConfirmModal({
             {/* Approved by number, no letter — informational, not a blocker */}
             {paRequired && !hasPALetter && hasApprovalNumber && (
               <div className="flex items-center gap-2 text-sm">
-                <Check className="h-4 w-4 text-success shrink-0" />
-                <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <Icon name="check" className="text-success shrink-0" />
+                <Icon name="document" size={14} className="text-muted-foreground shrink-0" />
                 <span>PA approved by number <span className="text-xs text-muted-foreground">— prints on the fax cover sheet (no letter to attach)</span></span>
               </div>
             )}
@@ -406,7 +406,7 @@ export function DeliveryConfirmModal({
             {/* No approval evidence at all — blocks sending */}
             {paMissing && (
               <div className="flex items-center gap-2 rounded-md bg-destructive/10 border border-destructive/30 px-3 py-2 mt-1">
-                <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
+                <Icon name="alert-triangle" className="text-destructive shrink-0" />
                 <span className="text-xs text-destructive">PA approval required — upload the letter or record the approval with its PA number in PA Management.</span>
               </div>
             )}
@@ -416,7 +416,7 @@ export function DeliveryConfirmModal({
               <Collapsible open={addlDocsOpen} onOpenChange={setAddlDocsOpen}>
                 <CollapsibleTrigger asChild>
                   <Button variant="ghost" size="sm" className="text-muted-foreground px-0 h-auto font-normal text-xs mt-1">
-                    <ChevronDown className={cn("h-3.5 w-3.5 mr-1 transition-transform", addlDocsOpen && "rotate-180")} />
+                    <Icon name="chevron-down" size={14} className={cn("h-3.5 w-3.5 mr-1 transition-transform", addlDocsOpen && "rotate-180")} />
                     Add additional documents (optional)
                   </Button>
                 </CollapsibleTrigger>
@@ -434,9 +434,9 @@ export function DeliveryConfirmModal({
                               className="h-3.5 w-3.5"
                             />
                             {isImg ? (
-                              <Image className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                              <Icon name="image" size={14} className="text-muted-foreground shrink-0" />
                             ) : (
-                              <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                              <Icon name="document" size={14} className="text-muted-foreground shrink-0" />
                             )}
                             <span className={cn("truncate", !isIncluded && "text-muted-foreground")}>
                               {doc.original_filename || doc.s3_key}
@@ -457,7 +457,7 @@ export function DeliveryConfirmModal({
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={handleDeliver} disabled={delivering || paMissing}>
-            {delivering ? <><Loader2 className="h-4 w-4 animate-spin mr-1" /> Sending...</> : "Confirm & Send"}
+            {delivering ? <><Icon name="spinner" className="animate-spin mr-1" /> Sending...</> : "Confirm & Send"}
           </Button>
         </DialogFooter>
       </DialogContent>

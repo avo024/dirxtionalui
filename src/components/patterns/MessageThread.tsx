@@ -1,4 +1,5 @@
-import { File as FileIcon, Paperclip, Send } from "lucide-react";
+import { EmptyState, type EmptyArtName } from "@/components/patterns/EmptyState";
+import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,6 +32,9 @@ interface MessageThreadProps {
   onAttach?: () => void;
   placeholder?: string;
   empty?: string;
+  /** When set, the empty thread shows this line illustration + title (clinic surfaces). */
+  emptyArt?: EmptyArtName;
+  emptyTitle?: string;
   /** Which side represents the current viewer; default "ours" (the admin/internal team). */
   ours?: "ours" | "clinic";
   hint?: string;
@@ -61,6 +65,8 @@ export function MessageThread({
   onAttach,
   placeholder,
   empty = "No messages yet.",
+  emptyArt,
+  emptyTitle,
   ours = "ours",
   hint = "Visible to the clinic",
   className,
@@ -70,7 +76,11 @@ export function MessageThread({
     <div className={cn("bg-card border border-border rounded-lg overflow-hidden flex flex-col", className)}>
       <div className="max-h-[56vh] min-h-[160px] overflow-y-auto">
         {messages.length === 0 && (
-          <div className="flex items-center justify-center h-[160px] text-sm text-muted-foreground">{empty}</div>
+          emptyArt ? (
+            <EmptyState art={emptyArt} title={emptyTitle || "No messages yet"} text={empty} size="sm" />
+          ) : (
+            <div className="flex items-center justify-center h-[160px] text-sm text-muted-foreground">{empty}</div>
+          )
         )}
         {messages.map((message, i) => {
           if (message.system) {
@@ -118,7 +128,7 @@ export function MessageThread({
                       onClick={att.onClick}
                       className="inline-flex items-center gap-1.5 self-start rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground hover:bg-accent"
                     >
-                      <FileIcon width={14} height={14} strokeWidth={1.75} aria-hidden="true" />
+                      <Icon name="document" size={14} />
                       {att.name}
                       {att.size && <span className="text-muted-foreground">{att.size}</span>}
                     </button>
@@ -148,12 +158,12 @@ export function MessageThread({
           />
           <div className="flex items-center gap-2">
             <Button type="button" variant="ghost" size="sm" onClick={onAttach}>
-              <Paperclip width={16} height={16} strokeWidth={1.75} aria-hidden="true" />
+              <Icon name="attach" />
               Attach
             </Button>
             <span className="ml-auto text-xs text-muted-foreground">{hint}</span>
             <Button type="button" size="sm" onClick={onSend} disabled={value.trim().length === 0}>
-              <Send width={16} height={16} strokeWidth={1.75} aria-hidden="true" />
+              <Icon name="send" />
               Send
             </Button>
           </div>

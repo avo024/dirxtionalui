@@ -1,5 +1,5 @@
 import { useEffect, useImperativeHandle, useRef, useState } from "react";
-import { Pill, Send, Eye, CheckCircle2, AlertTriangle, ShieldAlert, Ban, Loader2, Check, FileText, Upload, ChevronRight } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { formatDateShort } from "@/lib/dateUtils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -503,7 +503,7 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged, hideAc
   if (loading) {
     return (
       <div className="rounded-lg border border-border bg-card shadow-sm p-[var(--density-card-pad)]">
-        <div className="flex items-center gap-2.5 mb-3"><span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Pill size={15} /></span><h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">Manufacturer Assistance</h3></div>
+        <div className="flex items-center gap-2.5 mb-3"><span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Icon name="medication" /></span><h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">Manufacturer Assistance</h3></div>
         <p className="text-sm text-muted-foreground">Loading…</p>
       </div>
     );
@@ -511,7 +511,7 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged, hideAc
   if (loadError) {
     return (
       <div className="rounded-lg border border-border bg-card shadow-sm p-[var(--density-card-pad)]">
-        <div className="flex items-center gap-2.5 mb-3"><span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Pill size={15} /></span><h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">Manufacturer Assistance</h3></div>
+        <div className="flex items-center gap-2.5 mb-3"><span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Icon name="medication" /></span><h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">Manufacturer Assistance</h3></div>
         <p className="mb-2 text-sm text-destructive">{loadError}</p>
         <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" onClick={fetchEnrollment}>Try again</button>
       </div>
@@ -522,11 +522,11 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged, hideAc
   return (
     <div className="rounded-lg border border-border bg-card shadow-sm p-[var(--density-card-pad)]">
       <div className="flex items-center gap-2.5 mb-3">
-        <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Pill size={15} /></span>
+        <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Icon name="medication" /></span>
         <h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">Manufacturer Assistance</h3>
         {draft?.status === "draft" && saving && (
           <span className="ml-auto inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-            <Loader2 size={11} className="animate-spin" />Saving…
+            <Icon name="spinner" size={14} className="animate-spin" />Saving…
           </span>
         )}
         {draft?.status === "draft" && !saving && (
@@ -534,7 +534,7 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged, hideAc
             className="ml-auto inline-flex items-center gap-1 text-[11px] font-semibold text-success transition-opacity duration-300"
             style={{ opacity: savedFlash ? 1 : 0 }}
           >
-            <Check size={11} />Saved
+            <Icon name="check" size={14} />Saved
           </span>
         )}
       </div>
@@ -543,7 +543,7 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged, hideAc
         // ── State D: sent ──
         <div className="rounded-md border border-success/35 bg-success/[0.08] px-3.5 py-3">
           <div className="flex flex-wrap items-center gap-2">
-            <CheckCircle2 size={15} className="text-success" />
+            <Icon name="check-circle" className="text-success" />
             <span className="text-sm font-semibold text-foreground">
               Enrolled — sent to {sentSummary.programName}{sentSummary.submittedAt ? ` ${formatDateShort(sentSummary.submittedAt)}` : ""}
             </span>
@@ -601,7 +601,7 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged, hideAc
                   disabled={startingProgramId === program.id}
                   onClick={() => startEnrollment(program)}
                 >
-                  {startingProgramId === program.id ? <Loader2 size={13} className="animate-spin" /> : <Pill size={13} />}Start enrollment
+                  {startingProgramId === program.id ? <Icon name="spinner" size={14} className="animate-spin" /> : <Icon name="medication" size={14} />}Start enrollment
                 </button>
               )}
             </div>
@@ -631,7 +631,7 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged, hideAc
                       checked={selectedSignedDocId === doc.id}
                       onChange={() => setSelectedSignedDocId(doc.id)}
                     />
-                    <FileText size={13} className="shrink-0 text-muted-foreground" />
+                    <Icon name="document" size={14} className="shrink-0 text-muted-foreground" />
                     {doc.filename}
                   </label>
                 ))}
@@ -696,7 +696,7 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged, hideAc
             {prefilledEntries.length > 0 && (
               <Collapsible open={prefilledOpen} onOpenChange={setPrefilledOpen} className="mb-3">
                 <CollapsibleTrigger className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground">
-                  <ChevronRight width={12} height={12} strokeWidth={1.75} className={cn("transition-transform", prefilledOpen && "rotate-90")} aria-hidden="true" />
+                  <Icon name="chevron-right" size={14} className={cn("transition-transform", prefilledOpen && "rotate-90")} />
                   Prefilled from the referral · {prefilledEntries.length} field{prefilledEntries.length === 1 ? "" : "s"}
                 </CollapsibleTrigger>
                 <CollapsibleContent className="pt-2">
@@ -744,18 +744,18 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged, hideAc
             )}
             {!formFillable && (
               <p className="mb-2.5 flex items-center gap-1.5 text-[12.5px] text-muted-foreground">
-                <AlertTriangle size={13} className="shrink-0" />
+                <Icon name="alert-triangle" size={14} className="shrink-0" />
                 This form isn&apos;t set up for auto-fill yet — preview will show it blank. You can still send it to the clinic as an attachment.
               </p>
             )}
 
             <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" disabled={previewLoading} onClick={handlePreview}>
-              {previewLoading ? <Loader2 size={13} className="animate-spin" /> : <Eye size={13} />}Preview the filled form
+              {previewLoading ? <Icon name="spinner" size={14} className="animate-spin" /> : <Icon name="eye" size={14} />}Preview the filled form
             </button>
 
             {draft?.adjusted_document ? (
               <div className="mt-2 flex flex-wrap items-center gap-2">
-                <FileText size={13} className="shrink-0 text-muted-foreground" />
+                <Icon name="document" size={14} className="shrink-0 text-muted-foreground" />
                 <span className="text-[12.5px] text-foreground/90">
                   Using your uploaded copy: {draft.adjusted_document.filename}
                   {draft.adjusted_document.uploaded_at ? ` · ${formatDateShort(draft.adjusted_document.uploaded_at)}` : ""}
@@ -771,7 +771,7 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged, hideAc
             ) : (
               <div className="mt-2">
                 <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" disabled={uploadingAdjusted} onClick={() => adjustedFileRef.current?.click()}>
-                  {uploadingAdjusted ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}Upload adjusted copy
+                  {uploadingAdjusted ? <Icon name="spinner" size={14} className="animate-spin" /> : <Icon name="upload" size={14} />}Upload adjusted copy
                 </button>
                 <input
                   ref={adjustedFileRef}
@@ -797,7 +797,7 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged, hideAc
                 </p>
                 {!hideActions && (
                   <button className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-45 disabled:cursor-not-allowed" disabled={!canFinalize} onClick={() => setSendSigConfirmOpen(true)}>
-                    <Send size={13} />Send to clinic for signatures
+                    <Icon name="send" size={14} />Send to clinic for signatures
                   </button>
                 )}
                 {!canFinalize && (
@@ -887,19 +887,19 @@ function EligibilitySection({ otherWarnings, stateExcludedWarning, remsWarning, 
     <div className="flex flex-col gap-2">
       {stateExcludedWarning && (
         <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/[0.08] px-3 py-2.5">
-          <Ban size={14} className="mt-px shrink-0 text-destructive" />
+          <Icon name="ban" size={14} className="mt-px shrink-0 text-destructive" />
           <span className="text-[12.5px] font-semibold text-destructive">{stateExcludedWarning.message}</span>
         </div>
       )}
       {remsWarning && (
         <div className="flex items-start gap-2 rounded-md border border-teal-700/35 bg-teal-50 px-3 py-2.5">
-          <ShieldAlert size={14} className="mt-px shrink-0 text-teal-700" />
+          <Icon name="shield-alert" size={14} className="mt-px shrink-0 text-teal-700" />
           <span className="text-[12.5px] font-semibold text-teal-700">{remsWarning.message}</span>
         </div>
       )}
       {otherWarnings.map((w) => (
         <div key={w.code} className="flex items-start gap-2 rounded-md border border-warning/35 bg-warning/[0.08] px-3 py-2.5">
-          <AlertTriangle size={14} className="mt-px shrink-0 text-warning" />
+          <Icon name="alert-triangle" size={14} className="mt-px shrink-0 text-warning" />
           <span className="text-[12.5px] text-warning">{w.message}</span>
         </div>
       ))}
@@ -963,11 +963,11 @@ function SubmitSection({
       </div>
       <div className="flex flex-wrap gap-2">
         <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" disabled={previewLoading} onClick={onPreview}>
-          {previewLoading ? <Loader2 size={13} className="animate-spin" /> : <Eye size={13} />}Preview
+          {previewLoading ? <Icon name="spinner" size={14} className="animate-spin" /> : <Icon name="eye" size={14} />}Preview
         </button>
         {!hideActions && (
           <button className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-45 disabled:cursor-not-allowed" disabled={submitDisabled} onClick={onSubmitClick}>
-            <Send size={13} />Submit
+            <Icon name="send" size={14} />Submit
           </button>
         )}
       </div>

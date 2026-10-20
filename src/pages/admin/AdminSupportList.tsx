@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, LifeBuoy, MessageSquareHeart, ChevronRight, Inbox, AlertTriangle } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { adminApi, type SupportCaseSummary } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { getRelativeTime } from "@/lib/dateUtils";
@@ -32,7 +32,7 @@ function CategoryChip({ category }: { category: string }) {
   if (category === "delivery_issue") {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 text-destructive px-2 py-0.5 text-[11px] font-semibold">
-        <AlertTriangle width={12} height={12} strokeWidth={1.75} />Delivery issue
+        <Icon name="alert-triangle" size={14} />Delivery issue
       </span>
     );
   }
@@ -42,7 +42,7 @@ function CategoryChip({ category }: { category: string }) {
       "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold",
       isFeedback ? "bg-teal-600/10 text-teal-700" : "bg-primary/10 text-primary",
     )}>
-      {isFeedback ? <MessageSquareHeart width={12} height={12} strokeWidth={1.75} /> : <LifeBuoy width={12} height={12} strokeWidth={1.75} />}
+      {isFeedback ? <Icon name="message-heart" size={14} /> : <Icon name="support" size={14} />}
       {isFeedback ? "Feedback" : "Support"}
     </span>
   );
@@ -142,7 +142,7 @@ export default function AdminSupportList() {
 
       {loading ? (
         <div className="flex justify-center py-16">
-          <Loader2 width={26} height={26} strokeWidth={1.75} className="animate-spin text-primary" />
+          <Icon name="spinner" size={24} className="animate-spin text-primary" />
         </div>
       ) : items.length > 0 ? (
         <div className="rounded-lg border border-border bg-card overflow-hidden">
@@ -178,7 +178,7 @@ export default function AdminSupportList() {
                   <TableCell><SupportStatusBadge status={c.status} /></TableCell>
                   <TableCell className="text-muted-foreground">{c.assigned_admin_name || <span className="opacity-45">—</span>}</TableCell>
                   <TableCell className="text-muted-foreground">{getRelativeTime(c.last_message_at || c.updated_at)}</TableCell>
-                  <TableCell><ChevronRight width={16} height={16} strokeWidth={1.75} className="text-muted-foreground" /></TableCell>
+                  <TableCell><Icon name="chevron-right" className="text-muted-foreground" /></TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -186,7 +186,7 @@ export default function AdminSupportList() {
         </div>
       ) : (
         <div className="flex flex-col items-center gap-2 py-16 text-center">
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground"><Inbox width={20} height={20} strokeWidth={1.75} /></span>
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground"><Icon name="referrals" size={20} /></span>
           <p className="text-sm font-semibold text-foreground">No cases here</p>
           <p className="text-sm text-muted-foreground">Nothing matches these filters. When a clinic opens a case or sends feedback, it lands here.</p>
         </div>

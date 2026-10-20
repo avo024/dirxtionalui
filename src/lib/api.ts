@@ -84,6 +84,8 @@ export interface MyClinic {
   npi?: string | null;
   default_pharmacy_id?: string | null;
   default_pharmacy_name?: string | null;
+  /** Also send action-needed emails to the clinic's main inbox (office manager setting). */
+  main_email_notifications?: boolean;
 }
 
 export async function getMyClinic(): Promise<MyClinic> {
@@ -100,6 +102,7 @@ export async function updateMyClinic(data: {
   fax?: string | null;
   address?: string | null;
   default_pharmacy_id?: string | null;
+  main_email_notifications?: boolean;
 }): Promise<MyClinic> {
   const res = await fetch(`${API_BASE_URL}/clinics/me`, {
     method: 'PATCH',
@@ -109,6 +112,15 @@ export async function updateMyClinic(data: {
   // Uses handleResponse (not a bare ok-check) so a 403 — e.g. "Only an
   // office manager can change clinic settings" — surfaces its real message.
   return handleResponse<MyClinic>(res);
+}
+
+/** Per-user email notification switches. All default to false; invites are always sent. */
+export interface EmailPrefs {
+  referral_updates: boolean;
+  requests: boolean;
+  appeals: boolean;
+  notes_on_sent: boolean;
+  support: boolean;
 }
 
 export interface MyProfile {
@@ -123,6 +135,7 @@ export interface MyProfile {
   role?: string | null;
   /** False for anyone but the clinic's office manager. */
   can_edit_clinic_settings?: boolean;
+  email_prefs?: EmailPrefs;
   [key: string]: any;
 }
 
@@ -135,10 +148,11 @@ export async function getMyProfile(): Promise<MyProfile> {
 }
 
 export async function updateMyProfile(data: {
-  first_name: string;
-  last_name: string;
-  phone: string;
+  first_name?: string;
+  last_name?: string;
+  phone?: string;
   npi?: string;
+  email_prefs?: EmailPrefs;
 }): Promise<MyProfile> {
   const res = await fetch(`${API_BASE_URL}/clinics/me/profile`, {
     method: 'PATCH',
@@ -501,6 +515,26 @@ export interface TaskDocument {
   id: string;
   filename: string;
   doc_type: string;
+}
+
+/** Approved PA already on file for the same patient + drug (admin referral
+ *  detail `prior_pa`). Present when the platform decided "no new PA needed"
+ *  (continuation) — or when the team overrode that and marked a new PA needed. */
+export interface PriorPa {
+  drug_name: string | null;
+  dosage: string | null;
+  pa_status: string | null;
+  /** ISO date, or null when no expiration was recorded. */
+  pa_expiration_date: string | null;
+  referral_id: string;
+  /** First 4 characters of referral_id. */
+  referral_short: string;
+  referral_created_at: string | null;
+  referral_status: string | null;
+  approved_at: string | null;
+  approved_by: string | null;
+  letter_document_id: string | null;
+  letter_referral_id: string | null;
 }
 
 export interface ReferralTask {
@@ -1016,13 +1050,26 @@ export const adminApi = {
     return handleResponse(response);
   },
 
-  async getReferralCounts(): Promise<any> {
-    const response = await fetch(`${API_BASE_URL}/admin/referrals/counts`, {
+  /** `month`: YYYY-MM | "all" (default: this month on the server). The response echoes the resolved `month`. */
+  async getReferralCounts(month?: string): Promise<any> {
+    const qs = month ? `?month=${encodeURIComponent(month)}` : '';
+    const response = await fetch(`${API_BASE_URL}/admin/referrals/counts${qs}`, {
       headers: await getHeaders(),
     });
     return handleResponse(response);
   },
 
+
+  // Admin edit endpoint (PUT /admin/referrals/:id). `pa_required` overrides the
+  // PA path — true = "needs a PA anyway", false = clear that override.
+  async updateReferral(id: string, body: { pa_required?: boolean }): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/admin/referrals/${id}`, {
+      method: 'PUT',
+      headers: await getHeaders(),
+      body: JSON.stringify(body),
+    });
+    return handleResponse(response);
+  },
 
   async updateExtractedData(id: string, extractedData: any): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/admin/referrals/${id}/extracted-data`, {
@@ -1404,6 +1451,9 @@ export interface AdminFaxInbound {
 }
 
 export interface AdminFaxesResponse {
+  /** Dirxctional's own fax line: E.164, or null when not configured. */
+  our_number?: string | null;
+  our_number_display?: string | null;
   outbound: AdminFaxOutbound[];
   inbound: AdminFaxInbound[];
   inbound_new_count: number;
