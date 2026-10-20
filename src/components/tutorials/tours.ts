@@ -88,7 +88,7 @@ export const TOURS: Record<string, TourDef> = {
         element: '[data-tour="user-menu"]',
         title: "Your email notifications",
         description:
-          "Choose which emails you get under your name → Edit Profile. Everything is off by default except invites.",
+          "You can always change which emails you get under your name → Edit Profile. Everything is off by default except invites.",
         side: "bottom",
         align: "end",
       },
