@@ -32,6 +32,7 @@ import { DeliveryConfirmModal } from "@/components/DeliveryConfirmModal";
 import { AdminRejectModal, FLAGGABLE_FIELDS, type RejectPayload } from "@/components/AdminRejectModal";
 import { DocumentViewer } from "@/components/DocumentViewer";
 import { PAAppealCard } from "@/components/PAAppealCard";
+import { PriorPaCard } from "@/components/admin/PriorPaCard";
 import { AppealPacketCard, type AppealPacketActions } from "@/components/AppealPacketCard";
 import { EnrollmentCard, type EnrollmentActions } from "@/components/EnrollmentCard";
 import { ReferralTasksCard } from "@/components/ReferralTasksCard";
@@ -406,6 +407,20 @@ export default function AdminReferralWorkstation() {
       ];
     }
 
+    const priorLetterId = referral?.prior_pa?.letter_document_id;
+    if (priorLetterId && activeDocId === priorLetterId) {
+      return [
+        ...documents,
+        {
+          id: priorLetterId,
+          original_filename: "PA approval letter.pdf",
+          file_type: "application/pdf",
+          doc_type: "pa_approval_letter",
+          uploaded_at: referral?.prior_pa?.approved_at || "",
+        },
+      ];
+    }
+
     const delivered = (referral?.last_delivery?.documents || []).find((d: any) => d?.id === activeDocId);
     if (delivered) {
       return [
@@ -421,7 +436,7 @@ export default function AdminReferralWorkstation() {
     }
 
     return documents;
-  }, [documents, paLetterInfo, activeDocId, referral?.last_delivery]);
+  }, [documents, paLetterInfo, activeDocId, referral?.last_delivery, referral?.prior_pa]);
 
   // ── PA dialogs ────────────────────────────────────────────────────
   const [filedOpen, setFiledOpen] = useState(false);
@@ -1267,6 +1282,15 @@ export default function AdminReferralWorkstation() {
         ])}
       />
     );
+    const priorPaCard = referral.prior_pa ? (
+      <PriorPaCard
+        key="prior_pa"
+        priorPa={referral.prior_pa}
+        paRequired={!!referral.pa_required}
+        onViewReferral={(rid) => navigate(`/admin/referrals/${rid}`)}
+        onViewLetter={openDeliveredDocPreview}
+      />
+    ) : null;
     const clinicalCard = (
       <DefinitionList
         key="clinical"
@@ -1301,6 +1325,7 @@ export default function AdminReferralWorkstation() {
         cards.push(medicationCard);
         break;
       case "review": {
+        if (priorPaCard) cards.push(priorPaCard);
         cards.push(medicationCard, clinicalCard, patientCard, prescriberCard);
 
         // Insurance card always shows on review — Alex 2026-09-23: the Stedi

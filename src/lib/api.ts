@@ -517,6 +517,26 @@ export interface TaskDocument {
   doc_type: string;
 }
 
+/** Approved PA already on file for the same patient + drug (admin referral
+ *  detail `prior_pa`). Present when the platform decided "no new PA needed"
+ *  (continuation) — or when the team overrode that and marked a new PA needed. */
+export interface PriorPa {
+  drug_name: string | null;
+  dosage: string | null;
+  pa_status: string | null;
+  /** ISO date, or null when no expiration was recorded. */
+  pa_expiration_date: string | null;
+  referral_id: string;
+  /** First 4 characters of referral_id. */
+  referral_short: string;
+  referral_created_at: string | null;
+  referral_status: string | null;
+  approved_at: string | null;
+  approved_by: string | null;
+  letter_document_id: string | null;
+  letter_referral_id: string | null;
+}
+
 export interface ReferralTask {
   id: string;
   referral_id: string;
