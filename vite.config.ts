@@ -1,7 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
-import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -47,7 +46,7 @@ export default defineConfig(({ mode }) => ({
       },
     },
   },
-  plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
+  plugins: [react()],
   // Strip console.*/debugger from production bundles — on a HIPAA app, no error
   // bodies / URLs should be reachable from the browser console (screen-share,
   // shared kiosk, error-monitoring capture). Dev keeps them.
