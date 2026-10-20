@@ -1040,6 +1040,17 @@ export const adminApi = {
   },
 
 
+  // Admin edit endpoint (PUT /admin/referrals/:id). `pa_required` overrides the
+  // PA path — true = "needs a PA anyway", false = clear that override.
+  async updateReferral(id: string, body: { pa_required?: boolean }): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/admin/referrals/${id}`, {
+      method: 'PUT',
+      headers: await getHeaders(),
+      body: JSON.stringify(body),
+    });
+    return handleResponse(response);
+  },
+
   async updateExtractedData(id: string, extractedData: any): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/admin/referrals/${id}/extracted-data`, {
       method: 'PUT',

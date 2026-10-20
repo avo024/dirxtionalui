@@ -472,6 +472,17 @@ export default function AdminReferralWorkstation() {
   };
 
   // ── Action handlers ───────────────────────────────────────────────
+  const handleSetPaRequired = async (value: boolean) => {
+    if (!id) return;
+    try {
+      await adminApi.updateReferral(id, { pa_required: value });
+      toast({ title: "PA path updated" });
+      await reload();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+  };
+
   const handleApprove = async () => {
     if (!id) return;
     try {
@@ -1237,7 +1248,22 @@ export default function AdminReferralWorkstation() {
           ["Frequency", clinical.dose_frequency || clinical.frequency, { editField: ["clinical", "dose_frequency"], editValue: clinical.dose_frequency || clinical.frequency }],
           ["Quantity", clinical.quantity, { editField: ["clinical", "quantity"] }],
           ["Route", clinical.route || clinical.administration],
-          ["PA path", referral.is_bridge_program ? "Bridge — no PA" : referral.pa_required ? `PA required${referral.pa_required_reason ? `: ${referral.pa_required_reason}` : ""}` : "No PA required"],
+          ["PA path", (
+            <span className="inline-flex flex-wrap items-baseline gap-x-2">
+              <span>{referral.is_bridge_program ? "Bridge — no PA" : referral.pa_required ? `PA required${referral.pa_required_reason ? `: ${referral.pa_required_reason}` : ""}` : "No PA required"}</span>
+              {referral.status === "ready_for_review" && !referral.is_bridge_program && (
+                !referral.pa_required ? (
+                  <Button type="button" variant="link" className="h-auto p-0 text-[12px]" onClick={() => handleSetPaRequired(true)}>
+                    Needs a PA anyway
+                  </Button>
+                ) : String(referral.pa_required_reason || "").startsWith("Marked by") ? (
+                  <Button type="button" variant="link" className="h-auto p-0 text-[12px]" onClick={() => handleSetPaRequired(false)}>
+                    Clear — no PA needed
+                  </Button>
+                ) : null
+              )}
+            </span>
+          )],
         ])}
       />
     );
