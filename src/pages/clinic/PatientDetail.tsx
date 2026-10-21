@@ -5,11 +5,10 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { underlineTabsListClass, underlineTabsTriggerClass } from "@/components/patterns/underlineTabs";
 import { DefinitionList } from "@/components/patterns/DefinitionList";
 import { IdChip } from "@/components/patterns/IdChip";
-import { StatusBadge } from "@/components/StatusBadge";
+import { StatusBadge, HolderMark } from "@/components/StatusBadge";
 import { ClinicPABadge } from "@/components/ClinicPABadge";
 import { PAStatusBadge } from "@/components/PAStatusBadge";
 import { Button } from "@/components/ui/button";
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,6 +19,8 @@ import { mapReferralsFromBackend } from "@/lib/dataMapper";
 import { formatDateShort, parseLocalDate } from "@/lib/dateUtils";
 import { toast } from "@/hooks/use-toast";
 import { PageContainer } from "@/components/patterns/PageContainer";
+import { ListRows, ListRow } from "@/components/patterns/ListRow";
+import "@/lists.css";
 
 const US_STATES = [
   "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA",
@@ -61,6 +62,9 @@ function drugPAStatus(drug: any): string {
   if (drug.pa_status === "approved") return "approved";
   return "none";
 }
+// Bridge-program referrals never need a PA; everything else keeps the real PA vocabulary.
+const paCell = (bridge: boolean | undefined, badge: React.ReactNode) =>
+  bridge ? <HolderMark h="done" label="Bridge — PA not required" /> : badge;
 function refStatusLabel(status: string): string {
   const m: Record<string, string> = {
     uploaded: "Uploaded", processing: "Processing", ready_for_review: "Ready for review",
@@ -220,27 +224,19 @@ export default function PatientDetail() {
             </Button>
           </div>
           {referrals.length > 0 ? (
-            <div className="rounded-lg border border-border bg-card overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Referral ID</TableHead><TableHead>Drug</TableHead><TableHead>Status</TableHead>
-                    <TableHead>PA status</TableHead><TableHead>Created</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {referrals.map((r: any) => (
-                    <TableRow key={r.id} className="cursor-pointer" onClick={() => navigate(`/clinic/referrals/${r.id}`)}>
-                      <TableCell><IdChip id={r.id} /></TableCell>
-                      <TableCell>{r.drug || r.drug_requested || "—"}</TableCell>
-                      <TableCell><StatusBadge status={r.status} variant="soft" /></TableCell>
-                      <TableCell><ClinicPABadge status={r.pa_status} appealOutcome={r.appeal_outcome} /></TableCell>
-                      <TableCell className="text-muted-foreground">{r.created_at ? formatDateShort(r.created_at) : "—"}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            <ListRows head={["Drug · referral", "Status", { label: "Created", r: true }, ""]}>
+              {referrals.map((r: any) => (
+                <ListRow
+                  key={r.id}
+                  to={`/clinic/referrals/${r.id}`}
+                  patient={<Link to={`/clinic/referrals/${r.id}`} className="no-underline hover:underline focus-visible:outline-none" style={{ color: "inherit" }}>{r.drug || r.drug_requested || "—"}</Link>}
+                  sub={<IdChip id={r.id} />}
+                  status={<StatusBadge status={r.status} />}
+                  extra={paCell(r.is_bridge_program, <ClinicPABadge status={r.pa_status} appealOutcome={r.appeal_outcome} />)}
+                  when={r.created_at ? formatDateShort(r.created_at) : "—"}
+                />
+              ))}
+            </ListRows>
           ) : (
             <div className="flex flex-col items-center gap-2 py-16 text-center">
               <span className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-muted-foreground"><Icon name="document" size={20} /></span>
@@ -262,51 +258,32 @@ export default function PatientDetail() {
               <Button onClick={() => navigate(`/clinic/referrals/new?patientId=${patient.id}`)}><Icon name="add" />Create First Referral</Button>
             </div>
           ) : (
-            <div className="rounded-lg border border-border bg-card overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Drug</TableHead><TableHead>PA status</TableHead><TableHead>PA number</TableHead>
-                    <TableHead>Valid through</TableHead><TableHead>Last referral</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sortedMedications.map((d: any) => {
-                    const disabled = !d.last_referral_id;
-                    return (
-                      <TableRow
-                        key={d.id}
-                        className={disabled ? undefined : "cursor-pointer"}
-                        style={d.is_active === false ? { opacity: 0.62 } : undefined}
-                        onClick={() => !disabled && navigate(`/clinic/referrals/${d.last_referral_id}`)}
-                      >
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon name="medication" size={14} /></span>
-                            <div className="flex flex-col">
-                              <span className="font-semibold text-foreground">{d.drug_name}</span>
-                              <span className="text-xs text-muted-foreground">{d.dosage} · {d.frequency || "—"}</span>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell><PAStatusBadge status={drugPAStatus(d)} expirationDate={d.pa_expiration_date} /></TableCell>
-                        <TableCell className="font-mono text-xs">{d.pa_number || "—"}</TableCell>
-                        <TableCell className="text-muted-foreground">{d.pa_expiration_date ? formatDateShort(d.pa_expiration_date) : "N/A"}</TableCell>
-                        <TableCell onClick={(e) => e.stopPropagation()}>
-                          {disabled ? (
-                            <span className="text-muted-foreground text-xs">No referral linked</span>
-                          ) : (
-                            <Button size="sm" variant="outline" onClick={() => navigate(`/clinic/referrals/${d.last_referral_id}`)}>
-                              <Icon name="eye" size={14} />View
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+            <ListRows head={["Drug", "PA status", { label: "Valid through", r: true }, ""]}>
+              {sortedMedications.map((d: any) => {
+                const linked = !!d.last_referral_id;
+                const bridge = !!(d.is_bridge_program || referrals.find((r: any) => r.id === d.last_referral_id)?.is_bridge_program);
+                const name = d.drug_name;
+                return (
+                  <ListRow
+                    key={d.id}
+                    to={linked ? `/clinic/referrals/${d.last_referral_id}` : undefined}
+                    quiet={d.is_active === false}
+                    patient={linked
+                      ? <Link to={`/clinic/referrals/${d.last_referral_id}`} className="no-underline hover:underline focus-visible:outline-none" style={{ color: "inherit" }}>{name}</Link>
+                      : name}
+                    sub={
+                      <>
+                        <span>{d.dosage} · {d.frequency || "—"}</span>
+                        {d.pa_number && !bridge && <><span className="sep">·</span><span className="mono">PA # {d.pa_number}</span></>}
+                        {!linked && <><span className="sep">·</span><span className="none">No referral linked</span></>}
+                      </>
+                    }
+                    status={paCell(bridge, <PAStatusBadge status={drugPAStatus(d)} expirationDate={d.pa_expiration_date} />)}
+                    when={bridge ? "—" : d.pa_expiration_date ? formatDateShort(d.pa_expiration_date) : "N/A"}
+                  />
+                );
+              })}
+            </ListRows>
           )}
         </TabsContent>
       </Tabs>

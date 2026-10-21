@@ -1,0 +1,59 @@
+/* Polish v4 — New Referral wizard on the shared card recipe: 12px radius, 1px stone-200 border, no shadow.
+   Tokens: index.css (--st-*, --color-stone-*, --font-editorial). Structure and behaviour live in CreateReferral.tsx. */
+
+.wz-card,.wz-rail,.wz-banner,.wz-sub{background:#fff;border:1px solid var(--color-stone-200);border-radius:12px;box-shadow:none}
+.wz-card{padding:24px}
+.wz-sub{padding:16px}
+.wz-banner{padding:10px 14px}
+.wz-rail{overflow:hidden}
+
+/* Step title + one-line subtitle */
+.wz-title{font:500 26px/1.2 var(--font-editorial);letter-spacing:-.01em;color:#1B2B5B;margin:0}
+.wz-lede{font:400 14px/20px var(--font-sans);color:var(--color-stone-500);margin:4px 0 0}
+
+/* Holder-coloured tag (Recommended / Default) */
+.wz-tag{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:4px;border:1px solid var(--st-dx-line);background:var(--st-dx-tint);color:var(--st-dx-ink);font:600 11px var(--font-sans);letter-spacing:.01em;white-space:nowrap}
+
+/* Step 1 */
+.wz-pick{display:block;width:100%;text-align:left;background:#fff;border:1px solid var(--color-stone-200);border-radius:10px;padding:10px 14px;cursor:pointer;transition:background .12s,border-color .12s}
+.wz-pick:hover{background:var(--color-stone-50);border-color:var(--color-stone-300)}
+.wz-pick:focus-visible{outline:2px solid var(--color-teal-500);outline-offset:2px}
+.wz-sel{border:1px solid var(--st-dx-line);background:var(--st-dx-tint);border-radius:12px;padding:14px}
+
+/* Step 2 — method fork */
+.wz-fork{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:640px){.wz-fork{grid-template-columns:1fr}}
+.wz-way{display:flex;flex-direction:column;align-items:flex-start;gap:8px;text-align:left;background:#fff;border:1px solid var(--color-stone-200);border-radius:12px;padding:20px;cursor:pointer;transition:border-color .12s,background .12s}
+.wz-way:hover{border-color:#1B2B5B;background:var(--color-stone-50)}
+.wz-way:focus-visible{outline:2px solid var(--color-teal-500);outline-offset:2px}
+.wz-way h3{font:600 16px/22px var(--font-sans);color:#1B2B5B;margin:0}
+.wz-way p{font:400 14px/20px var(--font-sans);color:var(--color-stone-600);margin:0}
+.wz-way .alt{font-style:italic;color:var(--color-stone-500)}
+.wz-way .ttl{display:flex;align-items:center;gap:8px}
+.wz-way ul{list-style:none;margin:2px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.wz-way li{display:flex;align-items:center;gap:8px;font:400 14px var(--font-sans);color:var(--color-stone-700)}
+.wz-way li svg{color:#1B2B5B;flex:none}
+
+/* Upload drop zone */
+.wz-drop{display:flex;flex-direction:column;align-items:center;gap:4px;padding:36px 24px;text-align:center;cursor:pointer;border:1px dashed rgba(27,43,91,.3);border-radius:12px;background:#fff;transition:background .12s,border-color .12s}
+.wz-drop:hover,.wz-drop[data-drag]{background:var(--st-dx-tint);border-color:#1B2B5B}
+.wz-drop:focus-visible{outline:2px solid var(--color-teal-500);outline-offset:2px}
+.wz-drop svg{color:#1B2B5B;margin-bottom:6px}
+.wz-drop .a{font:600 15px/22px var(--font-sans);color:#1B2B5B}
+.wz-drop .b{font:500 13px var(--font-sans);color:var(--color-teal-700);text-decoration:underline;text-decoration-color:var(--color-stone-300);text-underline-offset:3px}
+.wz-drop .c{font:400 12.5px/18px var(--font-sans);color:var(--color-stone-500);max-width:44ch;margin-top:6px}
+
+/* Option rows: combined-packet toggle, bridge choice, attestation */
+.wz-opt{display:flex;align-items:flex-start;gap:10px;background:#fff;border:1px solid var(--color-stone-200);border-radius:12px;padding:14px;cursor:pointer;transition:background .12s,border-color .12s}
+.wz-opt:hover{background:var(--color-stone-50)}
+.wz-opt[data-on]{border-color:#1B2B5B;background:var(--st-dx-tint)}
+.wz-box,.wz-radio{display:flex;align-items:center;justify-content:center;width:18px;height:18px;flex:none;margin-top:1px;border:1.5px solid var(--color-stone-300);background:#fff}
+.wz-box{border-radius:4px}
+.wz-radio{border-radius:50%}
+.wz-box[data-on],.wz-radio[data-on]{border-color:#1B2B5B}
+.wz-box[data-on]{background:#1B2B5B;color:#fff}
+.wz-radio i{width:8px;height:8px;border-radius:50%;background:#1B2B5B}
+
+/* Uploaded file row */
+.wz-file{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--color-stone-200);border-radius:10px;padding:8px 12px}
+.wz-file>svg{color:var(--color-teal-700);flex:none}
