@@ -18,6 +18,7 @@ import { adminApi } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { resolveNextAction, ballKey, groupKey, stageLabelForQueue, type NextAction } from "@/lib/nextAction";
 import { toNextActionInput, toQueueRow, type QueueRowData } from "@/lib/queueRows";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 type Tab = "us" | "others" | "all";
 type GroupBy = "action" | "stage" | "clinic" | "none";
@@ -266,6 +267,7 @@ function EmptyState({ onClear }: { onClear: () => void }) {
 }
 
 export default function AdminReferralsList() {
+  usePageTitle("Queue");
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 

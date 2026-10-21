@@ -18,6 +18,7 @@ import { useTour } from "@/components/tutorials/useTour";
 import { useSupportUnread } from "@/components/support/useSupportUnread";
 import { cn } from "@/lib/utils";
 import { PageContainer } from "@/components/patterns/PageContainer";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 const CAT_OPTIONS = [
   { value: "support", label: "Support", Icon: "support", sub: "Something isn't working or you need a hand." },
@@ -30,6 +31,7 @@ const REF_STATUS_LABEL: Record<string, string> = {
 };
 
 export default function ClinicSupportCenter() {
+  usePageTitle("Support");
   const [searchParams, setSearchParams] = useSearchParams();
   const caseParam = searchParams.get("case");
   const [cases, setCases] = useState<SupportCaseSummary[]>([]);

@@ -18,8 +18,10 @@ import { ClinicSettingsModal } from "@/components/ClinicSettingsModal";
 import { mapReferralsFromBackend } from "@/lib/dataMapper";
 import { getGreeting, formatDateShort } from "@/lib/dateUtils";
 import { PageContainer } from "@/components/patterns/PageContainer";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 export default function ClinicDashboard() {
+  usePageTitle("Dashboard");
   const { user } = useAuth();
   const location = useLocation();
 

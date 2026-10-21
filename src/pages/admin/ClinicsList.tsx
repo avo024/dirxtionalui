@@ -10,8 +10,10 @@ import { FilterToolbar } from "@/components/patterns/FilterToolbar";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { adminApi, type AdminClinic } from "@/lib/api";
 import { PageContainer } from "@/components/patterns/PageContainer";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 export default function ClinicsList() {
+  usePageTitle("Clinics");
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<AdminClinic | null>(null);

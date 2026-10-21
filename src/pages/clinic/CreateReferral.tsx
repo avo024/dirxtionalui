@@ -18,6 +18,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { cn } from "@/lib/utils";
 import { PageContainer } from "@/components/patterns/PageContainer";
 import { IdChip } from "@/components/patterns/IdChip";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 type Patient = {
   id: string;
@@ -183,6 +184,7 @@ function ManualField({ field, data, setField }: { field: FieldCfg; data: any; se
 }
 
 export default function CreateReferral() {
+  usePageTitle("New Referral");
   const [searchParams] = useSearchParams();
   const preselectedPatientId = searchParams.get("patientId");
 

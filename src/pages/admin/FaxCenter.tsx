@@ -16,6 +16,7 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@
 import { FilterToolbar } from "@/components/patterns/FilterToolbar";
 import { cn } from "@/lib/utils";
 import { PageContainer } from "@/components/patterns/PageContainer";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 type Tab = "inbound" | "outbound";
 
@@ -71,6 +72,7 @@ function OutboundStatusBadge({ status, errorDetail }: { status: string; errorDet
 }
 
 export default function FaxCenter() {
+  usePageTitle("Fax Center");
   const { user } = useAuth();
   const [tab, setTab] = useState<Tab>("inbound");
   const [loading, setLoading] = useState(true);

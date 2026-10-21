@@ -30,6 +30,7 @@ import { ReferralHeader, type ReferralHeaderBand } from "@/components/patterns/R
 import { EmptyState } from "@/components/patterns/EmptyState";
 import { useAuth } from "@/contexts/AuthContext";
 import { ConfirmModal } from "@/components/ConfirmModal";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 // Two-pane Documents tab kicks in at >=1024px; below that a Sheet is used
 // instead of squeezing a resizable split onto a narrow viewport.
@@ -173,6 +174,7 @@ const IMPORTANT: Record<string, string[]> = {
 const isEmpty = (v: any) => v === undefined || v === null || v === "" || v === "—";
 
 export default function ReferralDetail() {
+  usePageTitle("Referral");
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();

@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatDateShort } from "@/lib/dateUtils";
 import type { Referral } from "@/types/index";
 import { PageContainer } from "@/components/patterns/PageContainer";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 const filters = [
   { label: "All", value: "all" },
@@ -59,6 +60,7 @@ function monthOptions() {
 }
 
 export default function ReferralsList() {
+  usePageTitle("My Referrals");
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchParams] = useSearchParams();

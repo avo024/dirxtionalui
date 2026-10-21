@@ -10,6 +10,7 @@ import { clinicApi } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { formatDateShort, parseLocalDate } from "@/lib/dateUtils";
 import { PageContainer } from "@/components/patterns/PageContainer";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 const FILTERS = [
   { value: "all", label: "All" },
@@ -52,6 +53,7 @@ function getAge(dob: string) {
 }
 
 export default function PatientsList() {
+  usePageTitle("Patients");
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);

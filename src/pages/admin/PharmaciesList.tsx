@@ -13,6 +13,7 @@ import { pharmacyApi, type Pharmacy } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { PageContainer } from "@/components/patterns/PageContainer";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 function formatPhone(value: string | null): string {
   if (!value) return "—";
@@ -35,6 +36,7 @@ function StatusPill({ active }: { active: boolean }) {
 }
 
 export default function PharmaciesList() {
+  usePageTitle("Pharmacies");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
