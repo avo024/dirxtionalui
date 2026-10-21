@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { AdminSidebar } from "./AdminSidebar";
 import { UserMenu } from "./UserMenu";
 import { AppFooter } from "./AppFooter";
+import { IdleGuard } from "@/components/IdleGuard";
 
 export function AdminLayout() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -31,6 +32,7 @@ export function AdminLayout() {
         </div>
         <AppFooter />
       </main>
+      <IdleGuard />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ClinicSidebar } from "./ClinicSidebar";
 import { UserMenu } from "./UserMenu";
 import { AppFooter } from "./AppFooter";
+import { IdleGuard } from "@/components/IdleGuard";
 import { ConsentReacceptModal } from "@/components/ConsentReacceptModal";
 
 export function ClinicLayout() {
@@ -33,6 +34,7 @@ export function ClinicLayout() {
         <AppFooter />
       </main>
       <ConsentReacceptModal />
+      <IdleGuard />
     </div>
   );
 }
