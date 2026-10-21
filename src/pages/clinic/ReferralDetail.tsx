@@ -29,6 +29,7 @@ import { PageContainer } from "@/components/patterns/PageContainer";
 import { ReferralHeader, type ReferralHeaderBand } from "@/components/patterns/ReferralHeader";
 import { EmptyState } from "@/components/patterns/EmptyState";
 import { useAuth } from "@/contexts/AuthContext";
+import { ConfirmModal } from "@/components/ConfirmModal";
 
 // Two-pane Documents tab kicks in at >=1024px; below that a Sheet is used
 // instead of squeezing a resizable split onto a narrow viewport.
@@ -176,6 +177,7 @@ export default function ReferralDetail() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [referral, setReferral] = useState<any>(null);
+  const [archiveOpen, setArchiveOpen] = useState(false);
   const [documents, setDocuments] = useState<any[]>([]);
   const [history, setHistory] = useState<any[]>([]);
   const [notes, setNotes] = useState<any[]>([]);
@@ -506,20 +508,27 @@ export default function ReferralDetail() {
                 className="ib"
                 title="Archive — hide this referral from your list (reversible from the Archived view)"
                 aria-label="Archive"
-                onClick={async () => {
-                  if (!window.confirm("Archive this referral? It will be hidden from your list — you can restore it anytime from the Archived view.")) return;
-                  try {
-                    await clinicApi.archiveReferral(id!);
-                    toast({ title: "Referral archived", description: "Find it under Archived on My Referrals if you need it back." });
-                    navigate("/clinic/referrals");
-                  } catch (e: any) {
-                    toast({ title: "Couldn't archive", description: e.message, variant: "destructive" });
-                  }
-                }}
+                onClick={() => setArchiveOpen(true)}
               >
                 <Icon name="referrals" />
               </button>
             )}
+            <ConfirmModal
+              open={archiveOpen}
+              onOpenChange={setArchiveOpen}
+              title="Archive this referral?"
+              description="It will be hidden from your list. You can restore it anytime from the Archived view."
+              confirmLabel="Archive"
+              onConfirm={async () => {
+                try {
+                  await clinicApi.archiveReferral(id!);
+                  toast({ title: "Referral archived", description: "Find it under Archived on My Referrals if you need it back." });
+                  navigate("/clinic/referrals");
+                } catch (e: any) {
+                  toast({ title: "Couldn't archive", description: e.message, variant: "destructive" });
+                }
+              }}
+            />
           </>
         }
         band={band}
