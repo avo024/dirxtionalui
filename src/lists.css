@@ -1,0 +1,45 @@
+/* Polish v4 — filter row, pagination, list-row extras. Tokens: index.css (--st-*, --color-stone-*). */
+
+/* FilterToolbar */
+.ft{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.ft-tabs{display:flex;flex-wrap:wrap;gap:6px}
+.ft-tab{display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 13px;border-radius:999px;border:1px solid var(--color-stone-200);background:#fff;color:var(--color-stone-600);font:500 13px var(--font-sans);cursor:pointer;transition:background .12s,border-color .12s,color .12s}
+.ft-tab:hover{background:var(--color-stone-50);border-color:var(--color-stone-300);color:#1B2B5B}
+.ft-tab:focus-visible{outline:2px solid var(--color-teal-500);outline-offset:2px}
+.ft-tab[aria-pressed=true]{background:#1B2B5B;border-color:#1B2B5B;color:#fff}
+.ft-tab .n{font:600 12px var(--font-mono);color:var(--color-stone-500)}
+.ft-tab[aria-pressed=true] .n{color:rgba(255,255,255,.72)}
+.ft-tab .al{font:600 11px var(--font-mono);background:var(--st-clinic-fill);color:#fff;border-radius:999px;padding:1px 7px;line-height:16px}
+
+.ft-search{position:relative;width:280px;max-width:100%}
+.ft-search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--color-stone-500);pointer-events:none}
+.ft-search .ft-in{height:36px;padding:0 12px 0 34px;border-radius:8px;border:1px solid var(--color-stone-200);background:#fff;font:400 13.5px var(--font-sans);color:#1B2B5B}
+.ft-search .ft-in::placeholder{color:var(--color-stone-500)}
+.ft-search .ft-in:focus-visible{outline:none;box-shadow:0 0 0 2px #fff,0 0 0 4px var(--color-teal-500)}
+
+.ft-sel button{height:36px;border-radius:8px;border:1px solid var(--color-stone-200);background:#fff;padding:0 12px;font:500 13px var(--font-sans);color:#1B2B5B}
+.ft-sel button:hover{background:var(--color-stone-50);border-color:var(--color-stone-300);color:#1B2B5B}
+.ft-sel button svg{width:14px;height:14px;opacity:1;color:var(--color-stone-500)}
+
+.ft-trail{margin-left:auto}
+.ft-trail button,.ft-trail a{height:36px;border-radius:8px;border:1px solid var(--color-stone-200);background:#fff;padding:0 14px;font:500 13px var(--font-sans);color:#1B2B5B}
+.ft-trail button:hover,.ft-trail a:hover{background:var(--color-stone-50);border-color:var(--color-stone-300);color:#1B2B5B}
+.ft-trail button[aria-pressed=true]{background:var(--st-dx-tint);border-color:var(--st-dx-line)}
+
+/* Pagination */
+.pg{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:14px}
+.pg-n{font:400 13px var(--font-sans);color:var(--color-stone-500)}
+.pg-n b{font-weight:600;color:var(--color-stone-700)}
+.pg-r{display:flex;align-items:center;gap:6px}
+.pg-pg{font:500 12px var(--font-mono);color:var(--color-stone-500);margin-right:6px}
+.pg-b{display:inline-flex;align-items:center;gap:4px;height:32px;padding:0 10px;border-radius:8px;border:0;background:none;font:500 13px var(--font-sans);color:#1B2B5B;cursor:pointer;transition:background .12s}
+.pg-b:hover:not(:disabled){background:var(--color-stone-100)}
+.pg-b:focus-visible{outline:2px solid var(--color-teal-500)}
+.pg-b:disabled{color:var(--color-stone-400);cursor:default}
+
+/* ListRow extras */
+.lr .d .mono{font:400 12px var(--font-mono);color:var(--color-stone-500)}
+.lr .d .none{color:var(--color-stone-500)}
+.lr[data-static]{cursor:default}
+.lr[data-static]:hover{background:#fff}
+.lr[data-quiet] .who,.lr[data-quiet] .st{opacity:.62}
