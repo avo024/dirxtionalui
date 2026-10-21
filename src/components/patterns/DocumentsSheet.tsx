@@ -4,6 +4,7 @@ import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { formatDateShort } from "@/lib/dateUtils";
+import { DocCard, docCardType, docExt, docIsSent, docOutcome } from "@/components/DocCard";
 
 /** A file entry with enough metadata to group and date-stamp it. Plain
  *  strings are still accepted (backward-compatible with existing callers
@@ -16,6 +17,25 @@ export interface DocumentsSheetFile {
   /** "response_upload" when the clinic sent it as a task reply. */
   taskRole?: string | null;
   uploadedAt?: string;
+  /** Optional: drives the PA-letter check / x on its thumbnail (approvals and denials share a doc_type). */
+  paStatus?: string | null;
+  /** Optional mime type for the thumbnail's extension; falls back to the file name. */
+  fileType?: string | null;
+}
+
+/** Thumbnail for a file entry (DocCard by doc type; `selected` when it is the open document). */
+function FileThumb({ file, size, selected }: { file: DocumentsSheetFile; size: "md" | "sm"; selected: boolean }) {
+  const type = docCardType(file.docType);
+  return (
+    <DocCard
+      type={type}
+      size={size}
+      state={selected ? "selected" : undefined}
+      sent={docIsSent(file.docType)}
+      outcome={type === "pa_letter" ? docOutcome(file.paStatus) : null}
+      ext={docExt(file.fileType, file.name)}
+    />
+  );
 }
 
 type FileEntry = string | DocumentsSheetFile;
@@ -166,7 +186,7 @@ export function DocumentsSheet({
                       index === active ? "bg-primary/10 font-medium text-primary" : "text-foreground hover:bg-accent",
                     )}
                   >
-                    <Icon name="document" size={14} className="shrink-0 text-muted-foreground" />
+                    <span className="shrink-0 pr-1"><FileThumb file={file} size="sm" selected={index === active} /></span>
                     <span className="min-w-0 flex-1 truncate">{file.name}</span>
                     {file.uploadedAt && (
                       <span className="shrink-0 text-[10px] text-muted-foreground">{formatDateShort(file.uploadedAt)}</span>
@@ -177,20 +197,18 @@ export function DocumentsSheet({
             ))}
           </div>
         ) : (
-          <div className="flex flex-wrap gap-1.5 border-b border-border px-4 py-2.5">
+          <div className="flex gap-3 overflow-x-auto border-b border-border px-4 py-3">
             {fileObjs.map((file, i) => (
               <button
                 key={file.id}
                 type="button"
                 onClick={() => onSelect?.(i)}
-                className={cn(
-                  "rounded-md border px-2.5 py-1 text-xs font-medium truncate max-w-[140px]",
-                  i === active
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "border-input bg-background text-foreground hover:bg-accent",
-                )}
+                aria-current={i === active ? "true" : undefined}
+                title={file.name}
+                className="flex w-[76px] shrink-0 flex-col items-center gap-1 rounded-md p-1 pr-2 text-center outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                {file.name}
+                <FileThumb file={file} size="md" selected={i === active} />
+                <span className={cn("w-full truncate text-[10px] leading-tight", i === active ? "font-semibold text-foreground" : "text-muted-foreground")}>{file.name}</span>
               </button>
             ))}
           </div>

@@ -1,0 +1,26 @@
+/* Polish v4 — DocCard (document thumbnail). Tokens (--st-*) live in index.css. */
+.dc{--ink:var(--st-dx-ink);--dc-bar:var(--color-stone-200);--dc-bar-2:var(--color-stone-300);--w:56px;--h:72px;display:inline-flex;flex-direction:column;align-items:center;gap:5px;flex:none;vertical-align:middle}
+.dc[data-t=clinic]{--ink:var(--st-clinic-fill)}
+.dc[data-t=payer]{--ink:var(--st-payer-ink)}
+.dc[data-t=pharm]{--ink:var(--st-pharm-ink)}
+.dc[data-t=done]{--ink:var(--st-done-ink)}
+.dc[data-size=sm]{--w:40px;--h:52px}
+
+.dc-sheet{position:relative;display:block;width:var(--w);height:var(--h);background:#fff;border-radius:6px;box-shadow:0 0 0 1px var(--color-stone-300),0 1px 1px rgba(28,25,23,.04);transition:box-shadow .15s cubic-bezier(.2,0,0,1),transform .15s cubic-bezier(.2,0,0,1),opacity .15s}
+.dc-sheet svg{position:absolute;inset:0;width:100%;height:100%;border-radius:6px;overflow:hidden}
+
+.dc-tag{position:absolute;right:-4px;bottom:6px;padding:1px 4px;border-radius:2px;background:var(--ink);color:#fff;font:700 7.5px/9px var(--font-mono);letter-spacing:.04em;white-space:nowrap}
+.dc[data-size=sm] .dc-tag{right:-3px;bottom:4px;padding:0 3px;font-size:6px;line-height:8px}
+.dc-meta{font:400 9px/12px var(--font-mono);color:var(--color-stone-500);white-space:nowrap}
+
+/* States */
+button:hover>.dc .dc-sheet,.dc:hover .dc-sheet,.dc[data-state=hover] .dc-sheet{box-shadow:0 0 0 1px var(--color-stone-400),0 3px 8px rgba(28,25,23,.12);transform:translateY(-1px)}
+.dc[data-state=selected] .dc-sheet{box-shadow:0 0 0 2px var(--ink),0 1px 1px rgba(28,25,23,.04);transform:none}
+.dc[data-state=processing] .dc-sheet{opacity:.45;animation:dc-pulse 1.4s ease-in-out infinite}
+.dc[data-state=failed] .dc-sheet{box-shadow:0 0 0 2px #DC2626}
+.dc-x{position:absolute;top:-5px;right:-5px;width:14px;height:14px;border-radius:3px;background:#DC2626;box-shadow:0 0 0 1.5px #fff}
+.dc-x::before,.dc-x::after{content:"";position:absolute;left:3px;right:3px;top:6.25px;height:1.5px;background:#fff;border-radius:1px;transform:rotate(45deg)}
+.dc-x::after{transform:rotate(-45deg)}
+.dc-new{position:absolute;top:-4px;left:-4px;width:9px;height:9px;border-radius:50%;background:var(--color-teal-500);box-shadow:0 0 0 1.5px #fff}
+@keyframes dc-pulse{0%,100%{opacity:.45}50%{opacity:.7}}
+@media (prefers-reduced-motion:reduce){.dc[data-state=processing] .dc-sheet{animation:none}.dc-sheet{transition:none}}

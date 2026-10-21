@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { PageContainer } from "@/components/patterns/PageContainer";
 import { IdChip } from "@/components/patterns/IdChip";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { DocCard, docExt, type DocCardType } from "@/components/DocCard";
 import { HolderMark } from "@/components/StatusBadge";
 import "@/wizard.css";
 
@@ -686,6 +687,25 @@ function MethodFork({ onPick }: { onPick: (m: "upload" | "manual") => void }) {
   );
 }
 
+/* ── Uploaded-file thumbnail (DocCard by the chosen type tag; `processing` while the file is uploading) ── */
+const TAG_TO_DOC_TYPE: Record<string, DocCardType> = {
+  "Referral / Prescription": "referral",
+  "Insurance card": "card",
+  "Chart notes / labs": "chart",
+};
+function UploadFileThumb({ file, processing }: { file: UploadedFile; processing?: boolean }) {
+  return (
+    <span className="shrink-0 pr-1">
+      <DocCard
+        type={TAG_TO_DOC_TYPE[file.tag] ?? "other"}
+        size="sm"
+        state={processing ? "processing" : undefined}
+        ext={docExt(file.file?.type, file.name)}
+      />
+    </span>
+  );
+}
+
 /* ── Smart dropzone ── */
 function SmartDropzone({ files, onFiles, removeFile, setTag, isPacket, setPacket }: any) {
   const [drag, setDrag] = useState(false);
@@ -724,7 +744,7 @@ function SmartDropzone({ files, onFiles, removeFile, setTag, isPacket, setPacket
         <div className="flex flex-col gap-2 mt-3">
           {files.map((f: UploadedFile) => (
             <div className="wz-file" key={f.id}>
-              <Icon name="file-check" />
+              <UploadFileThumb file={f} />
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-medium text-foreground truncate">{f.name}</div>
                 <div className="text-xs text-muted-foreground">{f.size}</div>

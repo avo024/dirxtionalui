@@ -30,6 +30,9 @@ import { PageContainer } from "@/components/patterns/PageContainer";
 import { ReferralHeader, type ReferralHeaderBand } from "@/components/patterns/ReferralHeader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/patterns/EmptyState";
+import { HistoryTimeline } from "@/components/HistoryTimeline";
+import { DocCard, docCardType, docExt, docIsSent, docOutcome, type DocCardState } from "@/components/DocCard";
+import { VISIBLE_EVENTS, groupHistory } from "@/lib/history";
 import { useAuth } from "@/contexts/AuthContext";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -70,52 +73,20 @@ const MISSING_DOC_LABELS: Record<string, string> = {
 const prettyFieldPath = (p: string) =>
   p.split(".").map((s) => s.replace(/_/g, " ").replace(/\b\w/, (c) => c.toUpperCase())).join(" · ");
 
-const EVENT_LABELS: Record<string, string> = {
-  referral_created: "Referral submitted", referral_finalized: "Documents submitted for processing",
-  document_uploaded: "Document uploaded", ai_extraction_completed: "AI extraction completed",
-  ai_extraction_completed_auto: "AI extraction completed",
-  referral_approved: "Referral approved by admin", referral_rejected: "Referral needs attention",
-  referral_rejectd: "Referral needs attention", referral_resubmitted: "Referral resubmitted by clinic",
-  referral_edited_by_clinic: "Clinic corrected referral details", pharmacy_reassigned: "Pharmacy reassigned",
-  delivery_completed: "Sent to pharmacy", sent_to_pharmacy: "Sent to pharmacy", delivery_failed: "Pharmacy delivery failed",
-  delivery_issue_reported: "Delivery issue reported — team alerted",
-  pa_submitted: "Prior authorization submitted", pa_approved: "Prior authorization approved",
-  pa_denied: "Prior authorization denied", pa_processing: "Prior authorization in processing",
-  pa_appeal_started: "Appeal filed with the insurer", pa_appeal_won: "Appeal won — PA approved",
-  pa_appeal_level2: "Appeal moved to Level 2 (insurer will contact your office)",
-  pa_appeal_final: "Appeal decision final",
-  task_created: "Dirxctional requested something from your office",
-  task_completed: "Request from Dirxctional completed",
-  referral_archived: "Referral archived", referral_unarchived: "Referral restored",
-};
-// History is an ALLOWLIST of human milestones — compliance/telemetry events
-// (document_accessed, validation passes, internal edits, eligibility checks…)
-// live in the audit log, not the clinic's timeline. New audit event types are
-// invisible here until deliberately added with a label.
-const VISIBLE_EVENTS = new Set(Object.keys(EVENT_LABELS));
-
-function eventLabel(t: string) { return EVENT_LABELS[t] || t.replace(/_/g, " ").replace(/\b\w/, (c) => c.toUpperCase()); }
-function eventIcon(t: string) {
-  if (["referral_created", "referral_finalized", "referral_resubmitted"].includes(t)) return "send";
-  if (t === "document_uploaded") return "document";
-  if (t === "referral_edited_by_clinic") return "edit";
-  if (t === "ai_extraction_completed" || t === "ai_extraction_completed_auto") return "check-circle";
-  if (["referral_approved", "delivery_completed", "sent_to_pharmacy", "pa_approved", "pa_appeal_won", "task_completed"].includes(t)) return "check-circle";
-  if (["referral_rejected", "referral_rejectd", "delivery_failed", "pa_denied", "pa_appeal_final", "delivery_issue_reported"].includes(t)) return "x-circle";
-  if (["pa_submitted", "pa_processing", "pa_appeal_started", "pa_appeal_level2"].includes(t)) return "clock";
-  if (t === "task_created") return "clipboard-list";
-  return "circle";
-}
-function eventColorClass(t: string) {
-  if (["referral_approved", "delivery_completed", "sent_to_pharmacy", "pa_approved", "pa_appeal_won", "task_completed"].includes(t)) return "bg-success/12 text-success";
-  if (["referral_rejected", "referral_rejectd", "pa_denied", "delivery_failed", "pa_appeal_final", "delivery_issue_reported"].includes(t)) return "bg-destructive/12 text-destructive";
-  if (["pa_submitted", "pa_processing", "pa_appeal_started", "pa_appeal_level2", "task_created"].includes(t)) return "bg-warning/15 text-[#B45309]";
-  if (["ai_extraction_completed", "ai_extraction_completed_auto"].includes(t)) return "bg-primary/10 text-primary";
-  return "bg-muted text-muted-foreground";
-}
-function docIcon(filename: string) {
-  const ext = filename?.split(".").pop()?.toLowerCase();
-  return ["jpg", "jpeg", "png", "tiff", "tif"].includes(ext || "") ? "image" : "document";
+// Thumbnail for a document row. Type from doc_type; a PA letter's outcome comes from the
+// referral's pa_status (approvals and denials share doc_type), never from the doc_type.
+function DocThumb({ doc, paStatus, state }: { doc: any; paStatus?: string | null; state?: DocCardState }) {
+  const type = docCardType(doc.doc_type);
+  return (
+    <DocCard
+      type={type}
+      size="sm"
+      state={state}
+      sent={docIsSent(doc.doc_type)}
+      outcome={type === "pa_letter" ? docOutcome(paStatus) : null}
+      ext={docExt(doc.file_type, doc.original_filename || doc.file_name)}
+    />
+  );
 }
 
 // The delivery summary (referral.delivery, from _clinic_delivery_for_referral in
@@ -395,6 +366,7 @@ export default function ReferralDetail() {
 
   const copy = (text: string, label: string) => { navigator.clipboard.writeText(text); toast({ title: "Copied!", description: `${label} copied to clipboard` }); };
   const visibleHistory = history.filter((e: any) => VISIBLE_EVENTS.has(e.event_type));
+  const historySections = groupHistory(history, referral);
 
   const downloadDoc = async (docId: string) => {
     try {
@@ -607,7 +579,6 @@ export default function ReferralDetail() {
                 <ResizablePanel defaultSize={34} minSize={28} maxSize={45} className="min-h-0 bg-card">
                   <div className="h-full overflow-y-auto">
                     {documents.map((doc: any) => {
-                      const DocIcon = docIcon(doc.original_filename || doc.file_name || "");
                       const isTeam = !!doc.from_team;
                       const active = doc.id === selectedDocId;
                       return (
@@ -620,12 +591,7 @@ export default function ReferralDetail() {
                             active ? "bg-primary/10" : "hover:bg-muted/60",
                           )}
                         >
-                          <span className={cn(
-                            "flex h-7 w-7 shrink-0 items-center justify-center rounded-md",
-                            active ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground",
-                          )}>
-                            <Icon name={DocIcon} size={14} />
-                          </span>
+                          <span className="shrink-0 pr-1"><DocThumb doc={doc} paStatus={referral.pa_status} state={active ? "selected" : undefined} /></span>
                           <div className="flex-1 min-w-0">
                             <p className={cn("text-xs font-semibold truncate", active ? "text-primary" : "text-foreground")}>
                               {doc.original_filename || doc.file_name || doc.name || "Document"}
@@ -657,7 +623,6 @@ export default function ReferralDetail() {
           ) : (
             <div className="rounded-lg border border-border bg-card overflow-hidden">
               {documents.map((doc: any) => {
-                const DocIcon = docIcon(doc.original_filename || doc.file_name || "");
                 const isTeam = !!doc.from_team;
                 return (
                   <div
@@ -665,7 +630,7 @@ export default function ReferralDetail() {
                     className="flex items-center gap-3 px-4 py-3 border-b border-border last:border-0 cursor-pointer hover:bg-muted/40"
                     onClick={() => selectDoc(doc.id)}
                   >
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon name={DocIcon} size={16} /></span>
+                    <span className="shrink-0 pr-1"><DocThumb doc={doc} paStatus={referral.pa_status} /></span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-foreground truncate">{doc.original_filename || doc.file_name || doc.name || "Document"}</p>
                       <p className="text-xs text-muted-foreground">
@@ -711,7 +676,6 @@ export default function ReferralDetail() {
                 <ResizablePanel defaultSize={34} minSize={28} maxSize={45} className="min-h-0 bg-card">
                   <div className="h-full overflow-y-auto">
                     {deliveryViewerDocs.map((doc: any) => {
-                      const DocIcon = docIcon(doc.original_filename);
                       const active = doc.id === selectedDeliveryDocId;
                       return (
                         <button
@@ -723,12 +687,7 @@ export default function ReferralDetail() {
                             active ? "bg-primary/10" : "hover:bg-muted/60",
                           )}
                         >
-                          <span className={cn(
-                            "flex h-7 w-7 shrink-0 items-center justify-center rounded-md",
-                            active ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground",
-                          )}>
-                            <Icon name={DocIcon} size={14} />
-                          </span>
+                          <span className="shrink-0 pr-1"><DocThumb doc={doc} paStatus={referral.pa_status} state={active ? "selected" : undefined} /></span>
                           <div className="flex-1 min-w-0">
                             <p className={cn("text-xs font-semibold truncate", active ? "text-primary" : "text-foreground")}>
                               {doc.original_filename}
@@ -781,28 +740,7 @@ export default function ReferralDetail() {
         {/* HISTORY */}
         <TabsContent value="history" className="pt-5">
           {visibleHistory.length > 0 ? (
-            <div className="flex flex-col">
-              {visibleHistory.map((event: any, i: number, arr: any[]) => {
-                const evIcon = eventIcon(event.event_type);
-                let label = eventLabel(event.event_type);
-                if (event.event_type === "document_uploaded" && event.metadata?.filename) label += `: ${event.metadata.filename}`;
-                return (
-                  <div key={i} className="flex gap-3">
-                    <div className="flex flex-col items-center">
-                      <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${eventColorClass(event.event_type)}`}><Icon name={evIcon} size={16} /></span>
-                      {i < arr.length - 1 && <span className="w-px flex-1 bg-border my-1" />}
-                    </div>
-                    <div className="pb-5 min-w-0">
-                      <p className="text-sm font-medium text-foreground">{label}</p>
-                      {event.event_type === "referral_rejected" && event.metadata?.reason && (
-                        <p className="text-sm text-muted-foreground mt-0.5">{event.metadata.reason}</p>
-                      )}
-                      <p className="text-xs text-muted-foreground mt-0.5">{formatDateTime(event.created_at)}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <HistoryTimeline sections={historySections} />
           ) : (
             <div className="lr-list">
               <EmptyState art="history" title="No history yet" text="Events will appear here as the referral progresses." />
