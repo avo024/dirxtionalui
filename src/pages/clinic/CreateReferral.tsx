@@ -17,6 +17,7 @@ import { Combobox } from "@/components/ui/combobox";
 import { DatePicker } from "@/components/ui/date-picker";
 import { cn } from "@/lib/utils";
 import { PageContainer } from "@/components/patterns/PageContainer";
+import { IdChip } from "@/components/patterns/IdChip";
 
 type Patient = {
   id: string;
@@ -251,6 +252,7 @@ export default function CreateReferral() {
 
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submittedId, setSubmittedId] = useState<string | null>(null);
   const [confirmAccuracy, setConfirmAccuracy] = useState(false);
 
   const navigate = useNavigate();
@@ -384,6 +386,7 @@ export default function CreateReferral() {
       }
 
       setSubmitting(false);
+      setSubmittedId(referral?.id ?? null);
       setSubmitted(true);
     } catch (err: any) {
       setSubmitting(false);
@@ -427,14 +430,16 @@ export default function CreateReferral() {
           <span className="flex h-16 w-16 items-center justify-center rounded-full bg-success/15 text-success"><Icon name="check-circle" size={24} /></span>
           <h1 className="text-2xl font-semibold text-foreground">We'll Take It From Here!</h1>
           <p className="text-sm text-muted-foreground">Referral submitted successfully! Our AI is extracting the details now and our team will review within the hour.</p>
-          <div className="font-mono text-sm font-semibold rounded-md bg-muted px-3 py-1.5 text-foreground">REF-{String(Math.floor(Math.random() * 900000) + 100000)}</div>
+          {submittedId && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">Reference <IdChip id={submittedId} /></div>
+          )}
           <div className="flex items-center gap-2 mt-2">
             <Button onClick={() => navigate("/clinic/dashboard")}>Back to Dashboard</Button>
             <Button variant="outline" onClick={() => navigate("/clinic/referrals")}>View Referrals</Button>
             <Button variant="outline" onClick={() => {
               setSelectedPatient(null); setReferralMethod(null); setUploadedFiles([]); setIsPacket(false);
               setInsuranceChoice(null); setConfirmAccuracy(false);
-              setSelectedPharmacyId(defaultPharmacyId); setCurrentStep(0); setSubmitted(false);
+              setSelectedPharmacyId(defaultPharmacyId); setCurrentStep(0); setSubmitted(false); setSubmittedId(null);
             }}>Create Another</Button>
           </div>
         </div>
@@ -939,7 +944,9 @@ function Step4Review({ patient, getName, pharmacy, isDefault, method, choice, fi
         </ReviewCard>
       )}
 
-      <NoticeStrip icon="sparkles" tone="teal">Our AI will automatically extract patient info, provider details, drug information, and more from your documents.</NoticeStrip>
+      {method === "upload" && (
+        <NoticeStrip icon="sparkles" tone="teal">Our AI will automatically extract patient info, provider details, drug information, and more from your documents.</NoticeStrip>
+      )}
       <NoticeStrip icon="shield">Our team will handle the prior authorization process.</NoticeStrip>
 
       <label className="flex items-start gap-2.5 rounded-lg border border-border bg-muted/30 p-3.5 cursor-pointer" onClick={(e) => { e.preventDefault(); setConfirm(!confirm); }}>
