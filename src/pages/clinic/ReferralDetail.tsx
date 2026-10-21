@@ -29,6 +29,7 @@ import { PageContainer } from "@/components/patterns/PageContainer";
 import { ReferralHeader, type ReferralHeaderBand } from "@/components/patterns/ReferralHeader";
 import { EmptyState } from "@/components/patterns/EmptyState";
 import { HistoryTimeline } from "@/components/HistoryTimeline";
+import { DocCard, docCardType, docExt, docIsSent, docOutcome, type DocCardState } from "@/components/DocCard";
 import { VISIBLE_EVENTS, groupHistory } from "@/lib/history";
 import { useAuth } from "@/contexts/AuthContext";
 import { ConfirmModal } from "@/components/ConfirmModal";
@@ -70,9 +71,20 @@ const MISSING_DOC_LABELS: Record<string, string> = {
 const prettyFieldPath = (p: string) =>
   p.split(".").map((s) => s.replace(/_/g, " ").replace(/\b\w/, (c) => c.toUpperCase())).join(" · ");
 
-function docIcon(filename: string) {
-  const ext = filename?.split(".").pop()?.toLowerCase();
-  return ["jpg", "jpeg", "png", "tiff", "tif"].includes(ext || "") ? "image" : "document";
+// Thumbnail for a document row. Type from doc_type; a PA letter's outcome comes from the
+// referral's pa_status (approvals and denials share doc_type), never from the doc_type.
+function DocThumb({ doc, paStatus, state }: { doc: any; paStatus?: string | null; state?: DocCardState }) {
+  const type = docCardType(doc.doc_type);
+  return (
+    <DocCard
+      type={type}
+      size="sm"
+      state={state}
+      sent={docIsSent(doc.doc_type)}
+      outcome={type === "pa_letter" ? docOutcome(paStatus) : null}
+      ext={docExt(doc.file_type, doc.original_filename || doc.file_name)}
+    />
+  );
 }
 
 // The delivery summary (referral.delivery, from _clinic_delivery_for_referral in
@@ -558,7 +570,6 @@ export default function ReferralDetail() {
                 <ResizablePanel defaultSize={34} minSize={28} maxSize={45} className="min-h-0 bg-card">
                   <div className="h-full overflow-y-auto">
                     {documents.map((doc: any) => {
-                      const DocIcon = docIcon(doc.original_filename || doc.file_name || "");
                       const isTeam = !!doc.from_team;
                       const active = doc.id === selectedDocId;
                       return (
@@ -571,12 +582,7 @@ export default function ReferralDetail() {
                             active ? "bg-primary/10" : "hover:bg-muted/60",
                           )}
                         >
-                          <span className={cn(
-                            "flex h-7 w-7 shrink-0 items-center justify-center rounded-md",
-                            active ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground",
-                          )}>
-                            <Icon name={DocIcon} size={14} />
-                          </span>
+                          <span className="shrink-0 pr-1"><DocThumb doc={doc} paStatus={referral.pa_status} state={active ? "selected" : undefined} /></span>
                           <div className="flex-1 min-w-0">
                             <p className={cn("text-xs font-semibold truncate", active ? "text-primary" : "text-foreground")}>
                               {doc.original_filename || doc.file_name || doc.name || "Document"}
@@ -608,7 +614,6 @@ export default function ReferralDetail() {
           ) : (
             <div className="rounded-lg border border-border bg-card overflow-hidden">
               {documents.map((doc: any) => {
-                const DocIcon = docIcon(doc.original_filename || doc.file_name || "");
                 const isTeam = !!doc.from_team;
                 return (
                   <div
@@ -616,7 +621,7 @@ export default function ReferralDetail() {
                     className="flex items-center gap-3 px-4 py-3 border-b border-border last:border-0 cursor-pointer hover:bg-muted/40"
                     onClick={() => selectDoc(doc.id)}
                   >
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon name={DocIcon} size={16} /></span>
+                    <span className="shrink-0 pr-1"><DocThumb doc={doc} paStatus={referral.pa_status} /></span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-foreground truncate">{doc.original_filename || doc.file_name || doc.name || "Document"}</p>
                       <p className="text-xs text-muted-foreground">
@@ -662,7 +667,6 @@ export default function ReferralDetail() {
                 <ResizablePanel defaultSize={34} minSize={28} maxSize={45} className="min-h-0 bg-card">
                   <div className="h-full overflow-y-auto">
                     {deliveryViewerDocs.map((doc: any) => {
-                      const DocIcon = docIcon(doc.original_filename);
                       const active = doc.id === selectedDeliveryDocId;
                       return (
                         <button
@@ -674,12 +678,7 @@ export default function ReferralDetail() {
                             active ? "bg-primary/10" : "hover:bg-muted/60",
                           )}
                         >
-                          <span className={cn(
-                            "flex h-7 w-7 shrink-0 items-center justify-center rounded-md",
-                            active ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground",
-                          )}>
-                            <Icon name={DocIcon} size={14} />
-                          </span>
+                          <span className="shrink-0 pr-1"><DocThumb doc={doc} paStatus={referral.pa_status} state={active ? "selected" : undefined} /></span>
                           <div className="flex-1 min-w-0">
                             <p className={cn("text-xs font-semibold truncate", active ? "text-primary" : "text-foreground")}>
                               {doc.original_filename}

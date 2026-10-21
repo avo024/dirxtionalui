@@ -17,6 +17,7 @@ import { FilterToolbar } from "@/components/patterns/FilterToolbar";
 import { cn } from "@/lib/utils";
 import { PageContainer } from "@/components/patterns/PageContainer";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { DocCard } from "@/components/DocCard";
 
 type Tab = "inbound" | "outbound";
 
@@ -221,7 +222,12 @@ export default function FaxCenter() {
               <TableBody>
                 {inbound.map((row) => (
                   <TableRow key={row.id}>
-                    <TableCell className="whitespace-nowrap">{row.from_number || "—"}</TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      <span className="inline-flex items-center gap-3">
+                        <span className="pr-1"><DocCard type="fax" size="sm" state={row.status === "new" ? "new" : undefined} ext={row.has_pdf ? "pdf" : undefined} pages={row.page_count} /></span>
+                        {row.from_number || "—"}
+                      </span>
+                    </TableCell>
                     <TableCell className="whitespace-nowrap text-muted-foreground">{formatDateShort(row.received_at)}</TableCell>
                     <TableCell className="text-muted-foreground">{row.page_count ?? "—"}</TableCell>
                     <TableCell><InboundStatusBadge status={row.status} /></TableCell>
