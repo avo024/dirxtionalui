@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { ListRowsSkeleton } from "@/components/patterns/Skeletons";
 import { Link, useSearchParams, useLocation } from "react-router-dom";
 import { Icon } from "@/components/ui/icon";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -7,7 +8,6 @@ import { ListRows, ListRow } from "@/components/patterns/ListRow";
 import { EmptyState } from "@/components/patterns/EmptyState";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { FilterToolbar } from "@/components/patterns/FilterToolbar";
 import { clinicApi } from "@/lib/api";
 import { mapReferralsFromBackend } from "@/lib/dataMapper";
@@ -206,9 +206,7 @@ export default function ReferralsList() {
 
       {/* List */}
       {loading ? (
-        <div className="flex flex-col gap-2">
-          {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-14 w-full" />)}
-        </div>
+        <ListRowsSkeleton rows={6} />
       ) : filtered.length > 0 ? (
         <ListRows
           data-tour="referrals-table"
@@ -259,18 +257,20 @@ export default function ReferralsList() {
           ))}
         </ListRows>
       ) : search || activeFilter !== "all" ? (
-        <div className="flex flex-col items-center gap-2 py-16 text-center">
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground"><Icon name="document-search" size={20} /></span>
-          <p className="text-sm font-semibold text-foreground">No referrals found</p>
-          <p className="text-sm text-muted-foreground">Try adjusting your search or filters</p>
-          <Button size="sm" variant="outline" onClick={clearFilters}>Clear Filters</Button>
+        <div className="lr-list">
+          <EmptyState
+            art="referrals-filtered"
+            title="No referrals match"
+            text="Try a different search or clear the filters."
+            actions={<Button size="sm" variant="outline" onClick={clearFilters}>Clear Filters</Button>}
+          />
         </div>
       ) : (
         <div className="lr-list">
           <EmptyState
             art="referrals"
             title="You haven't created any referrals yet"
-            text="Create your first referral to get started."
+            text="Referrals you create will show up here."
             actions={<Button asChild><Link to="/clinic/referrals/new"><Icon name="add" />Create Your First Referral</Link></Button>}
           />
         </div>

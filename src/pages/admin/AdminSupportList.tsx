@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { ListRowsSkeleton } from "@/components/patterns/Skeletons";
+import { EmptyState } from "@/components/patterns/EmptyState";
 import { useNavigate } from "react-router-dom";
 import { Icon } from "@/components/ui/icon";
 import { adminApi, type SupportCaseSummary } from "@/lib/api";
@@ -143,9 +145,7 @@ export default function AdminSupportList() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-16">
-          <Icon name="spinner" size={24} className="animate-spin text-primary" />
-        </div>
+        <ListRowsSkeleton rows={5} head={false} />
       ) : items.length > 0 ? (
         <div className="rounded-lg border border-border bg-card overflow-hidden">
           <Table>
@@ -187,10 +187,8 @@ export default function AdminSupportList() {
           </Table>
         </div>
       ) : (
-        <div className="flex flex-col items-center gap-2 py-16 text-center">
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground"><Icon name="referrals" size={20} /></span>
-          <p className="text-sm font-semibold text-foreground">No cases here</p>
-          <p className="text-sm text-muted-foreground">Nothing matches these filters. When a clinic opens a case or sends feedback, it lands here.</p>
+        <div className="lr-list">
+          <EmptyState art="support" title="No cases here" text="Nothing matches these filters. Cases and feedback from clinics land here." />
         </div>
       )}
     </PageContainer>

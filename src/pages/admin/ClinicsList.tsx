@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { EmptyState } from "@/components/patterns/EmptyState";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Icon } from "@/components/ui/icon";
@@ -74,11 +75,13 @@ export default function ClinicsList() {
 
       {/* Empty */}
       {!isLoading && !isError && items.length === 0 && (
-        <div className="flex flex-col items-center gap-2 py-16 text-center">
-          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-muted text-muted-foreground"><Icon name="clinic" size={24} /></span>
-          <h3 className="text-base font-semibold text-foreground">No clinics yet</h3>
-          <p className="text-sm text-muted-foreground">Add your first partner clinic to start receiving referrals.</p>
-          <Button size="sm" onClick={() => setCreateOpen(true)}><Icon name="add" />Add Clinic</Button>
+        <div className="lr-list">
+          <EmptyState
+            art="clinics"
+            title="No clinics yet"
+            text="Partner clinics you add will show up here."
+            actions={<Button size="sm" onClick={() => setCreateOpen(true)}><Icon name="add" />Add Clinic</Button>}
+          />
         </div>
       )}
 

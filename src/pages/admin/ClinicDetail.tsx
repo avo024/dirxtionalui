@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { EmptyState } from "@/components/patterns/EmptyState";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Icon } from "@/components/ui/icon";
@@ -84,9 +85,8 @@ function TeamMembersPanel({ clinic }: { clinic: AdminClinic }) {
           {[0, 1].map((i) => <Skeleton key={i} className="h-10 w-full" />)}
         </div>
       ) : members.length === 0 ? (
-        <div className="flex items-center gap-2 rounded-md border border-dashed border-border px-3 py-4 text-sm text-muted-foreground">
-          <Icon name="patients" size={20} />
-          No team members yet — send an invite below.
+        <div className="lr-list">
+          <EmptyState art="patients" size="sm" title="No team members yet" text="Send an invite below." />
         </div>
       ) : (
         <div className="rounded-lg border border-border overflow-hidden">
@@ -254,9 +254,8 @@ function TeamInvitesPanel({ clinic }: { clinic: AdminClinic }) {
       <div>
         <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Pending invites</div>
         {invites.length === 0 ? (
-          <div className="flex items-center gap-2 rounded-md border border-dashed border-border px-3 py-4 text-sm text-muted-foreground">
-            <Icon name="mail-plus" size={20} />
-            No pending invites — invite a teammate above.
+          <div className="lr-list">
+            <EmptyState art="patients" size="sm" title="No pending invites" text="Invite a teammate above." />
           </div>
         ) : (
           <div className="rounded-lg border border-border overflow-hidden">

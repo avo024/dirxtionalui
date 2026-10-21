@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
+import { CardGridSkeleton, DefinitionListSkeleton } from "@/components/patterns/Skeletons";
+import { EmptyState } from "@/components/patterns/EmptyState";
 import { useLocation } from "react-router-dom";
 import { Icon } from "@/components/ui/icon";
 import { adminApi } from "@/lib/api";
@@ -138,8 +140,10 @@ export default function AdminInsights() {
 
   if (loading) {
     return (
-      <PageContainer fade={false} className="flex justify-center py-16">
-        <Icon name="spinner" size={24} className="animate-spin text-primary" />
+      <PageContainer fade={false}>
+        <div className="mb-5"><h1 className="text-2xl font-semibold text-foreground">Insights</h1></div>
+        <CardGridSkeleton count={4} className="mb-6" />
+        <DefinitionListSkeleton rows={4} />
       </PageContainer>
     );
   }
@@ -227,8 +231,8 @@ export default function AdminInsights() {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex flex-col items-center justify-center gap-2 h-[250px] text-sm text-muted-foreground">
-                <Icon name="referrals" size={24} />No referrals yet
+              <div className="flex h-[250px] items-center justify-center">
+                <EmptyState art="insights" title="No referrals yet" />
               </div>
             )}
           </div>
@@ -261,7 +265,7 @@ export default function AdminInsights() {
         </div>
         <div className="px-[var(--density-card-pad)] pb-[var(--density-card-pad)] pt-1.5">
           {stats.clinics.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No clinics yet.</p>
+            <EmptyState art="clinics" size="sm" title="No clinics yet" />
           ) : stats.clinics.map(([name, count]) => (
             <div key={name} className="flex items-center gap-2.5 py-1.5">
               <Icon name="chart" size={14} className="text-primary shrink-0" />
