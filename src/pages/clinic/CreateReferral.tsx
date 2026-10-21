@@ -17,6 +17,8 @@ import { Combobox } from "@/components/ui/combobox";
 import { DatePicker } from "@/components/ui/date-picker";
 import { cn } from "@/lib/utils";
 import { PageContainer } from "@/components/patterns/PageContainer";
+import { IdChip } from "@/components/patterns/IdChip";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 type Patient = {
   id: string;
@@ -182,6 +184,7 @@ function ManualField({ field, data, setField }: { field: FieldCfg; data: any; se
 }
 
 export default function CreateReferral() {
+  usePageTitle("New Referral");
   const [searchParams] = useSearchParams();
   const preselectedPatientId = searchParams.get("patientId");
 
@@ -201,7 +204,7 @@ export default function CreateReferral() {
     if (!preselectedPatientId) return;
     clinicApi.getPatient(preselectedPatientId)
       .then((data) => { setSelectedPatient(data); setPatientMode("existing"); })
-      .catch(() => toast({ title: "Error", description: "Failed to load patient", variant: "destructive" }));
+      .catch(() => toast({ title: "Failed to load patient", variant: "destructive" }));
   }, [preselectedPatientId]);
 
   const [referralMethod, setReferralMethod] = useState<"upload" | "manual" | null>(null);
@@ -251,6 +254,7 @@ export default function CreateReferral() {
 
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submittedId, setSubmittedId] = useState<string | null>(null);
   const [confirmAccuracy, setConfirmAccuracy] = useState(false);
 
   const navigate = useNavigate();
@@ -384,6 +388,7 @@ export default function CreateReferral() {
       }
 
       setSubmitting(false);
+      setSubmittedId(referral?.id ?? null);
       setSubmitted(true);
     } catch (err: any) {
       setSubmitting(false);
@@ -425,16 +430,22 @@ export default function CreateReferral() {
       <PageContainer fade={false}>
         <div className="animate-in fade-in slide-in-from-bottom-1 duration-300 flex flex-col items-center gap-3 text-center py-10 max-w-lg mx-auto">
           <span className="flex h-16 w-16 items-center justify-center rounded-full bg-success/15 text-success"><Icon name="check-circle" size={24} /></span>
-          <h1 className="text-2xl font-semibold text-foreground">We'll Take It From Here!</h1>
-          <p className="text-sm text-muted-foreground">Referral submitted successfully! Our AI is extracting the details now and our team will review within the hour.</p>
-          <div className="font-mono text-sm font-semibold rounded-md bg-muted px-3 py-1.5 text-foreground">REF-{String(Math.floor(Math.random() * 900000) + 100000)}</div>
+          <h1 className="ty-title text-2xl text-foreground">We'll take it from here.</h1>
+          <p className="text-sm text-muted-foreground">
+            {referralMethod === "upload"
+              ? "Referral submitted. We're reading the documents now; our team reviews within the hour."
+              : "Referral submitted. Our team reviews it within the hour."}
+          </p>
+          {submittedId && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">Reference <IdChip id={submittedId} /></div>
+          )}
           <div className="flex items-center gap-2 mt-2">
             <Button onClick={() => navigate("/clinic/dashboard")}>Back to Dashboard</Button>
             <Button variant="outline" onClick={() => navigate("/clinic/referrals")}>View Referrals</Button>
             <Button variant="outline" onClick={() => {
               setSelectedPatient(null); setReferralMethod(null); setUploadedFiles([]); setIsPacket(false);
               setInsuranceChoice(null); setConfirmAccuracy(false);
-              setSelectedPharmacyId(defaultPharmacyId); setCurrentStep(0); setSubmitted(false);
+              setSelectedPharmacyId(defaultPharmacyId); setCurrentStep(0); setSubmitted(false); setSubmittedId(null);
             }}>Create Another</Button>
           </div>
         </div>
@@ -705,7 +716,7 @@ function SmartDropzone({ files, onFiles, removeFile, setTag, isPacket, setPacket
         onClick={(e) => { e.preventDefault(); setPacket(!isPacket); }}
       >
         <span className={cn(
-          "flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded border mt-0.5",
+          "flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded border mt-0.5",
           isPacket ? "bg-primary border-primary text-primary-foreground" : "border-input",
         )}>
           {isPacket && <Icon name="check" size={14} strokeWidth={2} />}
@@ -761,7 +772,7 @@ function BridgeBlock({ choice, onChange, showErrors }: { choice: "has" | "bridge
           )}
           onClick={(e) => { e.preventDefault(); onChange("has"); }}
         >
-          <span className={cn("flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full border mt-0.5", choice === "has" ? "border-primary" : "border-input")}>
+          <span className={cn("flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border mt-0.5", choice === "has" ? "border-primary" : "border-input")}>
             {choice === "has" && <span className="h-2.5 w-2.5 rounded-full bg-primary" />}
           </span>
           <div><div className="text-sm font-semibold text-foreground">No bridge program</div><div className="text-xs text-muted-foreground">Standard insurance billing</div></div>
@@ -773,7 +784,7 @@ function BridgeBlock({ choice, onChange, showErrors }: { choice: "has" | "bridge
           )}
           onClick={(e) => { e.preventDefault(); onChange("bridge"); }}
         >
-          <span className={cn("flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full border mt-0.5", choice === "bridge" ? "border-primary" : "border-input")}>
+          <span className={cn("flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border mt-0.5", choice === "bridge" ? "border-primary" : "border-input")}>
             {choice === "bridge" && <span className="h-2.5 w-2.5 rounded-full bg-primary" />}
           </span>
           <div><div className="text-sm font-semibold text-foreground">Yes, bridge program</div><div className="text-xs text-muted-foreground">Manufacturer-funded — insurance not used</div></div>
@@ -795,7 +806,7 @@ function ManualScroll({ data, setField, choice, setChoice, showErrors }: any) {
       {sections.map((s) => (
         <div key={s.key}>
           <div className="flex items-center gap-2 mb-3">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Icon name={s.icon} /></span>
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon name={s.icon} /></span>
             <h3 className="text-sm font-semibold text-foreground">{s.title}</h3>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -805,7 +816,7 @@ function ManualScroll({ data, setField, choice, setChoice, showErrors }: any) {
       ))}
       <div>
         <div className="flex items-center gap-2 mb-3">
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Icon name="shield" /></span>
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon name="shield" /></span>
           <h3 className="text-sm font-semibold text-foreground">Insurance Information<span className="text-destructive ml-0.5">*</span></h3>
         </div>
         <div className="flex flex-col gap-4">
@@ -852,7 +863,7 @@ function Step3Pharmacy({ loading, pharmacies, selectedId, defaultId, onSelect, s
           {selected && (
             <div className="rounded-lg border border-border p-4">
               <div className="flex items-center gap-2 mb-1.5">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Icon name="medication" /></span>
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon name="medication" /></span>
                 <h3 className="text-sm font-semibold text-foreground">{selected.name}</h3>
                 {defaultId && selectedId === defaultId && (
                   <span className="ml-auto inline-flex items-center rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[11px] font-semibold">Default</span>
@@ -876,7 +887,7 @@ function ReviewCard({ icon, title, action, children }: any) {
   return (
     <div className="rounded-lg border border-border p-4">
       <div className="flex items-center gap-2 mb-2.5">
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Icon name={icon} /></span>
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon name={icon} /></span>
         <h3 className="text-sm font-semibold text-foreground">{title}</h3>
         {action && <span className="ml-auto">{action}</span>}
       </div>
@@ -939,12 +950,14 @@ function Step4Review({ patient, getName, pharmacy, isDefault, method, choice, fi
         </ReviewCard>
       )}
 
-      <NoticeStrip icon="sparkles" tone="teal">Our AI will automatically extract patient info, provider details, drug information, and more from your documents.</NoticeStrip>
+      {method === "upload" && (
+        <NoticeStrip icon="sparkles" tone="teal">Our AI will automatically extract patient info, provider details, drug information, and more from your documents.</NoticeStrip>
+      )}
       <NoticeStrip icon="shield">Our team will handle the prior authorization process.</NoticeStrip>
 
       <label className="flex items-start gap-2.5 rounded-lg border border-border bg-muted/30 p-3.5 cursor-pointer" onClick={(e) => { e.preventDefault(); setConfirm(!confirm); }}>
         <span className={cn(
-          "flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded border mt-0.5",
+          "flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded border mt-0.5",
           confirm ? "bg-primary border-primary text-primary-foreground" : "border-input",
         )}>
           {confirm && <Icon name="check" size={14} strokeWidth={2} />}

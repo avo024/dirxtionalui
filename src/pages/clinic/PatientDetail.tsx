@@ -18,7 +18,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { clinicApi } from "@/lib/api";
 import { mapReferralsFromBackend } from "@/lib/dataMapper";
 import { formatDateShort, parseLocalDate } from "@/lib/dateUtils";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import { PageContainer } from "@/components/patterns/PageContainer";
 
 const US_STATES = [
@@ -124,11 +124,11 @@ export default function PatientDetail() {
     setSaving(true);
     try {
       await clinicApi.updatePatient(id, draft);
-      toast.success("Patient updated successfully");
+      toast({ title: "Patient updated successfully" });
       setEditing(false);
       loadPatient();
     } catch (err: any) {
-      toast.error(err.message || "Failed to update patient");
+      toast({ title: err.message || "Failed to update patient", variant: "destructive" });
     } finally { setSaving(false); }
   };
   const setField = (k: string, v: string) => setDraft((d: any) => ({ ...d, [k]: v }));
@@ -282,7 +282,7 @@ export default function PatientDetail() {
                       >
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Icon name="medication" size={14} /></span>
+                            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon name="medication" size={14} /></span>
                             <div className="flex flex-col">
                               <span className="font-semibold text-foreground">{d.drug_name}</span>
                               <span className="text-xs text-muted-foreground">{d.dosage} · {d.frequency || "—"}</span>

@@ -28,7 +28,7 @@ export default function AdminSupportDetail() {
         const res = await adminApi.getSupportCase(caseId!);
         if (!cancelled) setData(res);
       } catch (e: any) {
-        if (!cancelled) toast({ title: "Error", description: e.message || "Failed to load case", variant: "destructive" });
+        if (!cancelled) toast({ title: e.message || "Failed to load case", variant: "destructive" });
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -48,7 +48,7 @@ export default function AdminSupportDetail() {
       } : d);
       setDraft("");
     } catch (e: any) {
-      toast({ title: "Error", description: e.message || "Failed to send reply", variant: "destructive" });
+      toast({ title: e.message || "Failed to send reply", variant: "destructive" });
     } finally { setSending(false); }
   };
 
@@ -59,7 +59,7 @@ export default function AdminSupportDetail() {
       const updated = await adminApi.setSupportCaseStatus(caseId!, status);
       setData((d) => d ? { ...d, case: updated } : d);
     } catch (e: any) {
-      toast({ title: "Error", description: e.message || "Failed to update status", variant: "destructive" });
+      toast({ title: e.message || "Failed to update status", variant: "destructive" });
     } finally { setBusy(false); }
   };
 

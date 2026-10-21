@@ -10,9 +10,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { FilterToolbar } from "@/components/patterns/FilterToolbar";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { pharmacyApi, type Pharmacy } from "@/lib/api";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { PageContainer } from "@/components/patterns/PageContainer";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 function formatPhone(value: string | null): string {
   if (!value) return "—";
@@ -35,6 +36,7 @@ function StatusPill({ active }: { active: boolean }) {
 }
 
 export default function PharmaciesList() {
+  usePageTitle("Pharmacies");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
@@ -50,11 +52,11 @@ export default function PharmaciesList() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => pharmacyApi.deletePharmacy(id),
     onSuccess: () => {
-      toast.success("Pharmacy deactivated");
+      toast({ title: "Pharmacy deactivated" });
       queryClient.invalidateQueries({ queryKey: ["pharmacies"] });
       setDeactivating(null);
     },
-    onError: (err: any) => toast.error(err?.message || "Failed to deactivate pharmacy"),
+    onError: (err: any) => toast({ title: err?.message || "Failed to deactivate pharmacy", variant: "destructive" }),
   });
 
   const items = data?.items ?? [];

@@ -29,7 +29,7 @@ import { adminApi, type AdminInvite } from "@/lib/api";
 import { roleLabel } from "@/lib/roles";
 import { NewInviteModal } from "@/components/NewInviteModal";
 import { formatDateForTable, formatFullDateTime } from "@/lib/dateUtils";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { PageContainer } from "@/components/patterns/PageContainer";
 
@@ -68,27 +68,27 @@ export default function AdminInvites() {
 
   const resendMutation = useMutation({
     mutationFn: (token: string) => adminApi.resendInvite(token),
-    onSuccess: () => toast.success("Invite email resent"),
-    onError: (e: Error) => toast.error(e.message || "Failed to resend"),
+    onSuccess: () => toast({ title: "Invite email resent" }),
+    onError: (e: Error) => toast({ title: e.message || "Failed to resend", variant: "destructive" }),
   });
 
   const revokeMutation = useMutation({
     mutationFn: (token: string) => adminApi.revokeInvite(token),
     onSuccess: () => {
-      toast.success("Invite revoked");
+      toast({ title: "Invite revoked" });
       queryClient.invalidateQueries({ queryKey: ["admin", "invites"] });
       setRevokeTarget(null);
     },
-    onError: (e: Error) => toast.error(e.message || "Failed to revoke"),
+    onError: (e: Error) => toast({ title: e.message || "Failed to revoke", variant: "destructive" }),
   });
 
   const copyLink = async (token: string) => {
     const url = `${INVITE_BASE_URL}/${token}`;
     try {
       await navigator.clipboard.writeText(url);
-      toast.success("Link copied");
+      toast({ title: "Link copied" });
     } catch {
-      toast.error("Failed to copy link");
+      toast({ title: "Failed to copy link", variant: "destructive" });
     }
   };
 

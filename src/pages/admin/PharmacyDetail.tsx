@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DefinitionList } from "@/components/patterns/DefinitionList";
 import { pharmacyApi } from "@/lib/api";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { PageContainer } from "@/components/patterns/PageContainer";
 
@@ -49,11 +49,11 @@ export default function PharmacyDetail() {
   const deleteMutation = useMutation({
     mutationFn: () => pharmacyApi.deletePharmacy(id!),
     onSuccess: () => {
-      toast.success("Pharmacy deactivated");
+      toast({ title: "Pharmacy deactivated" });
       queryClient.invalidateQueries({ queryKey: ["pharmacies"] });
       navigate("/admin/pharmacies");
     },
-    onError: (err: any) => toast.error(err?.message || "Failed to deactivate pharmacy"),
+    onError: (err: any) => toast({ title: err?.message || "Failed to deactivate pharmacy", variant: "destructive" }),
   });
 
   if (isLoading) {

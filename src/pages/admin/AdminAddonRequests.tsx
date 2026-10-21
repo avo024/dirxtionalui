@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { Icon } from "@/components/ui/icon";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -79,18 +79,18 @@ export default function AdminAddonRequests() {
       }),
     onSuccess: (_data, vars) => {
       const target = vars.decision === "approve" ? approveTarget : denyTarget;
-      toast.success(
-        vars.decision === "approve"
+      toast({
+        title: vars.decision === "approve"
           ? `Approved — ${target?.addon_name} activated for ${target?.clinic_name}`
           : `Denied`,
-      );
+      });
       setApproveTarget(null);
       setDenyTarget(null);
       setQuantity(1);
       setAdminNotes("");
       queryClient.invalidateQueries({ queryKey: ["admin", "addon-requests"] });
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error) => toast({ title: err.message, variant: "destructive" }),
   });
 
   const requests = data?.requests ?? [];

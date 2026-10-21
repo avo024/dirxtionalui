@@ -9,6 +9,7 @@ import { FilterToolbar } from "@/components/patterns/FilterToolbar";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { PageContainer } from "@/components/patterns/PageContainer";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 const STATUS_FILTERS = [
   { value: "all", label: "All" },
@@ -49,6 +50,7 @@ function CategoryChip({ category }: { category: string }) {
 }
 
 export default function AdminSupportList() {
+  usePageTitle("Support");
   const navigate = useNavigate();
   const [items, setItems] = useState<SupportCaseSummary[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
@@ -79,7 +81,7 @@ export default function AdminSupportList() {
           setCounts(res.counts || {});
         }
       } catch (e: any) {
-        if (!cancelled) toast({ title: "Error", description: e.message || "Failed to load support cases", variant: "destructive" });
+        if (!cancelled) toast({ title: e.message || "Failed to load support cases", variant: "destructive" });
       } finally {
         if (!cancelled) setLoading(false);
       }

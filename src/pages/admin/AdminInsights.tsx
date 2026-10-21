@@ -7,6 +7,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis
 import { format, subDays, subMonths } from "date-fns";
 import { PageContainer } from "@/components/patterns/PageContainer";
 import { Combobox } from "@/components/ui/combobox";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 const MONTH_KEY = "admin.insights.month";
 const CURRENT = "current";
@@ -46,6 +47,7 @@ function readStoredMonth(valid: string[]): string {
  * that gets gated — workers never needed clinic volumes and trend lines.
  */
 export default function AdminInsights() {
+  usePageTitle("Insights");
   // allReferrals feeds the widgets that carry their own range (today tiles,
   // last 30 days, the 30-day line); referrals is the month-scoped set.
   const [allReferrals, setAllReferrals] = useState<any[]>([]);
@@ -65,7 +67,7 @@ export default function AdminInsights() {
   useEffect(() => {
     adminApi.getReferrals()
       .then((response) => setAllReferrals(response.items || []))
-      .catch((err: any) => toast({ title: "Error", description: err.message || "Failed to load referrals", variant: "destructive" }))
+      .catch((err: any) => toast({ title: err.message || "Failed to load referrals", variant: "destructive" }))
       .finally(() => setLoading(false));
   }, [location.key]);
 

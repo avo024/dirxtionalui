@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Combobox } from "@/components/ui/combobox";
 import { adminApi, pharmacyApi, type AdminClinic } from "@/lib/api";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 
 interface ClinicFormModalProps {
   open: boolean;
@@ -109,12 +109,12 @@ export function ClinicFormModal({ open, onOpenChange, clinic }: ClinicFormModalP
         : adminApi.createClinic(payload);
     },
     onSuccess: () => {
-      toast.success(isEdit ? "Clinic updated" : "Clinic created");
+      toast({ title: isEdit ? "Clinic updated" : "Clinic created" });
       queryClient.invalidateQueries({ queryKey: ["admin", "clinics"] });
       onOpenChange(false);
     },
     onError: (err: any) => {
-      toast.error(err?.message || "Failed to save clinic");
+      toast({ title: err?.message || "Failed to save clinic", variant: "destructive" });
     },
   });
 

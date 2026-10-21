@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { Icon } from "@/components/ui/icon";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -74,26 +74,26 @@ export function ClinicAddonsPanel({ clinicId, clinicName }: Props) {
     mutationFn: (body: { addon_id: string; quantity: number; notes?: string }) =>
       adminAddonsApi.addClinicAddon(clinicId, body),
     onSuccess: () => {
-      toast.success("Activated");
+      toast({ title: "Activated" });
       setAddOpen(false);
       setSelectedAddonId("");
       setQuantity(1);
       setNotes("");
       refetch();
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error) => toast({ title: err.message, variant: "destructive" }),
   });
 
   const removeMutation = useMutation({
     mutationFn: ({ id, notes }: { id: string; notes?: string }) =>
       adminAddonsApi.removeClinicAddon(clinicId, id, notes ? { notes } : undefined),
     onSuccess: () => {
-      toast.success("Removed");
+      toast({ title: "Removed" });
       setRemoveTarget(null);
       setRemoveNotes("");
       refetch();
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error) => toast({ title: err.message, variant: "destructive" }),
   });
 
   if (isLoading) {

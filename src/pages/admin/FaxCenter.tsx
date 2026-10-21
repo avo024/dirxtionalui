@@ -16,6 +16,7 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@
 import { FilterToolbar } from "@/components/patterns/FilterToolbar";
 import { cn } from "@/lib/utils";
 import { PageContainer } from "@/components/patterns/PageContainer";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 type Tab = "inbound" | "outbound";
 
@@ -71,6 +72,7 @@ function OutboundStatusBadge({ status, errorDetail }: { status: string; errorDet
 }
 
 export default function FaxCenter() {
+  usePageTitle("Fax Center");
   const { user } = useAuth();
   const [tab, setTab] = useState<Tab>("inbound");
   const [loading, setLoading] = useState(true);
@@ -94,7 +96,7 @@ export default function FaxCenter() {
         setOurNumber(res.our_number ?? null);
         setOurNumberDisplay(res.our_number_display ?? null);
       })
-      .catch((e: any) => toast({ title: "Error", description: e.message || "Failed to load fax traffic", variant: "destructive" }))
+      .catch((e: any) => toast({ title: e.message || "Failed to load fax traffic", variant: "destructive" }))
       .finally(() => setLoading(false));
   };
 
@@ -106,7 +108,7 @@ export default function FaxCenter() {
       const url = URL.createObjectURL(blob);
       window.open(url, "_blank");
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to open fax PDF", variant: "destructive" });
+      toast({ title: err.message || "Failed to open fax PDF", variant: "destructive" });
     }
   };
 
@@ -125,7 +127,7 @@ export default function FaxCenter() {
     } catch (err: any) {
       setInbound(prevInbound);
       setInboundNewCount(prevCount);
-      toast({ title: "Error", description: err.message || "Failed to mark fax reviewed", variant: "destructive" });
+      toast({ title: err.message || "Failed to mark fax reviewed", variant: "destructive" });
     } finally {
       setReviewingId(null);
     }
@@ -141,7 +143,7 @@ export default function FaxCenter() {
       setLinkDrafts((d) => ({ ...d, [row.id]: "" }));
       load(); // refetch so the linked patient name comes from the backend
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to link fax to referral", variant: "destructive" });
+      toast({ title: err.message || "Failed to link fax to referral", variant: "destructive" });
     } finally {
       setLinkingId(null);
     }

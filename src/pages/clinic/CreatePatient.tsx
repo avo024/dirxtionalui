@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Icon } from "@/components/ui/icon";
 import { clinicApi } from "@/lib/api";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -95,7 +95,7 @@ export default function CreatePatient() {
       const result = await clinicApi.createPatient(form);
       setCreated({ id: result.id, name: form.full_name });
     } catch (err: any) {
-      toast.error(err.message || "Failed to create patient");
+      toast({ title: err.message || "Failed to create patient", variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -148,7 +148,7 @@ export default function CreatePatient() {
         {SECTIONS.map((s) => (
           <div className="p-5" key={s.key} id={`cp-sec-${s.key}`}>
             <div className="flex items-center gap-2.5 mb-4">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Icon name={s.icon} /></span>
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon name={s.icon} /></span>
               <h3 className="text-sm font-semibold text-foreground">
                 {s.title}
                 {s.optional && <span className="ml-2 text-xs font-normal text-muted-foreground">Optional</span>}

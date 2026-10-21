@@ -158,7 +158,7 @@ export function DeliveryConfirmModal({
       setPharmacies(res.items || []);
       setPatientHasInsurance(res.patient_has_insurance ?? null);
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to load pharmacies", variant: "destructive" });
+      toast({ title: err.message || "Failed to load pharmacies", variant: "destructive" });
     } finally {
       setLoadingPharmacies(false);
     }
@@ -179,7 +179,7 @@ export function DeliveryConfirmModal({
       setReassigned(true);
       setTimeout(() => setReassigned(false), 3000);
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to reassign pharmacy", variant: "destructive" });
+      toast({ title: err.message || "Failed to reassign pharmacy", variant: "destructive" });
     } finally {
       setReassigning(false);
     }
@@ -206,7 +206,7 @@ export function DeliveryConfirmModal({
       onOpenChange(false);
       onDelivered();
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to send referral", variant: "destructive" });
+      toast({ title: err.message || "Failed to send referral", variant: "destructive" });
     } finally {
       setDelivering(false);
     }
