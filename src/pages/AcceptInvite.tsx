@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,7 +7,8 @@ import { Icon } from "@/components/ui/icon";
 import { signUp, signIn } from "@/lib/cognito";
 import { toast } from "@/hooks/use-toast";
 import { AsYouType, parsePhoneNumberFromString } from "libphonenumber-js";
-import logo from "@/assets/logo.png";
+import { Checkbox } from "@/components/ui/checkbox";
+import { AuthShell } from "@/components/AuthShell";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -228,14 +228,7 @@ export default function AcceptInvite() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md">
-        <Card className="card-shadow">
-          <CardContent className="p-8">
-            <div className="text-center mb-6">
-              <img src={logo} alt="Dirxctional" className="h-24 w-auto mx-auto mb-4" />
-            </div>
-
+    <AuthShell top>
             {state === "loading" && (
               <div className="flex flex-col items-center gap-3 py-8">
                 <Icon name="spinner" size={24} className="animate-spin text-primary" />
@@ -245,11 +238,11 @@ export default function AcceptInvite() {
 
             {state === "valid" && (
               <form onSubmit={handleSubmit} className="space-y-5">
-                <div className="text-center">
-                  <h1 className="text-xl font-semibold text-foreground">
+                <div>
+                  <h1 className="au-h" data-sm="">
                     You've been invited to join {clinicName || "your clinic"}
                   </h1>
-                  <p className="text-sm text-muted-foreground mt-2">
+                  <p className="au-lede">
                     Create your account to manage specialty referrals.
                   </p>
                 </div>
@@ -386,22 +379,16 @@ export default function AcceptInvite() {
                   </div>
                 )}
 
-                <div className="space-y-3 p-4 border border-slate-200 rounded-lg bg-slate-50">
-                  <label className="flex items-start gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
+                <div className="au-consent">
+                  <label htmlFor="invite-tos">
+                    <Checkbox
+                      id="invite-tos"
                       checked={tosAccepted}
-                      onChange={(e) => setTosAccepted(e.target.checked)}
-                      className="mt-1 flex-shrink-0"
+                      onCheckedChange={(v) => setTosAccepted(v === true)}
                     />
-                    <span className="text-sm text-slate-700">
+                    <span>
                       I have read and agree to the{" "}
-                      <a
-                        href="/terms"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary underline font-medium"
-                      >
+                      <a href="/terms" target="_blank" rel="noopener noreferrer">
                         Terms of Service
                       </a>
                       {policyVersions && ` (version ${policyVersions.tos_version})`}
@@ -409,21 +396,15 @@ export default function AcceptInvite() {
                       the disclaimer regarding AI-extracted data.
                     </span>
                   </label>
-                  <label className="flex items-start gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
+                  <label htmlFor="invite-privacy">
+                    <Checkbox
+                      id="invite-privacy"
                       checked={privacyAcknowledged}
-                      onChange={(e) => setPrivacyAcknowledged(e.target.checked)}
-                      className="mt-1 flex-shrink-0"
+                      onCheckedChange={(v) => setPrivacyAcknowledged(v === true)}
                     />
-                    <span className="text-sm text-slate-700">
+                    <span>
                       I have read and acknowledge the{" "}
-                      <a
-                        href="/privacy"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary underline font-medium"
-                      >
+                      <a href="/privacy" target="_blank" rel="noopener noreferrer">
                         Privacy Policy
                       </a>
                       {policyVersions && ` (version ${policyVersions.privacy_version})`}{" "}
@@ -434,7 +415,7 @@ export default function AcceptInvite() {
 
                 <Button
                   type="submit"
-                  className="w-full"
+                  className="au-cta"
                   size="lg"
                   disabled={
                     submitting ||
@@ -469,7 +450,7 @@ export default function AcceptInvite() {
                   <button
                     type="button"
                     onClick={() => navigate("/login")}
-                    className="text-primary hover:underline font-medium"
+                    className="au-link"
                   >
                     Log in
                   </button>
@@ -478,41 +459,38 @@ export default function AcceptInvite() {
             )}
 
             {state === "not_found" && (
-              <div className="text-center space-y-5">
-                <h1 className="text-xl font-semibold text-foreground">Invite not found</h1>
-                <p className="text-sm text-muted-foreground">
+              <div className="space-y-5">
+                <h1 className="au-h" data-sm="">Invite not found</h1>
+                <p className="au-lede">
                   We couldn't find this invite. Please check the link and try again.
                 </p>
-                <Button variant="outline" className="w-full" onClick={() => navigate("/login")}>
+                <Button variant="outline" onClick={() => navigate("/login")}>
                   Go to Login
                 </Button>
               </div>
             )}
 
             {state === "expired" && (
-              <div className="text-center space-y-5">
-                <h1 className="text-xl font-semibold text-foreground">
+              <div className="space-y-5">
+                <h1 className="au-h" data-sm="">
                   This invite has expired or been used. Please ask your admin for a new one.
                 </h1>
-                <Button variant="outline" className="w-full" onClick={() => navigate("/login")}>
+                <Button variant="outline" onClick={() => navigate("/login")}>
                   Go to Login
                 </Button>
               </div>
             )}
 
             {state === "error" && (
-              <div className="text-center space-y-5">
-                <h1 className="text-xl font-semibold text-foreground">Something went wrong</h1>
-                <p className="text-sm text-muted-foreground">Please try again later.</p>
-                <Button variant="outline" className="w-full" onClick={() => navigate("/login")}>
+              <div className="space-y-5">
+                <h1 className="au-h" data-sm="">Something went wrong</h1>
+                <p className="au-lede">Please try again later.</p>
+                <Button variant="outline" onClick={() => navigate("/login")}>
                   Go to Login
                 </Button>
               </div>
             )}
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+    </AuthShell>
   );
 }
 
