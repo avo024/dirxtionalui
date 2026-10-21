@@ -1,9 +1,9 @@
-import { Link, Navigate } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { Icon } from "@/components/ui/icon";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { hostedUiSignIn } from "@/lib/cognito";
-import logo from "@/assets/logo.png";
+import { AuthShell } from "@/components/AuthShell";
 
 export default function Login() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -21,51 +21,18 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md space-y-8">
-        {/* Logo */}
-        <div className="text-center">
-          <img src={logo} alt="Dirxctional" className="h-20 w-auto mx-auto mb-4" />
-          <p className="text-muted-foreground mt-1">Clinical Referral Automation Platform</p>
-        </div>
-
-        {/* Login card */}
-        <div className="rounded-xl border border-border bg-card p-8 card-shadow space-y-6">
-          <div className="text-center space-y-2">
-            <h1 className="text-xl font-semibold text-foreground">Welcome back</h1>
-            <p className="text-sm text-muted-foreground">
-              Sign in to access your Dirxctional account
-            </p>
-          </div>
-
-          <Button
-            size="lg"
-            className="w-full"
-            onClick={() => {
-              void hostedUiSignIn();
-            }}
-          >
-            <Icon name="sign-in" className="mr-2" />
-            Log In
-          </Button>
-        </div>
-
-        <p className="text-xs text-center text-muted-foreground">
-          Secure authentication powered by AWS Cognito
-        </p>
-
-        <p className="text-xs text-center text-muted-foreground pt-2 space-x-4">
-          <Link to="/privacy" className="hover:text-foreground underline">
-            Privacy Policy
-          </Link>
-          <Link to="/cookie-policy" className="hover:text-foreground underline">
-            Cookie Policy
-          </Link>
-          <Link to="/terms" className="hover:text-foreground underline">
-            Terms of Service
-          </Link>
-        </p>
-      </div>
-    </div>
+    <AuthShell>
+      <h1 className="au-h">Sign in</h1>
+      <Button
+        size="lg"
+        className="au-cta"
+        onClick={() => {
+          void hostedUiSignIn();
+        }}
+      >
+        Continue to sign in <span className="arr" aria-hidden="true">&rarr;</span>
+      </Button>
+      <p className="au-mono">Secure sign-in · AWS Cognito · MFA</p>
+    </AuthShell>
   );
 }
