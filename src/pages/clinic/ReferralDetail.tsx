@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { DefinitionListSkeleton, ListRowsSkeleton } from "@/components/patterns/Skeletons";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Icon } from "@/components/ui/icon";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -27,6 +28,7 @@ import { Combobox } from "@/components/ui/combobox";
 import { DatePicker } from "@/components/ui/date-picker";
 import { PageContainer } from "@/components/patterns/PageContainer";
 import { ReferralHeader, type ReferralHeaderBand } from "@/components/patterns/ReferralHeader";
+import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/patterns/EmptyState";
 import { HistoryTimeline } from "@/components/HistoryTimeline";
 import { DocCard, docCardType, docExt, docIsSent, docOutcome, type DocCardState } from "@/components/DocCard";
@@ -317,7 +319,14 @@ export default function ReferralDetail() {
   };
 
   if (loading) {
-    return <PageContainer fade={false} className="flex justify-center py-20"><Icon name="spinner" size={24} className="animate-spin text-primary" /></PageContainer>;
+    return (
+      <PageContainer fade={false}>
+        <Skeleton className="h-4 w-28 mb-4" />
+        <div className="flex items-center gap-3 mb-5"><Skeleton className="h-8 w-60" /><Skeleton className="h-5 w-24" /></div>
+        <DefinitionListSkeleton rows={5} className="mb-5" />
+        <ListRowsSkeleton rows={3} head={false} />
+      </PageContainer>
+    );
   }
   if (error || !referral) {
     return (
@@ -733,10 +742,8 @@ export default function ReferralDetail() {
           {visibleHistory.length > 0 ? (
             <HistoryTimeline sections={historySections} />
           ) : (
-            <div className="flex flex-col items-center gap-2 py-16 text-center">
-              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground"><Icon name="clock" size={20} /></span>
-              <p className="text-sm font-semibold text-foreground">No history yet</p>
-              <p className="text-sm text-muted-foreground">Events will appear here as the referral progresses.</p>
+            <div className="lr-list">
+              <EmptyState art="history" title="No history yet" text="Events will appear here as the referral progresses." />
             </div>
           )}
         </TabsContent>

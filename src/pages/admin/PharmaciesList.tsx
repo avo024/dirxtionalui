@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { EmptyState } from "@/components/patterns/EmptyState";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Icon } from "@/components/ui/icon";
@@ -107,11 +108,13 @@ export default function PharmaciesList() {
 
       {/* Empty */}
       {!isLoading && !isError && items.length === 0 && (
-        <div className="flex flex-col items-center gap-2 py-16 text-center">
-          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-muted text-muted-foreground"><Icon name="pharmacy" size={24} /></span>
-          <h3 className="text-base font-semibold text-foreground">No pharmacies yet</h3>
-          <p className="text-sm text-muted-foreground">Add your first pharmacy to route approved referrals.</p>
-          <Button size="sm" onClick={() => setCreateOpen(true)}><Icon name="add" />Add Pharmacy</Button>
+        <div className="lr-list">
+          <EmptyState
+            art="pharmacies"
+            title="No pharmacies yet"
+            text="Pharmacies you add will receive approved referrals."
+            actions={<Button size="sm" onClick={() => setCreateOpen(true)}><Icon name="add" />Add Pharmacy</Button>}
+          />
         </div>
       )}
 

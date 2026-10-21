@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { ListRowsSkeleton } from "@/components/patterns/Skeletons";
+import { EmptyState } from "@/components/patterns/EmptyState";
 import { Link } from "react-router-dom";
 import { Icon } from "@/components/ui/icon";
 import {
@@ -202,9 +204,7 @@ export default function FaxCenter() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-16">
-          <Icon name="spinner" size={24} className="animate-spin text-primary" />
-        </div>
+        <ListRowsSkeleton rows={5} head={false} />
       ) : tab === "inbound" ? (
         inbound.length > 0 ? (
           <div className="rounded-lg border border-border bg-card overflow-hidden">
@@ -284,10 +284,8 @@ export default function FaxCenter() {
             </Table>
           </div>
         ) : (
-          <div className="flex flex-col items-center gap-2 py-16 text-center">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground"><Icon name="referrals" size={20} /></span>
-            <p className="text-sm font-semibold text-foreground">No inbound faxes yet</p>
-            <p className="text-sm text-muted-foreground">They'll appear here as they arrive.</p>
+          <div className="lr-list">
+            <EmptyState art="faxes" title="No inbound faxes yet" text="They will appear here as they arrive." />
           </div>
         )
       ) : outbound.length > 0 ? (
@@ -324,10 +322,8 @@ export default function FaxCenter() {
           </Table>
         </div>
       ) : (
-        <div className="flex flex-col items-center gap-2 py-16 text-center">
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground"><Icon name="send" size={20} /></span>
-          <p className="text-sm font-semibold text-foreground">No outbound faxes sent yet</p>
-          <p className="text-sm text-muted-foreground">Referral, appeal, and enrollment faxes will show up here as they're sent.</p>
+        <div className="lr-list">
+          <EmptyState art="faxes" title="No outbound faxes sent yet" text="Referral, appeal, and enrollment faxes will show up here once sent." />
         </div>
       )}
     </PageContainer>

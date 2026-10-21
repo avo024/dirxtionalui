@@ -19,7 +19,7 @@ const navItems = [
 
 export function ClinicSidebar() {
   const location = useLocation();
-  const { logout, user } = useAuth();
+  const { user } = useAuth();
   const { hasUnread } = useSupportUnread();
   const [settingsOpen, setSettingsOpen] = useState(false);
   // Open tasks from the Dirxctional team → amber pill on My Referrals.
@@ -68,10 +68,12 @@ export function ClinicSidebar() {
               key={item.path}
               to={item.path}
               data-tour={item.tour}
+              data-active={isActive ? "" : undefined}
+              aria-current={isActive ? "page" : undefined}
               className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                "sb4-item flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                 isActive
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                  ? "text-white"
                   : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
               )}
             >
@@ -86,14 +88,16 @@ export function ClinicSidebar() {
       </nav>
 
       {/* Help & Support */}
-      <div className="px-3 pt-2">
+      <div className="px-3 pt-2 pb-4">
         <Link
           to="/clinic/support"
           data-tour="help-button"
+          data-active={location.pathname.startsWith("/clinic/support") ? "" : undefined}
+          aria-current={location.pathname.startsWith("/clinic/support") ? "page" : undefined}
           className={cn(
-            "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+            "sb4-item flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
             location.pathname.startsWith("/clinic/support")
-              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+              ? "text-white"
               : hasUnread
                 ? "bg-teal-500/15 text-teal-300 hover:bg-teal-500/25"
                 : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
@@ -102,17 +106,6 @@ export function ClinicSidebar() {
           <Icon name="help" />
           <span className="flex-1">Help &amp; Support</span>
         </Link>
-      </div>
-
-      {/* User / Logout */}
-      <div className="px-3 py-4 border-t border-sidebar-border">
-        <button
-          onClick={logout}
-          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground transition-colors w-full"
-        >
-          <Icon name="sign-out" />
-          Sign Out
-        </button>
       </div>
     </aside>
     <ClinicSettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
