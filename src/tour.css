@@ -1,0 +1,92 @@
+/* driver.js tour popovers on the app's own tokens.
+   Loaded from useTour.ts AFTER driver.css so these win on equal specificity. */
+.driver-popover.dx-tour {
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
+  border: 1px solid hsl(var(--border));
+  border-radius: 12px;
+  padding: 16px;
+  min-width: 260px;
+  max-width: 340px;
+  box-shadow: 0 8px 24px rgba(18, 29, 62, 0.14), 0 1px 3px rgba(18, 29, 62, 0.08);
+}
+.driver-popover.dx-tour * {
+  font-family: var(--font-sans);
+}
+.driver-popover.dx-tour .driver-popover-title {
+  font: 600 15px/1.35 var(--font-sans);
+  color: hsl(var(--foreground));
+  padding-right: 24px;
+}
+.driver-popover.dx-tour .driver-popover-description {
+  font: 400 14px/1.5 var(--font-sans);
+  color: hsl(var(--muted-foreground));
+}
+.driver-popover.dx-tour .driver-popover-title[style*="block"] + .driver-popover-description {
+  margin-top: 6px;
+}
+.driver-popover.dx-tour .driver-popover-close-btn {
+  top: -2px;
+  right: -4px;
+  width: 28px;
+  height: 28px;
+  color: hsl(var(--muted-foreground));
+  border-radius: 6px;
+}
+.driver-popover.dx-tour .driver-popover-close-btn:hover,
+.driver-popover.dx-tour .driver-popover-close-btn:focus-visible {
+  color: hsl(var(--foreground));
+  background: hsl(var(--secondary));
+}
+.driver-popover.dx-tour .driver-popover-footer {
+  margin-top: 16px;
+}
+.driver-popover.dx-tour .driver-popover-progress-text {
+  font: 500 11px/1 var(--font-mono);
+  color: hsl(var(--muted-foreground));
+}
+
+/* Buttons: Back = secondary, Next/Done = primary (navy) */
+.driver-popover.dx-tour .driver-popover-footer-btn {
+  height: 32px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: calc(var(--radius) - 2px);
+  border: 1px solid transparent;
+  font: 500 13px/1 var(--font-sans);
+  text-shadow: none;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+.driver-popover.dx-tour .driver-popover-prev-btn {
+  background: hsl(var(--secondary));
+  color: hsl(var(--secondary-foreground));
+  border-color: hsl(var(--border));
+}
+.driver-popover.dx-tour .driver-popover-prev-btn:hover,
+.driver-popover.dx-tour .driver-popover-prev-btn:focus-visible {
+  background: hsl(var(--secondary) / 0.8);
+}
+.driver-popover.dx-tour .driver-popover-next-btn {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+.driver-popover.dx-tour .driver-popover-next-btn:hover,
+.driver-popover.dx-tour .driver-popover-next-btn:focus-visible {
+  background: hsl(var(--primary) / 0.9);
+}
+.driver-popover.dx-tour .driver-popover-footer-btn:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* Arrow matches the card surface */
+.driver-popover.dx-tour .driver-popover-arrow {
+  border-width: 6px;
+  border-color: hsl(var(--card));
+}
+.driver-popover.dx-tour .driver-popover-arrow-side-left { border-top-color: transparent; border-bottom-color: transparent; border-right-color: transparent; }
+.driver-popover.dx-tour .driver-popover-arrow-side-right { border-top-color: transparent; border-bottom-color: transparent; border-left-color: transparent; }
+.driver-popover.dx-tour .driver-popover-arrow-side-top { border-bottom-color: transparent; border-left-color: transparent; border-right-color: transparent; }
+.driver-popover.dx-tour .driver-popover-arrow-side-bottom { border-top-color: transparent; border-left-color: transparent; border-right-color: transparent; }

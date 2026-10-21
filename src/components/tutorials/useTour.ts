@@ -14,6 +14,7 @@ import { useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { driver, type DriveStep } from "driver.js";
 import "driver.js/dist/driver.css";
+import "@/tour.css";
 import { TOURS } from "./tours";
 
 function waitForElement(selector: string, timeout = 3000): Promise<boolean> {
@@ -56,7 +57,9 @@ export function useTour() {
           showProgress: true,
           animate: true,
           allowClose: true,
-          overlayOpacity: 0.6,
+          overlayColor: "#121D3E",
+          overlayOpacity: 0.55,
+          popoverClass: "dx-tour",
           stagePadding: 6,
           nextBtnText: "Next",
           prevBtnText: "Back",
