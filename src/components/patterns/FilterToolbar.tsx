@@ -3,6 +3,7 @@ import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Combobox } from "@/components/ui/combobox";
+import "@/lists.css";
 
 interface FilterOption {
   value: string;
@@ -34,7 +35,7 @@ interface FilterToolbarProps {
 }
 
 /**
- * Toolbar row above a queue/list: segmented filter buttons with counts,
+ * Toolbar row above a queue/list: pill filter tabs with counts,
  * search, Combobox dropdowns (size="toolbar"), and a trailing slot for a
  * page-specific action.
  */
@@ -50,31 +51,25 @@ export function FilterToolbar({
   className,
 }: FilterToolbarProps) {
   return (
-    <div className={cn("flex flex-wrap items-center gap-2.5", className)}>
+    <div className={cn("ft", className)}>
       {filters && filters.length > 0 && (
-        <div className="inline-flex items-center rounded-md border border-border bg-card p-0.5">
+        <div className="ft-tabs">
           {filters.map((f) => {
             const isActive = f.value === active;
             return (
               <button
                 key={f.value}
                 type="button"
+                className="ft-tab"
+                aria-pressed={isActive}
                 data-tour={f.dataTour}
                 onClick={() => onFilter?.(f.value)}
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-[calc(var(--radius)-4px)] px-3 h-[var(--density-control-h-xs)] text-sm font-medium transition-colors",
-                  isActive ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted",
-                )}
               >
                 {f.label}
                 {typeof f.alert === "number" && f.alert > 0 ? (
-                  <span className="inline-flex items-center rounded-full bg-destructive text-destructive-foreground px-1.5 text-[11px] font-bold">
-                    {f.alert}!
-                  </span>
+                  <span className="al">{f.alert}!</span>
                 ) : typeof f.count === "number" ? (
-                  <span className={cn("text-[11px] font-bold", isActive ? "text-primary-foreground/80" : "text-muted-foreground")}>
-                    {f.count}
-                  </span>
+                  <span className="n">{f.count}</span>
                 ) : null}
               </button>
             );
@@ -83,19 +78,19 @@ export function FilterToolbar({
       )}
 
       {onSearch && (
-        <div className="relative w-[280px]">
-          <Icon name="search" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <div className="ft-search">
+          <Icon name="search" size={16} />
           <Input
             value={search}
             onChange={(e) => onSearch(e.target.value)}
             placeholder={searchPlaceholder}
-            className="h-9 pl-8"
+            className="ft-in"
           />
         </div>
       )}
 
       {selects?.map((s, i) => (
-        <div key={i} style={s.width ? { width: s.width } : undefined}>
+        <div key={i} className="ft-sel" style={s.width ? { width: s.width } : undefined}>
           <Combobox
             options={s.options}
             value={s.value}
@@ -105,7 +100,7 @@ export function FilterToolbar({
         </div>
       ))}
 
-      {trailing && <div className="ml-auto">{trailing}</div>}
+      {trailing && <div className="ft-trail">{trailing}</div>}
     </div>
   );
 }

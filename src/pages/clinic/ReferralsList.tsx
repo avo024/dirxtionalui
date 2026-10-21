@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/patterns/EmptyState";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { FilterToolbar } from "@/components/patterns/FilterToolbar";
+import { Pagination } from "@/components/patterns/Pagination";
 import { clinicApi } from "@/lib/api";
 import { mapReferralsFromBackend } from "@/lib/dataMapper";
 import { useToast } from "@/hooks/use-toast";
@@ -34,18 +35,6 @@ const filterStatusMap: Record<string, string[]> = {
 const isActionNeeded = (r: any) => r.status === "rejected" || (r.open_task_count ?? 0) > 0;
 
 type Sort = { col: "status" | "created" | "updated"; dir: "asc" | "desc" } | null;
-
-// Ellipsis-aware page window: 1 … c-1 c c+1 … total
-function pageWindow(total: number, cur: number): (number | "…")[] {
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-  const out: (number | "…")[] = [1];
-  const lo = Math.max(2, cur - 1), hi = Math.min(total - 1, cur + 1);
-  if (lo > 2) out.push("…");
-  for (let i = lo; i <= hi; i++) out.push(i);
-  if (hi < total - 1) out.push("…");
-  out.push(total);
-  return out;
-}
 
 function monthOptions() {
   const opts: { value: string; label: string }[] = [];
@@ -147,8 +136,6 @@ export default function ReferralsList() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const safePage = Math.min(currentPage, totalPages);
   const paginated = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
-  const startItem = filtered.length === 0 ? 0 : (safePage - 1) * pageSize + 1;
-  const endItem = Math.min(safePage * pageSize, filtered.length);
 
   const handleFilter = (value: string) => { setActiveFilter(value); setCurrentPage(1); };
   const handleSearch = (value: string) => { setSearch(value); setCurrentPage(1); };
@@ -188,13 +175,14 @@ export default function ReferralsList() {
                 const m = monthOptions().find((o) => o.label === label);
                 if (m) setMonth(m.value);
               },
-              width: "200px",
+              width: "224px",
             },
           ]}
           trailing={
             <Button
               size="sm"
-              variant={showArchived ? "default" : "outline"}
+              variant="outline"
+              aria-pressed={showArchived}
               onClick={() => setShowArchived((v) => !v)}
             >
               <Icon name="archive" size={14} />
@@ -278,29 +266,7 @@ export default function ReferralsList() {
 
       {/* Pagination */}
       {!loading && filtered.length > 0 && (
-        <div className="flex items-center justify-between mt-4">
-          <span className="text-xs text-muted-foreground">Showing {startItem}-{endItem} of {filtered.length} referrals</span>
-          <div className="flex items-center gap-2">
-            <Button size="sm" variant="outline" disabled={safePage === 1} onClick={() => setCurrentPage(safePage - 1)}><Icon name="chevron-left" />Prev</Button>
-            <div className="flex items-center gap-1">
-              {pageWindow(totalPages, safePage).map((n, i) =>
-                n === "…" ? (
-                  <span key={`e${i}`} className="px-1 text-xs text-muted-foreground">…</span>
-                ) : (
-                  <button
-                    key={n}
-                    className={`h-7 w-7 rounded-md text-xs font-medium ${n === safePage ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
-                    onClick={() => setCurrentPage(n as number)}
-                  >
-                    {n}
-                  </button>
-                ),
-              )}
-            </div>
-            <span className="text-xs text-muted-foreground">Page {safePage} of {totalPages}</span>
-            <Button size="sm" variant="outline" disabled={safePage === totalPages} onClick={() => setCurrentPage(safePage + 1)}>Next<Icon name="chevron-right" /></Button>
-          </div>
-        </div>
+        <Pagination page={safePage} pageSize={pageSize} total={filtered.length} onPage={setCurrentPage} />
       )}
     </PageContainer>
   );

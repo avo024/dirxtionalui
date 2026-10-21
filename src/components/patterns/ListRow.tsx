@@ -2,6 +2,7 @@ import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
+import "@/lists.css";
 
 interface ListRowsProps {
   /** Column headings; `{ label, r: true }` right-aligns. Hidden under 600px. */
@@ -40,7 +41,10 @@ export function ListRows({ head, cols, className, children, ...rest }: ListRowsP
 }
 
 interface ListRowProps {
-  to: string;
+  /** Destination for the whole row. Omit for a row with nowhere to go (not clickable, no chevron). */
+  to?: string;
+  /** Visually quiet row (e.g. a discontinued medication). */
+  quiet?: boolean;
   /** Patient name. Pass a real <Link> so the primary cell stays a native link. */
   patient: React.ReactNode;
   /** Second muted line (drug, "by X"...). */
@@ -60,7 +64,7 @@ interface ListRowProps {
  * Whole-row navigation. Keyboard reachable (Enter/Space); clicks on inner
  * links/buttons are left to those elements.
  */
-export function ListRow({ to, patient, sub, request, status, extra, when, children, action }: ListRowProps) {
+export function ListRow({ to, quiet, patient, sub, request, status, extra, when, children, action }: ListRowProps) {
   const navigate = useNavigate();
   const fromInner = (e: React.SyntheticEvent) =>
     (e.target as HTMLElement).closest("a,button,input,select,textarea") !== null;
@@ -68,12 +72,14 @@ export function ListRow({ to, patient, sub, request, status, extra, when, childr
     <div
       className="lr"
       role="listitem"
-      tabIndex={0}
-      onClick={(e) => { if (!fromInner(e)) navigate(to); }}
-      onKeyDown={(e) => {
+      tabIndex={to ? 0 : undefined}
+      data-static={to ? undefined : ""}
+      data-quiet={quiet ? "" : undefined}
+      onClick={to ? (e) => { if (!fromInner(e)) navigate(to); } : undefined}
+      onKeyDown={to ? (e) => {
         if (e.target !== e.currentTarget) return;
         if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(to); }
-      }}
+      } : undefined}
     >
       <div className="who">
         <span className="p">{patient}</span>
@@ -83,7 +89,7 @@ export function ListRow({ to, patient, sub, request, status, extra, when, childr
       {children !== undefined ? children : <div className="st">{status}{extra}</div>}
       <span className="when">{when}</span>
       {action}
-      <span className="chev"><Icon name="chevron-right" /></span>
+      <span className="chev">{to && <Icon name="chevron-right" />}</span>
     </div>
   );
 }
