@@ -15,7 +15,7 @@ import { Combobox } from "@/components/ui/combobox";
 import { adminApi, type AdminClinic } from "@/lib/api";
 import { CLINIC_ROLES, DEFAULT_CLINIC_ROLE, type ClinicRoleValue } from "@/lib/roles";
 import { useClinicHasOfficeManager } from "@/hooks/useClinicHasOfficeManager";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import { Icon } from "@/components/ui/icon";
 
 interface NewInviteModalProps {
@@ -73,7 +73,7 @@ export function NewInviteModal({ open, onOpenChange }: NewInviteModalProps) {
   const createMutation = useMutation({
     mutationFn: () => adminApi.createInvite({ clinic_id: clinicId, email: email.trim(), role }),
     onSuccess: () => {
-      toast.success(`Invite sent to ${email.trim()}`);
+      toast({ title: `Invite sent to ${email.trim()}` });
       queryClient.invalidateQueries({ queryKey: ["admin", "invites"] });
       onOpenChange(false);
     },

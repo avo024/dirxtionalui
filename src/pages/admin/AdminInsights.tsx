@@ -65,7 +65,7 @@ export default function AdminInsights() {
   useEffect(() => {
     adminApi.getReferrals()
       .then((response) => setAllReferrals(response.items || []))
-      .catch((err: any) => toast({ title: "Error", description: err.message || "Failed to load referrals", variant: "destructive" }))
+      .catch((err: any) => toast({ title: err.message || "Failed to load referrals", variant: "destructive" }))
       .finally(() => setLoading(false));
   }, [location.key]);
 

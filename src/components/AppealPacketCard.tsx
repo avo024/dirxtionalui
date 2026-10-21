@@ -350,7 +350,7 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
       await onChanged?.();
     } catch (err: any) {
       console.error("appeal packet mark-submitted failed", err);
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast({ title: err.message, variant: "destructive" });
     } finally {
       setMarkingSubmitted(false);
     }

@@ -202,7 +202,7 @@ export default function CreateReferral() {
     if (!preselectedPatientId) return;
     clinicApi.getPatient(preselectedPatientId)
       .then((data) => { setSelectedPatient(data); setPatientMode("existing"); })
-      .catch(() => toast({ title: "Error", description: "Failed to load patient", variant: "destructive" }));
+      .catch(() => toast({ title: "Failed to load patient", variant: "destructive" }));
   }, [preselectedPatientId]);
 
   const [referralMethod, setReferralMethod] = useState<"upload" | "manual" | null>(null);

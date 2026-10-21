@@ -94,8 +94,7 @@ export function ExtractionEditor({ referral, onSaved }: ExtractionEditorProps) {
       onSaved();
     } catch (err: any) {
       toast({
-        title: "Error",
-        description: err.message || "Failed to save changes",
+        title: err.message || "Failed to save changes",
         variant: "destructive",
       });
     }
@@ -355,7 +354,7 @@ export function ExtractionEditor({ referral, onSaved }: ExtractionEditorProps) {
                     });
                     onSaved();
                   } catch (err: any) {
-                    toast({ title: "Error", description: err.message, variant: "destructive" });
+                    toast({ title: err.message, variant: "destructive" });
                   }
                 }}
               />

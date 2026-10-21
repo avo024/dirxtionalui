@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Icon } from "@/components/ui/icon";
 import { clinicApi } from "@/lib/api";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -95,7 +95,7 @@ export default function CreatePatient() {
       const result = await clinicApi.createPatient(form);
       setCreated({ id: result.id, name: form.full_name });
     } catch (err: any) {
-      toast.error(err.message || "Failed to create patient");
+      toast({ title: err.message || "Failed to create patient", variant: "destructive" });
     } finally {
       setSubmitting(false);
     }

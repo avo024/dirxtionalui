@@ -159,7 +159,7 @@ function CaseView({ caseId }: { caseId: string }) {
     setLoading(true);
     supportApi.getCase(caseId)
       .then((r) => { if (!cancelled) setData(r); })
-      .catch((e: any) => { if (!cancelled) toast({ title: "Error", description: e.message || "Failed to load request", variant: "destructive" }); })
+      .catch((e: any) => { if (!cancelled) toast({ title: e.message || "Failed to load request", variant: "destructive" }); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [caseId]);

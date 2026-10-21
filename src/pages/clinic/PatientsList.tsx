@@ -64,7 +64,7 @@ export default function PatientsList() {
     setLoading(true);
     clinicApi.getPatients(search)
       .then((data) => setPatients(data.items || []))
-      .catch(() => toast({ title: "Error", description: "Failed to load patients", variant: "destructive" }))
+      .catch(() => toast({ title: "Failed to load patients", variant: "destructive" }))
       .finally(() => setLoading(false));
   }, [search]);
 

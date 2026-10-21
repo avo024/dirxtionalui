@@ -80,7 +80,7 @@ export function ReferralTasksCard({ referralId, adminFirstName, onShared }: {
       });
       await load();
     } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+      toast({ title: e.message, variant: "destructive" });
     } finally { setCreating(false); }
   };
 
@@ -140,7 +140,7 @@ export function ReferralTasksCard({ referralId, adminFirstName, onShared }: {
       await adminApi.completeTask(taskId, actor);
       toast({ title: "Task completed" });
       await load();
-    } catch (e: any) { toast({ title: "Error", description: e.message, variant: "destructive" }); }
+    } catch (e: any) { toast({ title: e.message, variant: "destructive" }); }
   };
 
   const cancel = async (taskId: string) => {
@@ -148,7 +148,7 @@ export function ReferralTasksCard({ referralId, adminFirstName, onShared }: {
       await adminApi.cancelTask(taskId);
       toast({ title: "Task cancelled" });
       await load();
-    } catch (e: any) { toast({ title: "Error", description: e.message, variant: "destructive" }); }
+    } catch (e: any) { toast({ title: e.message, variant: "destructive" }); }
   };
 
   const startEdit = (task: ReferralTask) => {
@@ -218,7 +218,7 @@ export function ReferralTasksCard({ referralId, adminFirstName, onShared }: {
       cancelEdit();
       toast({ title: "Task updated" });
     } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+      toast({ title: e.message, variant: "destructive" });
     } finally {
       setEditSaving(false);
     }

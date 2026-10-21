@@ -79,7 +79,7 @@ export function PAAppealCard({ referral, referralId, onChanged, hideActions }: {
       }
       await onChanged();
     } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+      toast({ title: e.message, variant: "destructive" });
     } finally {
       setBusy(false);
       setConfirm(null);

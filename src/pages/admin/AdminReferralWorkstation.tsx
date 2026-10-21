@@ -176,7 +176,7 @@ export default function AdminReferralWorkstation() {
     if (!id) return;
     setLoading(true);
     reload()
-      .catch((err: any) => toast({ title: "Error", description: err.message || "Failed to load referral", variant: "destructive" }))
+      .catch((err: any) => toast({ title: err.message || "Failed to load referral", variant: "destructive" }))
       .finally(() => setLoading(false));
   }, [id, reload]);
 
@@ -355,7 +355,7 @@ export default function AdminReferralWorkstation() {
       setRequestOpen(false);
       await reload();
     } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+      toast({ title: e.message, variant: "destructive" });
     } finally {
       setRequestSending(false);
     }
@@ -495,7 +495,7 @@ export default function AdminReferralWorkstation() {
       toast({ title: "PA path updated" });
       await reload();
     } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+      toast({ title: e.message, variant: "destructive" });
     }
   };
 
@@ -507,7 +507,7 @@ export default function AdminReferralWorkstation() {
       setApproveOpen(false);
       await reload();
     } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+      toast({ title: e.message, variant: "destructive" });
     }
   };
 
@@ -523,7 +523,7 @@ export default function AdminReferralWorkstation() {
       setRejectOpen(false);
       navigate("/admin/referrals");
     } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+      toast({ title: e.message, variant: "destructive" });
     } finally {
       setRejecting(false);
     }
@@ -537,7 +537,7 @@ export default function AdminReferralWorkstation() {
       toast({ title: "Re-extraction started" });
       setTimeout(() => reload(), 3000);
     } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+      toast({ title: e.message, variant: "destructive" });
     } finally {
       setReExtracting(false);
     }
@@ -561,7 +561,7 @@ export default function AdminReferralWorkstation() {
       const url = URL.createObjectURL(blob);
       window.open(url, "_blank");
     } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+      toast({ title: e.message, variant: "destructive" });
     }
   };
 
@@ -581,7 +581,7 @@ export default function AdminReferralWorkstation() {
       const due = new Date(Date.now() + 72 * 3600_000);
       await handOff(`Clock started · check by ${formatWhen(due)}`);
     } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+      toast({ title: e.message, variant: "destructive" });
     } finally {
       setFiling(false);
     }
@@ -640,7 +640,7 @@ export default function AdminReferralWorkstation() {
       setDecisionOpen(false);
       await reload();
     } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+      toast({ title: e.message, variant: "destructive" });
     } finally {
       setRecordingDecision(false);
     }
@@ -702,7 +702,7 @@ export default function AdminReferralWorkstation() {
       }
       toast({ title: "PA approval letter uploaded — it's attached automatically when you deliver." });
     } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+      toast({ title: e.message, variant: "destructive" });
     }
   };
   const deleteLetter = async () => {
@@ -713,7 +713,7 @@ export default function AdminReferralWorkstation() {
       const info = await adminApi.getPALetterInfo(id);
       setPaLetterInfo(info);
     } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+      toast({ title: e.message, variant: "destructive" });
     }
   };
 
@@ -777,7 +777,7 @@ export default function AdminReferralWorkstation() {
       setOutcomeDialogOpen(false);
       await reload();
     } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+      toast({ title: e.message, variant: "destructive" });
     } finally {
       setRecordingOutcome(false);
     }
@@ -795,7 +795,7 @@ export default function AdminReferralWorkstation() {
       await reload();
       localStorage.setItem(`notes_last_viewed_${id}`, new Date().toISOString());
     } catch (e: any) {
-      toast({ title: "Error", description: e.message || "Failed to add note", variant: "destructive" });
+      toast({ title: e.message || "Failed to add note", variant: "destructive" });
     } finally {
       setSendingNote(false);
     }

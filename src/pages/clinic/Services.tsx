@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { Icon } from "@/components/ui/icon";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -46,24 +46,22 @@ export default function Services() {
   const requestMutation = useMutation({
     mutationFn: requestAddon,
     onSuccess: () => {
-      toast.success(
-        "Request submitted — we'll confirm via email within 1 business day",
-      );
+      toast({ title: "Request submitted — we'll confirm via email within 1 business day" });
       setRequestTarget(null);
       setNotes("");
       refetch();
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error) => toast({ title: err.message, variant: "destructive" }),
   });
 
   const cancelMutation = useMutation({
     mutationFn: cancelAddonRequest,
     onSuccess: () => {
-      toast.success("Request cancelled");
+      toast({ title: "Request cancelled" });
       setCancelTarget(null);
       refetch();
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error) => toast({ title: err.message, variant: "destructive" }),
   });
 
   if (isLoading) {

@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { TagListEditor } from "@/components/TagListEditor";
 import { pharmacyApi, type Pharmacy } from "@/lib/api";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 
 interface PharmacyFormModalProps {
   open: boolean;
@@ -122,14 +122,14 @@ export function PharmacyFormModal({ open, onOpenChange, pharmacy, onSuccess }: P
         : pharmacyApi.createPharmacy(payload);
     },
     onSuccess: (saved) => {
-      toast.success(isEdit ? "Pharmacy updated" : "Pharmacy created");
+      toast({ title: isEdit ? "Pharmacy updated" : "Pharmacy created" });
       queryClient.invalidateQueries({ queryKey: ["pharmacies"] });
       if (isEdit && pharmacy) queryClient.invalidateQueries({ queryKey: ["pharmacy", pharmacy.id] });
       onSuccess?.(saved);
       onOpenChange(false);
     },
     onError: (err: any) => {
-      toast.error(err?.message || "Failed to save pharmacy");
+      toast({ title: err?.message || "Failed to save pharmacy", variant: "destructive" });
     },
   });
 

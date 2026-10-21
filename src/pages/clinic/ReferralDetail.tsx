@@ -339,7 +339,7 @@ export default function ReferralDetail() {
       toast({ title: "Note added" });
       localStorage.setItem(`notes_last_viewed_${id}`, new Date().toISOString());
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to add note", variant: "destructive" });
+      toast({ title: err.message || "Failed to add note", variant: "destructive" });
     } finally { setSendingNote(false); }
   };
 
@@ -1201,7 +1201,7 @@ function ExpiredInsuranceBanner({ referralId, onUpdated }: { referralId: string;
   const saveManual = async () => {
     setSaving(true);
     try { await clinicApi.updateReferralInsurance(referralId, form); toast({ title: "Insurance updated" }); onUpdated(); }
-    catch (err: any) { toast({ title: "Error", description: err.message, variant: "destructive" }); }
+    catch (err: any) { toast({ title: err.message, variant: "destructive" }); }
     finally { setSaving(false); }
   };
   return (
@@ -1258,7 +1258,7 @@ function ClinicTasksPanel({ tasks, referralId, onChanged, embedded }: { tasks: a
       toast({ title: "Reply sent", description: "Your Dirxctional team has been notified." });
       await onChanged();
     } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+      toast({ title: e.message, variant: "destructive" });
     } finally { setBusy(null); }
   };
 

@@ -79,7 +79,7 @@ export default function AdminSupportList() {
           setCounts(res.counts || {});
         }
       } catch (e: any) {
-        if (!cancelled) toast({ title: "Error", description: e.message || "Failed to load support cases", variant: "destructive" });
+        if (!cancelled) toast({ title: e.message || "Failed to load support cases", variant: "destructive" });
       } finally {
         if (!cancelled) setLoading(false);
       }

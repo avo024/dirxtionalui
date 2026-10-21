@@ -246,7 +246,7 @@ export default function ReferralsList() {
                       setReferrals((prev: any) => prev.filter((x: any) => x.id !== r.id));
                       toast({ title: "Referral restored" });
                     } catch (e: any) {
-                      toast({ title: "Error", description: e.message, variant: "destructive" });
+                      toast({ title: e.message, variant: "destructive" });
                     }
                   }}
                 >

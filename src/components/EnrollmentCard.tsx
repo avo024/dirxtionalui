@@ -388,7 +388,7 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged, hideAc
       await onChanged?.();
     } catch (err: any) {
       console.error("enrollment mark-submitted failed", err);
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast({ title: err.message, variant: "destructive" });
     } finally {
       setMarkingSubmitted(false);
     }

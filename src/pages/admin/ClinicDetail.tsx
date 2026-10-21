@@ -15,7 +15,7 @@ import { adminApi, type AdminClinic, type AdminInvite, type AdminClinicUser } fr
 import { CLINIC_ROLES, DEFAULT_CLINIC_ROLE, type ClinicRoleValue, roleLabel } from "@/lib/roles";
 import { formatDateForTable } from "@/lib/dateUtils";
 import { useClinicHasOfficeManager } from "@/hooks/useClinicHasOfficeManager";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import { PageContainer } from "@/components/patterns/PageContainer";
 
 const INVITE_BASE_URL = "https://app.dirxctional.com/invite";
@@ -57,10 +57,10 @@ function TeamMembersPanel({ clinic }: { clinic: AdminClinic }) {
       );
       return { previous };
     },
-    onSuccess: () => toast.success("Role updated"),
+    onSuccess: () => toast({ title: "Role updated" }),
     onError: (e: any, _vars, ctx) => {
       if (ctx?.previous) queryClient.setQueryData(teamKey, ctx.previous);
-      toast.error(e?.message || "Failed to update role");
+      toast({ title: e?.message || "Failed to update role", variant: "destructive" });
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: teamKey }),
   });
@@ -161,28 +161,28 @@ function TeamInvitesPanel({ clinic }: { clinic: AdminClinic }) {
   const createMut = useMutation({
     mutationFn: (addr: string) => adminApi.createInvite({ clinic_id: clinic.id, email: addr, role }),
     onSuccess: (_d, addr) => {
-      toast.success(`Invite sent to ${addr}`);
+      toast({ title: `Invite sent to ${addr}` });
       setEmail(""); setTouched(false); setRoleTouched(false);
       queryClient.invalidateQueries({ queryKey: ["admin", "invites"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "clinic-team", clinic.id] });
     },
-    onError: (e: any) => toast.error(e?.message || "Failed to send invite"),
+    onError: (e: any) => toast({ title: e?.message || "Failed to send invite", variant: "destructive" }),
   });
 
   const resendMut = useMutation({
     mutationFn: (token: string) => adminApi.resendInvite(token),
-    onSuccess: () => toast.success("Invite email resent"),
-    onError: (e: any) => toast.error(e?.message || "Failed to resend"),
+    onSuccess: () => toast({ title: "Invite email resent" }),
+    onError: (e: any) => toast({ title: e?.message || "Failed to resend", variant: "destructive" }),
   });
 
   const revokeMut = useMutation({
     mutationFn: (token: string) => adminApi.revokeInvite(token),
     onSuccess: () => {
-      toast.success("Invite revoked");
+      toast({ title: "Invite revoked" });
       queryClient.invalidateQueries({ queryKey: ["admin", "invites"] });
       setRevokeTarget(null);
     },
-    onError: (e: any) => toast.error(e?.message || "Failed to revoke"),
+    onError: (e: any) => toast({ title: e?.message || "Failed to revoke", variant: "destructive" }),
   });
 
   const submit = () => {
@@ -193,8 +193,8 @@ function TeamInvitesPanel({ clinic }: { clinic: AdminClinic }) {
   const copyLink = async (token: string) => {
     try {
       await navigator.clipboard.writeText(`${INVITE_BASE_URL}/${token}`);
-      toast.success("Link copied");
-    } catch { toast.error("Failed to copy link"); }
+      toast({ title: "Link copied" });
+    } catch { toast({ title: "Failed to copy link", variant: "destructive" }); }
   };
 
   return (

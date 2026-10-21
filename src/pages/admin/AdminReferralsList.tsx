@@ -347,7 +347,7 @@ export default function AdminReferralsList() {
         if (cancelled) return;
         setWorkRows(res.items || []);
       })
-      .catch((err: any) => toast({ title: "Error", description: err.message || "Failed to load referrals", variant: "destructive" }))
+      .catch((err: any) => toast({ title: err.message || "Failed to load referrals", variant: "destructive" }))
       .finally(() => !cancelled && setWorkLoading(false));
     return () => {
       cancelled = true;
@@ -365,7 +365,7 @@ export default function AdminReferralsList() {
         setAllRows(res.items || []);
         setAllLoadedOnce(true);
       })
-      .catch((err: any) => toast({ title: "Error", description: err.message || "Failed to load referrals", variant: "destructive" }))
+      .catch((err: any) => toast({ title: err.message || "Failed to load referrals", variant: "destructive" }))
       .finally(() => !cancelled && setAllLoading(false));
     return () => {
       cancelled = true;
@@ -565,7 +565,7 @@ export default function AdminReferralsList() {
       else setAllRows((prev) => prev.filter((r) => r.id !== id));
       toast({ title: "Referral archived" });
     } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+      toast({ title: e.message, variant: "destructive" });
     }
   };
   const unarchiveRow = async (id: string) => {
@@ -574,7 +574,7 @@ export default function AdminReferralsList() {
       setAllRows((prev) => prev.filter((r) => r.id !== id));
       toast({ title: "Referral restored" });
     } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+      toast({ title: e.message, variant: "destructive" });
     }
   };
 
