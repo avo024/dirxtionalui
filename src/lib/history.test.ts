@@ -108,7 +108,7 @@ describe("groupHistory", () => {
     const out = groupHistory(rows, { status: "approved_to_send", pa_status: "approved" });
     const stageOf = (t: string) => out.find((s) => s.events.some((e) => e.type === t))!.key;
     expect(stageOf("ai_extraction_completed_auto")).toBe("review");
-    expect(stageOf("referral_rejectd")).toBe("review");
+    expect(stageOf("referral_rejectd")).toBe("intake"); // same as referral_rejected: the clinic holds a Needs-Attention referral
     expect(stageOf("task_created")).toBe("pa");
     expect(stageOf("task_completed")).toBe("pa");
     expect(stageOf("pharmacy_reassigned")).toBe("delivery");
