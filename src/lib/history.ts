@@ -66,7 +66,7 @@ const EVENT_MAP: Record<string, [HistoryStageKey | null, string]> = {
   referral_edited_by_clinic: ["intake", "edit"],
   referral_resubmitted: ["intake", "resubmitted"],
   referral_rejected: ["intake", "rejected"],
-  referral_rejectd: ["review", "rejected"], // legacy typo variant
+  referral_rejectd: ["intake", "rejected"], // legacy typo variant — same stage as referral_rejected (Needs Attention is held by the clinic)
   ai_extraction_completed: ["review", "extracted"],
   ai_extraction_completed_auto: ["review", "extracted"],
   referral_approved: ["review", "approved"],
