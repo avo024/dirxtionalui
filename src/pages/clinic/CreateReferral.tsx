@@ -430,8 +430,12 @@ export default function CreateReferral() {
       <PageContainer fade={false}>
         <div className="animate-in fade-in slide-in-from-bottom-1 duration-300 flex flex-col items-center gap-3 text-center py-10 max-w-lg mx-auto">
           <span className="flex h-16 w-16 items-center justify-center rounded-full bg-success/15 text-success"><Icon name="check-circle" size={24} /></span>
-          <h1 className="text-2xl font-semibold text-foreground">We'll Take It From Here!</h1>
-          <p className="text-sm text-muted-foreground">Referral submitted successfully! Our AI is extracting the details now and our team will review within the hour.</p>
+          <h1 className="ty-title text-2xl text-foreground">We'll take it from here.</h1>
+          <p className="text-sm text-muted-foreground">
+            {referralMethod === "upload"
+              ? "Referral submitted. We're reading the documents now; our team reviews within the hour."
+              : "Referral submitted. Our team reviews it within the hour."}
+          </p>
           {submittedId && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">Reference <IdChip id={submittedId} /></div>
           )}
