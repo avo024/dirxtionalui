@@ -1,4 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
+import { DefinitionListSkeleton, ListRowsSkeleton } from "@/components/patterns/Skeletons";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/patterns/EmptyState";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Icon } from "@/components/ui/icon";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -137,7 +140,16 @@ export default function PatientDetail() {
   };
   const setField = (k: string, v: string) => setDraft((d: any) => ({ ...d, [k]: v }));
 
-  if (loading) return <PageContainer fade={false} style={{ display: "flex", justifyContent: "center", padding: 80 }}><Icon name="spinner" size={24} className="animate-spin text-primary" /></PageContainer>;
+  if (loading) return (
+    <PageContainer fade={false}>
+      <button className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-4" onClick={() => navigate("/clinic/patients")}>
+        <Icon name="back" />Back to Patients
+      </button>
+      <div className="flex items-center gap-3 mb-5"><Skeleton className="h-8 w-56" /><Skeleton className="h-4 w-32" /></div>
+      <Skeleton className="h-9 w-80 mb-5" />
+      <DefinitionListSkeleton rows={6} />
+    </PageContainer>
+  );
   if (error || !patient) return (
     <PageContainer fade={false} className="text-center py-20">
       <p className="text-muted-foreground">{error || "Patient not found"}</p>
@@ -238,24 +250,27 @@ export default function PatientDetail() {
               ))}
             </ListRows>
           ) : (
-            <div className="flex flex-col items-center gap-2 py-16 text-center">
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-muted-foreground"><Icon name="document" size={20} /></span>
-              <p className="text-sm font-semibold text-foreground">No referrals for this patient</p>
-              <p className="text-sm text-muted-foreground">Create a referral to get started</p>
-              <Button onClick={() => navigate(`/clinic/referrals/new?patientId=${patient.id}`)}><Icon name="add" />Create Referral</Button>
+            <div className="lr-list">
+              <EmptyState
+                art="referrals"
+                title="No referrals for this patient yet"
+                actions={<Button onClick={() => navigate(`/clinic/referrals/new?patientId=${patient.id}`)}><Icon name="add" />Create Referral</Button>}
+              />
             </div>
           )}
         </TabsContent>
 
         <TabsContent value="pa" className="pt-5">
           {medsLoading ? (
-            <div className="flex items-center justify-center gap-2 py-16"><Icon name="spinner" size={24} className="animate-spin text-primary" /><span className="text-sm text-muted-foreground">Loading medications…</span></div>
+            <ListRowsSkeleton rows={3} />
           ) : sortedMedications.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 py-16 text-center">
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-muted-foreground"><Icon name="clipboard-list" size={20} /></span>
-              <p className="text-sm font-semibold text-foreground">No medications on record</p>
-              <p className="text-sm text-muted-foreground">No active prescriptions for this patient yet</p>
-              <Button onClick={() => navigate(`/clinic/referrals/new?patientId=${patient.id}`)}><Icon name="add" />Create First Referral</Button>
+            <div className="lr-list">
+              <EmptyState
+                art="documents"
+                title="No medications on record"
+                text="Active prescriptions for this patient will show up here."
+                actions={<Button onClick={() => navigate(`/clinic/referrals/new?patientId=${patient.id}`)}><Icon name="add" />Create First Referral</Button>}
+              />
             </div>
           ) : (
             <ListRows head={["Drug", "PA status", { label: "Valid through", r: true }, ""]}>

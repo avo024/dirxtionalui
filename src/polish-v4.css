@@ -1,0 +1,29 @@
+/* Polish v4 (chrome). Sidebar active edge, skeleton shapes, empty-state sizing. Loaded after polish.css; tokens live in index.css. */
+
+/* Sidebar — active item = 3px teal left edge + white text (no pill). Edge sits on the sidebar's own edge (nav/footer padding is 12px). */
+.sb4-item{position:relative}
+.sb4-item[data-active]::before{content:"";position:absolute;left:-12px;top:6px;bottom:6px;width:3px;border-radius:0 2px 2px 0;background:var(--color-teal-500)}
+.sb4-item[data-active]{background:transparent}
+
+/* Skeletons — soft stone bars, slow shimmer; shapes mirror ListRow / TodayStrip / DefinitionList so the page doesn't jump on load. */
+.sk{background:linear-gradient(90deg,var(--color-stone-100) 0%,var(--color-stone-200) 50%,var(--color-stone-100) 100%);background-size:200% 100%;animation:sk-shimmer 1.6s ease-in-out infinite}
+@keyframes sk-shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
+@media (prefers-reduced-motion:reduce){.sk{animation:none}}
+
+.sk-lr{display:grid;grid-template-columns:24px minmax(0,1.7fr) minmax(0,1fr) 112px 16px;gap:20px;align-items:center;height:56px;padding:0 20px;border-top:1px solid var(--color-stone-100);background:#fff}
+.sk-lr:first-child,.lr-head+.sk-lr,.sk-head+.sk-lr{border-top:0}
+.sk-lr .two{display:flex;flex-direction:column;gap:7px;min-width:0}
+.sk-head{display:flex;align-items:center;height:38px;padding:0 20px;border-bottom:1px solid var(--color-stone-200)}
+@container (max-width:600px){.sk-lr{grid-template-columns:24px minmax(0,1fr) 64px}.sk-lr .hide-sm{display:none}}
+
+.sk-ts-row{display:grid;grid-template-columns:168px minmax(0,1fr) auto;gap:20px;align-items:center;padding:13px 20px;border-top:1px solid var(--color-stone-100)}
+.sk-ts-row:first-child{border-top:0}
+@media (max-width:760px){.sk-ts-row{grid-template-columns:minmax(0,1fr);gap:6px}}
+
+.sk-dl-row{display:grid;grid-template-columns:34% minmax(0,1fr);gap:16px;align-items:center;min-height:36px}
+
+.sk-grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+
+/* EmptyState — art is 64px wide (48px tall); keep the line weight crisp and the title one line. */
+.es svg{flex:none}
+.es h4{line-height:1.3}

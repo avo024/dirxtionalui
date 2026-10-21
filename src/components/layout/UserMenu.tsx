@@ -15,6 +15,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useAdminProfile } from "@/hooks/useAdminProfile";
 import { EditProfileModal } from "@/components/EditProfileModal";
 import { roleLabel } from "@/lib/roles";
+import { cn } from "@/lib/utils";
 
 export function UserMenu() {
   const { user, logout } = useAuth();
@@ -53,13 +54,10 @@ export function UserMenu() {
     user.name ||
     user.email ||
     "U";
-  const initials = initialsSource
-    .split(" ")
-    .map((s) => s[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+  const words = initialsSource.trim().split(/\s+/).filter((w) => /[a-zA-Z0-9]/.test(w));
+  const initials = (
+    words.length >= 2 ? words[0][0] + words[1][0] : (words[0] ?? "U").replace(/[^a-zA-Z0-9]/g, "").slice(0, 2)
+  ).toUpperCase();
 
   return (
     <>
@@ -68,14 +66,21 @@ export function UserMenu() {
           <Button variant="ghost" className="gap-2 h-9 px-2" data-tour="user-menu">
             <Avatar className="h-7 w-7">
               {user.picture && <AvatarImage src={user.picture} alt={displayLabel} />}
-              <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+              <AvatarFallback
+                className={cn(
+                  "text-[11px] font-semibold tracking-wide text-white",
+                  isAdmin ? "bg-teal-700" : "bg-[#1B2B5B]",
+                )}
+              >
+                {initials}
+              </AvatarFallback>
             </Avatar>
             <span className="text-sm font-medium hidden sm:inline">
               {displayLabel}
             </span>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuContent align="end" className="w-64">
           <DropdownMenuLabel className="flex flex-col gap-0.5">
             <span className="text-sm font-medium">{displayLabel}</span>
             {isClinicUser && (
@@ -84,7 +89,7 @@ export function UserMenu() {
               </span>
             )}
             {user.email && displayLabel !== user.email && (
-              <span className="text-xs text-muted-foreground font-normal">
+              <span className="text-xs text-muted-foreground font-normal break-all">
                 {user.email}
               </span>
             )}

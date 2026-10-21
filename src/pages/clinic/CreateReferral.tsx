@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import { EmptyState } from "@/components/patterns/EmptyState";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Icon } from "@/components/ui/icon";
 import { Stepper } from "@/components/patterns/Stepper";
@@ -644,10 +645,7 @@ function Step1Patient({ search, setSearch, results, selected, onSelect, onClear,
       )}
 
       {!selected && !search && (
-        <div className="flex flex-col items-center gap-2 py-10 text-center">
-          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-muted text-muted-foreground"><Icon name="patients" size={24} /></span>
-          <p className="text-sm text-muted-foreground m-0">Search above or add a new patient to continue</p>
-        </div>
+        <EmptyState art="patients" size="sm" title="Search above or add a new patient" />
       )}
     </div>
   );
@@ -828,7 +826,7 @@ function Step3Pharmacy({ loading, pharmacies, selectedId, defaultId, onSelect, s
       {loading ? (
         <div className="flex justify-center py-12"><Icon name="spinner" size={24} className="animate-spin text-muted-foreground" /></div>
       ) : pharmacies.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 py-10 text-center"><p className="text-sm text-muted-foreground m-0">No pharmacies available for your clinic. Contact Dirxctional support.</p></div>
+        <EmptyState art="pharmacies" title="No pharmacies available" text="Contact Dirxctional support to have one added." />
       ) : (
         <>
           <RwField label="Pharmacy">

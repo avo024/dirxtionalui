@@ -5,6 +5,8 @@ interface CreatedByAvatarProps {
   name?: string | null;
   clinicName?: string | null;
   size?: "sm" | "md";
+  /** Navy for clinic users (default), teal for admins. */
+  tone?: "navy" | "teal";
 }
 
 export function getInitials(name?: string | null): string {
@@ -15,19 +17,19 @@ export function getInitials(name?: string | null): string {
   return "";
 }
 
-export function CreatedByAvatar({ name, clinicName, size = "sm" }: CreatedByAvatarProps) {
+export function CreatedByAvatar({ name, clinicName, size = "sm", tone = "navy" }: CreatedByAvatarProps) {
   if (!name) {
     return <span className="text-muted-foreground/60 text-sm">—</span>;
   }
   const initials = getInitials(name);
   const tooltip = clinicName ? `Created by ${name} — ${clinicName}` : `Created by ${name}`;
-  const dim = size === "sm" ? "h-7 w-7 text-[10px]" : "h-8 w-8 text-xs";
+  const dim = size === "sm" ? "h-7 w-7" : "h-8 w-8";
 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Avatar className={`${dim} bg-primary/10 ring-1 ring-primary/20`}>
-          <AvatarFallback className="bg-primary/10 text-primary font-semibold text-[10px]">
+        <Avatar className={dim}>
+          <AvatarFallback className={`font-semibold text-[11px] tracking-wide text-white ${tone === "teal" ? "bg-teal-700" : "bg-[#1B2B5B]"}`}>
             {initials}
           </AvatarFallback>
         </Avatar>

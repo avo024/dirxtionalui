@@ -1,10 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Icon } from "@/components/ui/icon";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { fetchAuthSession } from "aws-amplify/auth";
-import logo from "@/assets/logo.png";
+import { AuthShell } from "@/components/AuthShell";
 
 export default function Callback() {
   const navigate = useNavigate();
@@ -38,36 +36,27 @@ export default function Callback() {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md">
-        <Card className="card-shadow">
-          <CardContent className="p-8 text-center space-y-5">
-            <img src={logo} alt="Dirxctional" className="h-20 w-auto mx-auto" />
-            {error ? (
-              <>
-                <h1 className="text-xl font-semibold text-foreground">
-                  Sign-in failed
-                </h1>
-                <p className="text-sm text-muted-foreground">{error}</p>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => navigate("/login", { replace: true })}
-                >
-                  Back to login
-                </Button>
-              </>
-            ) : (
-              <>
-                <Icon name="spinner" size={24} className="animate-spin text-primary mx-auto" />
-                <p className="text-sm text-muted-foreground">
-                  Signing you in…
-                </p>
-              </>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+    <AuthShell>
+      {error ? (
+        <>
+          <h1 className="au-h" role="alert">We couldn't sign you in.</h1>
+          <p className="au-lede">
+            Try again or email{" "}
+            <a className="au-link" href="mailto:support@dirxctional.com">support@dirxctional.com</a>.
+          </p>
+          <Button
+            className="au-cta"
+            onClick={() => navigate("/login", { replace: true })}
+          >
+            Try again
+          </Button>
+        </>
+      ) : (
+        <>
+          <h1 className="au-h" role="status">Signing you in</h1>
+          <p className="au-lede">Just a moment while we confirm your sign-in.</p>
+        </>
+      )}
+    </AuthShell>
   );
 }

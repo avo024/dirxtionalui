@@ -1,4 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
+import { ListRowsSkeleton, TodayStripSkeleton } from "@/components/patterns/Skeletons";
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Icon } from "@/components/ui/icon";
@@ -6,6 +7,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { ClinicPABadge } from "@/components/ClinicPABadge";
 import { ListRows, ListRow } from "@/components/patterns/ListRow";
 import { TodayStrip, type TodayLine } from "@/components/patterns/TodayStrip";
+import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/patterns/EmptyState";
 import { NotificationBell } from "@/components/NotificationBell";
 import { Button } from "@/components/ui/button";
@@ -145,10 +147,13 @@ export default function ClinicDashboard() {
       )}
 
       {loading ? (
-        <div className="flex flex-col gap-3">
-          <div className="h-24 rounded-lg bg-muted animate-pulse" />
-          <div className="h-40 rounded-lg bg-muted animate-pulse" />
-        </div>
+        <>
+          <div className="mb-6"><TodayStripSkeleton /></div>
+          <div className="mb-6">
+            <div className="p3-sec"><Skeleton className="h-4 w-24" /></div>
+            <ListRowsSkeleton rows={4} />
+          </div>
+        </>
       ) : (
         <>
           {/* Today — what needs the office, what Dirxctional replied, what is processing. */}
@@ -188,7 +193,7 @@ export default function ClinicDashboard() {
               <EmptyState
                 art="referrals"
                 title="No referrals yet"
-                text="Create your first referral to get started."
+                text="Referrals you create will show up here."
                 actions={<Button asChild><Link to="/clinic/referrals/new"><Icon name="add" />New Referral</Link></Button>}
               />
             </div>

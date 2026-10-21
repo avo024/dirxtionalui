@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Icon } from "@/components/ui/icon";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import "@/auth.css";
 import { getHeaders } from "@/lib/api";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
@@ -92,60 +94,45 @@ export function ConsentReacceptModal() {
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-[#121D3E]/60 p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="consent-reaccept-title"
     >
-      <div className="w-full max-w-lg rounded-lg border bg-background p-6 shadow-xl">
-        <h2
-          id="consent-reaccept-title"
-          className="text-lg font-semibold text-foreground"
-        >
+      <div className="au-modal">
+        <h2 id="consent-reaccept-title">
           We've updated our terms
         </h2>
-        <p className="mt-3 text-sm text-muted-foreground">
+        <p className="lede">
           {isPreClickwrap
             ? "Welcome back! To continue using Dirxctional, please take a moment to review and accept our Terms of Service and Privacy Policy."
             : "Since your last sign-in, we've updated our Terms of Service and Privacy Policy. Please review and accept the latest versions to continue using Dirxctional."}
         </p>
 
-        <div className="mt-5 space-y-3 rounded-lg border border-border bg-muted/40 p-4">
-          <label className="flex items-start gap-3 cursor-pointer">
-            <input
-              type="checkbox"
+        <div className="au-consent mt-5">
+          <label htmlFor="consent-tos">
+            <Checkbox
+              id="consent-tos"
               checked={tosAccepted}
-              onChange={(e) => setTosAccepted(e.target.checked)}
-              className="mt-1 flex-shrink-0"
+              onCheckedChange={(v) => setTosAccepted(v === true)}
             />
-            <span className="text-sm text-foreground">
+            <span>
               I have read and agree to the{" "}
-              <a
-                href="/terms"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary underline font-medium"
-              >
+              <a href="/terms" target="_blank" rel="noopener noreferrer">
                 Terms of Service
               </a>{" "}
               (version {tos_version}).
             </span>
           </label>
-          <label className="flex items-start gap-3 cursor-pointer">
-            <input
-              type="checkbox"
+          <label htmlFor="consent-privacy">
+            <Checkbox
+              id="consent-privacy"
               checked={privacyAcknowledged}
-              onChange={(e) => setPrivacyAcknowledged(e.target.checked)}
-              className="mt-1 flex-shrink-0"
+              onCheckedChange={(v) => setPrivacyAcknowledged(v === true)}
             />
-            <span className="text-sm text-foreground">
+            <span>
               I have read and acknowledge the{" "}
-              <a
-                href="/privacy"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary underline font-medium"
-              >
+              <a href="/privacy" target="_blank" rel="noopener noreferrer">
                 Privacy Policy
               </a>{" "}
               (version {privacy_version}).

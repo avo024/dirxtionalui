@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { ListRowsSkeleton } from "@/components/patterns/Skeletons";
 import { Link } from "react-router-dom";
 import { Icon } from "@/components/ui/icon";
 import { PAStatusBadge } from "@/components/PAStatusBadge";
@@ -117,7 +118,7 @@ export default function PatientsList() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-12"><Icon name="spinner" size={24} className="animate-spin text-primary" /></div>
+        <ListRowsSkeleton rows={6} />
       ) : paginated.length > 0 ? (
         <ListRows
           cols="minmax(0,1.5fr) minmax(0,1fr) minmax(0,1fr) minmax(0,.9fr) 104px 16px"
@@ -148,18 +149,20 @@ export default function PatientsList() {
           ))}
         </ListRows>
       ) : search || filter !== "all" ? (
-        <div className="flex flex-col items-center gap-2 py-16 text-center">
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-muted-foreground"><Icon name="patients" size={20} /></span>
-          <p className="text-sm font-semibold text-foreground">No patients found</p>
-          <p className="text-sm text-muted-foreground">Try adjusting your search or filters</p>
-          <Button size="sm" variant="outline" onClick={() => { setSearch(""); setFilter("all"); }}>Clear Filters</Button>
+        <div className="lr-list">
+          <EmptyState
+            art="patients"
+            title="No patients match"
+            text="Try a different search or clear the filters."
+            actions={<Button size="sm" variant="outline" onClick={() => { setSearch(""); setFilter("all"); }}>Clear Filters</Button>}
+          />
         </div>
       ) : (
         <div className="lr-list">
           <EmptyState
             art="patients"
             title="No patients yet"
-            text="Add your first patient to get started."
+            text="Patients you add will show up here."
             actions={<Button asChild><Link to="/clinic/patients/new"><Icon name="add" />Add Your First Patient</Link></Button>}
           />
         </div>
