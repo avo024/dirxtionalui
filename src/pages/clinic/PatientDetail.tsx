@@ -282,7 +282,7 @@ export default function PatientDetail() {
                       >
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Icon name="medication" size={14} /></span>
+                            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon name="medication" size={14} /></span>
                             <div className="flex flex-col">
                               <span className="font-semibold text-foreground">{d.drug_name}</span>
                               <span className="text-xs text-muted-foreground">{d.dosage} · {d.frequency || "—"}</span>

@@ -132,7 +132,7 @@ export default function ClinicDashboard() {
       </div>
 
       {needsDefaultPharmacy && (
-        <div className="flex items-center gap-3.5 px-4.5 py-3.5 mb-4 rounded-lg border border-primary/20 bg-primary/5">
+        <div className="flex items-center gap-3.5 px-[18px] py-3.5 mb-4 rounded-lg border border-primary/20 bg-primary/5">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-card border border-primary/20 text-primary"><Icon name="pharmacy" size={20} /></span>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-foreground">Set your default pharmacy</p>

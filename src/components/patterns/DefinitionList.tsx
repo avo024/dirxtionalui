@@ -198,7 +198,7 @@ export function DefinitionList({ title, icon, action, flagged, density, rows, cl
     <div className={cn("bg-card border border-border rounded-lg", rail ? "p-3" : "p-[var(--density-card-pad)]", className)}>
       <div className="flex items-center gap-2 mb-2">
         {icon && (
-          <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary">
+          <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
             {icon}
           </span>
         )}

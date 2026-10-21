@@ -70,7 +70,7 @@ export default function ClinicSupportCenter() {
 
       <section data-tour="support-cards" className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
         <a href="/manual.pdf" target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 rounded-lg border border-border bg-card p-4 no-underline hover:bg-accent transition-colors">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Icon name="book-open" size={20} /></span>
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon name="book-open" size={20} /></span>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-foreground">User Guide</p>
             <p className="text-xs text-muted-foreground mt-0.5">Step-by-step articles on submitting referrals, tracking prior authorizations, and managing your clinic.</p>
@@ -78,7 +78,7 @@ export default function ClinicSupportCenter() {
           <Icon name="external-link" className="text-muted-foreground shrink-0" />
         </a>
         <button type="button" className="flex items-start gap-3 rounded-lg border border-border bg-card p-4 text-left hover:bg-accent transition-colors" onClick={() => setTutorialsOpen(true)}>
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Icon name="graduation-cap" size={20} /></span>
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon name="graduation-cap" size={20} /></span>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-foreground">Tutorials</p>
             <p className="text-xs text-muted-foreground mt-0.5">Replay any interactive walkthrough — submitting a referral, tracking a PA, and more.</p>
@@ -280,7 +280,7 @@ function NewRequestDialog({ open, onOpenChange, onCreated }: { open: boolean; on
                     onClick={() => setCategory(o.value)}
                     className={cn(
                       "inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium transition-colors",
-                      category === o.value ? "border-primary bg-primary/8 text-primary" : "border-border text-muted-foreground hover:bg-muted",
+                      category === o.value ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-muted",
                     )}
                   >
                     <Icon name={o.Icon} size={16} />{o.label}

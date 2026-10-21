@@ -417,7 +417,7 @@ export function AppealPacketCard({ referralId, paStatus, appealStartedAt, onChan
   return (
     <div className="rounded-lg border border-border bg-card shadow-sm p-[var(--density-card-pad)]">
       <div className="flex items-center gap-2.5 mb-3">
-        <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Icon name="document" /></span>
+        <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon name="document" /></span>
         <h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">Appeal Packet</h3>
         {saving && (
           <span className="ml-auto inline-flex items-center gap-1 text-[11px] text-muted-foreground">

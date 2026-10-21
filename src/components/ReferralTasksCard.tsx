@@ -262,7 +262,7 @@ export function ReferralTasksCard({ referralId, adminFirstName, onShared }: {
   return (
     <div className="rounded-lg border border-border bg-card shadow-sm p-[var(--density-card-pad)]">
       <div className="flex items-center gap-2.5 mb-3">
-        <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Icon name="clipboard-list" /></span>
+        <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon name="clipboard-list" /></span>
         <h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">Clinic Tasks</h3>
         <span className="ml-auto flex items-center gap-2">
           <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" onClick={() => setShowForm((v) => !v)}>

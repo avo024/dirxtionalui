@@ -597,7 +597,7 @@ export default function ReferralDetail() {
                           onClick={() => selectDoc(doc.id)}
                           className={cn(
                             "flex w-full items-center gap-2.5 px-3 py-2.5 border-b border-border text-left last:border-0",
-                            active ? "bg-primary/8" : "hover:bg-muted/60",
+                            active ? "bg-primary/10" : "hover:bg-muted/60",
                           )}
                         >
                           <span className={cn(
@@ -645,7 +645,7 @@ export default function ReferralDetail() {
                     className="flex items-center gap-3 px-4 py-3 border-b border-border last:border-0 cursor-pointer hover:bg-muted/40"
                     onClick={() => selectDoc(doc.id)}
                   >
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Icon name={DocIcon} size={16} /></span>
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon name={DocIcon} size={16} /></span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-foreground truncate">{doc.original_filename || doc.file_name || doc.name || "Document"}</p>
                       <p className="text-xs text-muted-foreground">
@@ -700,7 +700,7 @@ export default function ReferralDetail() {
                           onClick={() => selectDeliveryDoc(doc.id)}
                           className={cn(
                             "flex w-full items-center gap-2.5 px-3 py-2.5 border-b border-border text-left last:border-0",
-                            active ? "bg-primary/8" : "hover:bg-muted/60",
+                            active ? "bg-primary/10" : "hover:bg-muted/60",
                           )}
                         >
                           <span className={cn(

@@ -503,7 +503,7 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged, hideAc
   if (loading) {
     return (
       <div className="rounded-lg border border-border bg-card shadow-sm p-[var(--density-card-pad)]">
-        <div className="flex items-center gap-2.5 mb-3"><span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Icon name="medication" /></span><h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">Manufacturer Assistance</h3></div>
+        <div className="flex items-center gap-2.5 mb-3"><span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon name="medication" /></span><h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">Manufacturer Assistance</h3></div>
         <p className="text-sm text-muted-foreground">Loading…</p>
       </div>
     );
@@ -511,7 +511,7 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged, hideAc
   if (loadError) {
     return (
       <div className="rounded-lg border border-border bg-card shadow-sm p-[var(--density-card-pad)]">
-        <div className="flex items-center gap-2.5 mb-3"><span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Icon name="medication" /></span><h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">Manufacturer Assistance</h3></div>
+        <div className="flex items-center gap-2.5 mb-3"><span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon name="medication" /></span><h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">Manufacturer Assistance</h3></div>
         <p className="mb-2 text-sm text-destructive">{loadError}</p>
         <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-45 disabled:cursor-not-allowed" onClick={fetchEnrollment}>Try again</button>
       </div>
@@ -522,7 +522,7 @@ export function EnrollmentCard({ referralId, paStatus, status, onChanged, hideAc
   return (
     <div className="rounded-lg border border-border bg-card shadow-sm p-[var(--density-card-pad)]">
       <div className="flex items-center gap-2.5 mb-3">
-        <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Icon name="medication" /></span>
+        <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon name="medication" /></span>
         <h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">Manufacturer Assistance</h3>
         {draft?.status === "draft" && saving && (
           <span className="ml-auto inline-flex items-center gap-1 text-[11px] text-muted-foreground">

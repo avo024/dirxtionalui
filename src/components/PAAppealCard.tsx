@@ -38,7 +38,7 @@ export function PAAppealCard({ referral, referralId, onChanged, hideActions }: {
     return (
       <Card className="bg-muted-foreground/5 p-[var(--density-card-pad)]">
         <div className="flex items-center gap-2.5">
-          <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary">
+          <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
             <Icon name="appeal" />
           </span>
           <h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">PA Appeal</h3>
@@ -89,7 +89,7 @@ export function PAAppealCard({ referral, referralId, onChanged, hideActions }: {
   return (
     <Card className={cn("p-[var(--density-card-pad)]", paStatus === "appeal" && "border-destructive/45")}>
       <div className="flex items-center gap-2.5">
-        <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary">
+        <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
           <Icon name="appeal" />
         </span>
         <h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">PA Appeal</h3>

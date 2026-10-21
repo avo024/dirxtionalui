@@ -57,7 +57,7 @@ export function PriorPaCard({
   return (
     <div className="bg-card border border-border rounded-lg p-[var(--density-card-pad)]" data-testid="prior-pa-card">
       <div className="flex items-center gap-2 mb-1">
-        <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary">
+        <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
           <Icon name="file-check" size={16} />
         </span>
         <h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">PA already on file</h3>

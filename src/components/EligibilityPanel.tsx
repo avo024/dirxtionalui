@@ -111,7 +111,7 @@ export function EligibilityPanel({ referral, referralId }: { referral: Eligibili
   return (
     <Card className="p-[var(--density-card-pad)]">
       <div className="flex items-center gap-2.5">
-        <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary">
+        <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
           <Icon name="prior-auth" />
         </span>
         <h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">Insurance Eligibility</h3>

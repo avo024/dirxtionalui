@@ -705,7 +705,7 @@ function SmartDropzone({ files, onFiles, removeFile, setTag, isPacket, setPacket
         onClick={(e) => { e.preventDefault(); setPacket(!isPacket); }}
       >
         <span className={cn(
-          "flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded border mt-0.5",
+          "flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded border mt-0.5",
           isPacket ? "bg-primary border-primary text-primary-foreground" : "border-input",
         )}>
           {isPacket && <Icon name="check" size={14} strokeWidth={2} />}
@@ -761,7 +761,7 @@ function BridgeBlock({ choice, onChange, showErrors }: { choice: "has" | "bridge
           )}
           onClick={(e) => { e.preventDefault(); onChange("has"); }}
         >
-          <span className={cn("flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full border mt-0.5", choice === "has" ? "border-primary" : "border-input")}>
+          <span className={cn("flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border mt-0.5", choice === "has" ? "border-primary" : "border-input")}>
             {choice === "has" && <span className="h-2.5 w-2.5 rounded-full bg-primary" />}
           </span>
           <div><div className="text-sm font-semibold text-foreground">No bridge program</div><div className="text-xs text-muted-foreground">Standard insurance billing</div></div>
@@ -773,7 +773,7 @@ function BridgeBlock({ choice, onChange, showErrors }: { choice: "has" | "bridge
           )}
           onClick={(e) => { e.preventDefault(); onChange("bridge"); }}
         >
-          <span className={cn("flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full border mt-0.5", choice === "bridge" ? "border-primary" : "border-input")}>
+          <span className={cn("flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border mt-0.5", choice === "bridge" ? "border-primary" : "border-input")}>
             {choice === "bridge" && <span className="h-2.5 w-2.5 rounded-full bg-primary" />}
           </span>
           <div><div className="text-sm font-semibold text-foreground">Yes, bridge program</div><div className="text-xs text-muted-foreground">Manufacturer-funded — insurance not used</div></div>
@@ -795,7 +795,7 @@ function ManualScroll({ data, setField, choice, setChoice, showErrors }: any) {
       {sections.map((s) => (
         <div key={s.key}>
           <div className="flex items-center gap-2 mb-3">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Icon name={s.icon} /></span>
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon name={s.icon} /></span>
             <h3 className="text-sm font-semibold text-foreground">{s.title}</h3>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -805,7 +805,7 @@ function ManualScroll({ data, setField, choice, setChoice, showErrors }: any) {
       ))}
       <div>
         <div className="flex items-center gap-2 mb-3">
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Icon name="shield" /></span>
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon name="shield" /></span>
           <h3 className="text-sm font-semibold text-foreground">Insurance Information<span className="text-destructive ml-0.5">*</span></h3>
         </div>
         <div className="flex flex-col gap-4">
@@ -852,7 +852,7 @@ function Step3Pharmacy({ loading, pharmacies, selectedId, defaultId, onSelect, s
           {selected && (
             <div className="rounded-lg border border-border p-4">
               <div className="flex items-center gap-2 mb-1.5">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Icon name="medication" /></span>
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon name="medication" /></span>
                 <h3 className="text-sm font-semibold text-foreground">{selected.name}</h3>
                 {defaultId && selectedId === defaultId && (
                   <span className="ml-auto inline-flex items-center rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[11px] font-semibold">Default</span>
@@ -876,7 +876,7 @@ function ReviewCard({ icon, title, action, children }: any) {
   return (
     <div className="rounded-lg border border-border p-4">
       <div className="flex items-center gap-2 mb-2.5">
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"><Icon name={icon} /></span>
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon name={icon} /></span>
         <h3 className="text-sm font-semibold text-foreground">{title}</h3>
         {action && <span className="ml-auto">{action}</span>}
       </div>
@@ -944,7 +944,7 @@ function Step4Review({ patient, getName, pharmacy, isDefault, method, choice, fi
 
       <label className="flex items-start gap-2.5 rounded-lg border border-border bg-muted/30 p-3.5 cursor-pointer" onClick={(e) => { e.preventDefault(); setConfirm(!confirm); }}>
         <span className={cn(
-          "flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded border mt-0.5",
+          "flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded border mt-0.5",
           confirm ? "bg-primary border-primary text-primary-foreground" : "border-input",
         )}>
           {confirm && <Icon name="check" size={14} strokeWidth={2} />}
