@@ -1,0 +1,54 @@
+/* Polish v4 — HistoryTimeline (direction A: stage sections). Tokens (--st-*) live in index.css. */
+.ht{display:flex;flex-direction:column}
+.ht-sec{--ink:var(--st-dx-ink);--tint:var(--st-dx-tint);--line:var(--st-dx-line);position:relative}
+.ht-sec[data-h=clinic]{--ink:var(--st-clinic-ink);--tint:var(--st-clinic-tint);--line:var(--st-clinic-line)}
+.ht-sec[data-h=payer],.ht-sec[data-h=appeal]{--ink:var(--st-payer-ink);--tint:var(--st-payer-tint);--line:var(--st-payer-line)}
+.ht-sec[data-h=pharm]{--ink:var(--st-pharm-ink);--tint:var(--st-pharm-tint);--line:var(--st-pharm-line)}
+.ht-sec[data-h=done]{--ink:var(--st-done-ink);--tint:var(--st-done-tint);--line:var(--st-done-line)}
+
+.ht-head{display:flex;align-items:center;gap:12px;width:100%;min-height:48px;padding:0;margin:0;border:0;background:none;text-align:left;font:inherit;color:inherit;border-radius:8px}
+button.ht-head{cursor:pointer}
+button.ht-head:hover .ht-name{color:var(--ink)}
+button.ht-head:focus-visible{outline:2px solid var(--color-teal-500);outline-offset:2px}
+.ht-name{font:500 18px/1.2 var(--font-editorial);letter-spacing:-.005em;color:#1B2B5B;transition:color .12s}
+.ht-now{font:600 12px var(--font-sans);color:var(--color-teal-700);letter-spacing:.01em}
+.ht-span{margin-left:auto;text-align:right;font:400 12px var(--font-mono);color:var(--color-stone-500);white-space:nowrap}
+.ht-chev{display:flex;flex:none;width:16px;justify-content:flex-end;color:var(--color-stone-400);transition:transform .2s cubic-bezier(.2,0,0,1),color .12s}
+.ht-chev[data-open]{transform:rotate(180deg)}
+button.ht-head:hover .ht-chev{color:#1B2B5B}
+
+/* Holder glyph — same shapes as the status badges */
+.ht-g{flex:none;display:flex;align-items:center;justify-content:center;width:28px;height:28px;color:var(--ink)}
+.ht-g i{display:block;width:9px;height:9px;background:currentColor;border-radius:1.5px}
+.ht-g[data-h=clinic] i{width:10px;height:9px;border-radius:0;clip-path:polygon(50% 0,100% 100%,0 100%)}
+.ht-g[data-h=payer] i,.ht-g[data-h=appeal] i{width:8px;height:8px;background:none;border:1.5px solid currentColor;border-radius:1px;transform:rotate(45deg)}
+.ht-g[data-h=appeal] i{border-style:dashed}
+.ht-g[data-h=pharm] i{background:none;border:1.75px solid currentColor;border-radius:50%}
+.ht-g[data-h=done] i{height:1.75px;width:9px;border-radius:1px}
+
+/* Events */
+.ht-body{list-style:none;margin:0;padding:0 0 8px;position:relative;animation:ht-in .2s cubic-bezier(.2,0,0,1)}
+.ht-body::before{content:"";position:absolute;left:13.5px;top:-4px;bottom:22px;width:1px;background:var(--line)}
+.ht-ev{position:relative;display:grid;grid-template-columns:28px minmax(0,1fr) auto auto;column-gap:12px;align-items:start;padding:5px 0}
+.ht-tile{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;border:1px solid var(--line);background:var(--tint);color:var(--ink)}
+.ht-txt{display:flex;flex-direction:column;gap:1px;min-width:0;padding-top:4px}
+.ht-label{font:500 14px/20px var(--font-sans);color:#1B2B5B}
+.ht-detail{font:400 13px/18px var(--font-sans);color:var(--color-stone-600);overflow-wrap:anywhere}
+.ht-who{padding-top:6px;font:400 12px/16px var(--font-sans);color:var(--color-stone-500);white-space:nowrap}
+.ht-at{padding-top:6px;font:400 12px/16px var(--font-mono);color:var(--color-stone-500);white-space:nowrap;text-align:right}
+@keyframes ht-in{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+
+/* Upcoming: ghosted */
+.ht-sec[data-state=future]{opacity:.5}
+.ht-sec[data-state=future] .ht-g i{opacity:.7}
+.ht-sec[data-state=future] .ht-name{color:var(--color-stone-600)}
+.ht-sec[data-state=future] .ht-span{font-style:normal}
+
+@media (max-width:640px){
+  .ht-span{font-size:11px;white-space:normal;min-width:0}
+  .ht-ev{grid-template-columns:28px minmax(0,1fr)}
+  .ht-who,.ht-at{grid-column:2;padding-top:0}
+  .ht-who{display:inline}
+  .ht-at{text-align:left}
+}
+@media (prefers-reduced-motion:reduce){.ht-body{animation:none}.ht-chev{transition:none}}
