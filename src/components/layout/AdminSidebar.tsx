@@ -2,7 +2,6 @@ import { Link, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/contexts/AuthContext";
 import { adminApi } from "@/lib/api";
 import { adminAddonsApi } from "@/lib/servicesApi";
 import { useWaitingOnUsCount } from "@/hooks/useWaitingOnUsCount";
@@ -27,7 +26,6 @@ const navItems = [
 
 export function AdminSidebar() {
   const location = useLocation();
-  const { logout } = useAuth();
   const waitingOnUsCount = useWaitingOnUsCount();
 
   const { data: pendingRequests } = useQuery({
@@ -74,10 +72,12 @@ export function AdminSidebar() {
             <Link
               key={item.path}
               to={item.path}
+              data-active={isActive ? "" : undefined}
+              aria-current={isActive ? "page" : undefined}
               className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                "sb4-item flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                 isActive
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                  ? "text-white"
                   : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
               )}
             >
@@ -91,16 +91,6 @@ export function AdminSidebar() {
         })}
       </nav>
 
-      {/* Logout */}
-      <div className="px-3 py-4 border-t border-sidebar-border">
-        <button
-          onClick={logout}
-          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground transition-colors w-full"
-        >
-          <Icon name="sign-out" />
-          Sign Out
-        </button>
-      </div>
     </aside>
   );
 }

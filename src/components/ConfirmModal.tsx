@@ -37,7 +37,7 @@ export function ConfirmModal({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogTitle className={cn(variant === "destructive" && "text-[#B42318]")}>{title}</AlertDialogTitle>
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
         {children}
@@ -46,7 +46,7 @@ export function ConfirmModal({
           <AlertDialogAction
             onClick={onConfirm}
             className={cn(
-              variant === "destructive" && "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+              variant === "destructive" && "bg-[#C42B2B] text-white hover:bg-[#A82424] focus-visible:ring-[#C42B2B]",
               variant === "success" && "bg-success text-success-foreground hover:bg-success/90"
             )}
           >

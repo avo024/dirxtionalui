@@ -3,16 +3,25 @@ import * as AvatarPrimitive from "@radix-ui/react-avatar";
 
 import { cn } from "@/lib/utils";
 
-const Avatar = React.forwardRef<
-  React.ElementRef<typeof AvatarPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Root>
->(({ className, ...props }, ref) => (
-  <AvatarPrimitive.Root
-    ref={ref}
-    className={cn("relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full", className)}
-    {...props}
-  />
-));
+interface AvatarProps extends React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Root> {
+  /** "square" (default) is the rounded-6px tile used app-wide; "round" is the legacy circle. */
+  shape?: "square" | "round";
+}
+
+const Avatar = React.forwardRef<React.ElementRef<typeof AvatarPrimitive.Root>, AvatarProps>(
+  ({ className, shape = "square", ...props }, ref) => (
+    <AvatarPrimitive.Root
+      ref={ref}
+      data-shape={shape}
+      className={cn(
+        "relative flex h-10 w-10 shrink-0 overflow-hidden",
+        shape === "square" ? "rounded-[6px]" : "rounded-full",
+        className,
+      )}
+      {...props}
+    />
+  ),
+);
 Avatar.displayName = AvatarPrimitive.Root.displayName;
 
 const AvatarImage = React.forwardRef<
@@ -29,7 +38,7 @@ const AvatarFallback = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <AvatarPrimitive.Fallback
     ref={ref}
-    className={cn("flex h-full w-full items-center justify-center rounded-full bg-muted", className)}
+    className={cn("flex h-full w-full items-center justify-center rounded-[inherit] bg-muted", className)}
     {...props}
   />
 ));
