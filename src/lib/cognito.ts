@@ -7,6 +7,7 @@ import {
   signUp,
   type SignUpInput,
 } from "aws-amplify/auth";
+import { broadcastSignOut, type SignOutReason } from "@/lib/idleTimeout";
 
 export type IdTokenClaims = {
   sub?: string;
@@ -80,10 +81,18 @@ export function hostedUiSignIn() {
 }
 
 /**
- * Sign out of Cognito. With OAuth configured, Amplify hits the Cognito
- * sign-out endpoint and redirects back to redirectSignOut.
+ * Sign out of Cognito (global: revokes the refresh token server-side). With
+ * OAuth configured, Amplify hits the Cognito sign-out endpoint and redirects
+ * back to redirectSignOut.
+ *
+ * Tokens live in sessionStorage (one tab each), so by default we also tell the
+ * other open tabs to sign out via a localStorage `storage` event. A tab that is
+ * reacting to such an event passes `broadcast: false` to avoid an echo.
  */
-export async function cognitoSignOut() {
+export async function cognitoSignOut(
+  opts: { broadcast?: boolean; reason?: SignOutReason } = {},
+) {
+  if (opts.broadcast !== false) broadcastSignOut(opts.reason ?? "manual");
   await signOut({ global: true });
 }
 

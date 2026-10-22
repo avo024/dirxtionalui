@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -47,6 +48,10 @@ import ClinicSupportCenter from "@/pages/clinic/ClinicSupportCenter";
 
 const queryClient = new QueryClient();
 
+// Dev-only preview of the idle-timeout warning dialog. `import.meta.env.DEV` is
+// a build-time constant, so this (and the page chunk) is stripped from prod.
+const IdlePreview = import.meta.env.DEV ? lazy(() => import("@/pages/dev/IdlePreview")) : null;
+
 // Demo build (vite.demo.config.ts) is served statically with no SPA fallback,
 // so it routes on the URL hash. VITE_DEMO is undefined in the prod build.
 const Router = import.meta.env.VITE_DEMO ? HashRouter : BrowserRouter;
@@ -68,6 +73,12 @@ const App = () => (
             <Route path="/cookies" element={<Cookies />} />
             <Route path="/cookie-policy" element={<Cookies />} />
             <Route path="/terms" element={<Terms />} />
+            {IdlePreview && (
+              <Route
+                path="/__idle-preview"
+                element={<Suspense fallback={null}><IdlePreview /></Suspense>}
+              />
+            )}
 
             {/* Clinic routes */}
             <Route path="/clinic" element={<ClinicLayout />}>

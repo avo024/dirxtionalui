@@ -1,4 +1,19 @@
 import { Amplify } from "aws-amplify";
+import { cognitoUserPoolsTokenProvider } from "aws-amplify/auth/cognito";
+import { sessionStorage } from "aws-amplify/utils";
+
+// HIPAA automatic logoff on shared clinic PCs: keep Cognito tokens in
+// sessionStorage (per tab, cleared when the tab/browser closes) instead of
+// Amplify's default localStorage. Must run BEFORE Amplify.configure(), because
+// configure() starts the OAuth listener that persists tokens after the Hosted
+// UI redirect.
+//
+// Amplify v6 still keeps the OAuth in-flight data (state, PKCE verifier,
+// "signed in via OAuth" flag) in localStorage regardless of this setting
+// (DefaultOAuthStore is hard-wired to defaultStorage). That is fine: it holds
+// no tokens, is removed as soon as the code exchange completes, and the redirect
+// round-trip stays in the same tab so the tokens land in this tab's sessionStorage.
+cognitoUserPoolsTokenProvider.setKeyValueStorage(sessionStorage);
 
 const region = import.meta.env.VITE_COGNITO_REGION as string;
 const userPoolId = import.meta.env.VITE_COGNITO_USER_POOL_ID as string;
