@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { FormErrorSummary } from "@/components/ui/FormErrorSummary";
+import { focusFirstError } from "@/lib/formErrors";
 import { Icon } from "@/components/ui/icon";
 import {
   Dialog,
@@ -67,6 +69,18 @@ const REQUIRED_FIELDS: (keyof typeof initialForm)[] = [
   "zip",
 ];
 
+const ERROR_LABELS: Record<string, string> = {
+  firstName: "First name",
+  lastName: "Last name",
+  dob: "Date of birth",
+  gender: "Gender",
+  phone: "Phone",
+  address: "Street address",
+  city: "City",
+  state: "State",
+  zip: "Zip",
+};
+
 function validate(form: typeof initialForm): FormErrors {
   const errors: FormErrors = {};
   if (!form.firstName.trim()) errors.firstName = "First name is required";
@@ -103,22 +117,12 @@ export function NewPatientModal({ open, onOpenChange, onCreated }: NewPatientMod
     return true;
   });
 
-  const focusFirstError = (errs: FormErrors) => {
-    const firstKey = REQUIRED_FIELDS.find((k) => errs[k]);
-    if (firstKey) {
-      const el = document.getElementById(`new-patient-${firstKey}`);
-      if (el && typeof (el as HTMLElement).focus === "function") {
-        (el as HTMLElement).focus();
-      }
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const errs = validate(form);
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
-      focusFirstError(errs);
+      focusFirstError(errs, REQUIRED_FIELDS as string[]);
       return;
     }
     setErrors({});
@@ -207,7 +211,7 @@ export function NewPatientModal({ open, onOpenChange, onCreated }: NewPatientMod
             <div className="space-y-1.5">
               <Label htmlFor="new-patient-firstName" className="text-xs">First Name <Req /></Label>
               <Input
-                id="new-patient-firstName"
+                id="new-patient-firstName" data-field="firstName"
                 value={form.firstName}
                 onChange={(e) => update("firstName", e.target.value)}
                 placeholder="John"
@@ -219,7 +223,7 @@ export function NewPatientModal({ open, onOpenChange, onCreated }: NewPatientMod
             <div className="space-y-1.5">
               <Label htmlFor="new-patient-lastName" className="text-xs">Last Name <Req /></Label>
               <Input
-                id="new-patient-lastName"
+                id="new-patient-lastName" data-field="lastName"
                 value={form.lastName}
                 onChange={(e) => update("lastName", e.target.value)}
                 placeholder="Doe"
@@ -234,7 +238,7 @@ export function NewPatientModal({ open, onOpenChange, onCreated }: NewPatientMod
             <div className="space-y-1.5">
               <Label htmlFor="new-patient-dob" className="text-xs">Date of Birth <Req /></Label>
               <DatePicker
-                id="new-patient-dob"
+                id="new-patient-dob" data-field="dob"
                 value={form.dob}
                 onChange={(v) => update("dob", v || "")}
                 fromYear={1900}
@@ -247,7 +251,7 @@ export function NewPatientModal({ open, onOpenChange, onCreated }: NewPatientMod
             <div className="space-y-1.5">
               <Label htmlFor="new-patient-gender" className="text-xs">Gender <Req /></Label>
               <Combobox
-                id="new-patient-gender"
+                id="new-patient-gender" data-field="gender"
                 placeholder="Select gender"
                 value={form.gender}
                 onValueChange={(v) => update("gender", v)}
@@ -263,7 +267,7 @@ export function NewPatientModal({ open, onOpenChange, onCreated }: NewPatientMod
             <div className="space-y-1.5">
               <Label htmlFor="new-patient-phone" className="text-xs">Phone <Req /></Label>
               <Input
-                id="new-patient-phone"
+                id="new-patient-phone" data-field="phone"
                 value={form.phone}
                 onChange={(e) => update("phone", e.target.value)}
                 placeholder="(555) 123-4567"
@@ -275,7 +279,7 @@ export function NewPatientModal({ open, onOpenChange, onCreated }: NewPatientMod
             <div className="space-y-1.5">
               <Label htmlFor="new-patient-email" className="text-xs">Email</Label>
               <Input
-                id="new-patient-email"
+                id="new-patient-email" data-field="email"
                 type="email"
                 value={form.email}
                 onChange={(e) => update("email", e.target.value)}
@@ -287,7 +291,7 @@ export function NewPatientModal({ open, onOpenChange, onCreated }: NewPatientMod
           <div className="space-y-1.5">
             <Label htmlFor="new-patient-address" className="text-xs">Address <Req /></Label>
             <Input
-              id="new-patient-address"
+              id="new-patient-address" data-field="address"
               value={form.address}
               onChange={(e) => update("address", e.target.value)}
               placeholder="123 Main St"
@@ -301,7 +305,7 @@ export function NewPatientModal({ open, onOpenChange, onCreated }: NewPatientMod
             <div className="space-y-1.5 col-span-1">
               <Label htmlFor="new-patient-city" className="text-xs">City <Req /></Label>
               <Input
-                id="new-patient-city"
+                id="new-patient-city" data-field="city"
                 value={form.city}
                 onChange={(e) => update("city", e.target.value)}
                 placeholder="Springfield"
@@ -313,7 +317,7 @@ export function NewPatientModal({ open, onOpenChange, onCreated }: NewPatientMod
             <div className="space-y-1.5">
               <Label htmlFor="new-patient-state" className="text-xs">State <Req /></Label>
               <Input
-                id="new-patient-state"
+                id="new-patient-state" data-field="state"
                 value={form.state}
                 onChange={(e) => update("state", e.target.value.toUpperCase())}
                 placeholder="IL"
@@ -326,7 +330,7 @@ export function NewPatientModal({ open, onOpenChange, onCreated }: NewPatientMod
             <div className="space-y-1.5">
               <Label htmlFor="new-patient-zip" className="text-xs">Zip <Req /></Label>
               <Input
-                id="new-patient-zip"
+                id="new-patient-zip" data-field="zip"
                 value={form.zip}
                 onChange={(e) => update("zip", e.target.value)}
                 placeholder="62701"
@@ -368,11 +372,7 @@ export function NewPatientModal({ open, onOpenChange, onCreated }: NewPatientMod
             </div>
           </div>
 
-          {Object.keys(errors).length > 0 && (
-            <div className={cn("rounded-md border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive")}>
-              Please complete all required fields highlighted above.
-            </div>
-          )}
+          <FormErrorSummary errors={errors} labels={ERROR_LABELS} order={REQUIRED_FIELDS as string[]} />
 
           <DialogFooter className="gap-2 sm:gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>

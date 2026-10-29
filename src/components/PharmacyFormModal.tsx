@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { FormErrorSummary } from "@/components/ui/FormErrorSummary";
+import { focusFirstError } from "@/lib/formErrors";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -54,6 +56,8 @@ const empty: FormState = {
   is_active: true,
 };
 
+const ERROR_LABELS: Record<string, string> = { name: "Pharmacy name", state: "State" };
+
 export function PharmacyFormModal({ open, onOpenChange, pharmacy, onSuccess }: PharmacyFormModalProps) {
   const isEdit = !!pharmacy;
   const queryClient = useQueryClient();
@@ -95,6 +99,7 @@ export function PharmacyFormModal({ open, onOpenChange, pharmacy, onSuccess }: P
     if (!form.name.trim()) e.name = "Name is required";
     if (form.state && form.state.trim().length !== 2) e.state = "Use 2-letter state code";
     setErrors(e);
+    if (Object.keys(e).length > 0) focusFirstError(e);
     return Object.keys(e).length === 0;
   };
 
@@ -150,7 +155,7 @@ export function PharmacyFormModal({ open, onOpenChange, pharmacy, onSuccess }: P
           {/* Identity */}
           <div className="space-y-2">
             <Label htmlFor="name">Name *</Label>
-            <Input id="name" value={form.name} onChange={(e) => update("name", e.target.value)} />
+            <Input id="name" data-field="name" value={form.name} onChange={(e) => update("name", e.target.value)} />
             {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
           </div>
 
@@ -186,7 +191,7 @@ export function PharmacyFormModal({ open, onOpenChange, pharmacy, onSuccess }: P
             </div>
             <div className="space-y-2">
               <Label htmlFor="state">State</Label>
-              <Input id="state" value={form.state} maxLength={2} onChange={(e) => update("state", e.target.value.toUpperCase())} />
+              <Input id="state" data-field="state" value={form.state} maxLength={2} onChange={(e) => update("state", e.target.value.toUpperCase())} />
               {errors.state && <p className="text-xs text-destructive">{errors.state}</p>}
             </div>
             <div className="space-y-2">
@@ -241,6 +246,8 @@ export function PharmacyFormModal({ open, onOpenChange, pharmacy, onSuccess }: P
             </div>
             <Switch id="is_active" checked={form.is_active} onCheckedChange={(v) => update("is_active", v)} />
           </div>
+
+          <FormErrorSummary errors={errors} labels={ERROR_LABELS} />
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={mutation.isPending}>
