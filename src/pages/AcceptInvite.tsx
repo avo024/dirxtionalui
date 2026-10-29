@@ -9,6 +9,8 @@ import { toast } from "@/hooks/use-toast";
 import { AsYouType, parsePhoneNumberFromString } from "libphonenumber-js";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AuthShell } from "@/components/AuthShell";
+import { FormErrorSummary } from "@/components/ui/FormErrorSummary";
+import { focusFirstError, passwordHints } from "@/lib/formErrors";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -26,6 +28,30 @@ interface PolicyVersions {
 
 
 const NPI = /^\d{10}$/;
+
+const FIELD_ORDER = [
+  "email",
+  "firstName",
+  "lastName",
+  "phone",
+  "npi",
+  "password",
+  "confirmPassword",
+  "consent",
+  "form",
+];
+
+const FIELD_LABELS: Record<string, string> = {
+  email: "Email",
+  firstName: "First name",
+  lastName: "Last name",
+  phone: "Phone number",
+  npi: "NPI",
+  password: "Password",
+  confirmPassword: "Confirm password",
+  consent: "Terms and privacy",
+  form: "Account",
+};
 
 function formatPhoneInput(value: string) {
   // Strip non-digits, drop leading 1 country code if present, cap at 10 digits
@@ -71,6 +97,7 @@ export default function AcceptInvite() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
 
   const [policyVersions, setPolicyVersions] = useState<PolicyVersions | null>(null);
   const [tosAccepted, setTosAccepted] = useState(false);
@@ -135,7 +162,7 @@ export default function AcceptInvite() {
       !policy.number ||
       !policy.symbol
     )
-      e.password = "Password does not meet the requirements below.";
+      e.password = passwordHints(password).join(". ") + ".";
 
     if (confirmPassword !== password)
       e.confirmPassword = "Passwords do not match.";
@@ -143,21 +170,26 @@ export default function AcceptInvite() {
     if (!clinicId) e.form = "Missing clinic information. Refresh and try again.";
 
     setErrors(e);
+    if (Object.keys(e).length > 0) focusFirstError(e, FIELD_ORDER);
     return Object.keys(e).length === 0;
   };
 
   const handleSubmit = async (ev: React.FormEvent) => {
     ev.preventDefault();
+    setSubmitAttempted(true);
     if (!validate() || !token) return;
     if (!policyVersions) {
-      setErrors((prev) => ({ ...prev, form: "Loading policy versions, please wait a moment." }));
+      const next = { form: "Loading policy versions, please wait a moment." };
+      setErrors(next);
+      focusFirstError(next, FIELD_ORDER);
       return;
     }
     if (!tosAccepted || !privacyAcknowledged) {
-      setErrors((prev) => ({
-        ...prev,
-        form: "Please review and accept the Terms of Service and Privacy Policy to continue.",
-      }));
+      const next = {
+        consent: "Tick both boxes to accept the Terms of Service and acknowledge the Privacy Policy.",
+      };
+      setErrors(next);
+      focusFirstError(next, FIELD_ORDER);
       return;
     }
 
@@ -221,7 +253,9 @@ export default function AcceptInvite() {
         message =
           "This invite could not be verified. It may have expired or already been used.";
       }
-      setErrors((prev) => ({ ...prev, form: message }));
+      const next = { form: message };
+      setErrors(next);
+      focusFirstError(next, FIELD_ORDER);
     } finally {
       setSubmitting(false);
     }
@@ -237,7 +271,7 @@ export default function AcceptInvite() {
             )}
 
             {state === "valid" && (
-              <form onSubmit={handleSubmit} className="space-y-5">
+              <form onSubmit={handleSubmit} className="space-y-5" noValidate>
                 <div>
                   <h1 className="au-h" data-sm="">
                     You've been invited to join {clinicName || "your clinic"}
@@ -253,6 +287,7 @@ export default function AcceptInvite() {
                   </Label>
                   <Input
                     id="invite-email"
+                    data-field="email"
                     type="email"
                     required
                     value={email}
@@ -272,6 +307,7 @@ export default function AcceptInvite() {
                     </Label>
                     <Input
                       id="invite-first"
+                    data-field="firstName"
                       required
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
@@ -287,6 +323,7 @@ export default function AcceptInvite() {
                     </Label>
                     <Input
                       id="invite-last"
+                    data-field="lastName"
                       required
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
@@ -304,6 +341,7 @@ export default function AcceptInvite() {
                   </Label>
                   <Input
                     id="invite-phone"
+                    data-field="phone"
                     type="tel"
                     required
                     value={phone}
@@ -324,6 +362,7 @@ export default function AcceptInvite() {
                   </Label>
                   <Input
                     id="invite-npi"
+                    data-field="npi"
                     inputMode="numeric"
                     value={npi}
                     onChange={(e) => setNpi(e.target.value.replace(/\D/g, "").slice(0, 10))}
@@ -341,18 +380,22 @@ export default function AcceptInvite() {
                   </Label>
                   <Input
                     id="invite-password"
+                    data-field="password"
                     type="password"
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     aria-invalid={!!errors.password}
                   />
+                  {errors.password && (
+                    <p className="text-xs font-medium text-destructive">{errors.password}</p>
+                  )}
                   <ul className="text-xs space-y-0.5 mt-1">
-                    <PolicyItem ok={policy.length} label="At least 12 characters" />
-                    <PolicyItem ok={policy.upper} label="One uppercase letter" />
-                    <PolicyItem ok={policy.lower} label="One lowercase letter" />
-                    <PolicyItem ok={policy.number} label="One number" />
-                    <PolicyItem ok={policy.symbol} label="One symbol" />
+                    <PolicyItem ok={policy.length} flag={submitAttempted} label="At least 12 characters" />
+                    <PolicyItem ok={policy.upper} flag={submitAttempted} label="One uppercase letter" />
+                    <PolicyItem ok={policy.lower} flag={submitAttempted} label="One lowercase letter" />
+                    <PolicyItem ok={policy.number} flag={submitAttempted} label="One number" />
+                    <PolicyItem ok={policy.symbol} flag={submitAttempted} label="One symbol" />
                   </ul>
                 </div>
 
@@ -362,6 +405,7 @@ export default function AcceptInvite() {
                   </Label>
                   <Input
                     id="invite-confirm"
+                    data-field="confirmPassword"
                     type="password"
                     required
                     value={confirmPassword}
@@ -373,13 +417,11 @@ export default function AcceptInvite() {
                   )}
                 </div>
 
-                {errors.form && (
-                  <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3">
-                    <p className="text-sm text-destructive">{errors.form}</p>
-                  </div>
-                )}
-
-                <div className="au-consent">
+                <div
+                  className={`au-consent${errors.consent ? " rounded-md border border-destructive bg-destructive/10 p-3" : ""}`}
+                  data-field="consent"
+                  tabIndex={-1}
+                >
                   <label htmlFor="invite-tos">
                     <Checkbox
                       id="invite-tos"
@@ -413,16 +455,13 @@ export default function AcceptInvite() {
                   </label>
                 </div>
 
+                <FormErrorSummary errors={errors} labels={FIELD_LABELS} order={FIELD_ORDER} />
+
                 <Button
                   type="submit"
                   className="au-cta"
                   size="lg"
-                  disabled={
-                    submitting ||
-                    !policyVersions ||
-                    !tosAccepted ||
-                    !privacyAcknowledged
-                  }
+                  disabled={submitting || !policyVersions}
                 >
                   {submitting ? (
                     <>
@@ -494,9 +533,14 @@ export default function AcceptInvite() {
   );
 }
 
-function PolicyItem({ ok, label }: { ok: boolean; label: string }) {
+function PolicyItem({ ok, flag, label }: { ok: boolean; flag: boolean; label: string }) {
+  const tone = ok
+    ? "text-foreground"
+    : flag
+      ? "text-destructive font-semibold"
+      : "text-muted-foreground";
   return (
-    <li className={`flex items-center gap-1.5 ${ok ? "text-foreground" : "text-muted-foreground"}`}>
+    <li className={`flex items-center gap-1.5 ${tone}`}>
       {ok ? (
         <Icon name="check" size={14} className="text-primary" />
       ) : (

@@ -23,6 +23,8 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { DocCard, docExt, type DocCardType } from "@/components/DocCard";
 import { HolderMark } from "@/components/StatusBadge";
 import "@/wizard.css";
+import { FormErrorSummary } from "@/components/ui/FormErrorSummary";
+import { focusFirstError } from "@/lib/formErrors";
 
 type Patient = {
   id: string;
@@ -118,11 +120,12 @@ const INSURANCE_FIELDS: FieldCfg[] = [
 ];
 
 /* ── small presentational helpers (module scope so inputs keep focus) ── */
-function RwField({ label, required, helper, children }: { label: string; required?: boolean; helper?: string; children: React.ReactNode }) {
+function RwField({ label, required, helper, children, fieldKey, invalid }: { label: string; required?: boolean; helper?: string; children: React.ReactNode; fieldKey?: string; invalid?: boolean }) {
   return (
-    <div className="flex flex-col gap-1.5">
-      <Label className="text-xs font-medium text-muted-foreground">{label}{required && <span className="text-destructive ml-0.5">*</span>}</Label>
+    <div className={cn("flex flex-col gap-1.5", invalid && "rounded-md border border-destructive bg-destructive/5 p-2")} data-field={fieldKey}>
+      <Label className={cn("text-xs font-medium", invalid ? "text-destructive" : "text-muted-foreground")}>{label}{required && <span className="text-destructive ml-0.5">*</span>}</Label>
       {children}
+      {invalid && <span className="text-xs font-medium text-destructive">This is required.</span>}
       {helper && <span className="text-xs text-muted-foreground">{helper}</span>}
     </div>
   );
@@ -140,12 +143,13 @@ function NoticeStrip({ icon, tone, children }: { icon: string; tone?: "teal" | "
     </div>
   );
 }
-function ManualField({ field, data, setField }: { field: FieldCfg; data: any; setField: (k: string, v: any) => void }) {
+function ManualField({ field, data, setField, showErrors }: { field: FieldCfg; data: any; setField: (k: string, v: any) => void; showErrors?: boolean }) {
   if (field.when && !field.when(data)) return null;
   const v = data[field.key];
+  const fk = { fieldKey: field.key, invalid: !!showErrors && !!field.required && !v };
   if (field.kind === "switch") {
     return (
-      <RwField label={field.label}>
+      <RwField label={field.label} fieldKey={field.key}>
         <div className="flex items-center gap-2.5 h-10">
           <Switch checked={!!v} onCheckedChange={(val) => setField(field.key, val)} />
           <span className="text-sm text-muted-foreground">{v ? "Yes" : "No"}</span>
@@ -155,14 +159,14 @@ function ManualField({ field, data, setField }: { field: FieldCfg; data: any; se
   }
   if (field.kind === "drug") {
     return (
-      <RwField label={field.label} required={field.required} helper={field.helper}>
+      <RwField label={field.label} required={field.required} helper={field.helper} {...fk}>
         <DrugCombobox value={v || ""} onChange={(val) => setField(field.key, val)} fetchDrugs={clinicApi.getFormularyDrugs} placeholder={field.placeholder} />
       </RwField>
     );
   }
   if (field.kind === "select") {
     return (
-      <RwField label={field.label} required={field.required} helper={field.helper}>
+      <RwField label={field.label} required={field.required} helper={field.helper} {...fk}>
         <Combobox
           placeholder={field.placeholder || "Select"}
           value={v || ""}
@@ -174,13 +178,13 @@ function ManualField({ field, data, setField }: { field: FieldCfg; data: any; se
   }
   if (field.kind === "date") {
     return (
-      <RwField label={field.label} required={field.required} helper={field.helper}>
+      <RwField label={field.label} required={field.required} helper={field.helper} {...fk}>
         <DatePicker value={v || ""} onChange={(val) => setField(field.key, val || "")} />
       </RwField>
     );
   }
   return (
-    <RwField label={field.label} required={field.required} helper={field.helper}>
+    <RwField label={field.label} required={field.required} helper={field.helper} {...fk}>
       <Input type={field.type || "text"} value={v || ""} maxLength={field.maxLength}
         placeholder={field.placeholder} onChange={(e) => setField(field.key, e.target.value)} />
     </RwField>
@@ -411,6 +415,18 @@ export default function CreateReferral() {
     return !!manualData.diagnosisCode && !!manualData.drugRequested;
   })();
   const canProceedStep3 = !!selectedPharmacyId;
+  const step2Errors: Record<string, string> = {};
+  if (currentStep === 1 && referralMethod) {
+    if (referralMethod === "upload" && uploadedFiles.length === 0)
+      step2Errors.documents = "Upload at least one document, or go back and enter the details by hand.";
+    if (referralMethod === "manual") {
+      if (!manualData.drugRequested) step2Errors.drugRequested = "Choose or type the drug requested.";
+      if (!manualData.diagnosisCode) step2Errors.diagnosisCode = "Enter the ICD-10 diagnosis code.";
+    }
+    if (!insuranceSectionValid) step2Errors.bridge = "Choose whether this referral goes through a bridge program.";
+  }
+  const STEP2_ORDER = referralMethod === "upload" ? ["documents", "bridge"] : ["drugRequested", "diagnosisCode", "bridge"];
+  const STEP2_LABELS: Record<string, string> = { documents: "Documents", drugRequested: "Drug requested", diagnosisCode: "Diagnosis ICD-10", bridge: "Bridge program" };
   const selectedPharmacy = useMemo(() => pharmacies.find((p: any) => p.id === selectedPharmacyId) || null, [pharmacies, selectedPharmacyId]);
 
 
@@ -421,7 +437,7 @@ export default function CreateReferral() {
   };
   const goNext = () => {
     if (currentStep === 1 && referralMethod) {
-      if (!canProceedStep2) { setShowSubmitErrors(true); return; }
+      if (!canProceedStep2) { setShowSubmitErrors(true); focusFirstError(step2Errors, STEP2_ORDER); return; }
       setCurrentStep(2); return;
     }
     if (currentStep === 0 && canProceedStep1) { setCurrentStep(1); return; }
@@ -510,7 +526,9 @@ export default function CreateReferral() {
                   <h2 className="wz-title">Upload Documents</h2>
                   <p className="wz-lede">Upload all relevant documents for this referral</p>
                 </div>
-                <SmartDropzone files={uploadedFiles} onFiles={(fl: File[]) => fl.forEach(handleRealFileUpload)} removeFile={removeFile} setTag={setFileTag} isPacket={isPacket} setPacket={setIsPacket} />
+                <div data-field="documents" className={cn(showSubmitErrors && uploadedFiles.length === 0 && "rounded-md border border-destructive p-2")}>
+                  <SmartDropzone files={uploadedFiles} onFiles={(fl: File[]) => fl.forEach(handleRealFileUpload)} removeFile={removeFile} setTag={setFileTag} isPacket={isPacket} setPacket={setIsPacket} />
+                </div>
                 <BridgeBlock choice={insuranceChoice} onChange={setInsuranceChoice} showErrors={showSubmitErrors} />
                 <NoticeStrip icon="sparkles" tone="teal">Our AI will automatically extract patient info, provider details, drug information, and more from your documents.</NoticeStrip>
                 <NoticeStrip icon="check-circle">Our team will handle the PA and process</NoticeStrip>
@@ -550,11 +568,17 @@ export default function CreateReferral() {
             )}
           </div>
 
+          {currentStep === 1 && referralMethod && showSubmitErrors && (
+            <div className="mt-4">
+              <FormErrorSummary errors={step2Errors} labels={STEP2_LABELS} order={STEP2_ORDER} />
+            </div>
+          )}
+
           {/* Bar D — footer */}
           <div className="flex items-center justify-between mt-4" data-tour="wizard-next">
             <Button variant="outline" onClick={goBack}><Icon name="back" />{currentStep === 0 ? "Cancel" : "Back"}</Button>
             {currentStep === 0 && <Button onClick={goNext} disabled={!canProceedStep1}>Next: Referral Method<Icon name="forward" /></Button>}
-            {currentStep === 1 && referralMethod && <Button onClick={goNext} disabled={!canProceedStep2}>Next: Choose Pharmacy<Icon name="forward" /></Button>}
+            {currentStep === 1 && referralMethod && <Button onClick={goNext}>Next: Choose Pharmacy<Icon name="forward" /></Button>}
             {currentStep === 2 && <Button onClick={goNext} disabled={!canProceedStep3}>Continue to Review<Icon name="forward" /></Button>}
             {currentStep === 3 && (
               <Button className="bg-success text-success-foreground hover:bg-success/90" onClick={handleSubmit} disabled={!confirmAccuracy || submitting}>
@@ -771,7 +795,7 @@ function SmartDropzone({ files, onFiles, removeFile, setTag, isPacket, setPacket
 function BridgeBlock({ choice, onChange, showErrors }: { choice: "has" | "bridge" | null; onChange: (c: "has" | "bridge") => void; showErrors: boolean }) {
   const missing = showErrors && choice == null;
   return (
-    <div className="wz-sub">
+    <div className={cn("wz-sub", missing && "border-destructive ring-1 ring-destructive")} data-field="bridge" tabIndex={-1}>
       <div className="flex items-center gap-2 mb-1.5">
         <Icon name="shield" className="text-primary" />
         <h3 className="text-sm font-semibold text-foreground">Bridge program? <span className="text-destructive">*</span></h3>
@@ -807,7 +831,7 @@ function ManualScroll({ data, setField, choice, setChoice, showErrors }: any) {
             <h3 className="text-sm font-semibold text-foreground">{s.title}</h3>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {s.fields.map((f) => <ManualField key={f.key} field={f} data={data} setField={setField} />)}
+            {s.fields.map((f) => <ManualField key={f.key} field={f} data={data} setField={setField} showErrors={showErrors} />)}
           </div>
         </div>
       ))}

@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { FormErrorSummary } from "@/components/ui/FormErrorSummary";
+import { focusFirstError } from "@/lib/formErrors";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Icon } from "@/components/ui/icon";
 import {
@@ -30,11 +32,11 @@ interface FormState {
   npi: string;
 }
 
-interface FormErrors {
+type FormErrors = {
   first_name?: string;
   last_name?: string;
   phone?: string;
-}
+};
 
 const CLINIC_QUERY_KEY = ["clinic", "me"] as const;
 
@@ -53,6 +55,8 @@ const PREF_ROWS: { key: keyof EmailPrefs; label: string }[] = [
   { key: "notes_on_sent", label: "Notes on sent referrals" },
   { key: "support", label: "Support request resolved" },
 ];
+
+const ERROR_LABELS: Record<string, string> = { first_name: "First name", last_name: "Last name", phone: "Phone" };
 
 export function EditProfileModal({ open, onOpenChange }: EditProfileModalProps) {
   const { toast } = useToast();
@@ -110,6 +114,7 @@ export function EditProfileModal({ open, onOpenChange }: EditProfileModalProps) 
     if (!form.last_name.trim()) next.last_name = "Last name is required";
     if (!form.phone.trim()) next.phone = "Phone is required";
     setErrors(next);
+    if (Object.keys(next).length > 0) focusFirstError(next);
     return Object.keys(next).length === 0;
   };
 
@@ -162,7 +167,7 @@ export function EditProfileModal({ open, onOpenChange }: EditProfileModalProps) 
                   First Name <span className="text-destructive">*</span>
                 </Label>
                 <Input
-                  id="edit_first_name"
+                  id="edit_first_name" data-field="first_name"
                   value={form.first_name}
                   onChange={update("first_name")}
                   aria-invalid={!!errors.first_name}
@@ -176,7 +181,7 @@ export function EditProfileModal({ open, onOpenChange }: EditProfileModalProps) 
                   Last Name <span className="text-destructive">*</span>
                 </Label>
                 <Input
-                  id="edit_last_name"
+                  id="edit_last_name" data-field="last_name"
                   value={form.last_name}
                   onChange={update("last_name")}
                   aria-invalid={!!errors.last_name}
@@ -192,7 +197,7 @@ export function EditProfileModal({ open, onOpenChange }: EditProfileModalProps) 
                 Phone <span className="text-destructive">*</span>
               </Label>
               <Input
-                id="edit_phone"
+                id="edit_phone" data-field="phone"
                 type="tel"
                 placeholder="e.g. 555-123-4567"
                 value={form.phone}
@@ -271,6 +276,8 @@ export function EditProfileModal({ open, onOpenChange }: EditProfileModalProps) 
               </dl>
             )}
           </section>
+
+          <FormErrorSummary errors={errors} labels={ERROR_LABELS} />
 
           <DialogFooter className="gap-2 sm:gap-2 pt-2">
             <Button

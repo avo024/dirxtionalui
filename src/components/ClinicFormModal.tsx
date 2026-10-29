@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { FormErrorSummary } from "@/components/ui/FormErrorSummary";
+import { focusFirstError } from "@/lib/formErrors";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -38,6 +40,8 @@ const empty: FormState = {
 };
 
 const NONE_VALUE = "__none__";
+
+const ERROR_LABELS: Record<string, string> = { name: "Clinic name", specialty: "Specialty", email: "Email", npi: "NPI" };
 
 export function ClinicFormModal({ open, onOpenChange, clinic }: ClinicFormModalProps) {
   const isEdit = !!clinic;
@@ -89,6 +93,7 @@ export function ClinicFormModal({ open, onOpenChange, clinic }: ClinicFormModalP
       e.npi = "NPI must be 10 digits";
     }
     setErrors(e);
+    if (Object.keys(e).length > 0) focusFirstError(e);
     return Object.keys(e).length === 0;
   };
 
@@ -137,7 +142,7 @@ export function ClinicFormModal({ open, onOpenChange, clinic }: ClinicFormModalP
             <Label htmlFor="name">
               Clinic Name <span className="text-destructive">*</span>
             </Label>
-            <Input id="name" value={form.name} onChange={(e) => update("name", e.target.value)} />
+            <Input id="name" data-field="name" value={form.name} onChange={(e) => update("name", e.target.value)} />
             {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
           </div>
 
@@ -147,7 +152,7 @@ export function ClinicFormModal({ open, onOpenChange, clinic }: ClinicFormModalP
               Specialty <span className="text-destructive">*</span>
             </Label>
             <Input
-              id="specialty"
+              id="specialty" data-field="specialty"
               value={form.specialty}
               onChange={(e) => update("specialty", e.target.value)}
               placeholder="e.g., Dermatology"
@@ -162,7 +167,7 @@ export function ClinicFormModal({ open, onOpenChange, clinic }: ClinicFormModalP
                 Clinic Email <span className="text-destructive">*</span>
               </Label>
               <Input
-                id="email"
+                id="email" data-field="email"
                 type="email"
                 value={form.email}
                 onChange={(e) => update("email", e.target.value)}
@@ -197,7 +202,7 @@ export function ClinicFormModal({ open, onOpenChange, clinic }: ClinicFormModalP
             <div className="space-y-2">
               <Label htmlFor="npi">NPI</Label>
               <Input
-                id="npi"
+                id="npi" data-field="npi"
                 value={form.npi}
                 onChange={(e) => update("npi", e.target.value.replace(/\D/g, "").slice(0, 10))}
                 placeholder="1234567890"
@@ -231,6 +236,8 @@ export function ClinicFormModal({ open, onOpenChange, clinic }: ClinicFormModalP
               options={[{ value: NONE_VALUE, label: "None" }, ...pharmacies.map((p) => ({ value: p.id, label: p.name }))]}
             />
           </div>
+
+          <FormErrorSummary errors={errors} labels={ERROR_LABELS} />
 
           <DialogFooter>
             <Button

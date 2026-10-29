@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { FormErrorSummary } from "@/components/ui/FormErrorSummary";
+import { focusFirstError } from "@/lib/formErrors";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Icon } from "@/components/ui/icon";
 import { Button } from "@/components/ui/button";
@@ -15,11 +17,13 @@ interface FormState {
   npi: string;
 }
 
-interface FormErrors {
+type FormErrors = {
   first_name?: string;
   last_name?: string;
   phone?: string;
-}
+};
+
+const ERROR_LABELS: Record<string, string> = { first_name: "First name", last_name: "Last name", phone: "Phone" };
 
 export function CompleteProfileModal() {
   const { toast } = useToast();
@@ -53,6 +57,7 @@ export function CompleteProfileModal() {
     if (!form.last_name.trim()) next.last_name = "Last name is required";
     if (!form.phone.trim()) next.phone = "Phone is required";
     setErrors(next);
+    if (Object.keys(next).length > 0) focusFirstError(next);
     return Object.keys(next).length === 0;
   };
 
@@ -96,7 +101,7 @@ export function CompleteProfileModal() {
             <div className="space-y-1.5">
               <Label htmlFor="first_name">First Name <span className="text-destructive">*</span></Label>
               <Input
-                id="first_name"
+                id="first_name" data-field="first_name"
                 value={form.first_name}
                 onChange={update("first_name")}
                 autoFocus
@@ -109,7 +114,7 @@ export function CompleteProfileModal() {
             <div className="space-y-1.5">
               <Label htmlFor="last_name">Last Name <span className="text-destructive">*</span></Label>
               <Input
-                id="last_name"
+                id="last_name" data-field="last_name"
                 value={form.last_name}
                 onChange={update("last_name")}
                 aria-invalid={!!errors.last_name}
@@ -123,7 +128,7 @@ export function CompleteProfileModal() {
           <div className="space-y-1.5">
             <Label htmlFor="phone">Phone <span className="text-destructive">*</span></Label>
             <Input
-              id="phone"
+              id="phone" data-field="phone"
               type="tel"
               placeholder="e.g. 555-123-4567"
               value={form.phone}
@@ -144,6 +149,8 @@ export function CompleteProfileModal() {
               placeholder="Leave blank if not a prescriber"
             />
           </div>
+
+          <FormErrorSummary errors={errors} labels={ERROR_LABELS} />
 
           <Button
             type="submit"
